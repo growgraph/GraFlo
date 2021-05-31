@@ -1,0 +1,80 @@
+general:
+  name: ibes
+csv:
+    -
+        filetype: ibes_main
+        vertex_collections:
+            -
+                type: ticker
+                map_fields:
+                    wos_id: _key
+                    CUSIP: cusip
+                    CNAME: cname
+                    OFTIC: oftic
+            -
+                type: agency
+                map_fields:
+                    ESTIMID: name
+            -
+                type: analyst
+                map_fields:
+                    ANALYST: name
+            -
+                type: recomendation
+                map_fields:
+                    ERECCD: erec
+                    ETEXT: etext
+                    IRECCD: irec
+                    ITEXT: itext
+vertex_collections:
+    ticker:
+        basename: tickers
+        fields:
+            - _key
+            - cusip
+            - cname
+            - oftic
+        index:
+            - _key
+    agency:
+        basename: agencies
+        fields:
+            - name
+        index:
+            - name
+    analyst:
+        basename: analysts
+        fields:
+            - name
+        index:
+            - name
+    recomendation:
+        basename: recomendations
+        fields:
+            - erec
+            - etext
+            - irec
+            - itext
+        index:
+            - irec
+
+edge_collections:
+    -
+        - analyst
+        - ticker
+    -
+        - agency
+        - analyst
+    -
+        - analyst
+        - recomendation
+#extra_edges:
+#    -
+#        source: contributor
+#        target: organization
+#        by: publication
+#        edge_weight:
+#            _key: pubid
+#            year: year
+#Index(['TICKER', 'ACTDATS', 'EMASKCD', 'AMASKCD', 'USFIRM',
+#       'ACTTIMS', 'REVDATS', 'REVTIMS', 'ANNDATS', 'ANNTIMS'

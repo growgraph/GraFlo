@@ -1,0 +1,147 @@
+general:
+  name: wos
+csv:
+    -
+        filetype: publications
+        vertex_collections:
+            -
+                type: publication
+                map_fields:
+                    wos_id: _key
+                    pubyear: year
+                    pubmonth: month
+                    pubday: day
+            -
+                type: medium
+                map_fields:
+                    source: title
+            -
+                type: language
+    -
+        filetype: contributors
+        vertex_collections:
+            -
+                type: contributor
+            -
+                type: publication
+                map_fields:
+                    wos_id: _key
+    -
+        filetype: institutions
+        vertex_collections:
+            -
+                type: organization
+            -
+                type: publication
+                map_fields:
+                    wos_id: _key
+    -
+        filetype: refs
+        vertex_collections:
+            -
+                type: publication
+                map_fields:
+                    wos_id: _key
+            -
+                type: publication
+                map_fields:
+                    uid: _key
+vertex_collections:
+    publication:
+        basename: publications
+        fields:
+            - _key
+            - accession_no
+            - title
+            - year
+            - month
+            - day
+        numeric_fields:
+            - year
+            - month
+            - day
+        index:
+            - _key
+        extra_index:
+            -
+                type: hash
+                unique: false
+                fields:
+                    - title
+            -
+                type: hash
+                unique: false
+                fields:
+                    - year
+    medium:
+        basename: media
+        fields:
+            - issn
+            - isbn
+            - title
+            - eissn
+            - eisbn
+        index:
+            - issn
+            - isbn
+            - title
+        extra_index:
+            -
+                type: hash
+                unique: false
+                fields:
+                    - issn
+    language:
+        basename: languages
+        fields:
+            - language
+        index:
+            - language
+    contributor:
+        basename: contributors
+        fields:
+            - first_name
+            - last_name
+        index:
+            - first_name
+            - last_name
+    organization:
+        basename: organizations
+        fields:
+            - organization
+            - country
+            - city
+        index:
+            - organization
+            - country
+            - city
+        extra_index:
+            -
+                type: hash
+                unique: false
+                fields:
+                    - country
+edge_collections:
+    -
+        - publication
+        - medium
+    -
+        - publication
+        - language
+    -
+        - contributor
+        - publication
+    -
+        - organization
+        - publication
+    -
+        - publication
+        - publication
+extra_edges:
+    -
+        source: contributor
+        target: organization
+        by: publication
+        edge_weight:
+            _key: pubid
+            year: year
