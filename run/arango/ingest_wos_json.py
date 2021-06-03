@@ -2,7 +2,7 @@ import argparse
 import yaml
 from os.path import expanduser
 
-from wos_db_studies.top import ingest_json_files
+from graph_cast.top import ingest_json_files
 import logging
 
 logger = logging.getLogger(__name__)
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config-path",
         type=str,
-        default="../conf/wos_json.yaml",
+        default="../../conf/wos_json.yaml",
         help="",
     )
 

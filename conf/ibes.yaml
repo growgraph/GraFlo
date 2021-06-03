@@ -14,7 +14,7 @@ csv:
             -
                 type: agency
                 map_fields:
-                    ESTIMID: name
+                    ESTIMID: aname
             -
                 type: analyst
                 map_fields:
@@ -39,9 +39,9 @@ vertex_collections:
     agency:
         basename: agencies
         fields:
-            - name
+            - aname
         index:
-            - name
+            - aname
     analyst:
         basename: analysts
         fields:
