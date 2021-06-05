@@ -1,20 +1,20 @@
 import time
 import argparse
 import yaml
-from os.path import join, expanduser
+from os.path import expanduser
 from os import listdir
 from os.path import isfile, join
 import csv
 from itertools import permutations
 from arango import ArangoClient
-from graph_cast.util.db import (
+from graph_cast.arango.util import (
     delete_collections,
     upsert_docs_batch,
     insert_edges_batch,
-    define_extra_edges,
+    define_extra_edges, update_to_numeric,
 )
-from graph_cast.utils import clear_first_level_nones, update_to_numeric
-from graph_cast.chunker import Chunker
+from graph_cast.util.tranform import clear_first_level_nones
+from graph_cast.util.io import Chunker
 from pprint import pprint
 
 
@@ -77,7 +77,7 @@ def main(
     # edge discovery
 
     field_maps = {}
-    for item in config["table"]:
+    for item in config["csv"]:
         field_maps[item["filetype"]] = {
             vmap[vc["type"]]: vc["map_fields"]
             for vc in item["vertex_collections"]
@@ -85,7 +85,7 @@ def main(
         }
 
     acc = []
-    for n in config["table"]:
+    for n in config["csv"]:
         for pa, pb in permutations(n["vertex_collections"], 2):
             pa_map = pa["map_fields"] if "map_fields" in pa else {}
             pb_map = pb["map_fields"] if "map_fields" in pb else {}
@@ -425,7 +425,7 @@ def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-d", "--datapath", default=expanduser("../data/toy"), help="Path to data files"
+        "-d", "--datapath", default=expanduser("../../data/toy"), help="Path to data files"
     )
 
     parser.add_argument(

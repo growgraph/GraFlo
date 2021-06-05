@@ -5,7 +5,7 @@ from collections import defaultdict
 from itertools import product
 import argparse
 
-from graph_cast.utils_json import parse_edges
+from graph_cast.json.util import parse_edges
 
 """
 

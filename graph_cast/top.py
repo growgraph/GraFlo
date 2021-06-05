@@ -6,16 +6,15 @@ from os.path import isfile, join
 from functools import partial
 import multiprocessing as mp
 import logging
-from graph_cast.util.db import (
+from graph_cast.arango.util import (
     get_arangodb_client,
     delete_collections,
     define_collections,
     upsert_docs_batch,
     insert_edges_batch,
 )
-from graph_cast.util.pjson import parse_config
-from graph_cast.utils import merge_doc_basis
-from graph_cast.utils_json import parse_edges, process_document_top
+from graph_cast.util.tranform import merge_doc_basis
+from graph_cast.json.util import parse_edges, process_document_top, parse_config
 import graph_cast.util.timer as timer
 
 logger = logging.getLogger(__name__)

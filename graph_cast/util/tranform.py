@@ -1,15 +1,6 @@
-import time
 import json
 import logging
 from datetime import datetime
-
-seconds = time.time()
-
-gr_name = "wos_csv"
-
-pub_col_aux = "publications_aux"
-pub_col = "publications"
-cite_col = "cites"
 
 day_endings = ["st", "nd", "rd", "th"]
 
@@ -102,14 +93,6 @@ def clear_first_level_nones(docs, keys_keep_nones=None):
         {k: v for k, v in tdict.items() if v or k in keys_keep_nones} for tdict in docs
     ]
     return docs
-
-
-def update_to_numeric(collection_name, field):
-    s1 = f"FOR p IN {collection_name} FILTER p.{field} update p with {{"
-    s2 = f"{field}: TO_NUMBER(p.{field}) "
-    s3 = f"}} in {collection_name}"
-    q0 = s1 + s2 + s3
-    return q0
 
 
 def pick_unique_dict(docs):
