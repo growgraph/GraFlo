@@ -9,9 +9,10 @@ import string
 
 from pathlib import Path
 import shutil
-from wos_parser.aux import convert
+from graph_cast.xml.io import convert
 import graph_cast.util.timer as timer
-from graph_cast.top import ingest_json_files
+from graph_cast.main import ingest_json_files
+from graph_cast.arango.util import get_arangodb_client
 
 logger = logging.getLogger(__name__)
 
@@ -56,13 +57,7 @@ def process_units(
     units,
     tmp_dir,
     config,
-    protocol,
-    id_addr,
-    port,
-    db,
-    login_name,
-    login_password,
-    prefix,
+    db_client,
     init_collections,
     dry,
 ):
@@ -77,15 +72,9 @@ def process_units(
                 ingest_json_files(
                     tmp_dir,
                     config,
-                    protocol,
-                    id_addr,
-                    port,
-                    db,
-                    login_name,
-                    login_password,
+                    db_client=db_client,
                     keyword="json",
                     clean_start="all" if j == 0 and init_collections else None,
-                    prefix=prefix,
                     dry=dry,
                 )
 
@@ -146,7 +135,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config-path",
         type=str,
-        default="../conf/wos_json_simple.yaml",
+        default="../conf/wos_json.yaml",
         help="",
     )
 
@@ -181,8 +170,6 @@ if __name__ == "__main__":
 
     parser.add_argument("--dry", action="store_true")
 
-    parser.add_argument("--prefix", default="toy_", help="prefix for collection names")
-
     parser.add_argument("--init-collections", action="store_true")
 
     args = parser.parse_args()
@@ -203,17 +190,17 @@ if __name__ == "__main__":
         "tmp_" + "".join(random.choices(string.ascii_uppercase + string.digits, k=6)),
     )
     create_tmp(tmp_path)
+
+    sys_db = get_arangodb_client(
+        args.protocol, args.ip_addr, args.port, args.database, args.cred_name, args.cred_pass
+    )
+
     process_units(
         units,
         tmp_path,
         config_,
-        args.protocol,
-        args.id_addr,
-        args.port,
-        args.db,
-        args.login_name,
-        args.login_password,
-        args.prefix,
-        args.init_collections,
-        args.dry,
+        db_client=sys_db,
+        init_collections=args.init_collections,
+        dry=args.dry,
     )
+

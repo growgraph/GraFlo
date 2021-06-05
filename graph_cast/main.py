@@ -1,45 +1,28 @@
 import gzip
 import json
+import multiprocessing as mp
 from collections import defaultdict
+from functools import partial
 from os import listdir
 from os.path import isfile, join
-from functools import partial
-import multiprocessing as mp
-import logging
-from graph_cast.arango.util import (
-    get_arangodb_client,
-    delete_collections,
-    define_collections,
-    upsert_docs_batch,
-    insert_edges_batch,
-)
-from graph_cast.util.tranform import merge_doc_basis
-from graph_cast.json.util import parse_edges, process_document_top, parse_config
-import graph_cast.util.timer as timer
 
-logger = logging.getLogger(__name__)
+from graph_cast.arango.util import delete_collections, define_collections, upsert_docs_batch, insert_edges_batch
+from graph_cast.json.util import parse_config, parse_edges, logger, process_document_top
+from graph_cast.util import timer as timer
+from graph_cast.util.tranform import merge_doc_basis
 
 
 def ingest_json_files(
     fpath,
     config,
-    protocol="http",
-    ip_addr="127.0.0.1",
-    port=8529,
-    database="_system",
-    cred_name="root",
-    cred_pass="123",
+    db_client,
     keyword="DSSHPSH",
     clean_start="all",
-    prefix="toy_",
     dry=False,
 ):
-    sys_db = get_arangodb_client(
-        protocol, ip_addr, port, database, cred_name, cred_pass
-    )
 
     vcollections, vmap, graphs, index_fields_dict, eindex = parse_config(
-        config=config, prefix=prefix
+        config=config
     )
 
     edge_des, excl_fields = parse_edges(config["json"], [], defaultdict(list))
@@ -48,12 +31,12 @@ def ingest_json_files(
     # }
 
     if clean_start == "all":
-        delete_collections(sys_db, [], [], delete_all=True)
+        delete_collections(db_client, [], [], delete_all=True)
         #     delete_collections(sys_db, vcollections + ecollections, actual_graphs)
         # elif clean_start == "edges":
         #     delete_collections(sys_db, ecollections, [])
 
-        define_collections(sys_db, graphs, vmap, index_fields_dict, eindex)
+        define_collections(db_client, graphs, vmap, index_fields_dict, eindex)
 
     files = sorted(
         [f for f in listdir(fpath) if isfile(join(fpath, f)) and keyword in f]
@@ -64,7 +47,7 @@ def ingest_json_files(
         with gzip.GzipFile(join(fpath, filename), "rb") as fps:
             with timer.Timer() as t_pro:
                 data = json.load(fps)
-                ingest_json(data, config, prefix, sys_db, dry)
+                ingest_json(data, config, prefix, db_client, dry)
             logger.info(f" processing {filename} took {t_pro.elapsed:.2f} sec")
 
 

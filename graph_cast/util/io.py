@@ -1,5 +1,9 @@
 import gzip
 import re
+import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Chunker:
@@ -34,6 +38,43 @@ class Chunker:
 
     def done(self):
         return self.done
+
+
+class ChunkFlusherMono:
+    def __init__(self, target_prefix, chunksize, maxchunks=None, suffix=None):
+        self.target_prefix = target_prefix
+        self.acc = []
+        self.chunk_count = 0
+        self.chunksize = chunksize
+        self.maxchunks = maxchunks
+        self.iprocessed = 0
+        self.suffix = "good" if suffix is None else suffix
+        logger.info(f" in flush_chunk {self.chunksize}")
+
+    def flush_chunk(self):
+        logger.info(
+            f" in flush_chunk: len(self.acc) : {len(self.acc)}; self.chunk_count : {self.chunk_count}"
+        )
+        if len(self.acc) > 0:
+            fname = f"{self.target_prefix}#{self.suffix}#{self.chunk_count}.json.gz"
+            with gzip.GzipFile(fname, "w") as fout:
+                fout.write(json.dumps(self.acc, indent=4).encode("utf-8"))
+                logger.info(f" flushed {fname}")
+                self.chunk_count += 1
+                self.iprocessed += len(self.acc)
+                self.acc = []
+
+    def push(self, item):
+        self.acc.append(item)
+        if len(self.acc) >= self.chunksize:
+            self.flush_chunk()
+            gc.collect()
+
+    def stop(self):
+        return self.maxchunks is not None and (self.chunk_count >= self.maxchunks)
+
+    def items_processed(self):
+        return self.iprocessed
 
 
 class FPSmart:

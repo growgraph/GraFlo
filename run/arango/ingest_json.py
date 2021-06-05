@@ -2,18 +2,11 @@ import argparse
 import yaml
 from os.path import expanduser
 
-from graph_cast.top import ingest_json_files
+from graph_cast.main import ingest_json_files
+from graph_cast.arango.util import get_arangodb_client
 import logging
 
 logger = logging.getLogger(__name__)
-
-
-def is_int(x):
-    try:
-        int(x)
-    except:
-        return False
-    return True
 
 
 if __name__ == "__main__":
@@ -55,7 +48,8 @@ if __name__ == "__main__":
         "-f",
         "--limit-files",
         default=None,
-        type=str,
+        type=int,
+        nargs="?",
         help="max files per type to use for ingestion",
     )
 
@@ -89,11 +83,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if is_int(args.limit_files):
-        limit_files_ = int(args.limit_files)
-    else:
-        limit_files_ = None
-
+    limit_files_ = args.limit_files
     batch_size = args.batch_size
     clean_start = args.clean_start
 
@@ -105,16 +95,19 @@ if __name__ == "__main__":
 
     logging.basicConfig(filename="ingest_json.log", level=logging.INFO)
 
-    ingest_json_files(
-        expanduser(args.datapath),
-        config=config_,
+    db_client = get_arangodb_client(
         protocol=args.protocol,
         ip_addr=args.id_addr,
         port=args.port,
         database=args.db,
         cred_name=args.login_name,
         cred_pass=args.login_password,
-        keyword=limit_files_,
-        clean_start=args.keyword,
-        prefix=clean_start,
+    )
+
+    ingest_json_files(
+        expanduser(args.datapath),
+        config=config_,
+        db_client=db_client,
+        keyword=args.keyword,
+        clean_start=clean_start,
     )

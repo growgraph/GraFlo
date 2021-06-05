@@ -6,6 +6,7 @@ import json
 from functools import partial
 import multiprocessing as mp
 import logging
+
 from graph_cast.util.tranform import pick_unique_dict
 from graph_cast.util.io import FPSmart
 
@@ -488,7 +489,7 @@ def foo_parallel(data, kwargs, n=None):
     return r
 
 
-def parse_config(config=None, prefix="toy_"):
+def parse_config(config=None):
     """
     only parse_edges depends on json
 
@@ -498,7 +499,7 @@ def parse_config(config=None, prefix="toy_"):
     """
     # vertex_type -> vertex_collection_name
     vmap = {
-        k: f'{prefix}{v["basename"]}' for k, v in config["vertex_collections"].items()
+        k: f'{v["basename"]}' for k, v in config["vertex_collections"].items()
     }
 
     # vertex_collection_name -> field_definition
@@ -550,3 +551,5 @@ def parse_config(config=None, prefix="toy_"):
         | set([graph[g]["target"] for g in graph])
     )
     return vcollections, vmap, graph, index_fields_dict, extra_indices
+
+

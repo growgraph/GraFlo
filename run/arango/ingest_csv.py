@@ -1,39 +1,28 @@
 import time
 import argparse
 import yaml
-from os.path import expanduser
 from os import listdir
 from os.path import isfile, join
 import csv
 from itertools import permutations
-from arango import ArangoClient
+import logging
 from graph_cast.arango.util import (
     delete_collections,
     upsert_docs_batch,
     insert_edges_batch,
-    define_extra_edges, update_to_numeric,
+    define_extra_edges,
+    update_to_numeric,
 )
 from graph_cast.util.tranform import clear_first_level_nones
+from graph_cast.arango.util import get_arangodb_client
 from graph_cast.util.io import Chunker
-from pprint import pprint
 
-
-def is_int(x):
-    try:
-        int(x)
-    except:
-        return False
-    return True
+logger = logging.getLogger(__name__)
 
 
 def main(
     fpath,
-    protocol="http",
-    ip_addr="127.0.0.1",
-    port=8529,
-    database="_system",
-    cred_name="root",
-    cred_pass="123",
+    db_client,
     limit_files=None,
     max_lines=None,
     batch_size=50000000,
@@ -41,8 +30,8 @@ def main(
     clean_start="all",
     prefix="toy_",
     config=None,
-    verbose=True,
 ):
+
     # vertex_type -> vertex_collection_name
     vmap = {
         k: f'{prefix}{v["basename"]}' for k, v in config["vertex_collections"].items()
@@ -147,8 +136,7 @@ def main(
 
     ecollections = list(set([graph[g]["edge_name"] for g in actual_graphs]))
 
-    if verbose:
-        pprint(graph)
+    logger.info(graph)
 
     files_dict = {}
 
@@ -160,19 +148,13 @@ def main(
     if limit_files:
         files_dict = {k: v[:limit_files] for k, v in files_dict.items()}
 
-    pprint(files_dict)
+    logger.info(files_dict)
 
-    hosts = f"{protocol}://{ip_addr}:{port}"
-    client = ArangoClient(hosts=hosts)
-
-    sys_db = client.db(database, username=cred_name, password=cred_pass)
-
-    if verbose:
-        print(f"clean start {clean_start}")
+    logger.info(f"clean start {clean_start}")
     if clean_start == "all":
-        delete_collections(sys_db, vcollections + ecollections, actual_graphs)
+        delete_collections(db_client, vcollections + ecollections, actual_graphs)
     elif clean_start == "edges":
-        delete_collections(sys_db, ecollections, [])
+        delete_collections(db_client, ecollections, [])
 
     if clean_start == "edges":
         for gname in actual_graphs:
@@ -181,13 +163,11 @@ def main(
                 graph[gname]["target"],
                 graph[gname]["edge_name"],
             )
-            if verbose:
-                print("********************")
-                print(vcol_from, vcol_to, edge_col)
-            if sys_db.has_graph(gname):
-                g = sys_db.graph(gname)
+            logger.info(vcol_from, vcol_to, edge_col)
+            if db_client.has_graph(gname):
+                g = db_client.graph(gname)
             else:
-                g = sys_db.create_graph(gname)
+                g = db_client.create_graph(gname)
             _ = g.create_edge_definition(
                 edge_collection=edge_col,
                 from_vertex_collections=[vcol_from],
@@ -201,21 +181,19 @@ def main(
                 graph[gname]["target"],
                 graph[gname]["edge_name"],
             )
-            if verbose:
-                print("********************")
-                print(vcol_from, vcol_to, edge_col)
-            if sys_db.has_graph(gname):
-                g = sys_db.graph(gname)
+            logger.info(vcol_from, vcol_to, edge_col)
+            if db_client.has_graph(gname):
+                g = db_client.graph(gname)
             else:
-                g = sys_db.create_graph(gname)
-            if not sys_db.has_collection(vcol_to):
+                g = db_client.create_graph(gname)
+            if not db_client.has_collection(vcol_to):
                 _ = g.create_vertex_collection(vcol_to)
-                general_collection = sys_db.collection(vcol_to)
+                general_collection = db_client.collection(vcol_to)
                 index_fields = index_fields_dict[vcol_to]
                 ih = general_collection.add_hash_index(fields=index_fields, unique=True)
-            if not sys_db.has_collection(vcol_from):
+            if not db_client.has_collection(vcol_from):
                 _ = g.create_vertex_collection(vcol_from)
-                general_collection = sys_db.collection(vcol_from)
+                general_collection = db_client.collection(vcol_from)
                 index_fields = index_fields_dict[vcol_from]
                 ih = general_collection.add_hash_index(fields=index_fields, unique=True)
 
@@ -228,12 +206,12 @@ def main(
         # add secondary indices:
         for cname, list_indices in extra_indices.items():
             for index_dict in list_indices:
-                general_collection = sys_db.collection(cname)
+                general_collection = db_client.collection(cname)
                 ih = general_collection.add_hash_index(
                     fields=index_dict["fields"], unique=index_dict["unique"]
                 )
 
-    print([c["name"] for c in sys_db.collections() if c["name"][0] != "_"])
+    logger.info([c["name"] for c in db_client.collections() if c["name"][0] != "_"])
     seconds_start0 = time.time()
 
     for mode in modes:
@@ -245,9 +223,8 @@ def main(
             header = chk.pop_header()
             header = header.split(",")
             header_dict = dict(zip(header, range(len(header))))
-            if verbose:
-                print("header_dict")
-                print(header_dict)
+            logger.info("header_dict")
+            logger.info(header_dict)
 
             seconds_start = time.time()
 
@@ -274,27 +251,23 @@ def main(
                         )
 
                         seconds0 = time.time()
-                        if verbose:
-                            print("vfrom_dict")
-                            print(vfrom_dict)
+                        logger.info(f"vfrom_dict {vfrom_dict}")
 
                         vfrom_header_dict = {
                             (vfrom_dict[k] if k in vfrom_dict else k): v
                             for k, v in header_dict.items()
                         }
 
-                        if verbose:
-                            print("vfrom_header_dict")
-                            print(vfrom_header_dict)
+                        logger.info(f"vfrom_header_dict {vfrom_header_dict}")
+                        logger.info("vfrom_header_dict")
 
                         retrieve_fields_dict_from = [
                             f
                             for f in retrieve_fields_dict[vfrom]
                             if f in vfrom_header_dict
                         ]
-                        if verbose:
-                            print("retrieve_fields_dict_from")
-                            print(retrieve_fields_dict_from)
+                        logger.info("retrieve_fields_dict_from")
+                        logger.info(retrieve_fields_dict_from)
 
                         from_list = [
                             {
@@ -315,27 +288,22 @@ def main(
                         query0 = upsert_docs_batch(
                             from_set, vfrom, index_fields_dict[vfrom], "doc", True
                         )
-                        cursor = sys_db.aql.execute(query0)
+                        cursor = db_client.aql.execute(query0)
 
-                        if verbose:
-                            print("vto_dict")
-                            print(vto_dict)
+                        logger.info(f"vto_dict {vto_dict}")
 
                         vto_header_dict = {
                             (vto_dict[k] if k in vto_dict else k): v
                             for k, v in header_dict.items()
                         }
 
-                        if verbose:
-                            print("vto_header_dict")
-                            print(vto_header_dict)
+                        logger.info(f"vto_header_dict {vto_header_dict}")
 
                         retrieve_fields_dict_to = [
                             f for f in retrieve_fields_dict[vto] if f in vto_header_dict
                         ]
-                        if verbose:
-                            print("retrieve_fields_dict_to")
-                            print(retrieve_fields_dict_to)
+
+                        logger.info("retrieve_fields_dict_to {retrieve_fields_dict_to}")
 
                         to_list = [
                             {
@@ -356,22 +324,21 @@ def main(
                         query0 = upsert_docs_batch(
                             to_set, vto, index_fields_dict[vto], "doc", True
                         )
-                        # print(query0)
-                        cursor = sys_db.aql.execute(query0)
+                        # logger.info(query0)
+                        cursor = db_client.aql.execute(query0)
 
                         seconds2 = time.time()
-                        if verbose:
-                            print(
-                                f"ingested {len(from_set) + len(to_set)} nodes; {seconds2 - seconds0:.1f} sec"
-                            )
+                        logger.info(
+                            f"ingested {len(from_set) + len(to_set)} nodes; {seconds2 - seconds0:.1f} sec"
+                        )
 
                         edges_ = [
                             {"source": x, "target": y}
                             for x, y in zip(from_list, to_list)
                         ]
-                        if verbose:
-                            print(index_fields_dict[vfrom])
-                            print(index_fields_dict[vto])
+                        logger.info(index_fields_dict[vfrom])
+                        logger.info(index_fields_dict[vto])
+
                         query0 = insert_edges_batch(
                             edges_,
                             vfrom,
@@ -381,35 +348,34 @@ def main(
                             index_fields_dict[vto],
                             False,
                         )
-                        cursor = sys_db.aql.execute(query0)
+                        cursor = db_client.aql.execute(query0)
 
                         seconds3 = time.time()
-                        if verbose:
-                            print(
-                                f"ingested {len(edges_)} edges; {seconds3 - seconds2:.1f} sec"
-                            )
+                        logger.info(
+                            f"ingested {len(edges_)} edges; {seconds3 - seconds2:.1f} sec"
+                        )
             seconds_end_file = time.time()
-            print(
+            logger.info(
                 f"ingest file {filename} took {(seconds_end_file - seconds_start_file) :.1f} sec"
             )
         seconds_end_mode = time.time()
-        print(
+        logger.info(
             f"ingest mode {mode} took {(seconds_end_mode - seconds_start_mode) :.1f} sec"
         )
     seconds_end0 = time.time()
-    print(f"full ingest took {(seconds_end0 - seconds_start0) :.1f} sec")
+    logger.info(f"full ingest took {(seconds_end0 - seconds_start0) :.1f} sec")
 
-    print(f"updating some fields to numeric...")
+    logger.info(f"updating some fields to numeric...")
     seconds_start0 = time.time()
 
     for cname, fields in numeric_fields_dict.items():
         for field in fields:
             query0 = update_to_numeric(cname, field)
-            cursor = sys_db.aql.execute(query0)
+            cursor = db_client.aql.execute(query0)
     seconds_end0 = time.time()
-    print(f"updating some fields to numeric {(seconds_end0 - seconds_start0) :.1f} sec")
+    logger.info(f"updating some fields to numeric {(seconds_end0 - seconds_start0) :.1f} sec")
 
-    print(f"defining edges for extra graphs...")
+    logger.info(f"defining edges for extra graphs...")
     seconds_start0 = time.time()
 
     # create edge u -> v from u->w, v->w edges
@@ -417,16 +383,22 @@ def main(
     for gname, item in graph.items():
         if item["type"] == "indirect":
             query0 = define_extra_edges(item)
-            cursor = sys_db.aql.execute(query0)
+            cursor = db_client.aql.execute(query0)
     seconds_end0 = time.time()
-    print(f"defined edges for extra graphs {(seconds_end0 - seconds_start0) :.4f} sec")
+    logger.info(f"defined edges for extra graphs {(seconds_end0 - seconds_start0) :.4f} sec")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-d", "--datapath", default=expanduser("../../data/toy"), help="Path to data files"
+
+    logging.basicConfig(
+        filename="ingest_csv.log",
+        format="%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        level=logging.INFO,
     )
+
+    parser.add_argument("--path", type=str, help="path to csv datafiles")
 
     parser.add_argument(
         "-i",
@@ -461,7 +433,8 @@ if __name__ == "__main__":
         "-f",
         "--limit-files",
         default=None,
-        type=str,
+        type=int,
+        nargs="?",
         help="max files per type to use for ingestion",
     )
 
@@ -469,12 +442,9 @@ if __name__ == "__main__":
         "-m",
         "--max-lines",
         default=None,
-        type=str,
+        type=int,
+        nargs="?",
         help="max lines per file to use for ingestion",
-    )
-
-    parser.add_argument(
-        "-v", "--verbose", default=False, type=bool, help="verbosity level"
     )
 
     parser.add_argument(
@@ -484,8 +454,6 @@ if __name__ == "__main__":
         type=int,
         help="number of symbols read from (archived) file for a single batch",
     )
-
-    parser.add_argument("--prefix", default="toy_", help="prefix for collection names")
 
     parser.add_argument(
         "--modes",
@@ -503,60 +471,41 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config-path",
         type=str,
-        default="../../conf/wos.yaml",
+        default="../conf/wos.yaml",
         help="",
     )
 
     args = parser.parse_args()
 
-    if is_int(args.limit_files):
-        limit_files = int(args.limit_files)
-    else:
-        limit_files = None
-
-    if is_int(args.max_lines):
-        max_lines = int(args.max_lines)
-    else:
-        max_lines = None
+    limit_files = args.limit_files
+    max_lines = args.max_lines
 
     fpath = args.datapath
 
-    id_addr = args.id_addr
-    protocol = args.protocol
-    port = args.port
-    database = args.db
-    cred_name = args.login_name
-    cred_pass = args.login_password
-
-    verbose = args.verbose
     batch_size = args.batch_size
     modes = args.modes
     clean_start = args.clean_start
 
-    prefix = args.prefix
-
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    if verbose:
-        print(f"max_lines : {max_lines}; limit_files: {limit_files}")
-        print(f"modes: {modes}")
-        print(f"clean start: {clean_start}")
+    logger.info(f"max_lines : {max_lines}; limit_files: {limit_files}")
+    logger.info(f"modes: {modes}")
+    logger.info(f"clean start: {clean_start}")
+
+    logging.basicConfig(filename="ingest_csv.log", level=logging.INFO)
+
+    db_client = get_arangodb_client(
+        args.protocol, args.id_addr, args.port, args.db, args.cred_name, args.cred_pass
+    )
 
     main(
         fpath,
-        protocol,
-        id_addr,
-        port,
-        database,
-        cred_name,
-        cred_pass,
+        db_client,
         limit_files,
         max_lines,
         batch_size,
         modes,
         clean_start,
-        prefix,
         config,
-        verbose,
     )

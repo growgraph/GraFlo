@@ -31,6 +31,7 @@ def get_arangodb_client(protocol, ip_addr, port, database, cred_name, cred_pass)
     client = ArangoClient(hosts=hosts)
 
     sys_db = client.db(database, username=cred_name, password=cred_pass)
+
     return sys_db
 
 
