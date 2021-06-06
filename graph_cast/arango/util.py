@@ -2,7 +2,7 @@ import json
 from arango import ArangoClient
 import logging
 
-from graph_cast.util.tranform import pick_unique_dict
+from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
 

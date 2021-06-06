@@ -156,12 +156,12 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "-l", "--login-name", default="root", help="login name for arangodb connection"
+        "-l", "--cred-name", default="root", help="login name for arangodb connection"
     )
 
     parser.add_argument(
         "-w",
-        "--login-password",
+        "--cred-pass",
         default="123",
         help="login password for arangodb connection",
     )

@@ -7,9 +7,10 @@ from os import listdir
 from os.path import isfile, join
 
 from graph_cast.arango.util import delete_collections, define_collections, upsert_docs_batch, insert_edges_batch
-from graph_cast.json.util import parse_config, parse_edges, logger, process_document_top
+from graph_cast.input.util import logger
+from graph_cast.input.json import parse_edges, process_document_top, parse_config
 from graph_cast.util import timer as timer
-from graph_cast.util.tranform import merge_doc_basis
+from graph_cast.util.transform import merge_doc_basis
 
 
 def ingest_json_files(

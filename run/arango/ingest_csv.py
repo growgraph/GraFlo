@@ -13,7 +13,7 @@ from graph_cast.arango.util import (
     define_extra_edges,
     update_to_numeric,
 )
-from graph_cast.util.tranform import clear_first_level_nones
+from graph_cast.util.transform import clear_first_level_nones
 from graph_cast.arango.util import get_arangodb_client
 from graph_cast.util.io import Chunker
 
@@ -28,13 +28,12 @@ def main(
     batch_size=50000000,
     modes=("publications", "contributors", "institutions", "refs"),
     clean_start="all",
-    prefix="toy_",
     config=None,
 ):
 
     # vertex_type -> vertex_collection_name
     vmap = {
-        k: f'{prefix}{v["basename"]}' for k, v in config["vertex_collections"].items()
+        k: f'{v["basename"]}' for k, v in config["vertex_collections"].items()
     }
 
     # vertex_collection_name -> field_definition
@@ -163,7 +162,7 @@ def main(
                 graph[gname]["target"],
                 graph[gname]["edge_name"],
             )
-            logger.info(vcol_from, vcol_to, edge_col)
+            logger.info(f"{vcol_from}, {vcol_to}, {edge_col}")
             if db_client.has_graph(gname):
                 g = db_client.graph(gname)
             else:
@@ -181,7 +180,7 @@ def main(
                 graph[gname]["target"],
                 graph[gname]["edge_name"],
             )
-            logger.info(vcol_from, vcol_to, edge_col)
+            logger.info(f"{vcol_from}, {vcol_to}, {edge_col}")
             if db_client.has_graph(gname):
                 g = db_client.graph(gname)
             else:
@@ -223,8 +222,7 @@ def main(
             header = chk.pop_header()
             header = header.split(",")
             header_dict = dict(zip(header, range(len(header))))
-            logger.info("header_dict")
-            logger.info(header_dict)
+            logger.info(f"header_dict {header_dict}")
 
             seconds_start = time.time()
 
@@ -259,15 +257,13 @@ def main(
                         }
 
                         logger.info(f"vfrom_header_dict {vfrom_header_dict}")
-                        logger.info("vfrom_header_dict")
 
                         retrieve_fields_dict_from = [
                             f
                             for f in retrieve_fields_dict[vfrom]
                             if f in vfrom_header_dict
                         ]
-                        logger.info("retrieve_fields_dict_from")
-                        logger.info(retrieve_fields_dict_from)
+                        logger.info(f"retrieve_fields_dict_from {retrieve_fields_dict_from}")
 
                         from_list = [
                             {
@@ -303,7 +299,7 @@ def main(
                             f for f in retrieve_fields_dict[vto] if f in vto_header_dict
                         ]
 
-                        logger.info("retrieve_fields_dict_to {retrieve_fields_dict_to}")
+                        logger.info(f"retrieve_fields_dict_to {retrieve_fields_dict_to}")
 
                         to_list = [
                             {
@@ -417,17 +413,20 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "-l", "--login-name", default="root", help="login name for arangodb connection"
+        "-l", "--cred-name", default="root", help="login name for arangodb connection"
     )
 
     parser.add_argument(
         "-w",
-        "--login-password",
+        "--cred-pass",
         default="123",
         help="login password for arangodb connection",
     )
 
-    parser.add_argument("--db", default="_system", help="db for arangodb connection")
+    parser.add_argument("--db",
+                        # default="_system",
+                        default="wos",
+                        help="db for arangodb connection")
 
     parser.add_argument(
         "-f",
@@ -477,21 +476,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    limit_files = args.limit_files
-    max_lines = args.max_lines
-
-    fpath = args.datapath
-
-    batch_size = args.batch_size
-    modes = args.modes
-    clean_start = args.clean_start
-
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-
-    logger.info(f"max_lines : {max_lines}; limit_files: {limit_files}")
-    logger.info(f"modes: {modes}")
-    logger.info(f"clean start: {clean_start}")
 
     logging.basicConfig(filename="ingest_csv.log", level=logging.INFO)
 
@@ -500,12 +486,12 @@ if __name__ == "__main__":
     )
 
     main(
-        fpath,
+        args.path,
         db_client,
-        limit_files,
-        max_lines,
-        batch_size,
-        modes,
-        clean_start,
+        args.limit_files,
+        args.max_lines,
+        args.batch_size,
+        args.modes,
+        args.clean_start,
         config,
     )

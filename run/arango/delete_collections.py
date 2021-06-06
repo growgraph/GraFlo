@@ -4,14 +4,17 @@ from os import environ
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--collection", default="all", help="test setting")
+parser.add_argument("--db",
+                    # default="_system",
+                    default="wos",
+                    help="db for arangodb connection")
 
 client = ArangoClient()
 cred_name = environ["ARANGO_UNAME"]
 cred_pass = environ["ARANGO_PASS"]
-sys_db = client.db("_system", username=cred_name, password=cred_pass)
 args = parser.parse_args()
-print(args)
 mode = args.collection
+sys_db = client.db(args.db, username=cred_name, password=cred_pass)
 
 if mode == "all":
     print([c["name"] for c in sys_db.collections() if c["name"][0] != "_"])

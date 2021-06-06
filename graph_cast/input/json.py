@@ -1,18 +1,16 @@
-from itertools import product
-from collections import defaultdict, ChainMap
-import importlib
 import gzip
+import importlib
 import json
-from functools import partial
 import multiprocessing as mp
-import logging
+from collections import defaultdict, ChainMap
+from functools import partial
+from itertools import product
 
-from graph_cast.util.tranform import pick_unique_dict
+from graph_cast.input.util import parse_vcollection
 from graph_cast.util.io import FPSmart
+from graph_cast.util.transform import pick_unique_dict
 
 xml_dummy = "#text"
-
-logger = logging.getLogger(__name__)
 
 
 def apply_mapper(mapper, document, vertex_spec):
@@ -497,28 +495,11 @@ def parse_config(config=None):
     :param prefix:
     :return:
     """
-    # vertex_type -> vertex_collection_name
-    vmap = {
-        k: f'{v["basename"]}' for k, v in config["vertex_collections"].items()
-    }
 
-    # vertex_collection_name -> field_definition
-    index_fields_dict = {k: v["index"] for k, v in config["vertex_collections"].items()}
-
-    # vertex_collection_name -> extra_index
-    # in addition to index from field_definition
-    extra_indices = {
-        k: v["extra_index"]
-        for k, v in config["vertex_collections"].items()
-        if "extra_index" in v
-    }
-
-    # vertex_collection_name -> fields_keep
-    retrieve_fields_dict = {
-        k: v["fields"] for k, v in config["vertex_collections"].items()
-    }
+    vmap, index_fields_dict, extra_indices = parse_vcollection(config)
 
     edge_def, excl_fields = parse_edges(config["json"], [], defaultdict(list))
+
     graph = dict()
 
     for uv in edge_def:
@@ -551,5 +532,3 @@ def parse_config(config=None):
         | set([graph[g]["target"] for g in graph])
     )
     return vcollections, vmap, graph, index_fields_dict, extra_indices
-
-
