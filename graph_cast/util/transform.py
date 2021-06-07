@@ -95,6 +95,16 @@ def clear_first_level_nones(docs, keys_keep_nones=None):
     return docs
 
 
+def add_none_flag(docs, index_fields):
+    docs = [
+        tdict
+        if any([tdict[k] for k in index_fields])
+        else {**tdict, **{"_flag_na": True}}
+        for tdict in docs
+    ]
+    return docs
+
+
 def pick_unique_dict(docs):
     docs = {json.dumps(d, sort_keys=True) for d in docs}
     docs = [json.loads(t) for t in docs]

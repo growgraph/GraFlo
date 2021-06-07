@@ -4,10 +4,12 @@ from os import environ
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--collection", default="all", help="test setting")
-parser.add_argument("--db",
-                    # default="_system",
-                    default="wos",
-                    help="db for arangodb connection")
+parser.add_argument(
+    "--db",
+    # default="_system",
+    default="wos",
+    help="db for arangodb connection",
+)
 
 client = ArangoClient()
 cred_name = environ["ARANGO_UNAME"]

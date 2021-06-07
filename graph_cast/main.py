@@ -5,12 +5,23 @@ from collections import defaultdict
 from functools import partial
 from os import listdir
 from os.path import isfile, join
+import logging
 
-from graph_cast.arango.util import delete_collections, define_collections, upsert_docs_batch, insert_edges_batch
-from graph_cast.input.util import logger
-from graph_cast.input.json import parse_edges, process_document_top, parse_config
+from graph_cast.input.util import parse_vcollection
+from graph_cast.arango.util import (
+    delete_collections,
+    define_collections,
+    upsert_docs_batch,
+    insert_edges_batch,
+)
+
+from graph_cast.input.util import derive_graph, update_graph_extra_edges
+import graph_cast.input.json as gcij
+import graph_cast.input.csv as gcic
 from graph_cast.util import timer as timer
 from graph_cast.util.transform import merge_doc_basis
+
+logger = logging.getLogger(__name__)
 
 
 def ingest_json_files(
@@ -22,14 +33,9 @@ def ingest_json_files(
     dry=False,
 ):
 
-    vcollections, vmap, graphs, index_fields_dict, eindex = parse_config(
+    vcollections, vmap, graphs, index_fields_dict, extra_index = gcij.parse_config(
         config=config
     )
-
-    edge_des, excl_fields = parse_edges(config["json"], [], defaultdict(list))
-    # all_fields_dict = {
-    #     k: v["fields"] for k, v in config["vertex_collections"].items()
-    # }
 
     if clean_start == "all":
         delete_collections(db_client, [], [], delete_all=True)
@@ -37,7 +43,7 @@ def ingest_json_files(
         # elif clean_start == "edges":
         #     delete_collections(sys_db, ecollections, [])
 
-        define_collections(db_client, graphs, vmap, index_fields_dict, eindex)
+        define_collections(db_client, graphs, vmap, index_fields_dict, extra_index)
 
     files = sorted(
         [f for f in listdir(fpath) if isfile(join(fpath, f)) and keyword in f]
@@ -48,15 +54,15 @@ def ingest_json_files(
         with gzip.GzipFile(join(fpath, filename), "rb") as fps:
             with timer.Timer() as t_pro:
                 data = json.load(fps)
-                ingest_json(data, config, prefix, db_client, dry)
+                ingest_json(data, config, db_client, dry)
             logger.info(f" processing {filename} took {t_pro.elapsed:.2f} sec")
 
 
-def ingest_json(json_data, config, prefix, sys_db=None, dry=False):
-    vcollections, vmap, graphs, index_fields_dict, eindex = parse_config(
-        config=config, prefix=prefix
+def ingest_json(json_data, config, sys_db=None, dry=False):
+    vcollections, vmap, graphs, index_fields_dict, eindex = gcij.parse_config(
+        config=config
     )
-    edge_des, excl_fields = parse_edges(config["json"], [], defaultdict(list))
+    edge_des, excl_fields = gcij.parse_edges(config["json"], [], defaultdict(list))
 
     with timer.Timer() as t_parse:
 
@@ -66,7 +72,7 @@ def ingest_json(json_data, config, prefix, sys_db=None, dry=False):
             "edge_fields": excl_fields,
             "merge_collections": ["publication"],
         }
-        func = partial(process_document_top, **kwargs)
+        func = partial(gcij.process_document_top, **kwargs)
         n_proc = 4
         with mp.Pool(n_proc) as p:
             ldicts = p.map(func, json_data)
@@ -137,3 +143,92 @@ def ingest_json(json_data, config, prefix, sys_db=None, dry=False):
     #     if item["type"] == "indirect":
     #         query0 = define_extra_edges(item)
     #         cursor = sys_db.aql.execute(query0)
+
+
+def ingest_csvs(
+    fpath,
+    db_client,
+    limit_files=None,
+    max_lines=None,
+    batch_size=50000000,
+    clean_start="all",
+    config=None,
+):
+    vmap, index_fields_dict, extra_indices = parse_vcollection(config)
+
+    # vertex_collection_name -> fields_keep
+    vcollection_fields_map = {
+        k: v["fields"] for k, v in config["vertex_collections"].items()
+    }
+
+    # vertex_collection_name -> fields_type
+    vcollection_numeric_fields_map = {
+        k: v["numeric_fields"]
+        for k, v in config["vertex_collections"].items()
+        if "numeric_fields" in v
+    }
+
+    #############################
+    # edge discovery
+    field_maps = gcic.parse_input_output_field_map(config["csv"])
+    edges, extra_edges = gcic.parse_edges(config)
+
+    graph = derive_graph(edges, vmap)
+    graph = update_graph_extra_edges(graph, vmap, config["extra_edges"])
+
+    modes2graphs, modes2collections = gcic.derive_modes2graphs(graph, config["csv"])
+
+    # db operation
+    if clean_start == "all":
+        delete_collections(db_client, [], [], delete_all=True)
+        #     delete_collections(sys_db, vcollections + ecollections, actual_graphs)
+        # elif clean_start == "edges":
+        #     delete_collections(sys_db, ecollections, [])
+
+        define_collections(db_client, graph, vmap, index_fields_dict, extra_indices)
+
+    # file discovery
+    files_dict = gcic.discover_files(
+        modes2collections.keys(), fpath, limit_files=limit_files
+    )
+    logger.info(files_dict)
+
+    for mode in modes2collections:
+        current_collections = modes2collections[mode]
+        current_graphs = modes2graphs[mode]
+        with timer.Timer() as t_pro:
+            kwargs = {
+                "current_collections": current_collections,
+                "current_graphs": current_graphs,
+                "batch_size": batch_size,
+                "max_lines": max_lines,
+                "graph": graph,
+                "field_maps": field_maps[mode],
+                "index_fields_dict": index_fields_dict,
+                "db_client": db_client,
+                "vmap": vmap,
+                "vcollection_fields_map": vcollection_fields_map
+                # "edge_fields": excl_fields,
+                # "merge_collections": ["publication"],
+            }
+
+            func = partial(gcic.process_csv, **kwargs)
+            n_proc = 1
+            if n_proc > 1:
+                with mp.Pool(n_proc) as p:
+                    ldicts = p.map(func, files_dict[mode])
+            else:
+                for f in files_dict[mode]:
+                    func(f)
+        logger.info(f"{mode} took {t_pro.elapsed:.1f} sec")
+    # for cname, fields in vcollection_numeric_fields_map.items():
+    #     for field in fields:
+    #         query0 = update_to_numeric(cname, field)
+    #         cursor = db_client.aql.execute(query0)
+    #
+    # # create edge u -> v from u->w, v->w edges
+    # # find edge_cols uw and vw
+    # for gname, item in graph.items():
+    #     if item["type"] == "indirect":
+    #         query0 = define_extra_edges(item)
+    #         cursor = db_client.aql.execute(query0)

@@ -192,7 +192,12 @@ if __name__ == "__main__":
     create_tmp(tmp_path)
 
     sys_db = get_arangodb_client(
-        args.protocol, args.ip_addr, args.port, args.database, args.cred_name, args.cred_pass
+        args.protocol,
+        args.ip_addr,
+        args.port,
+        args.database,
+        args.cred_name,
+        args.cred_pass,
     )
 
     process_units(
@@ -203,4 +208,3 @@ if __name__ == "__main__":
         init_collections=args.init_collections,
         dry=args.dry,
     )
-

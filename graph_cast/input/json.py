@@ -9,6 +9,7 @@ from itertools import product
 from graph_cast.input.util import parse_vcollection
 from graph_cast.util.io import FPSmart
 from graph_cast.util.transform import pick_unique_dict
+from graph_cast.input.util import derive_graph, update_graph_extra_edges
 
 xml_dummy = "#text"
 
@@ -342,7 +343,6 @@ def parse_edges(croot, edge_acc, mapping_fields):
     :param mapping_fields:
     :return:
     """
-    # agg = defaultdict(list)
     if isinstance(croot, dict):
         if "maps" in croot:
             for m in croot["maps"]:
@@ -500,33 +500,9 @@ def parse_config(config=None):
 
     edge_def, excl_fields = parse_edges(config["json"], [], defaultdict(list))
 
-    graph = dict()
+    graph = derive_graph(edge_def, vmap)
+    graph = update_graph_extra_edges(graph, vmap, graph)
 
-    for uv in edge_def:
-        u_, v_ = uv[:2]
-        u, v = vmap[u_], vmap[v_]
-
-        graph[u_, v_] = {
-            "source": u,
-            "target": v,
-            "edge_name": f"{u}_{v}_edges",
-            "graph_name": f"{u}_{v}_graph",
-            "type": "direct",
-        }
-
-    for item in config["extra_edges"]:
-        u_, v_ = item["source"], item["target"]
-        u, v = vmap[u_], vmap[v_]
-
-        graph[u_, v_] = {
-            "source": u,
-            "target": v,
-            "edge_name": f"{u}_{v}_edges",
-            "graph_name": f"{u}_{v}_graph",
-            "by": vmap[item["by"]],
-            "edge_weight": item["edge_weight"],
-            "type": "indirect",
-        }
     vcollections = list(
         set([graph[g]["source"] for g in graph])
         | set([graph[g]["target"] for g in graph])
