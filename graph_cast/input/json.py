@@ -9,7 +9,7 @@ from itertools import product
 from graph_cast.input.util import parse_vcollection
 from graph_cast.util.io import FPSmart
 from graph_cast.util.transform import pick_unique_dict
-from graph_cast.input.util import derive_graph, update_graph_extra_edges
+from graph_cast.input.util import define_graphs, update_graph_extra_edges
 
 xml_dummy = "#text"
 
@@ -500,11 +500,11 @@ def parse_config(config=None):
 
     edge_def, excl_fields = parse_edges(config["json"], [], defaultdict(list))
 
-    graph = derive_graph(edge_def, vmap)
-    graph = update_graph_extra_edges(graph, vmap, graph)
+    graphs_definition = define_graphs(edge_def, vmap)
+    graphs_definition = update_graph_extra_edges(graphs_definition, vmap, config["extra_edges"])
 
     vcollections = list(
-        set([graph[g]["source"] for g in graph])
-        | set([graph[g]["target"] for g in graph])
+        set([graphs_definition[g]["source"] for g in graphs_definition])
+        | set([graphs_definition[g]["target"] for g in graphs_definition])
     )
-    return vcollections, vmap, graph, index_fields_dict, extra_indices
+    return vcollections, vmap, graphs_definition, index_fields_dict, extra_indices

@@ -2,12 +2,11 @@ general:
   name: ibes
 csv:
     -
-        filetype: ibes_main
+        filetype: ibes
         vertex_collections:
             -
                 type: ticker
                 map_fields:
-                    wos_id: _key
                     CUSIP: cusip
                     CNAME: cname
                     OFTIC: oftic
@@ -26,16 +25,41 @@ csv:
                     ETEXT: etext
                     IRECCD: irec
                     ITEXT: itext
+        weights:
+            -
+                map_fields:
+                    ANNDATS: date_announce
+                    REVDATS: date_review
+                edges:
+                    -
+                        source:
+                            name: analyst
+                        target:
+                            name: agency
+                    -
+                        source:
+                            name: analyst
+                        target:
+                            name: ticker
+                    -
+                        source:
+                            name: analyst
+                        target:
+                            name: recomendation
+                    -
+                        source:
+                            name: recomendation
+                        target:
+                            name: ticker
 vertex_collections:
     ticker:
         basename: tickers
         fields:
-            - _key
             - cusip
             - cname
             - oftic
         index:
-            - _key
+            - oftic
     agency:
         basename: agencies
         fields:
@@ -63,11 +87,14 @@ edge_collections:
         - analyst
         - ticker
     -
-        - agency
         - analyst
+        - agency
     -
         - analyst
         - recomendation
+    -
+        - recomendation
+        - ticker
 #extra_edges:
 #    -
 #        source: contributor

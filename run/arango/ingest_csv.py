@@ -47,7 +47,6 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--db",
-        # default="_system",
         default="wos",
         help="db for arangodb connection",
     )

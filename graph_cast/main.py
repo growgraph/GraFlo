@@ -13,9 +13,11 @@ from graph_cast.arango.util import (
     define_collections,
     upsert_docs_batch,
     insert_edges_batch,
+    update_to_numeric,
+    define_extra_edges
 )
 
-from graph_cast.input.util import derive_graph, update_graph_extra_edges
+from graph_cast.input.util import define_graphs, update_graph_extra_edges
 import graph_cast.input.json as gcij
 import graph_cast.input.csv as gcic
 from graph_cast.util import timer as timer
@@ -173,10 +175,14 @@ def ingest_csvs(
     field_maps = gcic.parse_input_output_field_map(config["csv"])
     edges, extra_edges = gcic.parse_edges(config)
 
-    graph = derive_graph(edges, vmap)
-    graph = update_graph_extra_edges(graph, vmap, config["extra_edges"])
+    graph = define_graphs(edges, vmap)
+    graph = update_graph_extra_edges(graph, vmap, extra_edges)
 
     modes2graphs, modes2collections = gcic.derive_modes2graphs(graph, config["csv"])
+
+    weights_definition = {}
+    for item in config["csv"]:
+        weights_definition[item["filetype"]] = item["weights"]
 
     # db operation
     if clean_start == "all":
@@ -202,14 +208,13 @@ def ingest_csvs(
                 "current_graphs": current_graphs,
                 "batch_size": batch_size,
                 "max_lines": max_lines,
-                "graph": graph,
+                "graphs_definition": graph,
+                "weights_definition": weights_definition[mode],
                 "field_maps": field_maps[mode],
                 "index_fields_dict": index_fields_dict,
                 "db_client": db_client,
                 "vmap": vmap,
                 "vcollection_fields_map": vcollection_fields_map
-                # "edge_fields": excl_fields,
-                # "merge_collections": ["publication"],
             }
 
             func = partial(gcic.process_csv, **kwargs)
@@ -221,14 +226,14 @@ def ingest_csvs(
                 for f in files_dict[mode]:
                     func(f)
         logger.info(f"{mode} took {t_pro.elapsed:.1f} sec")
-    # for cname, fields in vcollection_numeric_fields_map.items():
-    #     for field in fields:
-    #         query0 = update_to_numeric(cname, field)
-    #         cursor = db_client.aql.execute(query0)
-    #
-    # # create edge u -> v from u->w, v->w edges
-    # # find edge_cols uw and vw
-    # for gname, item in graph.items():
-    #     if item["type"] == "indirect":
-    #         query0 = define_extra_edges(item)
-    #         cursor = db_client.aql.execute(query0)
+    for cname, fields in vcollection_numeric_fields_map.items():
+        for field in fields:
+            query0 = update_to_numeric(vmap[cname], field)
+            cursor = db_client.aql.execute(query0)
+
+    # create edge u -> v from u->w, v->w edges
+    # find edge_cols uw and vw
+    for gname, item in graph.items():
+        if item["type"] == "indirect":
+            query0 = define_extra_edges(item)
+            cursor = db_client.aql.execute(query0)

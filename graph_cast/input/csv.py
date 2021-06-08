@@ -12,7 +12,10 @@ from graph_cast.arango.util import upsert_docs_batch, insert_edges_batch
 
 def parse_edges(config):
     edges = config["edge_collections"].copy()
-    extra_edges = config["extra_edges"].copy()
+    if "extra_edges" in config:
+        extra_edges = config["extra_edges"].copy()
+    else:
+        extra_edges = {}
     return edges, extra_edges
 
 
@@ -71,37 +74,57 @@ def table_to_vcollections(
     field_maps,
     index_fields_dict,
     vcollection_fields_map,
-    graph,
+    graphs_definition,
+    weights_definition
 ):
 
     vdocs = {}
     edocs = {}
+    weights = {}
+
     for vcol in current_collections:
         vcol_map = field_maps[vcol] if vcol in field_maps else dict()
 
-        vfrom_header_dict = {
+        full_header_dict = {
             (vcol_map[k] if k in vcol_map else k): v for k, v in header_dict.items()
         }
         retrieve_fields_dict_from = [
-            f for f in vcollection_fields_map[vcol] if f in vfrom_header_dict
+            f for f in vcollection_fields_map[vcol] if f in full_header_dict
         ]
 
-        from_list = [
-            {f: item[vfrom_header_dict[f]] for f in retrieve_fields_dict_from}
+        vdocs_extracted = [
+            {f: item[full_header_dict[f]] for f in retrieve_fields_dict_from}
             for item in rows
         ]
 
-        vdocs[vcol] = add_none_flag(from_list, index_fields_dict[vcol])
+        vdocs[vcol] = add_none_flag(vdocs_extracted, index_fields_dict[vcol])
+
+    for wdef in weights_definition:
+        wmap = wdef["map_fields"]
+        weights_extracted = [
+            {v: item[header_dict[k]] for k, v in wmap.items()}
+            for item in rows
+        ]
+        for edges_def in wdef["edges"]:
+            u, v = edges_def["source"]["name"], edges_def["target"]["name"]
+            weights[(u, v)] = weights_extracted
 
     for g in current_graphs:
-        if graph[g]["type"] != "direct":
+        if graphs_definition[g]["type"] != "direct":
             pass
         u, v = g
-        edocs[g] = [
-            {"source": x, "target": y}
-            for x, y in zip(vdocs[u], vdocs[v])
-            if "_flag_na" not in x and "_flag_na" not in y
-        ]
+        if g in weights:
+            edocs[g] = [
+                {"source": x, "target": y, "attributes": attr}
+                for x, y, attr in zip(vdocs[u], vdocs[v], weights[g])
+                if "_flag_na" not in x and "_flag_na" not in y
+            ]
+        else:
+            edocs[g] = [
+                {"source": x, "target": y}
+                for x, y in zip(vdocs[u], vdocs[v])
+                if "_flag_na" not in x and "_flag_na" not in y
+            ]
 
     return vdocs, edocs
 
@@ -112,11 +135,12 @@ def process_csv(
     max_lines,
     current_graphs,
     current_collections,
-    graph,
+    graphs_definition,
     field_maps,
     index_fields_dict,
     vmap,
     vcollection_fields_map,
+    weights_definition,
     db_client,
 ):
     chk = Chunker(fname, batch_size, max_lines)
@@ -140,7 +164,8 @@ def process_csv(
                 field_maps,
                 index_fields_dict,
                 vcollection_fields_map,
-                graph,
+                graphs_definition,
+                weights_definition
             )
 
             # TODO move db related stuff out
@@ -155,7 +180,7 @@ def process_csv(
                     data,
                     vmap[vfrom],
                     vmap[vto],
-                    graph[vfrom, vto]["edge_name"],
+                    graphs_definition[vfrom, vto]["edge_name"],
                     index_fields_dict[vfrom],
                     index_fields_dict[vto],
                     False,

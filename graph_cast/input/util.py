@@ -27,28 +27,28 @@ def parse_vcollection(config):
     return vmap, index_fields_dict, extra_indices
 
 
-def derive_graph(edge_def, vmap):
-    graph = dict()
+def define_graphs(edge_def, vmap):
+    graphs_definition = dict()
     for uv in edge_def:
         u_, v_ = uv[:2]
         u, v = vmap[u_], vmap[v_]
 
-        graph[u_, v_] = {
+        graphs_definition[u_, v_] = {
             "source": u,
             "target": v,
             "edge_name": f"{u}_{v}_edges",
             "graph_name": f"{u}_{v}_graph",
             "type": "direct",
         }
-    return graph
+    return graphs_definition
 
 
-def update_graph_extra_edges(graph, vmap, subconfig):
+def update_graph_extra_edges(graphs_definition, vmap, subconfig):
     for item in subconfig:
         u_, v_ = item["source"], item["target"]
         u, v = vmap[u_], vmap[v_]
 
-        graph[u_, v_] = {
+        graphs_definition[u_, v_] = {
             "source": u,
             "target": v,
             "edge_name": f"{u}_{v}_edges",
@@ -57,4 +57,4 @@ def update_graph_extra_edges(graph, vmap, subconfig):
             "edge_weight": item["edge_weight"],
             "type": "indirect",
         }
-    return graph
+    return graphs_definition
