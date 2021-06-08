@@ -1,5 +1,5 @@
 general:
-  name: ibes
+    name: ibes
 csv:
     -
         filetype: ibes
@@ -19,7 +19,7 @@ csv:
                 map_fields:
                     ANALYST: name
             -
-                type: recomendation
+                type: recommendation
                 map_fields:
                     ERECCD: erec
                     ETEXT: etext
@@ -29,7 +29,26 @@ csv:
             -
                 map_fields:
                     ANNDATS: date_announce
+                    ANNTIMS: time_announce
                     REVDATS: date_review
+                    REVTIMS: time_review
+                transforms:
+                    -
+                        foo: parse_date_ibes
+                        module: graph_cast.util.transform
+                        input:
+                            - date_announce
+                            - time_announce
+                        output:
+                            - datetime_announce
+                    -
+                        foo: parse_date_ibes
+                        module: graph_cast.util.transform
+                        input:
+                            - date_review
+                            - time_review
+                        output:
+                            - datetime_review
                 edges:
                     -
                         source:
@@ -45,10 +64,10 @@ csv:
                         source:
                             name: analyst
                         target:
-                            name: recomendation
+                            name: recommendation
                     -
                         source:
-                            name: recomendation
+                            name: recommendation
                         target:
                             name: ticker
 vertex_collections:
@@ -72,8 +91,8 @@ vertex_collections:
             - name
         index:
             - name
-    recomendation:
-        basename: recomendations
+    recommendation:
+        basename: recommendations
         fields:
             - erec
             - etext
@@ -81,7 +100,6 @@ vertex_collections:
             - itext
         index:
             - irec
-
 edge_collections:
     -
         - analyst
@@ -91,17 +109,7 @@ edge_collections:
         - agency
     -
         - analyst
-        - recomendation
+        - recommendation
     -
-        - recomendation
+        - recommendation
         - ticker
-#extra_edges:
-#    -
-#        source: contributor
-#        target: organization
-#        by: publication
-#        edge_weight:
-#            _key: pubid
-#            year: year
-#Index(['TICKER', 'ACTDATS', 'EMASKCD', 'AMASKCD', 'USFIRM',
-#       'ACTTIMS', 'REVDATS', 'REVTIMS', 'ANNDATS', 'ANNTIMS'

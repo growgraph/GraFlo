@@ -1,6 +1,6 @@
 import csv
-from collections import defaultdict
 from itertools import permutations
+from collections import defaultdict, ChainMap
 from os import listdir
 from os.path import isfile, join
 
@@ -8,6 +8,7 @@ from graph_cast.util.io import Chunker
 from graph_cast.util.transform import add_none_flag
 
 from graph_cast.arango.util import upsert_docs_batch, insert_edges_batch
+from graph_cast.input.json import transform_foo
 
 
 def parse_edges(config):
@@ -105,6 +106,12 @@ def table_to_vcollections(
             {v: item[header_dict[k]] for k, v in wmap.items()}
             for item in rows
         ]
+        acc = []
+        if "transforms" in wdef:
+            for transformation in wdef["transforms"]:
+                acc.append([transform_foo(transformation, doc) for doc in weights_extracted])
+            weights_extracted = [dict(ChainMap(*auxs)) for auxs in zip(*acc)]
+
         for edges_def in wdef["edges"]:
             u, v = edges_def["source"]["name"], edges_def["target"]["name"]
             weights[(u, v)] = weights_extracted

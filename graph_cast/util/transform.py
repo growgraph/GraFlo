@@ -31,6 +31,18 @@ def parse_date_conf(input_str):
     return year, month, day
 
 
+def parse_date_ibes(date0, time0):
+    """
+
+    :param date: as "20160126"
+    :param time: as "9:35:52"
+    :return: datetime as "2013-01-15T14:19:09.522"
+    """
+    year, month, day = date0[:4], date0[4:6], date0[6:]
+    full_datetime = f"{year}-{month}-{day}T{time0}Z"
+    return full_datetime,
+
+
 def parse_date_reference(input_str):
     """
     examples:
