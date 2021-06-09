@@ -8,7 +8,7 @@ from graph_cast.util.io import Chunker
 from graph_cast.util.transform import add_none_flag
 
 from graph_cast.arango.util import upsert_docs_batch, insert_edges_batch
-from graph_cast.input.json import transform_foo
+from graph_cast.input.util import transform_foo
 
 
 def parse_edges(config):
@@ -29,6 +29,17 @@ def parse_input_output_field_map(subconfig):
             if "map_fields" in vc
         }
     return field_maps
+
+
+def parse_transformations(subconfig):
+    transform_maps = {}
+    for item in subconfig:
+        transform_maps[item["filetype"]] = {
+            vc["type"]: vc["transforms"]
+            for vc in item["vertex_collections"]
+            if "transforms" in vc
+        }
+    return transform_maps
 
 
 def derive_modes2graphs(graph, subconfig):
@@ -72,11 +83,13 @@ def table_to_vcollections(
     current_collections,
     current_graphs,
     header_dict,
+    vertex_collection_fields,
     field_maps,
     index_fields_dict,
     vcollection_fields_map,
     graphs_definition,
-    weights_definition
+    weights_definition,
+    transforms,
 ):
 
     vdocs = {}
@@ -86,16 +99,38 @@ def table_to_vcollections(
     for vcol in current_collections:
         vcol_map = field_maps[vcol] if vcol in field_maps else dict()
 
-        full_header_dict = {
-            (vcol_map[k] if k in vcol_map else k): v for k, v in header_dict.items()
-        }
-        retrieve_fields_dict_from = [
-            f for f in vcollection_fields_map[vcol] if f in full_header_dict
-        ]
+        rename_input = set(vcol_map.keys())
+        default_input = set(vcollection_fields_map[vcol]) - set(vcol_map.values())
+        if vcol in transforms:
+            t_input = set([item for t in transforms[vcol] for item in t["input"]])
+            t_output = set([item for t in transforms[vcol] for item in t["output"]])
+            assert not t_input.intersection(vcol_map.keys())
+            default_input = default_input - t_output
+            input_fields = default_input | rename_input | t_input
+        else:
+            input_fields = default_input | rename_input
 
         vdocs_extracted = [
-            {f: item[full_header_dict[f]] for f in retrieve_fields_dict_from}
-            for item in rows
+            {f: item[header_dict[f]] for f in input_fields} for item in rows
+        ]
+
+        # use map
+        vdocs_extracted = [
+            {(vcol_map[k] if k in vcol_map else k): v for k, v in doc.items()}
+            for doc in vdocs_extracted
+        ]
+
+        # use transforms
+
+        if vcol in transforms:
+            for doc_ in vdocs_extracted:
+                for t in transforms[vcol]:
+                    doc_.update(transform_foo(t, doc_))
+
+        # project
+        vdocs_extracted = [
+            {k: v for k, v in doc.items() if k in vertex_collection_fields[vcol]}
+            for doc in vdocs_extracted
         ]
 
         vdocs[vcol] = add_none_flag(vdocs_extracted, index_fields_dict[vcol])
@@ -103,13 +138,14 @@ def table_to_vcollections(
     for wdef in weights_definition:
         wmap = wdef["map_fields"]
         weights_extracted = [
-            {v: item[header_dict[k]] for k, v in wmap.items()}
-            for item in rows
+            {v: item[header_dict[k]] for k, v in wmap.items()} for item in rows
         ]
         acc = []
         if "transforms" in wdef:
             for transformation in wdef["transforms"]:
-                acc.append([transform_foo(transformation, doc) for doc in weights_extracted])
+                acc.append(
+                    [transform_foo(transformation, doc) for doc in weights_extracted]
+                )
             weights_extracted = [dict(ChainMap(*auxs)) for auxs in zip(*acc)]
 
         for edges_def in wdef["edges"]:
@@ -143,11 +179,13 @@ def process_csv(
     current_graphs,
     current_collections,
     graphs_definition,
+    vertex_collection_fields,
     field_maps,
     index_fields_dict,
     vmap,
     vcollection_fields_map,
     weights_definition,
+    transforms,
     db_client,
 ):
     chk = Chunker(fname, batch_size, max_lines)
@@ -168,11 +206,13 @@ def process_csv(
                 current_collections,
                 current_graphs,
                 header_dict,
+                vertex_collection_fields,
                 field_maps,
                 index_fields_dict,
                 vcollection_fields_map,
                 graphs_definition,
-                weights_definition
+                weights_definition,
+                transforms,
             )
 
             # TODO move db related stuff out

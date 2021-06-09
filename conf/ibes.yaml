@@ -16,8 +16,16 @@ csv:
                     ESTIMID: aname
             -
                 type: analyst
-                map_fields:
-                    ANALYST: name
+#                map_fields:
+#                    ANALYST: last_name
+                transforms:
+                    -   foo: cast_ibes_analyst
+                        module: graph_cast.util.transform
+                        input:
+                            - ANALYST
+                        output:
+                            - last_name
+                            - initial
             -
                 type: recommendation
                 map_fields:
@@ -87,10 +95,16 @@ vertex_collections:
             - aname
     analyst:
         basename: analysts
+#        fields:
+#            - last_name
+#        index:
+#            - last_name
         fields:
-            - name
+            - last_name
+            - initial
         index:
-            - name
+            - last_name
+            - initial
     recommendation:
         basename: recommendations
         fields:

@@ -14,7 +14,7 @@ from graph_cast.arango.util import (
     upsert_docs_batch,
     insert_edges_batch,
     update_to_numeric,
-    define_extra_edges
+    define_extra_edges,
 )
 
 from graph_cast.input.util import define_graphs, update_graph_extra_edges
@@ -156,7 +156,7 @@ def ingest_csvs(
     clean_start="all",
     config=None,
 ):
-    vmap, index_fields_dict, extra_indices = parse_vcollection(config)
+    vmap, index_fields_dict, extra_indices, vfields = parse_vcollection(config)
 
     # vertex_collection_name -> fields_keep
     vcollection_fields_map = {
@@ -173,12 +173,16 @@ def ingest_csvs(
     #############################
     # edge discovery
     field_maps = gcic.parse_input_output_field_map(config["csv"])
+    transform_maps = gcic.parse_transformations(config["csv"])
+
     edges, extra_edges = gcic.parse_edges(config)
 
-    graph = define_graphs(edges, vmap)
-    graph = update_graph_extra_edges(graph, vmap, extra_edges)
+    graphs_def = define_graphs(edges, vmap)
+    graphs_def = update_graph_extra_edges(graphs_def, vmap, extra_edges)
 
-    modes2graphs, modes2collections = gcic.derive_modes2graphs(graph, config["csv"])
+    modes2graphs, modes2collections = gcic.derive_modes2graphs(
+        graphs_def, config["csv"]
+    )
 
     weights_definition = {}
     for item in config["csv"]:
@@ -191,7 +195,9 @@ def ingest_csvs(
         # elif clean_start == "edges":
         #     delete_collections(sys_db, ecollections, [])
 
-        define_collections(db_client, graph, vmap, index_fields_dict, extra_indices)
+        define_collections(
+            db_client, graphs_def, vmap, index_fields_dict, extra_indices
+        )
 
     # file discovery
     files_dict = gcic.discover_files(
@@ -200,21 +206,21 @@ def ingest_csvs(
     logger.info(files_dict)
 
     for mode in modes2collections:
-        current_collections = modes2collections[mode]
-        current_graphs = modes2graphs[mode]
         with timer.Timer() as t_pro:
             kwargs = {
-                "current_collections": current_collections,
-                "current_graphs": current_graphs,
+                "current_collections": modes2collections[mode],
+                "current_graphs": modes2graphs[mode],
                 "batch_size": batch_size,
                 "max_lines": max_lines,
-                "graphs_definition": graph,
+                "graphs_definition": graphs_def,
                 "weights_definition": weights_definition[mode],
                 "field_maps": field_maps[mode],
+                "vertex_collection_fields": vfields,
+                "transforms": transform_maps[mode],
                 "index_fields_dict": index_fields_dict,
                 "db_client": db_client,
                 "vmap": vmap,
-                "vcollection_fields_map": vcollection_fields_map
+                "vcollection_fields_map": vcollection_fields_map,
             }
 
             func = partial(gcic.process_csv, **kwargs)
@@ -233,7 +239,7 @@ def ingest_csvs(
 
     # create edge u -> v from u->w, v->w edges
     # find edge_cols uw and vw
-    for gname, item in graph.items():
+    for gname, item in graphs_def.items():
         if item["type"] == "indirect":
             query0 = define_extra_edges(item)
             cursor = db_client.aql.execute(query0)

@@ -1,12 +1,11 @@
 import gzip
-import importlib
 import json
 import multiprocessing as mp
 from collections import defaultdict, ChainMap
 from functools import partial
 from itertools import product
 
-from graph_cast.input.util import parse_vcollection
+from graph_cast.input.util import parse_vcollection, transform_foo
 from graph_cast.util.io import FPSmart
 from graph_cast.util.transform import pick_unique_dict
 from graph_cast.input.util import define_graphs, update_graph_extra_edges
@@ -120,29 +119,6 @@ def apply_mapper(mapper, document, vertex_spec):
             )
     else:
         raise KeyError("Mapper type has does not have either how or type keys")
-
-
-def transform_foo(transform, doc):
-    if "module" in transform:
-        module = importlib.import_module(transform["module"])
-    elif "class" in transform:
-        module = eval(transform["class"])
-    else:
-        raise KeyError("Either module or class keys should be present")
-    try:
-        foo = getattr(module, transform["foo"])
-        if "input" in transform:
-            if "output" in transform:
-                args = [doc[k] for k in transform["input"]]
-                upd = {k: v for k, v in zip(transform["output"], foo(*args))}
-            else:
-                args = [doc[k] for k in transform["input"]]
-                upd = foo(*args)
-        elif "fields" in transform:
-            upd = {k: foo(v) for k, v in doc.items() if k in transform["fields"]}
-    except:
-        upd = {}
-    return upd
 
 
 def add_weights(mapper, agg):
@@ -496,12 +472,14 @@ def parse_config(config=None):
     :return:
     """
 
-    vmap, index_fields_dict, extra_indices = parse_vcollection(config)
+    vmap, index_fields_dict, extra_indices, vfields = parse_vcollection(config)
 
     edge_def, excl_fields = parse_edges(config["json"], [], defaultdict(list))
 
     graphs_definition = define_graphs(edge_def, vmap)
-    graphs_definition = update_graph_extra_edges(graphs_definition, vmap, config["extra_edges"])
+    graphs_definition = update_graph_extra_edges(
+        graphs_definition, vmap, config["extra_edges"]
+    )
 
     vcollections = list(
         set([graphs_definition[g]["source"] for g in graphs_definition])
