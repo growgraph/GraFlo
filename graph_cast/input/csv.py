@@ -34,11 +34,8 @@ def parse_input_output_field_map(subconfig):
 def parse_transformations(subconfig):
     transform_maps = {}
     for item in subconfig:
-        transform_maps[item["filetype"]] = {
-            vc["type"]: vc["transforms"]
-            for vc in item["vertex_collections"]
-            if "transforms" in vc
-        }
+        if "transforms" in item:
+            transform_maps[item["filetype"]] = item["transforms"]
     return transform_maps
 
 
@@ -96,68 +93,59 @@ def table_to_vcollections(
     vcollection_fields_map,
     graphs_definition,
     weights_definition,
-    transforms,
+    current_transformations,
 ):
 
     vdocs = {}
     edocs = {}
     weights = {}
 
+    # do possible transforms
+
+    fields_extracted_raw = [
+        {k: item[v] for k, v in header_dict.items()} for item in rows
+    ]
+
+    transformed_fields = {}
+
+    for transformation in current_transformations:
+        inputs = transformation["input"]
+        outputs = transformation["output"]
+        transformed_fields[(tuple(inputs), tuple(outputs))] = [transform_foo(transformation, doc)
+                                                               for doc in fields_extracted_raw]
+
     for vcol in current_collections:
         vcol_map = field_maps[vcol] if vcol in field_maps else dict()
+        current_fields = vcollection_fields_map[vcol]
+        default_input = set(current_fields) & set(header_dict.keys())
+        vdoc_acc = []
 
-        rename_input = set(vcol_map.keys())
-        default_input = set(vcollection_fields_map[vcol]) - set(vcol_map.values())
-        if vcol in transforms:
-            t_input = set([item for t in transforms[vcol] for item in t["input"]])
-            t_output = set([item for t in transforms[vcol] for item in t["output"]])
-            assert not t_input.intersection(vcol_map.keys())
-            default_input = default_input - t_output
-            input_fields = default_input | rename_input | t_input
-        else:
-            input_fields = default_input | rename_input
+        for (f_input, f_output), rows_transformed in transformed_fields.items():
+            if set(f_output) & set(current_fields):
+                  vdoc_acc += [rows_transformed]
 
-        vdocs_extracted = [
-            {f: item[header_dict[f]] for f in input_fields} for item in rows
-        ]
+        if vcol_map:
+            vdoc_acc += [[
+                {v: item[k] for k, v in vcol_map.items()} for item in fields_extracted_raw
+            ]]
+        if default_input:
+            vdoc_acc += [[
+                {f: item[f] for f in default_input} for item in fields_extracted_raw
+            ]]
 
-        # use map
-        vdocs_extracted = [
-            {(vcol_map[k] if k in vcol_map else k): v for k, v in doc.items()}
-            for doc in vdocs_extracted
-        ]
+        vdocs[vcol] = [dict(ChainMap(*auxs)) for auxs in zip(*vdoc_acc)]
 
-        # use transforms
-
-        if vcol in transforms:
-            for doc_ in vdocs_extracted:
-                for t in transforms[vcol]:
-                    doc_.update(transform_foo(t, doc_))
-
-        # project
-        vdocs_extracted = [
-            {k: v for k, v in doc.items() if k in vertex_collection_fields[vcol]}
-            for doc in vdocs_extracted
-        ]
-
-        vdocs[vcol] = add_none_flag(vdocs_extracted, index_fields_dict[vcol])
+        vdocs[vcol] = add_none_flag(vdocs[vcol], index_fields_dict[vcol])
 
     for wdef in weights_definition:
-        wmap = wdef["map_fields"]
-        weights_extracted = [
-            {v: item[header_dict[k]] for k, v in wmap.items()} for item in rows
-        ]
-        acc = []
-        if "transforms" in wdef:
-            for transformation in wdef["transforms"]:
-                acc.append(
-                    [transform_foo(transformation, doc) for doc in weights_extracted]
-                )
-            weights_extracted = [dict(ChainMap(*auxs)) for auxs in zip(*acc)]
-
-        for edges_def in wdef["edges"]:
+        for edges_def in wdef["edge_collections"]:
             u, v = edges_def["source"]["name"], edges_def["target"]["name"]
-            weights[(u, v)] = weights_extracted
+            acc = []
+            for f in edges_def["fields"]:
+                for (f_input, f_output), rows_transformed in transformed_fields.items():
+                    if {f} & set(f_output):
+                        acc += [rows_transformed]
+            weights[(u, v)] = [dict(ChainMap(*auxs)) for auxs in zip(*acc)]
 
     for g in current_graphs:
         if graphs_definition[g]["type"] != "direct":
@@ -192,7 +180,7 @@ def process_csv(
     vmap,
     vcollection_fields_map,
     weights_definition,
-    transforms,
+    current_transformations,
     db_client,
     encoding
 ):
@@ -220,7 +208,7 @@ def process_csv(
                 vcollection_fields_map,
                 graphs_definition,
                 weights_definition,
-                transforms,
+                current_transformations,
             )
 
             # TODO move db related stuff out

@@ -173,7 +173,7 @@ def ingest_csvs(
     #############################
     # edge discovery
     field_maps = gcic.parse_input_output_field_map(config["csv"])
-    transform_maps = gcic.parse_transformations(config["csv"])
+    transformation_maps = gcic.parse_transformations(config["csv"])
     encodings = gcic.parse_encodings(config["csv"])
 
     edges, extra_edges = gcic.parse_edges(config)
@@ -221,7 +221,7 @@ def ingest_csvs(
                 "current_graphs": modes2graphs[mode],
                 "weights_definition": weights_definition[mode],
                 "field_maps": field_maps[mode],
-                "transforms": transform_maps[mode],
+                "current_transformations": transformation_maps[mode],
                 "encoding": encodings[mode]
             }
 

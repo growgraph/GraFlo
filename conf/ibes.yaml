@@ -4,6 +4,28 @@ csv:
     -
         filetype: ibes
         encoding: ISO-8859-1
+        transforms:
+            -   foo: parse_date_ibes
+                module: graph_cast.util.transform
+                input:
+                    - ANNDATS
+                    - ANNTIMS
+                output:
+                    - datetime_announce
+            -   foo: parse_date_ibes
+                module: graph_cast.util.transform
+                input:
+                    - REVDATS
+                    - REVTIMS
+                output:
+                    - datetime_review
+            -   foo: cast_ibes_analyst
+                module: graph_cast.util.transform
+                input:
+                    - ANALYST
+                output:
+                    - last_name
+                    - initial
         vertex_collections:
             -
                 type: ticker
@@ -18,13 +40,7 @@ csv:
             -
                 type: analyst
                 transforms:
-                    -   foo: cast_ibes_analyst
-                        module: graph_cast.util.transform
-                        input:
-                            - ANALYST
-                        output:
-                            - last_name
-                            - initial
+
             -
                 type: recommendation
                 map_fields:
@@ -32,52 +48,37 @@ csv:
                     ETEXT: etext
                     IRECCD: irec
                     ITEXT: itext
+            -
+                type: publication
         weights:
             -
-                map_fields:
-                    ANNDATS: date_announce
-                    ANNTIMS: time_announce
-                    REVDATS: date_review
-                    REVTIMS: time_review
-                transforms:
-                    -
-                        foo: parse_date_ibes
-                        module: graph_cast.util.transform
-                        input:
-                            - date_announce
-                            - time_announce
-                        output:
-                            - datetime_announce
-                    -
-                        foo: parse_date_ibes
-                        module: graph_cast.util.transform
-                        input:
-                            - date_review
-                            - time_review
-                        output:
-                            - datetime_review
-                edges:
+                edge_collections:
                     -
                         source:
                             name: analyst
                         target:
                             name: agency
-                    -
-                        source:
-                            name: analyst
-                        target:
-                            name: ticker
-                    -
-                        source:
-                            name: analyst
-                        target:
-                            name: recommendation
-                    -
-                        source:
-                            name: recommendation
-                        target:
-                            name: ticker
+                        fields:
+                            - datetime_review
+                            - datetime_announce
 vertex_collections:
+    publication:
+        basename: publications
+        fields:
+            - _key
+            - datetime_review
+            - datetime_announce
+        index:
+            - _key
+        extra_index:
+            -   type: hash
+                unique: false
+                fields:
+                    - datetime_review
+            -   type: hash
+                unique: false
+                fields:
+                    - datetime_announce
     ticker:
         basename: tickers
         fields:
@@ -111,14 +112,14 @@ vertex_collections:
             - irec
 edge_collections:
     -
-        - analyst
+        - publication
         - ticker
     -
         - analyst
         - agency
     -
         - analyst
-        - recommendation
+        - publication
     -
+        - publication
         - recommendation
-        - ticker

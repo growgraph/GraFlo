@@ -143,6 +143,7 @@ def insert_edges_batch(
     :param edge_col_name:
     :param match_keys_source:
     :param match_keys_target:
+    :param filter_uniques:
 
     :return:
     """

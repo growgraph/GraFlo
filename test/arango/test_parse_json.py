@@ -1,5 +1,5 @@
 import yaml
-from wos_db_studies.utils_json import parse_edges, get_json_data, foo_parallel
+from graph_cast.input.json import parse_edges, get_json_data, foo_parallel
 from collections import defaultdict
 from os.path import expanduser
 from timeit import default_timer
@@ -15,7 +15,7 @@ sources = [
 ]
 
 
-config_path = "../conf/wos_json.yaml"
+config_path = "../../conf/wos_json.yaml"
 
 with open(config_path, "r") as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
