@@ -13,7 +13,7 @@ class Chunker:
         self.batch_size = batch_size
         self.n_lines_max = n_lines_max
         if fname[-2:] == "gz":
-            self.file_obj = gzip.open(fname, "rt")
+            self.file_obj = gzip.open(fname, "rt", encoding="ISO-8859-1")
         else:
             self.file_obj = open(fname, "rt")
         self.done = False

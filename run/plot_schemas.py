@@ -259,6 +259,7 @@ class SchemaPlotter:
                 g.edges[s, t][k] = v
 
         ag = nx.nx_agraph.to_agraph(g)
+        # ['neato' | 'dot' | 'twopi' | 'circo' | 'fdp' | 'nop']
         ag.draw(
             os.path.join(self.figgpath, f"{self.prefix}_vc2vc.pdf"), "pdf", prog="dot"
         )
