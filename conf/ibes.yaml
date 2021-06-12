@@ -3,6 +3,7 @@ general:
 csv:
     -
         filetype: ibes
+        encoding: ISO-8859-1
         vertex_collections:
             -
                 type: ticker

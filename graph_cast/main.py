@@ -174,6 +174,7 @@ def ingest_csvs(
     # edge discovery
     field_maps = gcic.parse_input_output_field_map(config["csv"])
     transform_maps = gcic.parse_transformations(config["csv"])
+    encodings = gcic.parse_encodings(config["csv"])
 
     edges, extra_edges = gcic.parse_edges(config)
 
@@ -208,19 +209,20 @@ def ingest_csvs(
     for mode in modes2collections:
         with timer.Timer() as t_pro:
             kwargs = {
-                "current_collections": modes2collections[mode],
-                "current_graphs": modes2graphs[mode],
                 "batch_size": batch_size,
                 "max_lines": max_lines,
                 "graphs_definition": graphs_def,
-                "weights_definition": weights_definition[mode],
-                "field_maps": field_maps[mode],
                 "vertex_collection_fields": vfields,
-                "transforms": transform_maps[mode],
                 "index_fields_dict": index_fields_dict,
                 "db_client": db_client,
                 "vmap": vmap,
                 "vcollection_fields_map": vcollection_fields_map,
+                "current_collections": modes2collections[mode],
+                "current_graphs": modes2graphs[mode],
+                "weights_definition": weights_definition[mode],
+                "field_maps": field_maps[mode],
+                "transforms": transform_maps[mode],
+                "encoding": encodings[mode]
             }
 
             func = partial(gcic.process_csv, **kwargs)

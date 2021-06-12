@@ -7,13 +7,13 @@ logger = logging.getLogger(__name__)
 
 
 class Chunker:
-    def __init__(self, fname, batch_size, n_lines_max=None):
+    def __init__(self, fname, batch_size, n_lines_max=None, encoding="utf-8"):
         self.acc = []
         self.j = 0
         self.batch_size = batch_size
         self.n_lines_max = n_lines_max
         if fname[-2:] == "gz":
-            self.file_obj = gzip.open(fname, "rt", encoding="ISO-8859-1")
+            self.file_obj = gzip.open(fname, "rt", encoding=encoding)
         else:
             self.file_obj = open(fname, "rt")
         self.done = False

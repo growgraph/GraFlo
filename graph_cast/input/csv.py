@@ -42,6 +42,13 @@ def parse_transformations(subconfig):
     return transform_maps
 
 
+def parse_encodings(subconfig):
+    encodings_map = {}
+    for item in subconfig:
+        encodings_map[item["filetype"]] = item["encoding"]
+    return encodings_map
+
+
 def derive_modes2graphs(graph, subconfig):
     modes2graphs = defaultdict(list)
     modes2collections = dict()
@@ -187,8 +194,9 @@ def process_csv(
     weights_definition,
     transforms,
     db_client,
+    encoding
 ):
-    chk = Chunker(fname, batch_size, max_lines)
+    chk = Chunker(fname, batch_size, max_lines, encoding=encoding)
     header = chk.pop_header()
     header = header.split(",")
     header_dict = dict(zip(header, range(len(header))))
