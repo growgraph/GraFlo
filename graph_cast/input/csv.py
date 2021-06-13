@@ -181,7 +181,6 @@ def process_csv(
     current_graphs,
     current_collections,
     graphs_definition,
-    vertex_collection_fields,
     field_maps,
     index_fields_dict,
     vmap,
@@ -241,11 +240,11 @@ def process_csv(
             # update edges with blank nodes keys
 
             for vcol in blank_nodes_collections:
-                for (source, target), data in edocuments.items():
-                    if vcol == source or vcol == target:
-                        edocuments[(source, target)] = [
+                for (vfrom, vto), data in edocuments.items():
+                    if vcol == vfrom or vcol == vto:
+                        edocuments[(vfrom, vto)] = [
                             {"source": x, "target": y}
-                            for x, y in zip(vdocuments[source], vdocuments[target])
+                            for x, y in zip(vdocuments[vfrom], vdocuments[vto])
                         ]
 
             for (vfrom, vto), data in edocuments.items():

@@ -78,12 +78,6 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--modes",
-        nargs="*",
-        default=["publications", "contributors", "institutions", "refs"],
-    )
-
-    parser.add_argument(
         "--clean-start",
         type=str,
         default="all",

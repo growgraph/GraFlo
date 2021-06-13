@@ -212,7 +212,6 @@ def ingest_csvs(
                 "batch_size": batch_size,
                 "max_lines": max_lines,
                 "graphs_definition": graphs_def,
-                "vertex_collection_fields": vfields,
                 "index_fields_dict": index_fields_dict,
                 "db_client": db_client,
                 "vmap": vmap,
