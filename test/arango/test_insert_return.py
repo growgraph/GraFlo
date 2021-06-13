@@ -1,4 +1,4 @@
-from graph_cast.arango.util import get_arangodb_client
+from graph_cast.arango.util import get_arangodb_client, insert_return_batch
 import logging
 import argparse
 import sys
@@ -56,12 +56,9 @@ if __name__ == "__main__":
     for c in cnames:
         logger.info(c)
 
-    query0 = """FOR i IN 1..5
-          INSERT { value: i }
-          INTO test
-          LET inserted = NEW
-          RETURN inserted
-    """
+    docs = [{"value": i} for i in range(5)]
+    query0 = insert_return_batch(docs, "test")
+
     cursor = db_client.aql.execute(query0)
     for item in cursor:
         logger.info(item)

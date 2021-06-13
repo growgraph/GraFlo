@@ -222,7 +222,7 @@ def ingest_csvs(
                 "weights_definition": weights_definition[mode],
                 "field_maps": field_maps[mode],
                 "current_transformations": transformation_maps[mode],
-                "encoding": encodings[mode]
+                "encoding": encodings[mode],
             }
 
             func = partial(gcic.process_csv, **kwargs)

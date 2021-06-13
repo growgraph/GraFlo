@@ -7,7 +7,11 @@ from os.path import isfile, join
 from graph_cast.util.io import Chunker
 from graph_cast.util.transform import add_none_flag
 
-from graph_cast.arango.util import upsert_docs_batch, insert_edges_batch
+from graph_cast.arango.util import (
+    upsert_docs_batch,
+    insert_edges_batch,
+    insert_return_batch,
+)
 from graph_cast.input.util import transform_foo
 
 
@@ -87,7 +91,6 @@ def table_to_vcollections(
     current_collections,
     current_graphs,
     header_dict,
-    vertex_collection_fields,
     field_maps,
     index_fields_dict,
     vcollection_fields_map,
@@ -111,8 +114,9 @@ def table_to_vcollections(
     for transformation in current_transformations:
         inputs = transformation["input"]
         outputs = transformation["output"]
-        transformed_fields[(tuple(inputs), tuple(outputs))] = [transform_foo(transformation, doc)
-                                                               for doc in fields_extracted_raw]
+        transformed_fields[(tuple(inputs), tuple(outputs))] = [
+            transform_foo(transformation, doc) for doc in fields_extracted_raw
+        ]
 
     for vcol in current_collections:
         vcol_map = field_maps[vcol] if vcol in field_maps else dict()
@@ -122,16 +126,19 @@ def table_to_vcollections(
 
         for (f_input, f_output), rows_transformed in transformed_fields.items():
             if set(f_output) & set(current_fields):
-                  vdoc_acc += [rows_transformed]
+                vdoc_acc += [rows_transformed]
 
         if vcol_map:
-            vdoc_acc += [[
-                {v: item[k] for k, v in vcol_map.items()} for item in fields_extracted_raw
-            ]]
+            vdoc_acc += [
+                [
+                    {v: item[k] for k, v in vcol_map.items()}
+                    for item in fields_extracted_raw
+                ]
+            ]
         if default_input:
-            vdoc_acc += [[
-                {f: item[f] for f in default_input} for item in fields_extracted_raw
-            ]]
+            vdoc_acc += [
+                [{f: item[f] for f in default_input} for item in fields_extracted_raw]
+            ]
 
         vdocs[vcol] = [dict(ChainMap(*auxs)) for auxs in zip(*vdoc_acc)]
 
@@ -182,7 +189,7 @@ def process_csv(
     weights_definition,
     current_transformations,
     db_client,
-    encoding
+    encoding,
 ):
     chk = Chunker(fname, batch_size, max_lines, encoding=encoding)
     header = chk.pop_header()
@@ -202,7 +209,6 @@ def process_csv(
                 current_collections,
                 current_graphs,
                 header_dict,
-                vertex_collection_fields,
                 field_maps,
                 index_fields_dict,
                 vcollection_fields_map,
@@ -211,12 +217,36 @@ def process_csv(
                 current_transformations,
             )
 
+            # identify blank nodes
+            blank_nodes_collections = []
+            for c in current_collections:
+                if "_key" in index_fields_dict[c] and (
+                    (c not in field_maps)
+                    or (c in field_maps and "_key" not in field_maps[c])
+                ):
+                    blank_nodes_collections += [c]
+
             # TODO move db related stuff out
             for vcol, data in vdocuments.items():
-                query0 = upsert_docs_batch(
-                    data, vmap[vcol], index_fields_dict[vcol], "doc", True
-                )
-                cursor = db_client.aql.execute(query0)
+                if vcol in blank_nodes_collections:
+                    query0 = insert_return_batch(data, vmap[vcol])
+                    cursor = db_client.aql.execute(query0)
+                    vdocuments[vcol] = [item for item in cursor]
+                else:
+                    query0 = upsert_docs_batch(
+                        data, vmap[vcol], index_fields_dict[vcol], "doc", True
+                    )
+                    cursor = db_client.aql.execute(query0)
+
+            # update edges with blank nodes keys
+
+            for vcol in blank_nodes_collections:
+                for (source, target), data in edocuments.items():
+                    if vcol == source or vcol == target:
+                        edocuments[(source, target)] = [
+                            {"source": x, "target": y}
+                            for x, y in zip(vdocuments[source], vdocuments[target])
+                        ]
 
             for (vfrom, vto), data in edocuments.items():
                 query0 = insert_edges_batch(

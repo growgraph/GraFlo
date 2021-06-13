@@ -92,6 +92,17 @@ def define_collections(sys_db, graphs, vmap, index_fields_dict, eindex):
             )
 
 
+def insert_return_batch(docs, collection_name):
+    docs = json.dumps(docs)
+    query0 = f"""FOR doc in {docs}
+          INSERT doc
+          INTO {collection_name}
+          LET inserted = NEW
+          RETURN {{_key: inserted._key}}
+    """
+    return query0
+
+
 def upsert_docs_batch(
     docs, collection_name, match_keys, update_keys=None, filter_uniques=True
 ):
