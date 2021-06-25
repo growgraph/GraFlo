@@ -2,7 +2,6 @@ import gzip
 import json
 from os.path import join
 import logging
-
 from arango import ArangoClient
 
 logger = logging.getLogger(__name__)
@@ -14,6 +13,7 @@ def basic_query(
     ip_addr="127.0.0.1",
     cred_name="root",
     cred_pass="123",
+    db_name="_system",
     profile=False,
     batch_size=10000,
     bind_vars=None,
@@ -21,7 +21,7 @@ def basic_query(
     hosts = f"http://{ip_addr}:{port}"
     client = ArangoClient(hosts=hosts)
 
-    sys_db = client.db("_system", username=cred_name, password=cred_pass)
+    sys_db = client.db(db_name, username=cred_name, password=cred_pass)
     cursor = sys_db.aql.execute(
         query, profile=profile, stream=True, batch_size=batch_size, bind_vars=bind_vars
     )
