@@ -96,8 +96,6 @@ if __name__ == "__main__":
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    logging.basicConfig(filename="ingest_csv.log", level=logging.INFO)
-
     db_client = get_arangodb_client(
         args.protocol, args.id_addr, args.port, args.db, args.cred_name, args.cred_pass
     )

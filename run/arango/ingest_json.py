@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-d", "--datapath", default=expanduser("../data/toy"), help="path to data files"
+        "-d", "--datapath", default=expanduser("../data/wos"), help="path to data files"
     )
 
     parser.add_argument(
@@ -65,7 +65,7 @@ if __name__ == "__main__":
         "--keyword", default="DSSHPSH", help="prefix for files to be processed"
     )
 
-    parser.add_argument("--prefix", default="toy", help="prefix for collection names")
+    parser.add_argument("--prefix", default="wos", help="prefix for collection names")
 
     parser.add_argument(
         "--clean-start",

@@ -155,21 +155,20 @@ def table_to_vcollections(
             weights[(u, v)] = [dict(ChainMap(*auxs)) for auxs in zip(*acc)]
 
     for g in current_graphs:
-        if graphs_definition[g]["type"] != "direct":
-            pass
-        u, v = g
-        if g in weights:
-            edocs[g] = [
-                {"source": x, "target": y, "attributes": attr}
-                for x, y, attr in zip(vdocs[u], vdocs[v], weights[g])
-                if "_flag_na" not in x and "_flag_na" not in y
-            ]
-        else:
-            edocs[g] = [
-                {"source": x, "target": y}
-                for x, y in zip(vdocs[u], vdocs[v])
-                if "_flag_na" not in x and "_flag_na" not in y
-            ]
+        if graphs_definition[g]["type"] == "direct":
+            u, v = g
+            if g in weights:
+                edocs[g] = [
+                    {"source": x, "target": y, "attributes": attr}
+                    for x, y, attr in zip(vdocs[u], vdocs[v], weights[g])
+                    if "_flag_na" not in x and "_flag_na" not in y
+                ]
+            else:
+                edocs[g] = [
+                    {"source": x, "target": y}
+                    for x, y in zip(vdocs[u], vdocs[v])
+                    if "_flag_na" not in x and "_flag_na" not in y
+                ]
 
     return vdocs, edocs
 
