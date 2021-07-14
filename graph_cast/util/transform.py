@@ -44,7 +44,28 @@ def parse_date_ibes(date0, time0):
 
 
 def cast_ibes_analyst(s):
-    return s.split()
+    """
+        split string like 'ADKINS/NARRA' and 'ARFSTROM      J'
+
+    :param s:
+    :return:
+    """
+    if " " in s or "\t" in s:
+        r = s.split()[:2]
+        if len(r) < 2:
+            return r[0], ""
+        else:
+            return r[0], r[1][:1]
+    else:
+        r = s.split("/")
+        if s.startswith("/"):
+            r = r[1:3]
+        else:
+            r = r[:2]
+        if len(r) < 2:
+            return r[0], ""
+        else:
+            return r[0], r[1][:1]
 
 
 def parse_date_reference(input_str):
