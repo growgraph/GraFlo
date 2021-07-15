@@ -13,13 +13,13 @@ Remarks
 To test csv schema for WoS
 
 ```console
-foo@bar:~$ python run/arango/ingest_csv.py --config-path ./conf/wos.yaml --path ./test/data/ibes --db ibes_test --cred-pass db_password --cred-pass db_password --cred-name db_login
+foo@bar:~$ python run/arango/ingest_csv.py --config-path ./conf/wos.yaml --path ./test/data/wos --db wos_test --cred-pass db_password --cred-name db_login
 ``` 
 
 To test csv schema for IBES
 
 ```console
-foo@bar:~$ python run/arango/ingest_csv.py --config-path ./conf/wos.yaml --path ./test/data/ibes --db wos_test --cred-pass db_password --cred-pass db_password --cred-name db_login
+foo@bar:~$ python run/arango/ingest_csv.py --config-path ./conf/ibes.yaml --path ./test/data/ibes --db ibes_test --cred-pass db_password --cred-name db_login
 ``` 
 
 
