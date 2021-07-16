@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import datetime
-
+import time
 day_endings = ["st", "nd", "rd", "th"]
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,11 @@ def parse_date_ibes(date0, time0):
     """
     year, month, day = date0[:4], date0[4:6], date0[6:]
     full_datetime = f"{year}-{month}-{day}T{time0}Z"
-    return (full_datetime,)
+
+    # full_datetime = f"{year}-{month}-{day}T{time0}"
+    dt = datetime.strptime(full_datetime, "%Y-%m-%dT%H:%M:%SZ").timetuple()
+    timestamp = time.mktime(dt)
+    return (timestamp,)
 
 
 def cast_ibes_analyst(s):

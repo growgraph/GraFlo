@@ -1,6 +1,6 @@
 import numpy as np
 from arango import ArangoClient
-from wos_db_studies.util.query import profile_query
+from graph_cast.arango.query import profile_query
 import argparse
 from .queries import qdict
 
