@@ -112,14 +112,14 @@ vertex_collections:
             - irec
 edge_collections:
     -
-        - publication
-        - ticker
+        source: publication
+        target: ticker
     -
-        - analyst
-        - agency
+        source: analyst
+        target: agency
     -
-        - analyst
-        - publication
+        source: analyst
+        target: publication
     -
-        - publication
-        - recommendation
+        source: publication
+        target: recommendation

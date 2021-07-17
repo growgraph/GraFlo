@@ -28,8 +28,8 @@ def parse_vcollection(config):
 
 def define_graphs(edge_def, vmap):
     graphs_definition = dict()
-    for uv in edge_def:
-        u_, v_ = uv[:2]
+    for item in edge_def:
+        u_, v_ = item["source"], item["target"]
         u, v = vmap[u_], vmap[v_]
 
         graphs_definition[u_, v_] = {

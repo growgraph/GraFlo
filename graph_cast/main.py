@@ -170,7 +170,6 @@ def ingest_csvs(
         if "numeric_fields" in v
     }
 
-    #############################
     # edge discovery
     field_maps = gcic.parse_input_output_field_map(config["csv"])
     transformation_maps = gcic.parse_transformations(config["csv"])

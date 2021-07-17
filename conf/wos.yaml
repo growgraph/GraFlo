@@ -123,20 +123,20 @@ vertex_collections:
                     - country
 edge_collections:
     -
-        - publication
-        - medium
+        source: publication
+        target: medium
     -
-        - publication
-        - language
+        source: publication
+        target: language
     -
-        - contributor
-        - publication
+        source: contributor
+        target: publication
     -
-        - organization
-        - publication
+        source: organization
+        target: publication
     -
-        - publication
-        - publication
+        source: publication
+        target: publication
 extra_edges:
     -
         source: contributor
