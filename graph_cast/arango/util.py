@@ -107,7 +107,7 @@ def define_vertex_indices(sys_db, vmap, extra_index):
 def define_edge_indices(sys_db, graphs):
     for uv, item in graphs.items():
         general_collection = sys_db.collection(item["edge_name"])
-        for index_dict in item["indices"]:
+        for index_dict in item["index"]:
             ih = general_collection.add_hash_index(
                 fields=index_dict["fields"], unique=index_dict["unique"]
             )

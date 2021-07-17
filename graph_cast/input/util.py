@@ -39,8 +39,8 @@ def define_graphs(edge_def, vmap):
             "graph_name": f"{u}_{v}_graph",
             "type": "direct",
         }
-        if "indices" in item:
-            graphs_definition[u_, v_]["index"] = item["indices"]
+        if "index" in item:
+            graphs_definition[u_, v_]["index"] = item["index"]
     return graphs_definition
 
 
@@ -58,8 +58,8 @@ def update_graph_extra_edges(graphs_definition, vmap, subconfig):
             "edge_weight": item["edge_weight"],
             "type": "indirect",
         }
-        if "indices" in item:
-            graphs_definition[u_, v_]["index"] = item["indices"]
+        if "index" in item:
+            graphs_definition[u_, v_]["index"] = item["index"]
     return graphs_definition
 
 

@@ -4,7 +4,7 @@ Python package for casting csv, json structured data
 Installation
 ------------
 
-To install the requirement use
+To install requirements use
 ``poetry install``.
 
 Remarks
