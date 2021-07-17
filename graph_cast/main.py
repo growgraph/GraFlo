@@ -10,7 +10,7 @@ import logging
 from graph_cast.input.util import parse_vcollection
 from graph_cast.arango.util import (
     delete_collections,
-    define_collections,
+    define_collections_and_indices,
     upsert_docs_batch,
     insert_edges_batch,
     update_to_numeric,
@@ -45,7 +45,7 @@ def ingest_json_files(
         # elif clean_start == "edges":
         #     delete_collections(sys_db, ecollections, [])
 
-        define_collections(db_client, graphs, vmap, index_fields_dict, extra_index)
+        define_collections_and_indices(db_client, graphs, vmap, index_fields_dict, extra_index)
 
     files = sorted(
         [f for f in listdir(fpath) if isfile(join(fpath, f)) and keyword in f]
@@ -195,7 +195,7 @@ def ingest_csvs(
         # elif clean_start == "edges":
         #     delete_collections(sys_db, ecollections, [])
 
-        define_collections(
+        define_collections_and_indices(
             db_client, graphs_def, vmap, index_fields_dict, extra_indices
         )
 

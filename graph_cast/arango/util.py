@@ -62,7 +62,7 @@ def delete_collections(sys_db, cnames=(), gnames=(), delete_all=False):
     logger.info(sys_db.graphs())
 
 
-def define_collections(sys_db, graphs, vmap, index_fields_dict, eindex):
+def define_vertex_collections(sys_db, graphs, index_fields_dict):
     for uv, item in graphs.items():
         u, v = uv
         gname = item["graph_name"]
@@ -71,25 +71,52 @@ def define_collections(sys_db, graphs, vmap, index_fields_dict, eindex):
             g = sys_db.graph(gname)
         else:
             g = sys_db.create_graph(gname)
+        # TODO create collections without referencing the graph
         ih = create_collection_if_absent(
             sys_db, g, item["source"], index_fields_dict[u]
         )
+
         ih = create_collection_if_absent(
             sys_db, g, item["target"], index_fields_dict[v]
         )
 
+
+def define_edge_collections(sys_db, graphs):
+    for uv, item in graphs.items():
+        gname = item["graph_name"]
+        if sys_db.has_graph(gname):
+            g = sys_db.graph(gname)
+        else:
+            g = sys_db.create_graph(gname)
         _ = g.create_edge_definition(
             edge_collection=item["edge_name"],
             from_vertex_collections=[item["source"]],
             to_vertex_collections=[item["target"]],
         )
 
-    for cname, list_indices in eindex.items():
+
+def define_vertex_indices(sys_db, vmap, extra_index):
+    for cname, list_indices in extra_index.items():
         for index_dict in list_indices:
             general_collection = sys_db.collection(vmap[cname])
             ih = general_collection.add_hash_index(
                 fields=index_dict["fields"], unique=index_dict["unique"]
             )
+
+
+def define_edge_indices(sys_db, graphs):
+    for uv, item in graphs.items():
+        general_collection = sys_db.collection(item["edge_name"])
+        for index_dict in item["indices"]:
+            ih = general_collection.add_hash_index(
+                fields=index_dict["fields"], unique=index_dict["unique"]
+            )
+
+
+def define_collections_and_indices(sys_db, graphs, vmap, index_fields_dict, extra_index):
+    define_vertex_collections(sys_db, graphs, index_fields_dict)
+    define_edge_collections(sys_db, graphs)
+    define_vertex_indices(sys_db, vmap, extra_index)
 
 
 def insert_return_batch(docs, collection_name):
