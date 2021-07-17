@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "graph_cast"
-version = "0.1.0"
+version = "0.1.1"
 description = "tools to cast csv and json files into graph form amenable to ingest into graph databases; eg ArangoDB"
 authors = ["Alexander Belikov <alexander@growgraph.dev>"]
 
