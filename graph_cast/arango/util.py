@@ -88,11 +88,12 @@ def define_edge_collections(sys_db, graphs):
             g = sys_db.graph(gname)
         else:
             g = sys_db.create_graph(gname)
-        _ = g.create_edge_definition(
-            edge_collection=item["edge_name"],
-            from_vertex_collections=[item["source"]],
-            to_vertex_collections=[item["target"]],
-        )
+        if not g.has_edge_definition(item["edge_name"]):
+            _ = g.create_edge_definition(
+                edge_collection=item["edge_name"],
+                from_vertex_collections=[item["source"]],
+                to_vertex_collections=[item["target"]],
+            )
 
 
 def define_vertex_indices(sys_db, vmap, extra_index):
