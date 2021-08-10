@@ -86,6 +86,8 @@ vertex_collections:
             - cname
             - oftic
         index:
+            - cusip
+            - cname
             - oftic
     agency:
         basename: agencies
