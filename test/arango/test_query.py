@@ -70,9 +70,5 @@ if __name__ == "__main__":
 
     cursor = sys_db.aql.execute(q)
     chunk = list(cursor.batch())
-    with gzip.open(
-        expanduser(args.o),
-        "wt",
-        encoding="ascii",
-    ) as fp:
+    with gzip.open(expanduser(args.o), "wt", encoding="ascii",) as fp:
         json.dump(chunk, fp, indent=4)

@@ -7,7 +7,6 @@ from os import listdir
 from os.path import isfile, join
 import logging
 
-from graph_cast.input.util import parse_vcollection
 from graph_cast.arango.util import (
     delete_collections,
     define_collections_and_indices,
@@ -17,7 +16,6 @@ from graph_cast.arango.util import (
     define_extra_edges,
 )
 
-from graph_cast.input.util import define_graphs, update_graph_extra_edges
 import graph_cast.input.json as gcij
 import graph_cast.input.csv as gcic
 from graph_cast.util import timer as timer
@@ -27,12 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 def ingest_json_files(
-    fpath,
-    config,
-    db_client,
-    keyword="DSSHPSH",
-    clean_start="all",
-    dry=False,
+    fpath, config, db_client, keyword="DSSHPSH", clean_start="all", dry=False,
 ):
 
     vcollections, vmap, graphs, index_fields_dict, extra_index = gcij.parse_config(
@@ -45,7 +38,9 @@ def ingest_json_files(
         # elif clean_start == "edges":
         #     delete_collections(sys_db, ecollections, [])
 
-        define_collections_and_indices(db_client, graphs, vmap, index_fields_dict, extra_index)
+        define_collections_and_indices(
+            db_client, graphs, vmap, index_fields_dict, extra_index
+        )
 
     files = sorted(
         [f for f in listdir(fpath) if isfile(join(fpath, f)) and keyword in f]
@@ -156,38 +151,21 @@ def ingest_csvs(
     clean_start="all",
     config=None,
 ):
-    vmap, index_fields_dict, extra_indices, vfields = parse_vcollection(config)
 
-    # vertex_collection_name -> fields_keep
-    vcollection_fields_map = {
-        k: v["fields"] for k, v in config["vertex_collections"].items()
-    }
-
-    # vertex_collection_name -> fields_type
-    vcollection_numeric_fields_map = {
-        k: v["numeric_fields"]
-        for k, v in config["vertex_collections"].items()
-        if "numeric_fields" in v
-    }
-
-    # edge discovery
-    field_maps = gcic.parse_input_output_field_map(config["csv"])
-    transformation_maps = gcic.parse_transformations(config["csv"])
-    encodings = gcic.parse_encodings(config["csv"])
-
-    edges, extra_edges = gcic.parse_edges(config)
-
-    graphs_def = define_graphs(edges, vmap)
-    graphs_def = update_graph_extra_edges(graphs_def, vmap, extra_edges)
-
-    modes2graphs, modes2collections = gcic.derive_modes2graphs(
-        graphs_def, config["csv"]
-    )
-
-    weights_definition = {}
-    for item in config["csv"]:
-        weights_definition[item["filetype"]] = item["weights"]
-
+    (
+        vmap,
+        index_fields_dict,
+        extra_indices,
+        graphs_def,
+        modes2collections,
+        field_maps,
+        vcollection_fields_map,
+        modes2graphs,
+        transformation_maps,
+        encodings,
+        weights_definition,
+        vcollection_numeric_fields_map,
+    ) = gcic.prepare_config(config)
     # db operation
     if clean_start == "all":
         delete_collections(db_client, [], [], delete_all=True)
@@ -203,6 +181,7 @@ def ingest_csvs(
     files_dict = gcic.discover_files(
         modes2collections.keys(), fpath, limit_files=limit_files
     )
+
     logger.info(files_dict)
 
     for mode in modes2collections:
@@ -223,7 +202,7 @@ def ingest_csvs(
                 "encoding": encodings[mode],
             }
 
-            func = partial(gcic.process_csv, **kwargs)
+            func = partial(gcic.process_table, **kwargs)
             n_proc = 1
             if n_proc > 1:
                 with mp.Pool(n_proc) as p:

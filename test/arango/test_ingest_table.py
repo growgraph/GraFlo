@@ -1,8 +1,10 @@
 import argparse
 import yaml
 import logging
-from graph_cast.arango.util import get_arangodb_client
+from graph_cast.arango.util import get_arangodb_client, define_collections_and_indices
 from graph_cast.main import ingest_csvs
+import graph_cast.input.csv as gcic
+
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +95,26 @@ if __name__ == "__main__":
 
     db_client = get_arangodb_client(
         args.protocol, args.id_addr, args.port, args.db, args.cred_name, args.cred_pass
+    )
+
+
+    (
+        vmap,
+        index_fields_dict,
+        extra_indices,
+        graphs_def,
+        modes2collections,
+        field_maps,
+        vcollection_fields_map,
+        modes2graphs,
+        transformation_maps,
+        encodings,
+        weights_definition,
+        vcollection_numeric_fields_map,
+    ) = gcic.prepare_config(config)
+
+    define_collections_and_indices(
+        db_client, graphs_def, vmap, index_fields_dict, extra_indices
     )
 
     ingest_csvs(

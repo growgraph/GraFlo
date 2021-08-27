@@ -114,7 +114,9 @@ def define_edge_indices(sys_db, graphs):
             )
 
 
-def define_collections_and_indices(sys_db, graphs, vmap, index_fields_dict, extra_index):
+def define_collections_and_indices(
+    sys_db, graphs, vmap, index_fields_dict, extra_index
+):
     define_vertex_collections(sys_db, graphs, index_fields_dict)
     define_edge_collections(sys_db, graphs)
     define_vertex_indices(sys_db, vmap, extra_index)

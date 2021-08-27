@@ -54,12 +54,7 @@ def create_tmp(fpath):
 
 
 def process_units(
-    units,
-    tmp_dir,
-    config,
-    db_client,
-    init_collections,
-    dry,
+    units, tmp_dir, config, db_client, init_collections, dry,
 ):
     with timer.Timer() as t_full:
         for j, (zfile, unit) in enumerate(units):
@@ -133,10 +128,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--config-path",
-        type=str,
-        default="../conf/wos_json.yaml",
-        help="",
+        "--config-path", type=str, default="../conf/wos_json.yaml", help="",
     )
 
     parser.add_argument(

@@ -12,7 +12,7 @@ from graph_cast.arango.util import (
     insert_edges_batch,
     insert_return_batch,
 )
-from graph_cast.input.util import transform_foo
+from graph_cast.input.util import transform_foo, parse_vcollection, define_graphs, update_graph_extra_edges
 
 
 def parse_edges(config):
@@ -173,7 +173,7 @@ def table_to_vcollections(
     return vdocs, edocs
 
 
-def process_csv(
+def process_table(
     fname,
     batch_size,
     max_lines,
@@ -257,3 +257,51 @@ def process_csv(
                     False,
                 )
                 cursor = db_client.aql.execute(query0)
+
+
+def prepare_config(config):
+    vmap, index_fields_dict, extra_indices, vfields = parse_vcollection(config)
+
+    # vertex_collection_name -> fields_keep
+    vcollection_fields_map = {
+        k: v["fields"] for k, v in config["vertex_collections"].items()
+    }
+
+    # vertex_collection_name -> fields_type
+    vcollection_numeric_fields_map = {
+        k: v["numeric_fields"]
+        for k, v in config["vertex_collections"].items()
+        if "numeric_fields" in v
+    }
+
+    # edge discovery
+    field_maps = parse_input_output_field_map(config["csv"])
+    transformation_maps = parse_transformations(config["csv"])
+    encodings = parse_encodings(config["csv"])
+
+    edges, extra_edges = parse_edges(config)
+
+    graphs_def = define_graphs(edges, vmap)
+    graphs_def = update_graph_extra_edges(graphs_def, vmap, extra_edges)
+
+    modes2graphs, modes2collections = derive_modes2graphs(
+        graphs_def, config["csv"]
+    )
+
+    weights_definition = {}
+    for item in config["csv"]:
+        weights_definition[item["filetype"]] = item["weights"]
+    return (
+        vmap,
+        index_fields_dict,
+        extra_indices,
+        graphs_def,
+        modes2collections,
+        field_maps,
+        vcollection_fields_map,
+        modes2graphs,
+        transformation_maps,
+        encodings,
+        weights_definition,
+        vcollection_numeric_fields_map,
+    )
