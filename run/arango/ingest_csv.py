@@ -46,7 +46,9 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--db", default="wos", help="db for arangodb connection",
+        "--db",
+        default="wos",
+        help="db for arangodb connection",
     )
 
     parser.add_argument(
@@ -83,7 +85,10 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--config-path", type=str, default="../conf/wos.yaml", help="",
+        "--config-path",
+        type=str,
+        default="../conf/wos.yaml",
+        help="",
     )
 
     args = parser.parse_args()

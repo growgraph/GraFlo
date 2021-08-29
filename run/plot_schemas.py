@@ -175,7 +175,7 @@ class SchemaPlotter:
             g = nx.MultiDiGraph()
             edges = []
             for n in self.config[self.type]:
-                k = n["filetype"]
+                k = n["tabletype"]
                 nodes_table = [(k, {"type": "table"})]
                 nodes_collection = [
                     (item["type"], {"type": "vcollection"})
@@ -277,7 +277,7 @@ class SchemaPlotter:
         edges = []
 
         for n in self.config["csv"]:
-            k = n["filetype"]
+            k = n["tabletype"]
             nodes_table = [(f"table:{k}", {"type": "table", "label": k})]
             vcols = n["vertex_collections"]
             for item in vcols:

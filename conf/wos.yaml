@@ -2,7 +2,7 @@ general:
   name: wos
 csv:
     -
-        filetype: publications
+        tabletype: publications
         vertex_collections:
             -
                 type: publication
@@ -18,7 +18,7 @@ csv:
             -
                 type: language
     -
-        filetype: contributors
+        tabletype: contributors
         vertex_collections:
             -
                 type: contributor
@@ -27,7 +27,7 @@ csv:
                 map_fields:
                     wos_id: _key
     -
-        filetype: institutions
+        tabletype: institutions
         vertex_collections:
             -
                 type: organization
@@ -36,7 +36,7 @@ csv:
                 map_fields:
                     wos_id: _key
     -
-        filetype: refs
+        tabletype: refs
         vertex_collections:
             -
                 type: publication

@@ -1,4 +1,5 @@
 import gzip
+import csv
 import re
 import json
 import logging
@@ -19,21 +20,58 @@ class Chunker:
         self.done = False
 
     def pop_header(self):
-        return self.file_obj.readline().rstrip("\n")
+        header = self.file_obj.readline().rstrip("\n")
+        header = header.split(",")
+        return header
 
     def pop(self):
         if not self.n_lines_max or (self.n_lines_max and self.j < self.n_lines_max):
             lines = self.file_obj.readlines(self.batch_size)
+            lines2 = [
+                next(csv.reader([line.rstrip()], skipinitialspace=True))
+                for line in lines
+            ]
+            self.j += len(lines)
+            if not lines2:
+                self.done = True
+                self.file_obj.close()
+                return False
+            else:
+                return lines2
+        else:
+            self.done = True
+            self.file_obj.close()
+            return False
+
+    def done(self):
+        return self.done
+
+
+class ChunkerDataFrame:
+    def __init__(self, df, batch_size, n_lines_max=None):
+        self.acc = []
+        self.j = 0
+        self.batch_size = batch_size
+        self.n_lines_max = n_lines_max
+        self.file_obj = df
+        self.done = False
+        self.idx = [i for i in range(0, self.file_obj.shape[0], self.batch_size)][::-1]
+
+    def pop_header(self):
+        return self.file_obj.columns
+
+    def pop(self):
+        if self.idx:
+            cid = self.idx.pop()
+            lines = self.file_obj.iloc[cid : cid + self.batch_size].values.tolist()
             self.j += len(lines)
             if not lines:
                 self.done = True
-                self.file_obj.close()
                 return False
             else:
                 return lines
         else:
             self.done = True
-            self.file_obj.close()
             return False
 
     def done(self):

@@ -75,7 +75,10 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--config-path", type=str, default="../../conf/wos_json.yaml", help="",
+        "--config-path",
+        type=str,
+        default="../../conf/wos_json.yaml",
+        help="",
     )
 
     args = parser.parse_args()

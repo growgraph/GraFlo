@@ -2,7 +2,7 @@ general:
     name: ibes
 csv:
     -
-        filetype: ibes
+        tabletype: ibes
         encoding: ISO-8859-1
         transforms:
             -   foo: parse_date_ibes

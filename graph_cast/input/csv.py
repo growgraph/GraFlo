@@ -1,10 +1,11 @@
-import csv
 from itertools import permutations
 from collections import defaultdict, ChainMap
 from os import listdir
 from os.path import isfile, join
 
-from graph_cast.util.io import Chunker
+import pandas as pd
+
+from graph_cast.util.io import Chunker, ChunkerDataFrame
 from graph_cast.util.transform import add_none_flag
 
 from graph_cast.arango.util import (
@@ -12,7 +13,12 @@ from graph_cast.arango.util import (
     insert_edges_batch,
     insert_return_batch,
 )
-from graph_cast.input.util import transform_foo, parse_vcollection, define_graphs, update_graph_extra_edges
+from graph_cast.input.util import (
+    transform_foo,
+    parse_vcollection,
+    define_graphs,
+    update_graph_extra_edges,
+)
 
 
 def parse_edges(config):
@@ -27,7 +33,7 @@ def parse_edges(config):
 def parse_input_output_field_map(subconfig):
     field_maps = {}
     for item in subconfig:
-        field_maps[item["filetype"]] = {
+        field_maps[item["tabletype"]] = {
             vc["type"]: vc["map_fields"]
             for vc in item["vertex_collections"]
             if "map_fields" in vc
@@ -39,14 +45,14 @@ def parse_transformations(subconfig):
     transform_maps = {}
     for item in subconfig:
         if "transforms" in item:
-            transform_maps[item["filetype"]] = item["transforms"]
+            transform_maps[item["tabletype"]] = item["transforms"]
     return transform_maps
 
 
 def parse_encodings(subconfig):
     encodings_map = {}
     for item in subconfig:
-        encodings_map[item["filetype"]] = item["encoding"]
+        encodings_map[item["tabletype"]] = item["encoding"]
     return encodings_map
 
 
@@ -56,7 +62,7 @@ def derive_modes2graphs(graph, subconfig):
     direct_graph = {k: v for k, v in graph.items() if v["type"] == "direct"}
 
     for item in subconfig:
-        ftype = item["filetype"]
+        ftype = item["tabletype"]
 
         vcols = [iitem["type"] for iitem in item["vertex_collections"]]
         modes2collections[ftype] = list(set(vcols))
@@ -174,7 +180,7 @@ def table_to_vcollections(
 
 
 def process_table(
-    fname,
+    tabular_resource,
     batch_size,
     max_lines,
     current_graphs,
@@ -187,23 +193,22 @@ def process_table(
     weights_definition,
     current_transformations,
     db_client,
-    encoding,
+    encoding=None,
 ):
-    chk = Chunker(fname, batch_size, max_lines, encoding=encoding)
+    if isinstance(tabular_resource, pd.DataFrame):
+        chk = ChunkerDataFrame(tabular_resource, batch_size, max_lines)
+    elif isinstance(tabular_resource, str):
+        chk = Chunker(tabular_resource, batch_size, max_lines, encoding=encoding)
+    else:
+        raise TypeError(f"tabular_resource type is not str or pd.DataFrame")
     header = chk.pop_header()
-    header = header.split(",")
     header_dict = dict(zip(header, range(len(header))))
 
     while not chk.done:
         lines = chk.pop()
         if lines:
-            lines2 = [
-                next(csv.reader([line.rstrip()], skipinitialspace=True))
-                for line in lines
-            ]
-
             vdocuments, edocuments = table_to_vcollections(
-                lines2,
+                lines,
                 current_collections,
                 current_graphs,
                 header_dict,
@@ -284,13 +289,11 @@ def prepare_config(config):
     graphs_def = define_graphs(edges, vmap)
     graphs_def = update_graph_extra_edges(graphs_def, vmap, extra_edges)
 
-    modes2graphs, modes2collections = derive_modes2graphs(
-        graphs_def, config["csv"]
-    )
+    modes2graphs, modes2collections = derive_modes2graphs(graphs_def, config["csv"])
 
     weights_definition = {}
     for item in config["csv"]:
-        weights_definition[item["filetype"]] = item["weights"]
+        weights_definition[item["tabletype"]] = item["weights"]
     return (
         vmap,
         index_fields_dict,

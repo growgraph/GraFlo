@@ -1,15 +1,18 @@
 import argparse
+from os.path import dirname, realpath, join
+import pandas as pd
 import yaml
 import logging
 from graph_cast.arango.util import get_arangodb_client, define_collections_and_indices
-from graph_cast.main import ingest_csvs
-import graph_cast.input.csv as gcic
+from graph_cast.input.csv import process_table, prepare_config
 
 
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+
+    cpath = dirname(realpath(__file__))
 
     logging.basicConfig(
         filename="ingest_csv.log",
@@ -48,7 +51,9 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--db", default="wos", help="db for arangodb connection",
+        "--db",
+        default="ibes_test",
+        help="db for arangodb connection",
     )
 
     parser.add_argument(
@@ -85,7 +90,10 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--config-path", type=str, default="../conf/wos.yaml", help="",
+        "--config-path",
+        type=str,
+        default=join(cpath, "../../conf/ibes.yaml"),
+        help="",
     )
 
     args = parser.parse_args()
@@ -96,7 +104,6 @@ if __name__ == "__main__":
     db_client = get_arangodb_client(
         args.protocol, args.id_addr, args.port, args.db, args.cred_name, args.cred_pass
     )
-
 
     (
         vmap,
@@ -111,18 +118,28 @@ if __name__ == "__main__":
         encodings,
         weights_definition,
         vcollection_numeric_fields_map,
-    ) = gcic.prepare_config(config)
+    ) = prepare_config(config)
 
     define_collections_and_indices(
         db_client, graphs_def, vmap, index_fields_dict, extra_indices
     )
 
-    ingest_csvs(
-        args.path,
+    mode = "ibes"
+
+    tabular_resource = pd.read_csv(join(cpath, "../data/ibes/ibes_test.csv.gz"))
+    tabular_resource = tabular_resource.fillna("")
+    process_table(
+        tabular_resource,
+        10,
+        10000,
+        modes2graphs[mode],
+        modes2collections[mode],
+        graphs_def,
+        field_maps[mode],
+        index_fields_dict,
+        vmap,
+        vcollection_fields_map,
+        weights_definition[mode],
+        transformation_maps[mode],
         db_client,
-        args.limit_files,
-        args.max_lines,
-        args.batch_size,
-        args.clean_start,
-        config,
     )

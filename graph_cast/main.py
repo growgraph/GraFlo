@@ -25,7 +25,12 @@ logger = logging.getLogger(__name__)
 
 
 def ingest_json_files(
-    fpath, config, db_client, keyword="DSSHPSH", clean_start="all", dry=False,
+    fpath,
+    config,
+    db_client,
+    keyword="DSSHPSH",
+    clean_start="all",
+    dry=False,
 ):
 
     vcollections, vmap, graphs, index_fields_dict, extra_index = gcij.parse_config(
