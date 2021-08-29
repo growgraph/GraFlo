@@ -52,7 +52,10 @@ def parse_transformations(subconfig):
 def parse_encodings(subconfig):
     encodings_map = {}
     for item in subconfig:
-        encodings_map[item["tabletype"]] = item["encoding"]
+        if "encoding" in item:
+            encodings_map[item["tabletype"]] = item["encoding"]
+        else:
+            encodings_map[item["tabletype"]] = None
     return encodings_map
 
 
