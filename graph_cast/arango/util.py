@@ -7,22 +7,22 @@ from graph_cast.util.transform import pick_unique_dict
 logger = logging.getLogger(__name__)
 
 
-def create_collection_if_absent(sys_db, g, vcol, index, unique=True):
-    if not sys_db.has_collection(vcol):
+def create_collection_if_absent(db_client, g, vcol, index, unique=True):
+    if not db_client.has_collection(vcol):
         _ = g.create_vertex_collection(vcol)
-        general_collection = sys_db.collection(vcol)
+        general_collection = db_client.collection(vcol)
         ih = general_collection.add_hash_index(fields=index, unique=unique)
         return ih
 
 
-def fetch_collection(sys_db, collection_name, erase_existing=False):
-    if sys_db.has_collection(collection_name):
+def fetch_collection(db_client, collection_name, erase_existing=False):
+    if db_client.has_collection(collection_name):
         if erase_existing:
-            sys_db.delete_collection(collection_name)
+            db_client.delete_collection(collection_name)
         else:
-            collection = sys_db.collection(collection_name)
+            collection = db_client.collection(collection_name)
     else:
-        collection = sys_db.create_collection(collection_name)
+        collection = db_client.create_collection(collection_name)
     return collection
 
 

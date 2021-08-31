@@ -140,7 +140,7 @@ def clear_first_level_nones(docs, keys_keep_nones=None):
 def add_none_flag(docs, index_fields):
     """
 
-    if document contains any index_fields do nothing, otherwise add _flag_na field (? blank node)
+    if document contains any index_fields do nothing, otherwise add _flag_blank_node field (? blank node)
 
     :param docs:
     :param index_fields:
@@ -149,7 +149,7 @@ def add_none_flag(docs, index_fields):
     docs = [
         tdict
         if any([True for k in tdict if k in index_fields])
-        else {**tdict, **{"_flag_na": True}}
+        else {**tdict, **{"_flag_blank_node": True}}
         for tdict in docs
     ]
     return docs

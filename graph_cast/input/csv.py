@@ -170,13 +170,13 @@ def table_to_vcollections(
                 edocs[g] = [
                     {"source": x, "target": y, "attributes": attr}
                     for x, y, attr in zip(vdocs[u], vdocs[v], weights[g])
-                    if "_flag_na" not in x and "_flag_na" not in y
+                    if "_flag_blank_node" not in x and "_flag_blank_node" not in y
                 ]
             else:
                 edocs[g] = [
                     {"source": x, "target": y}
                     for x, y in zip(vdocs[u], vdocs[v])
-                    if "_flag_na" not in x and "_flag_na" not in y
+                    if "_flag_blank_node" not in x and "_flag_blank_node" not in y
                 ]
 
     return vdocs, edocs
@@ -223,9 +223,12 @@ def process_table(
                 current_transformations,
             )
 
-            # identify blank nodes
+            # identify blank nodes' collections
             blank_nodes_collections = []
             for c in current_collections:
+                # if _key in index_fields_dict keys, ok..
+                # and collection does not have field maps or
+                # it does but _key is not in field maps
                 if "_key" in index_fields_dict[c] and (
                     (c not in field_maps)
                     or (c in field_maps and "_key" not in field_maps[c])
@@ -234,6 +237,7 @@ def process_table(
 
             # TODO move db related stuff out
             for vcol, data in vdocuments.items():
+                # blank nodes: push and get back their keys  {"_key": ...}
                 if vcol in blank_nodes_collections:
                     query0 = insert_return_batch(data, vmap[vcol])
                     cursor = db_client.aql.execute(query0)
@@ -244,8 +248,7 @@ def process_table(
                     )
                     cursor = db_client.aql.execute(query0)
 
-            # update edges with blank nodes keys
-
+            # update edge data with blank node edges
             for vcol in blank_nodes_collections:
                 for (vfrom, vto), data in edocuments.items():
                     if vcol == vfrom or vcol == vto:

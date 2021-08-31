@@ -1,0 +1,27 @@
+- !!python/tuple
+  - agencies
+  - 138
+- !!python/tuple
+  - analysts
+  - 476
+- !!python/tuple
+  - analysts_agencies_edges
+  - 1000
+- !!python/tuple
+  - analysts_publications_edges
+  - 1000
+- !!python/tuple
+  - publications
+  - 1000
+- !!python/tuple
+  - publications_recommendations_edges
+  - 1000
+- !!python/tuple
+  - publications_tickers_edges
+  - 1000
+- !!python/tuple
+  - recommendations
+  - 5
+- !!python/tuple
+  - tickers
+  - 69
