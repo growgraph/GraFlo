@@ -7,12 +7,15 @@ from graph_cast.util.transform import pick_unique_dict
 logger = logging.getLogger(__name__)
 
 
-def create_collection_if_absent(db_client, g, vcol, index, unique=True):
+def create_collection_if_absent(db_client, g, vcol, index=None, unique=True):
     if not db_client.has_collection(vcol):
         _ = g.create_vertex_collection(vcol)
         general_collection = db_client.collection(vcol)
-        ih = general_collection.add_hash_index(fields=index, unique=unique)
-        return ih
+        if index is not None and index != ["_key"]:
+            ih = general_collection.add_hash_index(fields=index, unique=unique)
+            return ih
+        else:
+            return None
 
 
 def fetch_collection(db_client, collection_name, erase_existing=False):
@@ -73,11 +76,17 @@ def define_vertex_collections(sys_db, graphs, index_fields_dict):
             g = sys_db.create_graph(gname)
         # TODO create collections without referencing the graph
         ih = create_collection_if_absent(
-            sys_db, g, item["source"], index_fields_dict[u]
+            sys_db,
+            g,
+            item["source"],
+            index_fields_dict[u] if u in index_fields_dict else None,
         )
 
         ih = create_collection_if_absent(
-            sys_db, g, item["target"], index_fields_dict[v]
+            sys_db,
+            g,
+            item["target"],
+            index_fields_dict[v] if v in index_fields_dict else None,
         )
 
 
@@ -100,9 +109,10 @@ def define_vertex_indices(sys_db, vmap, extra_index):
     for cname, list_indices in extra_index.items():
         for index_dict in list_indices:
             general_collection = sys_db.collection(vmap[cname])
-            ih = general_collection.add_hash_index(
-                fields=index_dict["fields"], unique=index_dict["unique"]
-            )
+            if index_dict["fields"] != ["_key"]:
+                ih = general_collection.add_hash_index(
+                    fields=index_dict["fields"], unique=index_dict["unique"]
+                )
 
 
 def define_edge_indices(sys_db, graphs):

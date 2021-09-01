@@ -9,8 +9,11 @@ def parse_vcollection(config):
     # vertex_type -> vertex_collection_name
     vmap = {k: f'{v["basename"]}' for k, v in config["vertex_collections"].items()}
 
-    # vertex_collection_name -> field_definition
-    index_fields_dict = {k: v["index"] for k, v in config["vertex_collections"].items()}
+    # vertex_collection_name -> indices
+    index_fields_dict = {
+        k: v["index"] if "index" in v else ["_key"]
+        for k, v in config["vertex_collections"].items()
+    }
     logger.info("index_fields_dict")
     logger.info(f"{index_fields_dict}")
     # vertex_collection_name -> extra_index
@@ -21,9 +24,18 @@ def parse_vcollection(config):
         if "extra_index" in v
     }
 
-    # vertex_collection_name -> fields_keep
-    vfields = {k: v["fields"] for k, v in config["vertex_collections"].items()}
-    return vmap, index_fields_dict, extra_indices, vfields
+    # vertex_collection_name -> fields
+    vfields = {
+        k: (v["fields"] if "fields" in v else [])
+        for k, v in config["vertex_collections"].items()
+    }
+
+    blank_collections = [
+        k
+        for k, v in config["vertex_collections"].items()
+        if "extra" in v and "blank" in v["extra"]
+    ]
+    return vmap, index_fields_dict, extra_indices, vfields, blank_collections
 
 
 def define_graphs(edge_def, vmap):

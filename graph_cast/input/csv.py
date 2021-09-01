@@ -31,6 +31,11 @@ def parse_edges(config):
 
 
 def parse_input_output_field_map(subconfig):
+    """
+    extract map of observed fields in the table to the fields in the collection
+    :param subconfig:
+    :return:
+    """
     field_maps = {}
     for item in subconfig:
         field_maps[item["tabletype"]] = {
@@ -100,12 +105,13 @@ def table_to_vcollections(
     current_collections,
     current_graphs,
     header_dict,
+    vcollection_fields_map,
     field_maps,
     index_fields_dict,
-    vcollection_fields_map,
     graphs_definition,
     weights_definition,
     current_transformations,
+    blank_collections,
 ):
 
     vdocs = {}
@@ -128,14 +134,21 @@ def table_to_vcollections(
         ]
 
     for vcol in current_collections:
-        vcol_map = field_maps[vcol] if vcol in field_maps else dict()
-        current_fields = vcollection_fields_map[vcol]
-        default_input = set(current_fields) & set(header_dict.keys())
+        current_fields = set(
+            index_fields_dict[vcol] if vcol in index_fields_dict else {}
+        ) | set(vcollection_fields_map[vcol] if vcol in vcollection_fields_map else {})
+
+        # keys that do not require transformations
+        default_input = current_fields & set(header_dict.keys())
         vdoc_acc = []
 
-        for (f_input, f_output), rows_transformed in transformed_fields.items():
-            if set(f_output) & set(current_fields):
-                vdoc_acc += [rows_transformed]
+        if default_input:
+            vdoc_acc += [
+                [{f: item[f] for f in default_input} for item in fields_extracted_raw]
+            ]
+
+        # simple transformations: renaming
+        vcol_map = field_maps[vcol] if vcol in field_maps else dict()
 
         if vcol_map:
             vdoc_acc += [
@@ -144,14 +157,12 @@ def table_to_vcollections(
                     for item in fields_extracted_raw
                 ]
             ]
-        if default_input:
-            vdoc_acc += [
-                [{f: item[f] for f in default_input} for item in fields_extracted_raw]
-            ]
+
+        for (f_input, f_output), rows_transformed in transformed_fields.items():
+            if set(f_output) & set(current_fields):
+                vdoc_acc += [rows_transformed]
 
         vdocs[vcol] = [dict(ChainMap(*auxs)) for auxs in zip(*vdoc_acc)]
-
-        vdocs[vcol] = add_none_flag(vdocs[vcol], index_fields_dict[vcol])
 
     for wdef in weights_definition:
         for edges_def in wdef["edge_collections"]:
@@ -163,21 +174,24 @@ def table_to_vcollections(
                         acc += [rows_transformed]
             weights[(u, v)] = [dict(ChainMap(*auxs)) for auxs in zip(*acc)]
 
+    # if blank collection has no aux fields - inflate it
+    for vcol in blank_collections:
+        if not vdocs[vcol]:
+            vdocs[vcol] = [{}] * len(rows)
+
     for g in current_graphs:
         if graphs_definition[g]["type"] == "direct":
             u, v = g
-            if g in weights:
-                edocs[g] = [
-                    {"source": x, "target": y, "attributes": attr}
-                    for x, y, attr in zip(vdocs[u], vdocs[v], weights[g])
-                    if "_flag_blank_node" not in x and "_flag_blank_node" not in y
-                ]
-            else:
-                edocs[g] = [
-                    {"source": x, "target": y}
-                    for x, y in zip(vdocs[u], vdocs[v])
-                    if "_flag_blank_node" not in x and "_flag_blank_node" not in y
-                ]
+            if u not in blank_collections and v not in blank_collections:
+                if g in weights:
+                    edocs[g] = [
+                        {"source": x, "target": y, "attributes": attr}
+                        for x, y, attr in zip(vdocs[u], vdocs[v], weights[g])
+                    ]
+                else:
+                    edocs[g] = [
+                        {"source": x, "target": y} for x, y in zip(vdocs[u], vdocs[v])
+                    ]
 
     return vdocs, edocs
 
@@ -195,6 +209,7 @@ def process_table(
     vcollection_fields_map,
     weights_definition,
     current_transformations,
+    blank_collections,
     db_client,
     encoding=None,
 ):
@@ -215,30 +230,19 @@ def process_table(
                 current_collections,
                 current_graphs,
                 header_dict,
+                vcollection_fields_map,
                 field_maps,
                 index_fields_dict,
-                vcollection_fields_map,
                 graphs_definition,
                 weights_definition,
                 current_transformations,
+                blank_collections,
             )
-
-            # identify blank nodes' collections
-            blank_nodes_collections = []
-            for c in current_collections:
-                # if _key in index_fields_dict keys, ok..
-                # and collection does not have field maps or
-                # it does but _key is not in field maps
-                if "_key" in index_fields_dict[c] and (
-                    (c not in field_maps)
-                    or (c in field_maps and "_key" not in field_maps[c])
-                ):
-                    blank_nodes_collections += [c]
 
             # TODO move db related stuff out
             for vcol, data in vdocuments.items():
                 # blank nodes: push and get back their keys  {"_key": ...}
-                if vcol in blank_nodes_collections:
+                if vcol in blank_collections:
                     query0 = insert_return_batch(data, vmap[vcol])
                     cursor = db_client.aql.execute(query0)
                     vdocuments[vcol] = [item for item in cursor]
@@ -249,8 +253,8 @@ def process_table(
                     cursor = db_client.aql.execute(query0)
 
             # update edge data with blank node edges
-            for vcol in blank_nodes_collections:
-                for (vfrom, vto), data in edocuments.items():
+            for vcol in blank_collections:
+                for vfrom, vto in current_graphs:
                     if vcol == vfrom or vcol == vto:
                         edocuments[(vfrom, vto)] = [
                             {"source": x, "target": y}
@@ -271,12 +275,13 @@ def process_table(
 
 
 def prepare_config(config):
-    vmap, index_fields_dict, extra_indices, vfields = parse_vcollection(config)
-
-    # vertex_collection_name -> fields_keep
-    vcollection_fields_map = {
-        k: v["fields"] for k, v in config["vertex_collections"].items()
-    }
+    (
+        vmap,
+        index_fields_dict,
+        extra_indices,
+        vfields,
+        blank_collections,
+    ) = parse_vcollection(config)
 
     # vertex_collection_name -> fields_type
     vcollection_numeric_fields_map = {
@@ -285,8 +290,8 @@ def prepare_config(config):
         if "numeric_fields" in v
     }
 
-    # edge discovery
-    field_maps = parse_input_output_field_map(config["csv"])
+    # vertex_collection -> (table field -> collection field)
+    vcollection_fmaps_map = parse_input_output_field_map(config["csv"])
     transformation_maps = parse_transformations(config["csv"])
     encodings = parse_encodings(config["csv"])
 
@@ -306,11 +311,12 @@ def prepare_config(config):
         extra_indices,
         graphs_def,
         modes2collections,
-        field_maps,
-        vcollection_fields_map,
+        vcollection_fmaps_map,
+        vfields,
         modes2graphs,
         transformation_maps,
         encodings,
         weights_definition,
         vcollection_numeric_fields_map,
+        blank_collections,
     )

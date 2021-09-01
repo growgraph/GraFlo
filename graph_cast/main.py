@@ -163,13 +163,14 @@ def ingest_csvs(
         extra_indices,
         graphs_def,
         modes2collections,
-        field_maps,
+        vcollection_fmaps_map,
         vcollection_fields_map,
         modes2graphs,
         transformation_maps,
         encodings,
         weights_definition,
         vcollection_numeric_fields_map,
+        blank_collections,
     ) = gcic.prepare_config(config)
     # db operation
     if clean_start == "all":
@@ -194,16 +195,17 @@ def ingest_csvs(
             kwargs = {
                 "batch_size": batch_size,
                 "max_lines": max_lines,
+                "current_graphs": modes2graphs[mode],
+                "current_collections": modes2collections[mode],
                 "graphs_definition": graphs_def,
+                "field_maps": vcollection_fmaps_map[mode],
                 "index_fields_dict": index_fields_dict,
-                "db_client": db_client,
                 "vmap": vmap,
                 "vcollection_fields_map": vcollection_fields_map,
-                "current_collections": modes2collections[mode],
-                "current_graphs": modes2graphs[mode],
                 "weights_definition": weights_definition[mode],
-                "field_maps": field_maps[mode],
+                "blank_collections": blank_collections,
                 "current_transformations": transformation_maps[mode],
+                "db_client": db_client,
                 "encoding": encodings[mode],
             }
 

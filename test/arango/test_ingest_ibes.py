@@ -1,8 +1,8 @@
 import unittest
 from os.path import join, dirname, realpath
-import pathlib
 import yaml
 import logging
+from pprint import pprint
 from graph_cast.arango.util import get_arangodb_client
 from graph_cast.main import ingest_csvs
 
@@ -47,7 +47,6 @@ class TestIngestCSV(unittest.TestCase):
             max_lines=None,
             config=self.config,
         )
-        # rq = list_collections(db_client)
         cols = db_client.collections()
         ref_sizes = []
         for c in cols:
@@ -61,4 +60,10 @@ class TestIngestCSV(unittest.TestCase):
             with open(ref_path, "w") as file:
                 yaml.dump(ref_sizes, file)
 
+        for (k, v), (q, w) in zip(ref_sizes, self.ref_sizes):
+            pprint(f"{k} {v} {w}")
         self.assertTrue(ref_sizes == self.ref_sizes)
+
+
+if __name__ == "__main__":
+    unittest.main()

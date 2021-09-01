@@ -118,6 +118,7 @@ if __name__ == "__main__":
         encodings,
         weights_definition,
         vcollection_numeric_fields_map,
+        blank_collections,
     ) = prepare_config(config)
 
     define_collections_and_indices(

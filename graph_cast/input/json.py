@@ -472,7 +472,13 @@ def parse_config(config=None):
     :return:
     """
 
-    vmap, index_fields_dict, extra_indices, vfields = parse_vcollection(config)
+    (
+        vmap,
+        index_fields_dict,
+        extra_indices,
+        vfields,
+        blank_collections,
+    ) = parse_vcollection(config)
 
     edge_def, excl_fields = parse_edges(config["json"], [], defaultdict(list))
 

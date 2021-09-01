@@ -64,12 +64,11 @@ csv:
 vertex_collections:
     publication:
         basename: publications
+        extra:
+            - blank
         fields:
-            - _key
             - datetime_review
             - datetime_announce
-        index:
-            - _key
         extra_index:
             -   type: hash
                 unique: false
