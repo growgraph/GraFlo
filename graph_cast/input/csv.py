@@ -172,6 +172,8 @@ def table_to_vcollections(
                 for (f_input, f_output), rows_transformed in transformed_fields.items():
                     if {f} & set(f_output):
                         acc += [rows_transformed]
+                if f in header_dict.keys():
+                    acc += [[{f: item[f]} if f in item else {} for item in fields_extracted_raw]]
             weights[(u, v)] = [dict(ChainMap(*auxs)) for auxs in zip(*acc)]
 
     # if blank collection has no aux fields - inflate it
