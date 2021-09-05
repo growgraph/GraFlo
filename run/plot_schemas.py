@@ -3,6 +3,7 @@ import os
 import networkx as nx
 from collections import defaultdict
 from itertools import product
+from os.path import join, dirname, realpath
 import argparse
 
 from graph_cast.input.json import parse_edges
@@ -53,6 +54,40 @@ map_type2color = {
 edge_status = {"vcollection": "dashed", "table": "solid"}
 
 
+def knapsack(weights, ks_size=7):
+    """
+    split a set of weights into bag (groups) of total weight of at most threshold weight
+    :param weights:
+    :param ks_size:
+    :return:
+    """
+    pp = sorted(list(zip(range(len(weights)), weights)), key=lambda x: x[1])
+    print(pp)
+    acc = []
+    if pp[-1][1] > ks_size:
+        raise ValueError("One of the items is larger than the knapsack")
+
+    while pp:
+        w_item = []
+        w_item += [pp.pop()]
+        ww_item = sum([l for _, l in w_item])
+        while ww_item < ks_size:
+            cnt = 0
+            for j, item in enumerate(pp[::-1]):
+                diff = ks_size - item[1] - ww_item
+                if diff >= 0:
+                    cnt += 1
+                    w_item += [pp.pop(len(pp) - j - 1)]
+                    ww_item += w_item[-1][1]
+                else:
+                    break
+            if ww_item >= ks_size or cnt == 0:
+                acc += [w_item]
+                break
+    acc_ret = [[y for y, _ in subitem] for subitem in acc]
+    return acc_ret
+
+
 def parse_branch(croot, acc, nc):
     """
     extract edge definition and edge fields from definition dict
@@ -81,7 +116,10 @@ def parse_branch(croot, acc, nc):
 
 class SchemaPlotter:
     def __init__(self, config_filename):
-        self.figgpath = "./figs/schema"
+        cpath = dirname(realpath(__file__))
+        self.figgpath = join(cpath, "../figs/schema")
+
+        config_filename = join(cpath, "../conf", config_filename)
         with open(config_filename, "r") as f:
             self.config = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -100,8 +138,12 @@ class SchemaPlotter:
         g = nx.DiGraph()
         nodes = []
         edges = []
+
         for k, props in self.config["vertex_collections"].items():
+            if "index" not in props:
+                props["index"] = ["_key"]
             index_fields = props["index"]
+            props["fields"] = list(set(index_fields) | set(props["fields"]))
             nodes_collection = [(k, {"type": "vcollection"})]
             nodes_fields = [
                 (
@@ -140,6 +182,25 @@ class SchemaPlotter:
                 g.edges[s, t][k] = v
 
         ag = nx.nx_agraph.to_agraph(g)
+        # ccs = list(nx.weakly_connected_components(g))
+        # ccs_sizes = [len(cc) - 1 for cc in ccs]
+        # clusters = knapsack(ccs_sizes, 7)
+        #
+        # vclusters = [[x for i in c for x in ccs[i]] for c in clusters]
+        #
+        # index_vertices = [
+        #     f"{k}:{item}"
+        #     for k, props in self.config["vertex_collections"].items()
+        #     for item in props["index"]
+        # ]
+        #
+        # vclusters_index = [sorted([v for v in g if v in index_vertices]) for g in vclusters]
+        #
+        # if any([len(item) == 0 for item in vclusters_index]):
+        #     raise "Some cluster has no index fields"
+        #
+        # level_one = [x[0] for x in vclusters_index]
+        # ag.add_subgraph(level_one, rank='same')
 
         for k, props in self.config["vertex_collections"].items():
             level_index = [f"{k}:{item}" for item in props["index"]]
@@ -147,6 +208,7 @@ class SchemaPlotter:
             index_subgraph.node_attr["style"] = "filled"
             index_subgraph.node_attr["label"] = "definition"
 
+        ag = ag.unflatten("-l 5 -f -c 3")
         ag.draw(
             os.path.join(self.figgpath, f"{self.prefix}_vc2fields.pdf"),
             "pdf",
@@ -188,6 +250,8 @@ class SchemaPlotter:
                 ]
 
             g.add_nodes_from(nodes)
+        else:
+            raise KeyError("Suppoted types : csv / json")
 
         g.add_edges_from(edges)
 
@@ -206,6 +270,7 @@ class SchemaPlotter:
                 g.nodes[n][k] = v
 
         ag = nx.nx_agraph.to_agraph(g)
+
         ag.draw(
             os.path.join(self.figgpath, f"{self.prefix}_source2vc.pdf"),
             "pdf",
@@ -236,7 +301,10 @@ class SchemaPlotter:
                 ]
                 nodes += nodes_collection
 
-            edges += [(x, y) for x, y in self.config["edge_collections"]]
+            edges += [
+                (item["source"], item["target"])
+                for item in self.config["edge_collections"]
+            ]
 
         g.add_nodes_from(nodes)
         g.add_edges_from(edges)
