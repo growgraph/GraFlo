@@ -277,7 +277,7 @@ class SchemaPlotter:
             prog="dot",
         )
 
-    def plot_vc2vc(self):
+    def plot_vc2vc(self, prune_leaves=False):
         """
             vc -> vc
         :return:
@@ -308,6 +308,15 @@ class SchemaPlotter:
 
         g.add_nodes_from(nodes)
         g.add_edges_from(edges)
+
+        if prune_leaves:
+            out_deg = g.out_degree()
+            in_deg = g.in_degree()
+
+            nodes_to_remove = set([k for k, v in out_deg if v == 0]) & set(
+                [k for k, v in in_deg if v < 2]
+            )
+            g.remove_nodes_from(nodes_to_remove)
 
         for n in g.nodes():
             props = g.nodes()[n]
@@ -438,12 +447,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-c", "--config", default=None, help="config file name")
+    parser.add_argument("-p", "--prune-low-degree-nodes", action="store_true", help="prune low degree nodes for vc2vc")
 
     args = parser.parse_args()
 
     plotter = SchemaPlotter(args.config)
     plotter.plot_vc2fields()
     plotter.plot_source2vc()
-    plotter.plot_vc2vc()
+    plotter.plot_vc2vc(prune_leaves=args.prune_low_degree_nodes)
     if plotter.type == "csv":
         plotter.plot_source2vc_detailed()
