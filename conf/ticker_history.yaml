@@ -1,0 +1,85 @@
+general:
+    name: ticker_history
+csv:
+    -
+        tabletype: _all
+        logic:
+            type: _column
+            map:
+               _column:
+                   - feature
+                   - name
+               _value:
+                   - feature
+                   - value
+        transforms:
+            -   foo: round
+                module: builtins
+                inputs:
+                    - Open
+                    - High
+                    - Low
+                    - Close
+                output:
+                    - value
+                params:
+                    ndigits: 3
+            -   foo: parse_date_yahoo
+                module: graph_cast.util.transform
+                input:
+                    - Date
+                output:
+                    - t_obs
+        vertex_collections:
+            -
+                type: ticker
+                map_fields:
+                    CUSIP: cusip
+                    CNAME: cname
+                    OFTIC: oftic
+            -
+                type: feature
+        weights:
+            -
+                edge_collections:
+                    -
+                        source:
+                            name: ticker
+                        target:
+                            name: feature
+                        fields:
+                            - date
+vertex_collections:
+    ticker:
+        basename: tickers
+        fields:
+            - cusip
+            - cname
+            - oftic
+        index:
+            - cusip
+            - cname
+            - oftic
+    feature:
+        basename: features
+        fields:
+            - name
+            - value
+        index:
+            - name
+            - value
+        extra_index:
+            -   type: hash
+                unique: false
+                fields:
+                    - value
+edge_collections:
+    -   source: ticker
+        target: feature
+        index:
+            -   fields:
+                    - t_obs
+                    - window
+                    - projection_type
+                    - name
+                unique: false

@@ -48,6 +48,12 @@ def parse_date_ibes(date0, time0):
     return (timestamp,)
 
 
+def parse_date_standard_to_epoch(input_str):
+    dt = datetime.strptime(input_str, "%Y-%m-%d")
+    timestamp = time.mktime(dt)
+    return (timestamp,)
+
+
 def cast_ibes_analyst(s):
     """
         split string like 'ADKINS/NARRA' and 'ARFSTROM      J'

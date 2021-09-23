@@ -6,7 +6,7 @@ from os.path import isfile, join
 import pandas as pd
 
 from graph_cast.util.io import Chunker, ChunkerDataFrame
-from graph_cast.util.transform import add_none_flag
+from graph_cast.architecture.config import Configurator
 
 from graph_cast.arango.util import (
     upsert_docs_batch,
@@ -64,7 +64,27 @@ def parse_encodings(subconfig):
     return encodings_map
 
 
-def derive_modes2graphs(graph, subconfig):
+def parse_logic(subconfig):
+    logic_maps = {}
+    for item in subconfig:
+        if "logic" in item:
+            logic_maps[item["tabletype"]] = item["logic"]
+        else:
+            logic_maps[item["tabletype"]] = None
+    return logic_maps
+
+
+def parse_graph(config, conf_obj):
+    edges, extra_edges = parse_edges(config)
+
+    graphs_def = define_graphs(edges, conf_obj.vmap)
+    conf_obj.graphs_def = update_graph_extra_edges(
+        graphs_def, conf_obj.vmap, extra_edges
+    )
+
+
+def parse_modes2graphs(subconfig, conf_obj):
+    graph = conf_obj.graphs_def
     modes2graphs = defaultdict(list)
     modes2collections = dict()
     direct_graph = {k: v for k, v in graph.items() if v["type"] == "direct"}
@@ -78,9 +98,15 @@ def derive_modes2graphs(graph, subconfig):
             if (u, v) in direct_graph:
                 modes2graphs[ftype] += [(u, v)]
 
-    modes2graphs = {k: list(set(v)) for k, v in modes2graphs.items()}
+    conf_obj.modes2graphs = {k: list(set(v)) for k, v in modes2graphs.items()}
+    conf_obj.modes2collections = modes2collections
 
-    return modes2graphs, modes2collections
+
+def parse_weights(subconfig, conf_obj):
+    weights_definition = {}
+    for item in subconfig:
+        weights_definition[item["tabletype"]] = item["weights"]
+    conf_obj.weights_definition = weights_definition
 
 
 def discover_files(modes, fpath, limit_files=None):
@@ -102,16 +128,8 @@ def discover_files(modes, fpath, limit_files=None):
 
 def table_to_vcollections(
     rows,
-    current_collections,
-    current_graphs,
     header_dict,
-    vcollection_fields_map,
-    field_maps,
-    index_fields_dict,
-    graphs_definition,
-    weights_definition,
-    current_transformations,
-    blank_collections,
+    conf,
 ):
 
     vdocs = {}
@@ -126,17 +144,19 @@ def table_to_vcollections(
 
     transformed_fields = {}
 
-    for transformation in current_transformations:
+    for transformation in conf.current_transformations:
         inputs = transformation["input"]
         outputs = transformation["output"]
         transformed_fields[(tuple(inputs), tuple(outputs))] = [
             transform_foo(transformation, doc) for doc in fields_extracted_raw
         ]
 
-    for vcol in current_collections:
+    for vcol in conf.current_collections:
         current_fields = set(
-            index_fields_dict[vcol] if vcol in index_fields_dict else {}
-        ) | set(vcollection_fields_map[vcol] if vcol in vcollection_fields_map else {})
+            conf.index_fields_dict[vcol] if vcol in conf.index_fields_dict else {}
+        ) | set(
+            conf.current_field_maps[vcol] if vcol in conf.current_field_maps else {}
+        )
 
         # keys that do not require transformations
         default_input = current_fields & set(header_dict.keys())
@@ -147,13 +167,10 @@ def table_to_vcollections(
                 [{f: item[f] for f in default_input} for item in fields_extracted_raw]
             ]
 
-        # simple transformations: renaming
-        vcol_map = field_maps[vcol] if vcol in field_maps else dict()
-
-        if vcol_map:
+        if conf.vcol_map(vcol):
             vdoc_acc += [
                 [
-                    {v: item[k] for k, v in vcol_map.items()}
+                    {v: item[k] for k, v in conf.vcol_map(vcol).items()}
                     for item in fields_extracted_raw
                 ]
             ]
@@ -164,7 +181,7 @@ def table_to_vcollections(
 
         vdocs[vcol] = [dict(ChainMap(*auxs)) for auxs in zip(*vdoc_acc)]
 
-    for wdef in weights_definition:
+    for wdef in conf.current_weights:
         for edges_def in wdef["edge_collections"]:
             u, v = edges_def["source"]["name"], edges_def["target"]["name"]
             acc = []
@@ -182,14 +199,14 @@ def table_to_vcollections(
             weights[(u, v)] = [dict(ChainMap(*auxs)) for auxs in zip(*acc)]
 
     # if blank collection has no aux fields - inflate it
-    for vcol in blank_collections:
+    for vcol in conf.blank_collections:
         if not vdocs[vcol]:
             vdocs[vcol] = [{}] * len(rows)
 
-    for g in current_graphs:
-        if graphs_definition[g]["type"] == "direct":
+    for g in conf.current_graphs:
+        if conf.graphs_def[g]["type"] == "direct":
             u, v = g
-            if u not in blank_collections and v not in blank_collections:
+            if u not in conf.blank_collections and v not in conf.blank_collections:
                 if g in weights:
                     edocs[g] = [
                         {"source": x, "target": y, "attributes": attr}
@@ -203,27 +220,12 @@ def table_to_vcollections(
     return vdocs, edocs
 
 
-def process_table(
-    tabular_resource,
-    batch_size,
-    max_lines,
-    current_graphs,
-    current_collections,
-    graphs_definition,
-    field_maps,
-    index_fields_dict,
-    vmap,
-    vcollection_fields_map,
-    weights_definition,
-    current_transformations,
-    blank_collections,
-    db_client,
-    encoding=None,
-):
+def process_table(tabular_resource, batch_size, max_lines, db_client, conf):
+
     if isinstance(tabular_resource, pd.DataFrame):
         chk = ChunkerDataFrame(tabular_resource, batch_size, max_lines)
     elif isinstance(tabular_resource, str):
-        chk = Chunker(tabular_resource, batch_size, max_lines, encoding=encoding)
+        chk = Chunker(tabular_resource, batch_size, max_lines, encoding=conf.encoding)
     else:
         raise TypeError(f"tabular_resource type is not str or pd.DataFrame")
     header = chk.pop_header()
@@ -234,34 +236,26 @@ def process_table(
         if lines:
             vdocuments, edocuments = table_to_vcollections(
                 lines,
-                current_collections,
-                current_graphs,
                 header_dict,
-                vcollection_fields_map,
-                field_maps,
-                index_fields_dict,
-                graphs_definition,
-                weights_definition,
-                current_transformations,
-                blank_collections,
+                conf,
             )
 
             # TODO move db related stuff out
             for vcol, data in vdocuments.items():
                 # blank nodes: push and get back their keys  {"_key": ...}
-                if vcol in blank_collections:
-                    query0 = insert_return_batch(data, vmap[vcol])
+                if vcol in conf.blank_collections:
+                    query0 = insert_return_batch(data, conf.vmap[vcol])
                     cursor = db_client.aql.execute(query0)
                     vdocuments[vcol] = [item for item in cursor]
                 else:
                     query0 = upsert_docs_batch(
-                        data, vmap[vcol], index_fields_dict[vcol], "doc", True
+                        data, conf.vmap[vcol], conf.index_fields_dict[vcol], "doc", True
                     )
                     cursor = db_client.aql.execute(query0)
 
             # update edge data with blank node edges
-            for vcol in blank_collections:
-                for vfrom, vto in current_graphs:
+            for vcol in conf.blank_collections:
+                for vfrom, vto in conf.current_graphs:
                     if vcol == vfrom or vcol == vto:
                         edocuments[(vfrom, vto)] = [
                             {"source": x, "target": y}
@@ -271,59 +265,34 @@ def process_table(
             for (vfrom, vto), data in edocuments.items():
                 query0 = insert_edges_batch(
                     data,
-                    vmap[vfrom],
-                    vmap[vto],
-                    graphs_definition[vfrom, vto]["edge_name"],
-                    index_fields_dict[vfrom],
-                    index_fields_dict[vto],
+                    conf.vmap[vfrom],
+                    conf.vmap[vto],
+                    conf.graphs_def[vfrom, vto]["edge_name"],
+                    conf.index_fields_dict[vfrom],
+                    conf.index_fields_dict[vto],
                     False,
                 )
                 cursor = db_client.aql.execute(query0)
 
 
 def prepare_config(config):
-    (
-        vmap,
-        index_fields_dict,
-        extra_indices,
-        vfields,
-        blank_collections,
-    ) = parse_vcollection(config)
 
-    # vertex_collection_name -> fields_type
-    vcollection_numeric_fields_map = {
-        k: v["numeric_fields"]
-        for k, v in config["vertex_collections"].items()
-        if "numeric_fields" in v
-    }
+    conf_obj = Configurator()
+    parse_vcollection(config, conf_obj)
 
     # vertex_collection -> (table field -> collection field)
-    vcollection_fmaps_map = parse_input_output_field_map(config["csv"])
-    transformation_maps = parse_transformations(config["csv"])
-    encodings = parse_encodings(config["csv"])
+    conf_obj.vcollection_fmaps_map = parse_input_output_field_map(config["csv"])
 
-    edges, extra_edges = parse_edges(config)
+    conf_obj.transformation_maps = parse_transformations(config["csv"])
 
-    graphs_def = define_graphs(edges, vmap)
-    graphs_def = update_graph_extra_edges(graphs_def, vmap, extra_edges)
+    conf_obj.encodings = parse_encodings(config["csv"])
 
-    modes2graphs, modes2collections = derive_modes2graphs(graphs_def, config["csv"])
+    conf_obj.logic = parse_logic(config["csv"])
 
-    weights_definition = {}
-    for item in config["csv"]:
-        weights_definition[item["tabletype"]] = item["weights"]
-    return (
-        vmap,
-        index_fields_dict,
-        extra_indices,
-        graphs_def,
-        modes2collections,
-        vcollection_fmaps_map,
-        vfields,
-        modes2graphs,
-        transformation_maps,
-        encodings,
-        weights_definition,
-        vcollection_numeric_fields_map,
-        blank_collections,
-    )
+    parse_graph(config, conf_obj)
+
+    parse_modes2graphs(config["csv"], conf_obj)
+
+    parse_weights(config["csv"], conf_obj)
+
+    return conf_obj

@@ -447,7 +447,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-c", "--config", default=None, help="config file name")
-    parser.add_argument("-p", "--prune-low-degree-nodes", action="store_true", help="prune low degree nodes for vc2vc")
+    parser.add_argument(
+        "-p",
+        "--prune-low-degree-nodes",
+        action="store_true",
+        help="prune low degree nodes for vc2vc",
+    )
 
     args = parser.parse_args()
 

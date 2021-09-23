@@ -4,38 +4,46 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def parse_vcollection(config):
+def parse_vcollection(config, conf_obj):
 
     # vertex_type -> vertex_collection_name
-    vmap = {k: f'{v["basename"]}' for k, v in config["vertex_collections"].items()}
+    conf_obj.vmap = {
+        k: f'{v["basename"]}' for k, v in config["vertex_collections"].items()
+    }
 
     # vertex_collection_name -> indices
-    index_fields_dict = {
+    conf_obj.index_fields_dict = {
         k: v["index"] if "index" in v else ["_key"]
         for k, v in config["vertex_collections"].items()
     }
     logger.info("index_fields_dict")
-    logger.info(f"{index_fields_dict}")
+    logger.info(f"{conf_obj.index_fields_dict}")
+
     # vertex_collection_name -> extra_index
     # in addition to index from field_definition
-    extra_indices = {
+    conf_obj.extra_indices = {
         k: v["extra_index"]
         for k, v in config["vertex_collections"].items()
         if "extra_index" in v
     }
 
     # vertex_collection_name -> fields
-    vfields = {
+    conf_obj.vfields = {
         k: (v["fields"] if "fields" in v else [])
         for k, v in config["vertex_collections"].items()
     }
 
-    blank_collections = [
+    conf_obj.blank_collections = [
         k
         for k, v in config["vertex_collections"].items()
         if "extra" in v and "blank" in v["extra"]
     ]
-    return vmap, index_fields_dict, extra_indices, vfields, blank_collections
+
+    conf_obj.vcollection_numeric_fields_map = {
+        k: v["numeric_fields"]
+        for k, v in config["vertex_collections"].items()
+        if "numeric_fields" in v
+    }
 
 
 def define_graphs(edge_def, vmap):

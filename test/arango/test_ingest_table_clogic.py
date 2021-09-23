@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--db",
-        default="ibes_test",
+        default="ticker_test",
         help="db for arangodb connection",
     )
 
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config-path",
         type=str,
-        default=join(cpath, "../../conf/ibes.yaml"),
+        default=join(cpath, "../../conf/ticker_history.yaml"),
         help="",
     )
 
@@ -105,19 +105,42 @@ if __name__ == "__main__":
         args.protocol, args.id_addr, args.port, args.db, args.cred_name, args.cred_pass
     )
 
-    conf_obj = prepare_config(config)
+    (
+        vmap,
+        index_fields_dict,
+        extra_indices,
+        graphs_def,
+        modes2collections,
+        field_maps,
+        vcollection_fields_map,
+        modes2graphs,
+        transformation_maps,
+        encodings,
+        weights_definition,
+        vcollection_numeric_fields_map,
+        blank_collections,
+    ) = prepare_config(config)
 
     define_collections_and_indices(
-        db_client,
-        conf_obj.graphs_def,
-        conf_obj.vmap,
-        conf_obj.index_fields_dict,
-        conf_obj.extra_indices,
+        db_client, graphs_def, vmap, index_fields_dict, extra_indices
     )
 
     mode = "ibes"
 
     tabular_resource = pd.read_csv(join(cpath, "../data/ibes/ibes_test.csv.gz"))
     tabular_resource = tabular_resource.fillna("")
-    conf_obj.set_mode(mode)
-    process_table(tabular_resource, 10, 10000, db_client, conf_obj)
+    process_table(
+        tabular_resource,
+        10,
+        10000,
+        modes2graphs[mode],
+        modes2collections[mode],
+        graphs_def,
+        field_maps[mode],
+        index_fields_dict,
+        vmap,
+        vcollection_fields_map,
+        weights_definition[mode],
+        transformation_maps[mode],
+        db_client,
+    )

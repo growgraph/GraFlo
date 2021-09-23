@@ -157,56 +157,36 @@ def ingest_csvs(
     config=None,
 ):
 
-    (
-        vmap,
-        index_fields_dict,
-        extra_indices,
-        graphs_def,
-        modes2collections,
-        vcollection_fmaps_map,
-        vcollection_fields_map,
-        modes2graphs,
-        transformation_maps,
-        encodings,
-        weights_definition,
-        vcollection_numeric_fields_map,
-        blank_collections,
-    ) = gcic.prepare_config(config)
-    # db operation
+    conf_obj = gcic.prepare_config(config)
+
     if clean_start == "all":
         delete_collections(db_client, [], [], delete_all=True)
         #     delete_collections(sys_db, vcollections + ecollections, actual_graphs)
         # elif clean_start == "edges":
         #     delete_collections(sys_db, ecollections, [])
-
         define_collections_and_indices(
-            db_client, graphs_def, vmap, index_fields_dict, extra_indices
+            db_client,
+            conf_obj.graphs_def,
+            conf_obj.vmap,
+            conf_obj.index_fields_dict,
+            conf_obj.extra_indices,
         )
 
     # file discovery
     files_dict = gcic.discover_files(
-        modes2collections.keys(), fpath, limit_files=limit_files
+        conf_obj.modes2collections.keys(), fpath, limit_files=limit_files
     )
 
     logger.info(files_dict)
 
-    for mode in modes2collections:
+    for mode in conf_obj.modes2collections:
         with timer.Timer() as t_pro:
+            conf_obj.set_mode(mode)
             kwargs = {
                 "batch_size": batch_size,
                 "max_lines": max_lines,
-                "current_graphs": modes2graphs[mode],
-                "current_collections": modes2collections[mode],
-                "graphs_definition": graphs_def,
-                "field_maps": vcollection_fmaps_map[mode],
-                "index_fields_dict": index_fields_dict,
-                "vmap": vmap,
-                "vcollection_fields_map": vcollection_fields_map,
-                "weights_definition": weights_definition[mode],
-                "blank_collections": blank_collections,
-                "current_transformations": transformation_maps[mode],
+                "conf": conf_obj,
                 "db_client": db_client,
-                "encoding": encodings[mode],
             }
 
             func = partial(gcic.process_table, **kwargs)
@@ -218,14 +198,15 @@ def ingest_csvs(
                 for f in files_dict[mode]:
                     func(f)
         logger.info(f"{mode} took {t_pro.elapsed:.1f} sec")
-    for cname, fields in vcollection_numeric_fields_map.items():
+
+    for cname, fields in conf_obj.vcollection_numeric_fields_map.items():
         for field in fields:
-            query0 = update_to_numeric(vmap[cname], field)
+            query0 = update_to_numeric(conf_obj.vmap[cname], field)
             cursor = db_client.aql.execute(query0)
 
     # create edge u -> v from u->w, v->w edges
     # find edge_cols uw and vw
-    for gname, item in graphs_def.items():
+    for gname, item in conf_obj.graphs_def.items():
         if item["type"] == "indirect":
             query0 = define_extra_edges(item)
             cursor = db_client.aql.execute(query0)

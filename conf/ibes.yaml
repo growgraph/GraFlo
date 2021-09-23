@@ -39,8 +39,6 @@ csv:
                     ESTIMID: aname
             -
                 type: analyst
-                transforms:
-
             -
                 type: recommendation
                 map_fields:
