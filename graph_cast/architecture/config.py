@@ -17,8 +17,12 @@ class Configurator:
     # vertex_collection_name -> [numeric fields]
     vcollection_numeric_fields_map = {}
 
+    ### to change
+    # table_type -> [ {vertex_collection :vc, map: (table field -> collection field)} ]
+
     # table_type -> (vertex_collection -> (table field -> collection field))
-    vcollection_fmaps_map = {}
+    ### TODO should be a dict of lists ?
+    table_collection_maps = {}
 
     # table_type -> transforms
     transformation_maps = {}
@@ -31,6 +35,7 @@ class Configurator:
 
     graphs_def = {}
 
+    # table_type -> [{collection: cname, collection_maps: maps}]
     modes2collections = {}
     modes2graphs = {}
 
@@ -44,12 +49,12 @@ class Configurator:
     def set_mode(self, mode):
         self.mode = mode
 
-    def vcol_map(self, vcol):
-        return (
-            self.vcollection_fmaps_map[self.mode][vcol]
-            if vcol in self.vcollection_fmaps_map[self.mode]
-            else dict()
-        )
+    # def vcol_map(self, vcol):
+    #     return (
+    #         self.table_collection_maps[self.mode][vcol]
+    #         if vcol in self.table_collection_maps[self.mode]
+    #         else dict()
+    #     )
 
     @property
     def encoding(self):
@@ -88,7 +93,7 @@ class Configurator:
 
     @property
     def current_field_maps(self):
-        if self.mode in self.vcollection_fmaps_map:
-            return self.vcollection_fmaps_map[self.mode]
+        if self.mode in self.table_collection_maps:
+            return self.table_collection_maps[self.mode]
         else:
             return None

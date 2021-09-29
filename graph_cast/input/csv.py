@@ -1,4 +1,4 @@
-from itertools import permutations
+from itertools import permutations, product
 from collections import defaultdict, ChainMap
 from os import listdir
 from os.path import isfile, join
@@ -38,11 +38,11 @@ def parse_input_output_field_map(subconfig):
     """
     field_maps = {}
     for item in subconfig:
-        field_maps[item["tabletype"]] = {
-            vc["type"]: vc["map_fields"]
+        field_maps[item["tabletype"]] = [
+            {"type": vc["type"], "map": vc["map_fields"]}
             for vc in item["vertex_collections"]
             if "map_fields" in vc
-        }
+        ]
     return field_maps
 
 
@@ -86,17 +86,19 @@ def parse_graph(config, conf_obj):
 def parse_modes2graphs(subconfig, conf_obj):
     graph = conf_obj.graphs_def
     modes2graphs = defaultdict(list)
-    modes2collections = dict()
+    modes2collections = {}
     direct_graph = {k: v for k, v in graph.items() if v["type"] == "direct"}
 
     for item in subconfig:
-        ftype = item["tabletype"]
+        table_type = item["tabletype"]
 
         vcols = [iitem["type"] for iitem in item["vertex_collections"]]
-        modes2collections[ftype] = list(set(vcols))
+        # here transform into standard form [{"collection": col_name, "map" map}]
+        # from [{"collection": col_name, "maps" maps}] (where many maps are applied)
+        modes2collections[table_type] = item["vertex_collections"]
         for u, v in permutations(vcols, 2):
             if (u, v) in direct_graph:
-                modes2graphs[ftype] += [(u, v)]
+                modes2graphs[table_type] += [(u, v)]
 
     conf_obj.modes2graphs = {k: list(set(v)) for k, v in modes2graphs.items()}
     conf_obj.modes2collections = modes2collections
@@ -132,90 +134,108 @@ def table_to_vcollections(
     conf,
 ):
 
-    vdocs = {}
-    edocs = {}
+    vdocs = defaultdict(list)
+    edocs = defaultdict(list)
     weights = {}
 
-    # do possible transforms
+    # perform possible transforms
 
-    fields_extracted_raw = [
-        {k: item[v] for k, v in header_dict.items()} for item in rows
-    ]
+    rows_raw = [{k: item[v] for k, v in header_dict.items()} for item in rows]
 
-    transformed_fields = {}
+    # transformed_fields = {}
 
-    for transformation in conf.current_transformations:
-        inputs = transformation["input"]
-        outputs = transformation["output"]
-        transformed_fields[(tuple(inputs), tuple(outputs))] = [
-            transform_foo(transformation, doc) for doc in fields_extracted_raw
+    # for transformation in conf.current_transformations:
+    #     inputs = transformation["input"]
+    #     outputs = transformation["output"]
+    #     transformed_fields[(tuple(inputs), tuple(outputs))] = [
+    #         transform_foo(transformation, doc) for doc in rows_raw
+    #     ]
+
+    # all outputs
+
+    transformation_outputs = set(
+        [
+            item
+            for transformation in conf.current_transformations
+            for item in transformation["output"]
         ]
+    )
+    rows_working = []
 
-    for vcol in conf.current_collections:
+    for doc in rows_raw:
+        transformed = [
+            transform_foo(transformation, doc)
+            for transformation in conf.current_transformations
+        ]
+        doc_upd = {**doc, **dict(ChainMap(*transformed))}
+        rows_working += [doc_upd]
+
+    for ccitem in conf.current_collections:
+        vdoc_acc = []
+        vcol = ccitem["type"]
+
         current_fields = set(
             conf.index_fields_dict[vcol] if vcol in conf.index_fields_dict else {}
-        ) | set(
-            conf.current_field_maps[vcol] if vcol in conf.current_field_maps else {}
+        ) | set(conf.vfields[vcol] if vcol in conf.vfields else {})
+
+        default_input = current_fields & (
+            transformation_outputs | set(header_dict.keys())
         )
 
-        # keys that do not require transformations
-        default_input = current_fields & set(header_dict.keys())
-        vdoc_acc = []
-
         if default_input:
-            vdoc_acc += [
-                [{f: item[f] for f in default_input} for item in fields_extracted_raw]
-            ]
+            vdoc_acc += [[{f: item[f] for f in default_input} for item in rows_working]]
 
-        if conf.vcol_map(vcol):
+        if "map_fields" in ccitem:
             vdoc_acc += [
                 [
-                    {v: item[k] for k, v in conf.vcol_map(vcol).items()}
-                    for item in fields_extracted_raw
+                    {v: item[k] for k, v in ccitem["map_fields"].items()}
+                    for item in rows_working
                 ]
             ]
-
-        for (f_input, f_output), rows_transformed in transformed_fields.items():
-            if set(f_output) & set(current_fields):
-                vdoc_acc += [rows_transformed]
-
-        vdocs[vcol] = [dict(ChainMap(*auxs)) for auxs in zip(*vdoc_acc)]
+        vdocs[vcol].append([dict(ChainMap(*auxs)) for auxs in zip(*vdoc_acc)])
 
     for wdef in conf.current_weights:
         for edges_def in wdef["edge_collections"]:
             u, v = edges_def["source"]["name"], edges_def["target"]["name"]
-            acc = []
-            for f in edges_def["fields"]:
-                for (f_input, f_output), rows_transformed in transformed_fields.items():
-                    if {f} & set(f_output):
-                        acc += [rows_transformed]
-                if f in header_dict.keys():
-                    acc += [
-                        [
-                            {f: item[f]} if f in item else {}
-                            for item in fields_extracted_raw
-                        ]
-                    ]
-            weights[(u, v)] = [dict(ChainMap(*auxs)) for auxs in zip(*acc)]
+            cfields = edges_def["fields"]
+            weights[(u, v)] = [{f: item[f] for f in cfields} for item in rows_working]
 
     # if blank collection has no aux fields - inflate it
     for vcol in conf.blank_collections:
-        if not vdocs[vcol]:
-            vdocs[vcol] = [{}] * len(rows)
+        # if blank collection is in vdocs - inflate it, otherwise - create
+        if vcol in vdocs:
+            for j, docs in enumerate(vdocs[vcol]):
+                if not docs:
+                    vdocs[vcol][j] = [{}] * len(rows)
+        else:
+            vdocs[vcol].append([{}] * len(rows))
 
-    for g in conf.current_graphs:
-        if conf.graphs_def[g]["type"] == "direct":
-            u, v = g
-            if u not in conf.blank_collections and v not in conf.blank_collections:
-                if g in weights:
-                    edocs[g] = [
-                        {"source": x, "target": y, "attributes": attr}
-                        for x, y, attr in zip(vdocs[u], vdocs[v], weights[g])
-                    ]
+    for u, v in conf.current_graphs:
+        g = u, v
+        if u not in conf.blank_collections and v not in conf.blank_collections:
+            if conf.graphs_def[u, v]["type"] == "direct":
+                if u != v:
+                    for ubatch, vbatch in product(vdocs[u], vdocs[v]):
+                        ebatch = [
+                            {"source": x, "target": y}
+                            for x, y in zip(
+                                ubatch, vbatch
+                            )
+                        ]
+                        if g in weights:
+                            ebatch = [{**item, **{"attributes": attr}} for item, attr in zip(ebatch, weights[g])]
+                        edocs[g].extend(ebatch)
                 else:
-                    edocs[g] = [
-                        {"source": x, "target": y} for x, y in zip(vdocs[u], vdocs[v])
-                    ]
+                    for ubatch, vbatch in permutations(vdocs[u]):
+                        ebatch = [
+                            {"source": x, "target": y}
+                            for x, y, attr in zip(
+                                ubatch, ubatch
+                            )
+                        ]
+                        if g in weights:
+                            ebatch = [{**item, **{"attributes": attr}} for item, attr in zip(ebatch, weights[g])]
+                        edocs[g].extend(ebatch)
 
     return vdocs, edocs
 
@@ -241,26 +261,28 @@ def process_table(tabular_resource, batch_size, max_lines, db_client, conf):
             )
 
             # TODO move db related stuff out
-            for vcol, data in vdocuments.items():
-                # blank nodes: push and get back their keys  {"_key": ...}
-                if vcol in conf.blank_collections:
-                    query0 = insert_return_batch(data, conf.vmap[vcol])
-                    cursor = db_client.aql.execute(query0)
-                    vdocuments[vcol] = [item for item in cursor]
-                else:
-                    query0 = upsert_docs_batch(
-                        data, conf.vmap[vcol], conf.index_fields_dict[vcol], "doc", True
-                    )
-                    cursor = db_client.aql.execute(query0)
+            for vcol, batches in vdocuments.items():
+                for j, data in enumerate(batches):
+                    # blank nodes: push and get back their keys  {"_key": ...}
+                    if vcol in conf.blank_collections:
+                        query0 = insert_return_batch(data, conf.vmap[vcol])
+                        cursor = db_client.aql.execute(query0)
+                        vdocuments[vcol][j] = [item for item in cursor]
+                    else:
+                        query0 = upsert_docs_batch(
+                            data, conf.vmap[vcol], conf.index_fields_dict[vcol], "doc", True
+                        )
+                        cursor = db_client.aql.execute(query0)
 
             # update edge data with blank node edges
             for vcol in conf.blank_collections:
                 for vfrom, vto in conf.current_graphs:
                     if vcol == vfrom or vcol == vto:
-                        edocuments[(vfrom, vto)] = [
-                            {"source": x, "target": y}
-                            for x, y in zip(vdocuments[vfrom], vdocuments[vto])
-                        ]
+                        for from_batch, to_batch in product(vdocuments[vfrom], vdocuments[vto]):
+                            edocuments[(vfrom, vto)].extend([
+                                {"source": x, "target": y}
+                                for x, y in zip(from_batch, to_batch)
+                            ])
 
             for (vfrom, vto), data in edocuments.items():
                 query0 = insert_edges_batch(
@@ -281,7 +303,9 @@ def prepare_config(config):
     parse_vcollection(config, conf_obj)
 
     # vertex_collection -> (table field -> collection field)
-    conf_obj.vcollection_fmaps_map = parse_input_output_field_map(config["csv"])
+    # table_type -> [ {vertex_collection :vc, map: (table field -> collection field)} ]
+
+    conf_obj.table_collection_maps = parse_input_output_field_map(config["csv"])
 
     conf_obj.transformation_maps = parse_transformations(config["csv"])
 
