@@ -86,7 +86,7 @@ class VertexConfig:
     vfields = {}
 
     # list of blank collections
-    blank_collections = []
+    _blank_collections = []
 
     # vertex_collection_name -> [numeric fields]
     vcollection_numeric_fields_map = {}
@@ -105,6 +105,10 @@ class VertexConfig:
     @property
     def collections(self):
         return iter(self._vcollections)
+
+    @property
+    def blank_collections(self):
+        return iter(self._blank_collections)
 
     def _init_vcollections(self, vconfig):
         self._vcollections = set(vconfig.keys())
@@ -166,8 +170,8 @@ class VertexConfig:
             )
 
     def _init_blank_collections(self, vconfig):
-        self.blank_collections = vconfig
-        if set(self.blank_collections) - set(self._vcollections):
+        self._blank_collections = vconfig
+        if set(self._blank_collections) - set(self._vcollections):
             raise ValueError(f" Blank collections {self.blank_collections} are not defined as vertex collections")
 
     def _init_fields(self, vconfig):
