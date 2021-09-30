@@ -110,8 +110,8 @@ if __name__ == "__main__":
     define_collections_and_indices(
         db_client,
         conf_obj.graphs_def,
-        conf_obj.vmap,
-        conf_obj.index_fields_dict,
+        conf_obj.name,
+        conf_obj.index,
         conf_obj.extra_indices,
     )
 

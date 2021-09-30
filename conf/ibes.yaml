@@ -60,55 +60,56 @@ csv:
                             - datetime_review
                             - datetime_announce
 vertex_collections:
-    publication:
-        basename: publications
-        extra:
-            - blank
-        fields:
-            - datetime_review
-            - datetime_announce
-        extra_index:
-            -   type: hash
-                unique: false
-                fields:
-                    - datetime_review
-            -   type: hash
-                unique: false
-                fields:
-                    - datetime_announce
-    ticker:
-        basename: tickers
-        fields:
-            - cusip
-            - cname
-            - oftic
-        index:
-            - cusip
-            - cname
-            - oftic
-    agency:
-        basename: agencies
-        fields:
-            - aname
-        index:
-            - aname
-    analyst:
-        basename: analysts
-        fields:
-            - last_name
-            - initial
-        index:
-            - last_name
-            - initial
-    recommendation:
-        basename: recommendations
-        fields:
-            - erec
-            - etext
-            - irec
-            - itext
-        index:
-            - irec
+    blanks:
+        - publication
+    collections:
+        publication:
+            basename: publications
+            fields:
+                - datetime_review
+                - datetime_announce
+            extra_index:
+                -   type: hash
+                    unique: false
+                    fields:
+                        - datetime_review
+                -   type: hash
+                    unique: false
+                    fields:
+                        - datetime_announce
+        ticker:
+            basename: tickers
+            fields:
+                - cusip
+                - cname
+                - oftic
+            index:
+                - cusip
+                - cname
+                - oftic
+        agency:
+            basename: agencies
+            fields:
+                - aname
+            index:
+                - aname
+        analyst:
+            basename: analysts
+            fields:
+                - last_name
+                - initial
+            index:
+                - last_name
+                - initial
+        recommendation:
+            basename: recommendations
+            fields:
+                - erec
+                - etext
+                - irec
+                - itext
+            index:
+                - irec
 edge_collections:
     -
         source: publication

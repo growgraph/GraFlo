@@ -77,9 +77,9 @@ def parse_logic(subconfig):
 def parse_graph(config, conf_obj):
     edges, extra_edges = parse_edges(config)
 
-    graphs_def = define_graphs(edges, conf_obj.vmap)
+    graphs_def = define_graphs(edges, conf_obj.vertex_config.name)
     conf_obj.graphs_def = update_graph_extra_edges(
-        graphs_def, conf_obj.vmap, extra_edges
+        graphs_def, conf_obj.vertex_config.name, extra_edges
     )
 
 
@@ -137,6 +137,7 @@ def table_to_vcollections(
     vdocs = defaultdict(list)
     edocs = defaultdict(list)
     weights = {}
+    vertex_conf = conf.vertex_config
 
     # perform possible transforms
 
@@ -163,9 +164,9 @@ def table_to_vcollections(
         vdoc_acc = []
         vcol = ccitem["type"]
 
-        current_fields = set(
-            conf.index_fields_dict[vcol] if vcol in conf.index_fields_dict else {}
-        ) | set(conf.vfields[vcol] if vcol in conf.vfields else {})
+        current_fields = set(vertex_conf.index(vcol)) | set(
+            vertex_conf.vfields[vcol] if vcol in vertex_conf.vfields else {}
+        )
 
         default_input = current_fields & (
             transformation_outputs | set(header_dict.keys())
@@ -190,7 +191,7 @@ def table_to_vcollections(
             weights[(u, v)] = [{f: item[f] for f in cfields} for item in rows_working]
 
     # if blank collection has no aux fields - inflate it
-    for vcol in conf.blank_collections:
+    for vcol in vertex_conf.blank_collections:
         # if blank collection is in vdocs - inflate it, otherwise - create
         if vcol in vdocs:
             for j, docs in enumerate(vdocs[vcol]):
@@ -201,29 +202,33 @@ def table_to_vcollections(
 
     for u, v in conf.current_graphs:
         g = u, v
-        if u not in conf.blank_collections and v not in conf.blank_collections:
+        if (
+            u not in vertex_conf.blank_collections
+            and v not in vertex_conf.blank_collections
+        ):
             if conf.graphs_def[u, v]["type"] == "direct":
                 if u != v:
                     for ubatch, vbatch in product(vdocs[u], vdocs[v]):
                         ebatch = [
-                            {"source": x, "target": y}
-                            for x, y in zip(
-                                ubatch, vbatch
-                            )
+                            {"source": x, "target": y} for x, y in zip(ubatch, vbatch)
                         ]
                         if g in weights:
-                            ebatch = [{**item, **{"attributes": attr}} for item, attr in zip(ebatch, weights[g])]
+                            ebatch = [
+                                {**item, **{"attributes": attr}}
+                                for item, attr in zip(ebatch, weights[g])
+                            ]
                         edocs[g].extend(ebatch)
                 else:
                     for ubatch, vbatch in permutations(vdocs[u]):
                         ebatch = [
                             {"source": x, "target": y}
-                            for x, y, attr in zip(
-                                ubatch, ubatch
-                            )
+                            for x, y, attr in zip(ubatch, ubatch)
                         ]
                         if g in weights:
-                            ebatch = [{**item, **{"attributes": attr}} for item, attr in zip(ebatch, weights[g])]
+                            ebatch = [
+                                {**item, **{"attributes": attr}}
+                                for item, attr in zip(ebatch, weights[g])
+                            ]
                         edocs[g].extend(ebatch)
 
     return vdocs, edocs
@@ -253,34 +258,44 @@ def process_table(tabular_resource, batch_size, max_lines, db_client, conf):
             for vcol, batches in vdocuments.items():
                 for j, data in enumerate(batches):
                     # blank nodes: push and get back their keys  {"_key": ...}
-                    if vcol in conf.blank_collections:
-                        query0 = insert_return_batch(data, conf.vmap[vcol])
+                    if vcol in conf.vertex_config.blank_collections:
+                        query0 = insert_return_batch(
+                            data, conf.vertex_config.name(vcol)
+                        )
                         cursor = db_client.aql.execute(query0)
                         vdocuments[vcol][j] = [item for item in cursor]
                     else:
                         query0 = upsert_docs_batch(
-                            data, conf.vmap[vcol], conf.index_fields_dict[vcol], "doc", True
+                            data,
+                            conf.vertex_config.name(vcol),
+                            conf.vertex_config.index(vcol),
+                            "doc",
+                            True,
                         )
                         cursor = db_client.aql.execute(query0)
 
             # update edge data with blank node edges
-            for vcol in conf.blank_collections:
+            for vcol in conf.vertex_config.blank_collections:
                 for vfrom, vto in conf.current_graphs:
                     if vcol == vfrom or vcol == vto:
-                        for from_batch, to_batch in product(vdocuments[vfrom], vdocuments[vto]):
-                            edocuments[(vfrom, vto)].extend([
-                                {"source": x, "target": y}
-                                for x, y in zip(from_batch, to_batch)
-                            ])
+                        for from_batch, to_batch in product(
+                            vdocuments[vfrom], vdocuments[vto]
+                        ):
+                            edocuments[(vfrom, vto)].extend(
+                                [
+                                    {"source": x, "target": y}
+                                    for x, y in zip(from_batch, to_batch)
+                                ]
+                            )
 
             for (vfrom, vto), data in edocuments.items():
                 query0 = insert_edges_batch(
                     data,
-                    conf.vmap[vfrom],
-                    conf.vmap[vto],
+                    conf.vertex_config.name(vfrom),
+                    conf.vertex_config.name(vto),
                     conf.graphs_def[vfrom, vto]["edge_name"],
-                    conf.index_fields_dict[vfrom],
-                    conf.index_fields_dict[vto],
+                    conf.vertex_config.index(vfrom),
+                    conf.vertex_config.index(vto),
                     False,
                 )
                 cursor = db_client.aql.execute(query0)
@@ -288,8 +303,7 @@ def process_table(tabular_resource, batch_size, max_lines, db_client, conf):
 
 def prepare_config(config):
 
-    conf_obj = Configurator()
-    parse_vcollection(config, conf_obj)
+    conf_obj = Configurator(config)
 
     # vertex_collection -> (table field -> collection field)
 

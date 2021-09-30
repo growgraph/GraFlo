@@ -7,17 +7,17 @@ logger = logging.getLogger(__name__)
 def parse_vcollection(config, conf_obj):
 
     # vertex_type -> vertex_collection_name
-    conf_obj.vmap = {
+    conf_obj.name = {
         k: f'{v["basename"]}' for k, v in config["vertex_collections"].items()
     }
 
     # vertex_collection_name -> indices
-    conf_obj.index_fields_dict = {
+    conf_obj.index = {
         k: v["index"] if "index" in v else ["_key"]
         for k, v in config["vertex_collections"].items()
     }
     logger.info("index_fields_dict")
-    logger.info(f"{conf_obj.index_fields_dict}")
+    logger.info(f"{conf_obj.index}")
 
     # vertex_collection_name -> extra_index
     # in addition to index from field_definition
@@ -50,7 +50,7 @@ def define_graphs(edge_def, vmap):
     graphs_definition = dict()
     for item in edge_def:
         u_, v_ = item["source"], item["target"]
-        u, v = vmap[u_], vmap[v_]
+        u, v = vmap(u_), vmap(v_)
 
         graphs_definition[u_, v_] = {
             "source": u,

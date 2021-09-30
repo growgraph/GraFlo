@@ -43,9 +43,7 @@ def ingest_json_files(
         # elif clean_start == "edges":
         #     delete_collections(sys_db, ecollections, [])
 
-        define_collections_and_indices(
-            db_client, graphs, vmap, index_fields_dict, extra_index
-        )
+        define_collections_and_indices(db_client, graphs, vertex_config)
 
     files = sorted(
         [f for f in listdir(fpath) if isfile(join(fpath, f)) and keyword in f]
@@ -103,9 +101,9 @@ def ingest_json(json_data, config, sys_db=None, dry=False):
         cnt = 0
         for k in kkey_vertex:
             v = super_dict[k]
-            r = merge_doc_basis(super_dict[k], index_fields_dict[k])
+            r = merge_doc_basis(super_dict[k], index_fields_dict(k))
             cnt += len(r)
-            query0 = upsert_docs_batch(v, vmap[k], index_fields_dict[k], "doc", True)
+            query0 = upsert_docs_batch(v, vmap(k), index_fields_dict(k), "doc", True)
             if not dry and sys_db is not None:
                 cursor = sys_db.aql.execute(query0)
 
@@ -127,11 +125,11 @@ def ingest_json(json_data, config, sys_db=None, dry=False):
             cnt += len(super_dict[uv])
             query0 = insert_edges_batch(
                 super_dict[uv],
-                vmap[u],
-                vmap[v],
+                vmap(u),
+                vmap(v),
                 graphs[uv]["edge_name"],
-                index_fields_dict[u],
-                index_fields_dict[v],
+                index_fields_dict(u),
+                index_fields_dict(v),
                 False,
             )
             if not dry and sys_db is not None:
@@ -167,9 +165,7 @@ def ingest_csvs(
         define_collections_and_indices(
             db_client,
             conf_obj.graphs_def,
-            conf_obj.vmap,
-            conf_obj.index_fields_dict,
-            conf_obj.extra_indices,
+            conf_obj.vertex_config,
         )
 
     # file discovery
@@ -199,9 +195,9 @@ def ingest_csvs(
                     func(f)
         logger.info(f"{mode} took {t_pro.elapsed:.1f} sec")
 
-    for cname, fields in conf_obj.vcollection_numeric_fields_map.items():
+    for cname, fields in conf_obj.vertex_config.vcollection_numeric_fields_map.items():
         for field in fields:
-            query0 = update_to_numeric(conf_obj.vmap[cname], field)
+            query0 = update_to_numeric(conf_obj.vertex_config.name(cname), field)
             cursor = db_client.aql.execute(query0)
 
     # create edge u -> v from u->w, v->w edges
