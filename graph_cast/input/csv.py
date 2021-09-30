@@ -142,17 +142,6 @@ def table_to_vcollections(
 
     rows_raw = [{k: item[v] for k, v in header_dict.items()} for item in rows]
 
-    # transformed_fields = {}
-
-    # for transformation in conf.current_transformations:
-    #     inputs = transformation["input"]
-    #     outputs = transformation["output"]
-    #     transformed_fields[(tuple(inputs), tuple(outputs))] = [
-    #         transform_foo(transformation, doc) for doc in rows_raw
-    #     ]
-
-    # all outputs
-
     transformation_outputs = set(
         [
             item
@@ -303,8 +292,8 @@ def prepare_config(config):
     parse_vcollection(config, conf_obj)
 
     # vertex_collection -> (table field -> collection field)
-    # table_type -> [ {vertex_collection :vc, map: (table field -> collection field)} ]
 
+    # table_type -> [ {vertex_collection :vc, map: (table field -> collection field)} ]
     conf_obj.table_collection_maps = parse_input_output_field_map(config["csv"])
 
     conf_obj.transformation_maps = parse_transformations(config["csv"])
