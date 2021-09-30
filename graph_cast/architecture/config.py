@@ -1,7 +1,4 @@
 class Configurator:
-    # table_type -> [ (vertex_collection , (table field -> collection field))]
-    table_collection_maps = {}
-
     # table_type -> transforms
     transformation_maps = {}
 
@@ -23,6 +20,7 @@ class Configurator:
 
     def __init__(self, config):
         self.vertex_config = VertexConfig(config["vertex_collections"])
+        self.table_config = TableConfig(config["csv"])
 
     def set_mode(self, mode):
         self.mode = mode
@@ -64,10 +62,50 @@ class Configurator:
 
     @property
     def current_field_maps(self):
-        if self.mode in self.table_collection_maps:
-            return self.table_collection_maps[self.mode]
+        if self.mode in self.table_config.tables:
+            return self.table_config.table_collection_maps[self.mode]
         else:
             return None
+
+
+class TableConfig:
+    # table_type -> [ {vertex_collection :vc, map: (table field -> collection field)} ]
+    # conf_obj.table_collection_maps = parse_input_output_field_map(config["csv"])
+    #
+    # conf_obj.transformation_maps = parse_transformations(config["csv"])
+    #
+    # conf_obj.encodings = parse_encodings(config["csv"])
+    #
+    # conf_obj.logic = parse_logic(config["csv"])
+    #
+    # parse_modes2graphs(config["csv"], conf_obj)
+    #
+    # parse_weights(config["csv"], conf_obj)
+
+    table_collection_maps = dict()
+
+    _tables = set()
+
+    def __init__(self, vconfig):
+        self._init_tables(vconfig)
+        self._init_transformations(vconfig)
+
+    def _init_tables(self, vconfig):
+        self._tables = set([item["tabletype"] for item in vconfig if "tabletype" in item])
+
+    # TODO verify against VertexConfig
+    # work out encapsulation
+    def _init_transformations(self, subconfig):
+        for item in subconfig:
+            self.table_collection_maps[item["tabletype"]] = [
+                {"type": vc["type"], "map": vc["map_fields"]}
+                for vc in item["vertex_collections"]
+                if "map_fields" in vc
+            ]
+
+    @property
+    def tables(self):
+        return self._tables
 
 
 class VertexConfig:
@@ -83,13 +121,13 @@ class VertexConfig:
     _extra_indices = {}
 
     # vertex_collection_name -> fields
-    vfields = {}
-
-    # list of blank collections
-    _blank_collections = []
+    _vfields = {}
 
     # vertex_collection_name -> [numeric fields]
-    vcollection_numeric_fields_map = {}
+    _vcollection_numeric_fields_map = {}
+
+    # list of blank collections
+    _blank_collections = set()
 
     def __init__(self, vconfig):
         config = vconfig["collections"]
@@ -100,15 +138,12 @@ class VertexConfig:
 
         self._init_fields(config)
         self._init_numeric_fields(config)
-        self._init_blank_collections(vconfig["blanks"])
+        if "blanks" in vconfig:
+            self._init_blank_collections(vconfig["blanks"])
 
     @property
     def collections(self):
-        return iter(self._vcollections)
-
-    @property
-    def blank_collections(self):
-        return iter(self._blank_collections)
+        return self._vcollections
 
     def _init_vcollections(self, vconfig):
         self._vcollections = set(vconfig.keys())
@@ -170,16 +205,42 @@ class VertexConfig:
             )
 
     def _init_blank_collections(self, vconfig):
-        self._blank_collections = vconfig
+        self._blank_collections = set(vconfig)
         if set(self._blank_collections) - set(self._vcollections):
-            raise ValueError(f" Blank collections {self.blank_collections} are not defined as vertex collections")
+            raise ValueError(
+                f" Blank collections {self.blank_collections} are not defined as vertex collections"
+            )
+
+    @property
+    def blank_collections(self):
+        return iter(self._blank_collections)
 
     def _init_fields(self, vconfig):
-        self.vfields = {
-            k: (v["fields"] if "fields" in v else []) for k, v in vconfig.items()
-        }
+        self._vfields = {k: v["fields"] for k, v in vconfig.items() if "fields" in v}
+
+    def fields(self, vertex_name):
+        if vertex_name in self._vcollections:
+            if vertex_name in self._vfields:
+                return self._vfields[vertex_name]
+            else:
+                return ()
+        else:
+            raise ValueError(
+                f" Accessing vertex collection fields: vertex collection {vertex_name} was not defined in config"
+            )
 
     def _init_numeric_fields(self, vconfig):
-        self.vcollection_numeric_fields_map = {
+        self._vcollection_numeric_fields_map = {
             k: v["numeric_fields"] for k, v in vconfig.items() if "numeric_fields" in v
         }
+
+    def numeric_fields_list(self, vertex_name):
+        if vertex_name in self._vcollections:
+            if vertex_name in self._vcollection_numeric_fields_map:
+                return self._vcollection_numeric_fields_map[vertex_name]
+            else:
+                return ()
+        else:
+            raise ValueError(
+                f" Accessing vertex collection numeric fields: vertex collection {vertex_name} was not defined in config"
+            )

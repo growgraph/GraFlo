@@ -28,7 +28,7 @@ def parse_vcollection(config, conf_obj):
     }
 
     # vertex_collection_name -> fields
-    conf_obj.vfields = {
+    conf_obj.fields = {
         k: (v["fields"] if "fields" in v else [])
         for k, v in config["vertex_collections"].items()
     }
@@ -39,7 +39,7 @@ def parse_vcollection(config, conf_obj):
         if "extra" in v and "blank" in v["extra"]
     ]
 
-    conf_obj.vcollection_numeric_fields_map = {
+    conf_obj.numeric_fields_list = {
         k: v["numeric_fields"]
         for k, v in config["vertex_collections"].items()
         if "numeric_fields" in v
@@ -67,14 +67,14 @@ def define_graphs(edge_def, vmap):
 def update_graph_extra_edges(graphs_definition, vmap, subconfig):
     for item in subconfig:
         u_, v_ = item["source"], item["target"]
-        u, v = vmap[u_], vmap[v_]
+        u, v = vmap(u_), vmap(v_)
 
         graphs_definition[u_, v_] = {
             "source": u,
             "target": v,
             "edge_name": f"{u}_{v}_edges",
             "graph_name": f"{u}_{v}_graph",
-            "by": vmap[item["by"]],
+            "by": vmap(item["by"]),
             "edge_weight": item["edge_weight"],
             "type": "indirect",
         }

@@ -164,9 +164,7 @@ def table_to_vcollections(
         vdoc_acc = []
         vcol = ccitem["type"]
 
-        current_fields = set(vertex_conf.index(vcol)) | set(
-            vertex_conf.vfields[vcol] if vcol in vertex_conf.vfields else {}
-        )
+        current_fields = set(vertex_conf.index(vcol)) | set(vertex_conf.fields(vcol))
 
         default_input = current_fields & (
             transformation_outputs | set(header_dict.keys())
@@ -308,7 +306,9 @@ def prepare_config(config):
     # vertex_collection -> (table field -> collection field)
 
     # table_type -> [ {vertex_collection :vc, map: (table field -> collection field)} ]
-    conf_obj.table_collection_maps = parse_input_output_field_map(config["csv"])
+    # conf_obj.table_collection_maps = parse_input_output_field_map(config["csv"])
+
+    parse_graph(config, conf_obj)
 
     conf_obj.transformation_maps = parse_transformations(config["csv"])
 
@@ -316,10 +316,9 @@ def prepare_config(config):
 
     conf_obj.logic = parse_logic(config["csv"])
 
-    parse_graph(config, conf_obj)
-
     parse_modes2graphs(config["csv"], conf_obj)
 
     parse_weights(config["csv"], conf_obj)
+
 
     return conf_obj

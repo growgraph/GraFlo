@@ -47,80 +47,81 @@ csv:
                 map_fields:
                     uid: _key
 vertex_collections:
-    publication:
-        basename: publications
-        fields:
-            - _key
-            - accession_no
-            - title
-            - year
-            - month
-            - day
-        numeric_fields:
-            - year
-            - month
-            - day
-        index:
-            - _key
-        extra_index:
-            -
-                type: hash
-                unique: false
-                fields:
-                    - title
-            -
-                type: hash
-                unique: false
-                fields:
-                    - year
-    medium:
-        basename: media
-        fields:
-            - issn
-            - isbn
-            - title
-            - eissn
-            - eisbn
-        index:
-            - issn
-            - isbn
-            - title
-        extra_index:
-            -
-                type: hash
-                unique: false
-                fields:
-                    - issn
-    language:
-        basename: languages
-        fields:
-            - language
-        index:
-            - language
-    contributor:
-        basename: contributors
-        fields:
-            - first_name
-            - last_name
-        index:
-            - first_name
-            - last_name
-    organization:
-        basename: organizations
-        fields:
-            - organization
-            - country
-            - city
-        index:
-            - organization
-            - country
-            - city
-        extra_index:
-            -
-                type: hash
-                unique: false
-                fields:
-                    - country
+    collections:
+        publication:
+            basename: publications
+            fields:
+                - _key
+                - accession_no
+                - title
+                - year
+                - month
+                - day
+            numeric_fields:
+                - year
+                - month
+                - day
+            index:
+                - _key
+            extra_index:
+                -
+                    type: hash
+                    unique: false
+                    fields:
+                        - title
+                -
+                    type: hash
+                    unique: false
+                    fields:
+                        - year
+        medium:
+            basename: media
+            fields:
+                - issn
+                - isbn
+                - title
+                - eissn
+                - eisbn
+            index:
+                - issn
+                - isbn
+                - title
+            extra_index:
+                -
+                    type: hash
+                    unique: false
+                    fields:
+                        - issn
+        language:
+            basename: languages
+            fields:
+                - language
+            index:
+                - language
+        contributor:
+            basename: contributors
+            fields:
+                - first_name
+                - last_name
+            index:
+                - first_name
+                - last_name
+        organization:
+            basename: organizations
+            fields:
+                - organization
+                - country
+                - city
+            index:
+                - organization
+                - country
+                - city
+            extra_index:
+                -
+                    type: hash
+                    unique: false
+                    fields:
+                        - country
 edge_collections:
     -
         source: publication

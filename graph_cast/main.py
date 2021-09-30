@@ -195,8 +195,8 @@ def ingest_csvs(
                     func(f)
         logger.info(f"{mode} took {t_pro.elapsed:.1f} sec")
 
-    for cname, fields in conf_obj.vertex_config.vcollection_numeric_fields_map.items():
-        for field in fields:
+    for cname in conf_obj.vertex_config.collections:
+        for field in conf_obj.vertex_config.numeric_fields_list(cname):
             query0 = update_to_numeric(conf_obj.vertex_config.name(cname), field)
             cursor = db_client.aql.execute(query0)
 
