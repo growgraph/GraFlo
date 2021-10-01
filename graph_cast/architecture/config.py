@@ -47,10 +47,7 @@ class Configurator:
 
     @property
     def current_transformations(self):
-        if self.mode in self.table_config.transform_maps:
-            return self.table_config.transform_maps[self.mode]
-        else:
-            return None
+        return self.table_config.transforms(self.mode)
 
     @property
     def current_field_maps(self):
@@ -86,17 +83,19 @@ class TableConfig:
     table_collection_maps = dict()
 
     # table_type -> transforms
-    transform_maps = dict()
-
-    # table_type -> transforms
     encodings_map = dict()
 
     # table_type -> extra logic
     logic = {}
 
-    # table_type -> edge_collections
+    # table_type -> vertex_collections
     _vertices = {}
+
+    # table_type -> edge_collections
     _edges = {}
+
+    # table_type -> transforms
+    _transforms = dict()
 
     def __init__(self, vconfig, graph_config):
         self._init_tables(vconfig)
@@ -152,7 +151,7 @@ class TableConfig:
     def _init_transformations(self, subconfig):
         for item in subconfig:
             if "transforms" in item:
-                self.transform_maps[item["tabletype"]] = item["transforms"]
+                self._transforms[item["tabletype"]] = item["transforms"]
 
     def _init_encodings(self, subconfig):
         for item in subconfig:
@@ -173,3 +172,11 @@ class TableConfig:
 
     def edges(self, table_type):
         return self._edges[table_type]
+
+    def transforms(self, table_type):
+        if table_type in self._transforms:
+            return self._transforms[table_type]
+        else:
+            return dict()
+
+

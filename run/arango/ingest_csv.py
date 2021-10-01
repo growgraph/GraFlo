@@ -14,6 +14,7 @@ if __name__ == "__main__":
         format="%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
         level=logging.INFO,
+        filemode="w"
     )
 
     parser.add_argument("--path", type=str, help="path to csv datafiles")
@@ -103,9 +104,7 @@ if __name__ == "__main__":
     ingest_csvs(
         args.path,
         db_client,
-        args.limit_files,
-        args.max_lines,
-        args.batch_size,
-        args.clean_start,
-        config,
+        limit_files=None,
+        max_lines=None,
+        config=config,
     )

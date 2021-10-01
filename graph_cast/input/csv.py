@@ -115,7 +115,7 @@ def table_to_vcollections(
                     for ubatch, vbatch in permutations(vdocs[u]):
                         ebatch = [
                             {"source": x, "target": y}
-                            for x, y, attr in zip(ubatch, ubatch)
+                            for x, y in zip(ubatch, ubatch)
                         ]
                 cfields = conf.graph_config.weights(*g)
                 if cfields:
