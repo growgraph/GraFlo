@@ -75,7 +75,7 @@ def update_graph_extra_edges(graphs_definition, vmap, subconfig):
             "edge_name": f"{u}_{v}_edges",
             "graph_name": f"{u}_{v}_graph",
             "by": vmap(item["by"]),
-            "edge_weight": item["edge_weight"],
+            "weight": item["weight"],
             "type": "indirect",
         }
         if "index" in item:

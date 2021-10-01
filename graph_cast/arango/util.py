@@ -245,7 +245,7 @@ def define_extra_edges(g):
         "target": v,
         "by": w,
         "edge_name": ecollection_name,
-        "edge_weight": item["edge_weight"],
+        "weight": item["weight"],
         "type": "indirect"
     }
 
@@ -253,7 +253,7 @@ def define_extra_edges(g):
     :return:
     """
     ucol, vcol, wcol = g["source"], g["target"], g["by"]
-    edge_weight = g["edge_weight"]
+    weight = g["weight"]
     s = (
         f"FOR w IN {wcol}"
         f"  LET uset = (FOR u IN 1..1 INBOUND w {ucol}_{wcol}_edges RETURN u)"
@@ -261,7 +261,7 @@ def define_extra_edges(g):
         f"  FOR u in uset"
         f"      FOR v in vset"
     )
-    s_ins_ = ", ".join([f"{v}: w.{k}" for k, v in edge_weight.items()])
+    s_ins_ = ", ".join([f"{v}: w.{k}" for k, v in weight.items()])
     s_ins_ = f"_from: u._id, _to: v._id, {s_ins_}"
     s_ins = f"          INSERT {{{s_ins_}}} "
     s_last = f"IN {ucol}_{vcol}_edges"

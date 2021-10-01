@@ -18,13 +18,6 @@ from graph_cast.input.util import (
 )
 
 
-def parse_weights(subconfig, conf_obj):
-    weights_definition = {}
-    for item in subconfig:
-        weights_definition[item["tabletype"]] = item["weights"]
-    conf_obj.weights_definition = weights_definition
-
-
 def discover_files(modes, fpath, limit_files=None):
     files_dict = {}
 
@@ -50,7 +43,6 @@ def table_to_vcollections(
 
     vdocs = defaultdict(list)
     edocs = defaultdict(list)
-    weights = {}
     vertex_conf = conf.vertex_config
 
     # perform possible transforms
@@ -96,12 +88,6 @@ def table_to_vcollections(
             ]
         vdocs[vcol].append([dict(ChainMap(*auxs)) for auxs in zip(*vdoc_acc)])
 
-    for wdef in conf.current_weights:
-        for edges_def in wdef["edge_collections"]:
-            u, v = edges_def["source"]["name"], edges_def["target"]["name"]
-            cfields = edges_def["fields"]
-            weights[(u, v)] = [{f: item[f] for f in cfields} for item in rows_working]
-
     # if blank collection has no aux fields - inflate it
     for vcol in vertex_conf.blank_collections:
         # if blank collection is in vdocs - inflate it, otherwise - create
@@ -124,24 +110,21 @@ def table_to_vcollections(
                         ebatch = [
                             {"source": x, "target": y} for x, y in zip(ubatch, vbatch)
                         ]
-                        if g in weights:
-                            ebatch = [
-                                {**item, **{"attributes": attr}}
-                                for item, attr in zip(ebatch, weights[g])
-                            ]
-                        edocs[g].extend(ebatch)
+
                 else:
                     for ubatch, vbatch in permutations(vdocs[u]):
                         ebatch = [
                             {"source": x, "target": y}
                             for x, y, attr in zip(ubatch, ubatch)
                         ]
-                        if g in weights:
-                            ebatch = [
-                                {**item, **{"attributes": attr}}
-                                for item, attr in zip(ebatch, weights[g])
-                            ]
-                        edocs[g].extend(ebatch)
+                cfields = conf.graph_config.weights(*g)
+                if cfields:
+                    weights = [{f: item[f] for f in cfields} for item in rows_working]
+                    ebatch = [
+                        {**item, **{"attributes": attr}}
+                        for item, attr in zip(ebatch, weights)
+                    ]
+                edocs[g].extend(ebatch)
 
     return vdocs, edocs
 
@@ -217,5 +200,4 @@ def prepare_config(config):
 
     conf_obj = Configurator(config)
 
-    parse_weights(config["csv"], conf_obj)
     return conf_obj

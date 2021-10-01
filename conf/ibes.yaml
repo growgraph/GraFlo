@@ -48,17 +48,6 @@ csv:
                     ITEXT: itext
             -
                 type: publication
-        weights:
-            -
-                edge_collections:
-                    -
-                        source:
-                            name: analyst
-                        target:
-                            name: agency
-                        fields:
-                            - datetime_review
-                            - datetime_announce
 vertex_collections:
     blanks:
         - publication
@@ -118,6 +107,9 @@ edge_collections:
         -
             source: analyst
             target: agency
+            weight:
+                - datetime_review
+                - datetime_announce
         -
             source: analyst
             target: publication

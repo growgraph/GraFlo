@@ -1131,6 +1131,6 @@ extra_edges:
   - source: contributor
     target: organization
     by: publication
-    edge_weight:
+    weight:
       _key: pubid
       year: year
