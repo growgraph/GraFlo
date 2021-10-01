@@ -123,26 +123,27 @@ vertex_collections:
                     fields:
                         - country
 edge_collections:
-    -
-        source: publication
-        target: medium
-    -
-        source: publication
-        target: language
-    -
-        source: contributor
-        target: publication
-    -
-        source: organization
-        target: publication
-    -
-        source: publication
-        target: publication
-extra_edges:
-    -
-        source: contributor
-        target: organization
-        by: publication
-        edge_weight:
-            _key: pubid
-            year: year
+    main:
+        -
+            source: publication
+            target: medium
+        -
+            source: publication
+            target: language
+        -
+            source: contributor
+            target: publication
+        -
+            source: organization
+            target: publication
+        -
+            source: publication
+            target: publication
+    extra:
+        -
+            source: contributor
+            target: organization
+            by: publication
+            edge_weight:
+                _key: pubid
+                year: year

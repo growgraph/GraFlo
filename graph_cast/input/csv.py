@@ -15,93 +15,7 @@ from graph_cast.arango.util import (
 )
 from graph_cast.input.util import (
     transform_foo,
-    parse_vcollection,
-    define_graphs,
-    update_graph_extra_edges,
 )
-
-
-def parse_edges(config):
-    edges = config["edge_collections"].copy()
-    if "extra_edges" in config:
-        extra_edges = config["extra_edges"].copy()
-    else:
-        extra_edges = {}
-    return edges, extra_edges
-
-
-def parse_input_output_field_map(subconfig):
-    """
-    extract map of observed fields in the table to the fields in the collection
-    :param subconfig:
-    :return:
-    """
-    field_maps = {}
-    for item in subconfig:
-        field_maps[item["tabletype"]] = [
-            {"type": vc["type"], "map": vc["map_fields"]}
-            for vc in item["vertex_collections"]
-            if "map_fields" in vc
-        ]
-    return field_maps
-
-
-def parse_transformations(subconfig):
-    transform_maps = {}
-    for item in subconfig:
-        if "transforms" in item:
-            transform_maps[item["tabletype"]] = item["transforms"]
-    return transform_maps
-
-
-def parse_encodings(subconfig):
-    encodings_map = {}
-    for item in subconfig:
-        if "encoding" in item:
-            encodings_map[item["tabletype"]] = item["encoding"]
-        else:
-            encodings_map[item["tabletype"]] = None
-    return encodings_map
-
-
-def parse_logic(subconfig):
-    logic_maps = {}
-    for item in subconfig:
-        if "logic" in item:
-            logic_maps[item["tabletype"]] = item["logic"]
-        else:
-            logic_maps[item["tabletype"]] = None
-    return logic_maps
-
-
-def parse_graph(config, conf_obj):
-    edges, extra_edges = parse_edges(config)
-
-    graphs_def = define_graphs(edges, conf_obj.vertex_config.name)
-    conf_obj.graphs_def = update_graph_extra_edges(
-        graphs_def, conf_obj.vertex_config.name, extra_edges
-    )
-
-
-def parse_modes2graphs(subconfig, conf_obj):
-    graph = conf_obj.graphs_def
-    modes2graphs = defaultdict(list)
-    modes2collections = {}
-    direct_graph = {k: v for k, v in graph.items() if v["type"] == "direct"}
-
-    for item in subconfig:
-        table_type = item["tabletype"]
-
-        vcols = [iitem["type"] for iitem in item["vertex_collections"]]
-        # here transform into standard form [{"collection": col_name, "map" map}]
-        # from [{"collection": col_name, "maps" maps}] (where many maps are applied)
-        modes2collections[table_type] = item["vertex_collections"]
-        for u, v in permutations(vcols, 2):
-            if (u, v) in direct_graph:
-                modes2graphs[table_type] += [(u, v)]
-
-    conf_obj.modes2graphs = {k: list(set(v)) for k, v in modes2graphs.items()}
-    conf_obj.modes2collections = modes2collections
 
 
 def parse_weights(subconfig, conf_obj):
@@ -204,7 +118,7 @@ def table_to_vcollections(
             u not in vertex_conf.blank_collections
             and v not in vertex_conf.blank_collections
         ):
-            if conf.graphs_def[u, v]["type"] == "direct":
+            if conf.graph(u, v)["type"] == "direct":
                 if u != v:
                     for ubatch, vbatch in product(vdocs[u], vdocs[v]):
                         ebatch = [
@@ -291,7 +205,7 @@ def process_table(tabular_resource, batch_size, max_lines, db_client, conf):
                     data,
                     conf.vertex_config.name(vfrom),
                     conf.vertex_config.name(vto),
-                    conf.graphs_def[vfrom, vto]["edge_name"],
+                    conf.graph(vfrom, vto)["edge_name"],
                     conf.vertex_config.index(vfrom),
                     conf.vertex_config.index(vto),
                     False,
@@ -303,22 +217,5 @@ def prepare_config(config):
 
     conf_obj = Configurator(config)
 
-    # vertex_collection -> (table field -> collection field)
-
-    # table_type -> [ {vertex_collection :vc, map: (table field -> collection field)} ]
-    # conf_obj.table_collection_maps = parse_input_output_field_map(config["csv"])
-
-    parse_graph(config, conf_obj)
-
-    conf_obj.transformation_maps = parse_transformations(config["csv"])
-
-    conf_obj.encodings = parse_encodings(config["csv"])
-
-    conf_obj.logic = parse_logic(config["csv"])
-
-    parse_modes2graphs(config["csv"], conf_obj)
-
     parse_weights(config["csv"], conf_obj)
-
-
     return conf_obj

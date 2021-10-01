@@ -1,18 +1,11 @@
+from collections import defaultdict, ChainMap
+from itertools import permutations, product
+
+
 class Configurator:
-    # table_type -> transforms
-    transformation_maps = {}
-
-    # table_type -> encodings
-    encodings = {}
-
-    # table_type -> extra logic
-    logic = {}
-
-    graphs_def = {}
-
     # table_type -> [{collection: cname, collection_maps: maps}]
-    modes2collections = {}
-    modes2graphs = {}
+    modes2collections = defaultdict(list)
+    modes2graphs = defaultdict(list)
 
     weights_definition = {}
 
@@ -20,15 +13,19 @@ class Configurator:
 
     def __init__(self, config):
         self.vertex_config = VertexConfig(config["vertex_collections"])
+        self.graph_config = GraphConfig(
+            config["edge_collections"], self.vertex_config.name
+        )
         self.table_config = TableConfig(config["csv"])
+        self._init_modes2graphs(config["csv"], self.graph_config.edges)
 
     def set_mode(self, mode):
         self.mode = mode
 
     @property
     def encoding(self):
-        if self.mode in self.encodings:
-            return self.encodings[self.mode]
+        if self.mode in self.table_config.encodings_map:
+            return self.table_config.encodings_map[self.mode]
         else:
             return None
 
@@ -48,8 +45,8 @@ class Configurator:
 
     @property
     def current_transformations(self):
-        if self.mode in self.transformation_maps:
-            return self.transformation_maps[self.mode]
+        if self.mode in self.table_config.transform_maps:
+            return self.table_config.transform_maps[self.mode]
         else:
             return None
 
@@ -67,35 +64,63 @@ class Configurator:
         else:
             return None
 
+    def graph(self, u, v):
+        return self.graph_config.graph(u, v)
+
+    def _init_modes2graphs(self, subconfig, edges):
+
+        for item in subconfig:
+            table_type = item["tabletype"]
+
+            vcols = [iitem["type"] for iitem in item["vertex_collections"]]
+            # here transform into standard form [{"collection": col_name, "map" map}]
+            # from [{"collection": col_name, "maps" maps}] (where many maps are applied)
+            self.modes2collections[table_type] = item["vertex_collections"]
+            for u, v in permutations(vcols, 2):
+                if (u, v) in edges:
+                    self.modes2graphs[table_type] += [(u, v)]
+                # else:
+                #     raise ValueError(f"{u, v} edges in {table_type} is not found definion of graphs")
+
+        self.modes2graphs = {k: list(set(v)) for k, v in self.modes2graphs.items()}
+
 
 class TableConfig:
-    # table_type -> [ {vertex_collection :vc, map: (table field -> collection field)} ]
-    # conf_obj.table_collection_maps = parse_input_output_field_map(config["csv"])
-    #
-    # conf_obj.transformation_maps = parse_transformations(config["csv"])
-    #
-    # conf_obj.encodings = parse_encodings(config["csv"])
-    #
-    # conf_obj.logic = parse_logic(config["csv"])
-    #
-    # parse_modes2graphs(config["csv"], conf_obj)
-    #
-    # parse_weights(config["csv"], conf_obj)
+    _tables = set()
 
+    # table_type -> [ {vertex_collection :vc, map: (table field -> collection field)} ]
+    # vertex_collection -> (table field -> collection field)
     table_collection_maps = dict()
 
-    _tables = set()
+    # table_type -> transforms
+    transform_maps = dict()
+
+    # table_type -> transforms
+    encodings_map = dict()
+
+    # table_type -> extra logic
+    logic = {}
 
     def __init__(self, vconfig):
         self._init_tables(vconfig)
         self._init_transformations(vconfig)
+        self._init_input_output_field_map(vconfig)
+        self._init_transformations(vconfig)
+        self._init_encodings(vconfig)
+
+    @property
+    def tables(self):
+        return self._tables
 
     def _init_tables(self, vconfig):
-        self._tables = set([item["tabletype"] for item in vconfig if "tabletype" in item])
+        self._tables = set(
+            [item["tabletype"] for item in vconfig if "tabletype" in item]
+        )
 
     # TODO verify against VertexConfig
+    # TODO not called currently - bring maps from vertex_collection definition to the current table
     # work out encapsulation
-    def _init_transformations(self, subconfig):
+    def _init_input_output_field_map(self, subconfig):
         for item in subconfig:
             self.table_collection_maps[item["tabletype"]] = [
                 {"type": vc["type"], "map": vc["map_fields"]}
@@ -103,9 +128,24 @@ class TableConfig:
                 if "map_fields" in vc
             ]
 
-    @property
-    def tables(self):
-        return self._tables
+    def _init_transformations(self, subconfig):
+        for item in subconfig:
+            if "transforms" in item:
+                self.transform_maps[item["tabletype"]] = item["transforms"]
+
+    def _init_encodings(self, subconfig):
+        for item in subconfig:
+            if "encoding" in item:
+                self.encodings_map[item["tabletype"]] = item["encoding"]
+            else:
+                self.encodings_map[item["tabletype"]] = None
+
+    def parse_logic(self, subconfig):
+        for item in subconfig:
+            if "logic" in item:
+                self.logic[item["tabletype"]] = item["logic"]
+            else:
+                self.logic[item["tabletype"]] = None
 
 
 class VertexConfig:
@@ -244,3 +284,82 @@ class VertexConfig:
             raise ValueError(
                 f" Accessing vertex collection numeric fields: vertex collection {vertex_name} was not defined in config"
             )
+
+
+class GraphConfig:
+    _edges = set()
+
+    _extra_edges = set()
+
+    _graphs = dict()
+
+    def __init__(self, econfig, vmap):
+        self._init_edges(econfig)
+        self._define_graphs(econfig, vmap)
+
+    def _init_edges(self, config):
+        # check that the edges are unique
+        if "main" in config:
+            self._edges = [(item["source"], item["target"]) for item in config["main"]]
+            if len(set(self._edges)) < len(self._edges):
+                raise ValueError(f" Potentially duplicate edges in edges definition")
+            self._edges = set(self._edges)
+        if "extra" in config:
+            self._extra_edges = [
+                (item["source"], item["target"]) for item in config["extra"]
+            ]
+            if len(set(self._extra_edges)) < len(self._extra_edges):
+                raise ValueError(
+                    f" Potentially duplicate edges in extra edges definition"
+                )
+            self._extra_edges = set(self._extra_edges)
+        if len(set(list(self._edges) + list(self._extra_edges))) < len(
+            list(self._edges) + list(self._extra_edges)
+        ):
+            raise ValueError(
+                f" Potentially duplicate edges between edges and extra edges definition"
+            )
+
+    def _define_graphs(self, config, vmap):
+        aux = []
+        if "main" in config:
+            aux.extend(config["main"])
+        if "extra" in config:
+            aux.extend(config["extra"])
+
+        aux_dict = {(item["source"], item["target"]): item for item in aux}
+
+        for (u_, v_), item in aux_dict.items():
+            u, v = vmap(u_), vmap(v_)
+
+            self._graphs[u_, v_] = {
+                "source": u,
+                "target": v,
+                "edge_name": f"{u}_{v}_edges",
+                "graph_name": f"{u}_{v}_graph",
+                "type": "direct" if (u_, v_) in self._edges else "indirect",
+            }
+            if (u_, v_) in self._extra_edges:
+                self._graphs[u_, v_].update(
+                    {"by": vmap(item["by"]), "edge_weight": item["edge_weight"]}
+                )
+            if "index" in item:
+                self._graphs[u_, v_]["index"] = item["index"]
+
+    def graph(self, u, v):
+        try:
+            return self._graphs[u, v]
+        except:
+            raise KeyError(f" Requested graph {u, v} not present in GraphConfig")
+
+    @property
+    def edges(self):
+        return list(self._edges)
+
+    @property
+    def extra_edges(self):
+        return list(self._extra_edges)
+
+    @property
+    def all_edges(self):
+        return list(self._edges) + list(self._extra_edges)

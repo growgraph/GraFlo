@@ -164,7 +164,7 @@ def ingest_csvs(
         #     delete_collections(sys_db, ecollections, [])
         define_collections_and_indices(
             db_client,
-            conf_obj.graphs_def,
+            conf_obj.graph_config,
             conf_obj.vertex_config,
         )
 
@@ -202,7 +202,6 @@ def ingest_csvs(
 
     # create edge u -> v from u->w, v->w edges
     # find edge_cols uw and vw
-    for gname, item in conf_obj.graphs_def.items():
-        if item["type"] == "indirect":
-            query0 = define_extra_edges(item)
-            cursor = db_client.aql.execute(query0)
+    for u, v in conf_obj.graph_config.extra_edges:
+        query0 = define_extra_edges(conf_obj.graph(u, v))
+        cursor = db_client.aql.execute(query0)

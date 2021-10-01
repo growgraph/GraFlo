@@ -18,17 +18,6 @@ def create_collection_if_absent(db_client, g, vcol, index, unique=True):
             return None
 
 
-def fetch_collection(db_client, collection_name, erase_existing=False):
-    if db_client.has_collection(collection_name):
-        if erase_existing:
-            db_client.delete_collection(collection_name)
-        else:
-            collection = db_client.collection(collection_name)
-    else:
-        collection = db_client.create_collection(collection_name)
-    return collection
-
-
 def get_arangodb_client(protocol, ip_addr, port, database, cred_name, cred_pass):
     hosts = f"{protocol}://{ip_addr}:{port}"
     client = ArangoClient(hosts=hosts)
@@ -65,9 +54,10 @@ def delete_collections(sys_db, cnames=(), gnames=(), delete_all=False):
     logger.info(sys_db.graphs())
 
 
-def define_vertex_collections(sys_db, graphs, vertex_config):
-    for uv, item in graphs.items():
-        u, v = uv
+def define_vertex_collections(sys_db, graph_config, vertex_index):
+    edges = graph_config.all_edges
+    for u, v in edges:
+        item = graph_config.graph(u, v)
         gname = item["graph_name"]
         logger.info(f'{item["source"]}, {item["target"]}, {gname}')
         if sys_db.has_graph(gname):
@@ -79,19 +69,21 @@ def define_vertex_collections(sys_db, graphs, vertex_config):
             sys_db,
             g,
             item["source"],
-            vertex_config.index(u),
+            vertex_index(u),
         )
 
         ih = create_collection_if_absent(
             sys_db,
             g,
             item["target"],
-            vertex_config.index(v),
+            vertex_index(v),
         )
 
 
-def define_edge_collections(sys_db, graphs):
-    for uv, item in graphs.items():
+def define_edge_collections(sys_db, graph_config):
+    edges = graph_config.all_edges
+    for u, v in edges:
+        item = graph_config.graph(u, v)
         gname = item["graph_name"]
         if sys_db.has_graph(gname):
             g = sys_db.graph(gname)
@@ -114,19 +106,22 @@ def define_vertex_indices(sys_db, vertex_config):
             )
 
 
-def define_edge_indices(sys_db, graphs):
-    for uv, item in graphs.items():
-        general_collection = sys_db.collection(item["edge_name"])
-        for index_dict in item["index"]:
-            ih = general_collection.add_hash_index(
-                fields=index_dict["fields"], unique=index_dict["unique"]
-            )
+def define_edge_indices(sys_db, graph_config):
+    for u, v in graph_config.all_edges:
+        item = graph_config.graph(u, v)
+        if "index" in item:
+            for index_dict in item["index"]:
+                general_collection = sys_db.collection(item["edge_name"])
+                ih = general_collection.add_hash_index(
+                    fields=index_dict["fields"], unique=index_dict["unique"]
+                )
 
 
-def define_collections_and_indices(sys_db, graphs, vertex_config):
-    define_vertex_collections(sys_db, graphs, vertex_config)
-    define_edge_collections(sys_db, graphs)
+def define_collections_and_indices(sys_db, graph_config, vertex_config):
+    define_vertex_collections(sys_db, graph_config, vertex_config.index)
+    define_edge_collections(sys_db, graph_config)
     define_vertex_indices(sys_db, vertex_config)
+    define_edge_indices(sys_db, graph_config)
 
 
 def insert_return_batch(docs, collection_name):
