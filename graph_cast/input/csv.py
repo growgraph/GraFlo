@@ -6,7 +6,7 @@ from os.path import isfile, join
 import pandas as pd
 
 from graph_cast.util.io import Chunker, ChunkerDataFrame
-from graph_cast.architecture.config import Configurator
+from graph_cast.architecture.table import TConfigurator
 
 from graph_cast.arango.util import (
     upsert_docs_batch,
@@ -198,6 +198,6 @@ def process_table(tabular_resource, batch_size, max_lines, db_client, conf):
 
 def prepare_config(config):
 
-    conf_obj = Configurator(config)
+    conf_obj = TConfigurator(config)
 
     return conf_obj

@@ -3,12 +3,10 @@ from itertools import permutations
 from graph_cast.architecture.schema import VertexConfig, GraphConfig
 
 
-class Configurator:
+class TConfigurator:
     # table_type -> [{collection: cname, collection_maps: maps}]
     modes2collections = defaultdict(list)
     modes2graphs = defaultdict(list)
-
-    weights_definition = {}
 
     mode = None
 

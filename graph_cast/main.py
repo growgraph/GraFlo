@@ -32,10 +32,7 @@ def ingest_json_files(
     clean_start="all",
     dry=False,
 ):
-
-    vcollections, vmap, graphs, index_fields_dict, extra_index = gcij.parse_config(
-        config=config
-    )
+    conf_obj = gcic.prepare_config(config)
 
     if clean_start == "all":
         delete_collections(db_client, [], [], delete_all=True)
@@ -43,32 +40,34 @@ def ingest_json_files(
         # elif clean_start == "edges":
         #     delete_collections(sys_db, ecollections, [])
 
-        define_collections_and_indices(db_client, graphs, vertex_config)
+        define_collections_and_indices(
+            db_client,
+            conf_obj.graph_config,
+            conf_obj.vertex_config,
+        )
 
     files = sorted(
         [f for f in listdir(fpath) if isfile(join(fpath, f)) and keyword in f]
     )
+
     logger.info(f" Processing {len(files)} json files : {files}")
 
     for filename in files:
         with gzip.GzipFile(join(fpath, filename), "rb") as fps:
             with timer.Timer() as t_pro:
                 data = json.load(fps)
-                ingest_json(data, config, db_client, dry)
+                ingest_json(data, conf_obj, db_client, dry)
             logger.info(f" processing {filename} took {t_pro.elapsed:.2f} sec")
 
 
-def ingest_json(json_data, config, sys_db=None, dry=False):
-    vcollections, vmap, graphs, index_fields_dict, eindex = gcij.parse_config(
-        config=config
-    )
-    edge_des, excl_fields = gcij.parse_edges(config["json"], [], defaultdict(list))
+def ingest_json(json_data, conf_obj, sys_db=None, dry=False):
+    edge_des, excl_fields = gcij.parse_edges(conf_obj.json, [], defaultdict(list))
 
     with timer.Timer() as t_parse:
 
         kwargs = {
-            "config": config["json"],
-            "vertex_config": config["vertex_collections"],
+            "config": conf_obj.json,
+            "vertex_config": conf_obj.vertex_config,
             "edge_fields": excl_fields,
             "merge_collections": ["publication"],
         }
@@ -101,9 +100,9 @@ def ingest_json(json_data, config, sys_db=None, dry=False):
         cnt = 0
         for k in kkey_vertex:
             v = super_dict[k]
-            r = merge_doc_basis(super_dict[k], index_fields_dict(k))
+            r = merge_doc_basis(super_dict[k], conf_obj.vertex_config.index(k))
             cnt += len(r)
-            query0 = upsert_docs_batch(v, vmap(k), index_fields_dict(k), "doc", True)
+            query0 = upsert_docs_batch(v,  conf_obj.vertex_config.name(v), conf_obj.vertex_config.index(k), "doc", True)
             if not dry and sys_db is not None:
                 cursor = sys_db.aql.execute(query0)
 
