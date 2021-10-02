@@ -14,7 +14,7 @@ if __name__ == "__main__":
         format="%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
         level=logging.INFO,
-        filemode="w"
+        filemode="w",
     )
 
     parser.add_argument("--path", type=str, help="path to csv datafiles")

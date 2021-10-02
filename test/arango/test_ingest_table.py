@@ -4,7 +4,8 @@ import pandas as pd
 import yaml
 import logging
 from graph_cast.arango.util import get_arangodb_client, define_collections_and_indices
-from graph_cast.input.csv import process_table, prepare_config
+from graph_cast.input.csv import process_table
+from graph_cast.architecture.table import TConfigurator
 
 
 logger = logging.getLogger(__name__)
@@ -105,14 +106,12 @@ if __name__ == "__main__":
         args.protocol, args.id_addr, args.port, args.db, args.cred_name, args.cred_pass
     )
 
-    conf_obj = prepare_config(config)
+    conf_obj = TConfigurator(config)
 
     define_collections_and_indices(
         db_client,
-        conf_obj.graph,
-        conf_obj.name,
-        conf_obj.index,
-        conf_obj.extra_indices,
+        conf_obj.graph_config,
+        conf_obj.vertex_config,
     )
 
     mode = "ibes"

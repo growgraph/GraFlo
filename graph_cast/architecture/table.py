@@ -1,9 +1,9 @@
 from collections import defaultdict
 from itertools import permutations
-from graph_cast.architecture.schema import VertexConfig, GraphConfig
+from graph_cast.architecture.general import Configurator
 
 
-class TConfigurator:
+class TConfigurator(Configurator):
     # table_type -> [{collection: cname, collection_maps: maps}]
     modes2collections = defaultdict(list)
     modes2graphs = defaultdict(list)
@@ -11,10 +11,7 @@ class TConfigurator:
     mode = None
 
     def __init__(self, config):
-        self.vertex_config = VertexConfig(config["vertex_collections"])
-        self.graph_config = GraphConfig(
-            config["edge_collections"], self.vertex_config.name
-        )
+        super().__init__(config)
 
         self.table_config = TableConfig(config["csv"], self.graph_config)
         self._init_modes2graphs(config["csv"], self.graph_config.edges)
@@ -176,5 +173,3 @@ class TableConfig:
             return self._transforms[table_type]
         else:
             return dict()
-
-

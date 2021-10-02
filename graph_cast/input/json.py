@@ -9,11 +9,14 @@ from graph_cast.input.util import parse_vcollection, transform_foo
 from graph_cast.util.io import FPSmart
 from graph_cast.util.transform import pick_unique_dict
 from graph_cast.input.util import define_graphs, update_graph_extra_edges
+from graph_cast.architecture.json import JConfigurator
+from graph_cast.architecture.schema import VertexConfig
+from typing import Dict
 
 xml_dummy = "#text"
 
 
-def apply_mapper(mapper, document, vertex_spec):
+def apply_mapper(mapper: Dict, document, vertex_config: VertexConfig):
     if "how" in mapper:
         mode = mapper["how"]
         vcol = mapper["name"]
@@ -32,7 +35,7 @@ def apply_mapper(mapper, document, vertex_spec):
                     )
                 )
             ):
-                kkeys = vertex_spec[vcol]["fields"]
+                kkeys = vertex_config.fields(vcol)
 
                 doc_ = dict()
                 if "transforms" in mapper:
@@ -65,10 +68,10 @@ def apply_mapper(mapper, document, vertex_spec):
                     doc_.update(mapper["__extra"])
             else:
                 doc_ = dict()
-            if "transforms" in vertex_spec[vcol]:
-                for t in vertex_spec[vcol]["transforms"]:
-                    upd = transform_foo(t, doc_)
-                    doc_.update(upd)
+            # if "transforms" in vertex_config[vcol]:
+            #     for t in vertex_config[vcol]["transforms"]:
+            #         upd = transform_foo(t, doc_)
+            #         doc_.update(upd)
             return {vcol: [doc_]}
         elif mode == "value":
             key = mapper["key"]
@@ -79,28 +82,28 @@ def apply_mapper(mapper, document, vertex_spec):
     elif "type" in mapper:
         agg = defaultdict(list)
         if "descend_key" in mapper:
-            if mapper["descend_key"] in document:
+            if document and mapper["descend_key"] in document:
                 document = document[mapper["descend_key"]]
             else:
                 return agg
         if mapper["type"] == "list":
             for cdoc in document:
                 for m in mapper["maps"]:
-                    item = apply_mapper(m, cdoc, vertex_spec)
+                    item = apply_mapper(m, cdoc, vertex_config)
                     for k, v in item.items():
                         agg[k] += [x for x in v if x]
                     if "edges" in mapper:
                         # check update
-                        agg = add_edges(mapper, agg, vertex_spec)
+                        agg = add_edges(mapper, agg, vertex_config)
             return agg
         elif mapper["type"] == "item":
             for m in mapper["maps"]:
-                item = apply_mapper(m, document, vertex_spec)
+                item = apply_mapper(m, document, vertex_config)
                 for k, v in item.items():
                     agg[k] += [x for x in v if x]
             if "edges" in mapper:
                 # check update
-                agg = add_edges(mapper, agg, vertex_spec)
+                agg = add_edges(mapper, agg, vertex_config)
             if "weights" in mapper:
                 # check update
                 agg = add_weights(mapper, agg)
@@ -145,7 +148,7 @@ def add_weights(mapper, agg):
     return agg
 
 
-def add_edges(mapper, agg, vertex_indices):
+def add_edges(mapper, agg, vertex_config):
     for edge_def in mapper["edges"]:
         # get source and target names
         source, target = (
@@ -155,8 +158,8 @@ def add_edges(mapper, agg, vertex_indices):
 
         # get source and target edge fields
         source_index, target_index = (
-            vertex_indices[source]["index"],
-            vertex_indices[target]["index"],
+            vertex_config.index(source),
+            vertex_config.index(target),
         )
 
         # get source and target items
@@ -297,6 +300,8 @@ def project_dicts(items, keys, how="include"):
         return [{k: v for k, v in item.items() if k in keys} for item in items]
     elif how == "exclude":
         return [{k: v for k, v in item.items() if k not in keys} for item in items]
+    else:
+        raise ValueError(f" `how` should be exclude or include : instead {how}")
 
 
 def clean_aux_fields(pack):
@@ -312,6 +317,7 @@ def clean_aux_fields(pack):
 
 
 def parse_edges(croot, edge_acc, mapping_fields):
+    # TODO push mapping_fields etc to architecture
     """
     extract edge definition and edge fields from definition dict
     :param croot:
@@ -416,22 +422,23 @@ def smart_merge(
     return agg
 
 
-def process_document_top(doc, config, vertex_config, edge_fields, merge_collections):
+def process_document_top(doc, config: JConfigurator, merge_collections):
     """
     top level function such that (json, config) -> List[docs]
     :param doc:
     :param config:
-    :param vertex_config:
-    :param edge_fields:
     :param merge_collections:
     :return:
     """
-    acc = apply_mapper(config, doc, vertex_config)
+
+    acc = apply_mapper(config.json, doc, config.vertex_config)
 
     for k, v in acc.items():
         v = pick_unique_dict(v)
+        # TODO the meaning of "isinstance(k, tuple)" ???
         if not isinstance(k, tuple):
-            v = project_dicts(v, edge_fields[k], how="exclude")
+            if config.exclude_fields(k):
+                v = project_dicts(v, config.exclude_fields(k), how="exclude")
         if k in merge_collections:
             v = merge_documents(v)
         acc[k] = v

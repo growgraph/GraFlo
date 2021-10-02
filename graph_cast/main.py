@@ -20,25 +20,19 @@ import graph_cast.input.json as gcij
 import graph_cast.input.csv as gcic
 from graph_cast.util import timer as timer
 from graph_cast.util.transform import merge_doc_basis
+from graph_cast.architecture.table import TConfigurator
+from graph_cast.architecture.json import JConfigurator
 
 logger = logging.getLogger(__name__)
 
 
 def ingest_json_files(
-    fpath,
-    config,
-    db_client,
-    keyword="DSSHPSH",
-    clean_start="all",
-    dry=False,
+    fpath, config, db_client, keyword="DSSHPSH", clean_start="all", dry=False, ncores=1
 ):
-    conf_obj = gcic.prepare_config(config)
+    conf_obj = JConfigurator(config)
 
     if clean_start == "all":
         delete_collections(db_client, [], [], delete_all=True)
-        #     delete_collections(sys_db, vcollections + ecollections, actual_graphs)
-        # elif clean_start == "edges":
-        #     delete_collections(sys_db, ecollections, [])
 
         define_collections_and_indices(
             db_client,
@@ -56,25 +50,24 @@ def ingest_json_files(
         with gzip.GzipFile(join(fpath, filename), "rb") as fps:
             with timer.Timer() as t_pro:
                 data = json.load(fps)
-                ingest_json(data, conf_obj, db_client, dry)
+                ingest_json(data, conf_obj, db_client, dry, ncores)
             logger.info(f" processing {filename} took {t_pro.elapsed:.2f} sec")
 
 
-def ingest_json(json_data, conf_obj, sys_db=None, dry=False):
-    edge_des, excl_fields = gcij.parse_edges(conf_obj.json, [], defaultdict(list))
+def ingest_json(json_data, conf_obj: JConfigurator, sys_db=None, dry=False, ncores=1):
 
     with timer.Timer() as t_parse:
 
         kwargs = {
-            "config": conf_obj.json,
-            "vertex_config": conf_obj.vertex_config,
-            "edge_fields": excl_fields,
+            "config": conf_obj,
             "merge_collections": ["publication"],
         }
         func = partial(gcij.process_document_top, **kwargs)
-        n_proc = 4
-        with mp.Pool(n_proc) as p:
-            ldicts = p.map(func, json_data)
+        if ncores > 1:
+            with mp.Pool(ncores) as p:
+                ldicts = p.map(func, json_data)
+        else:
+            ldicts = list(map(func, json_data))
 
         super_dict = defaultdict(list)
 
@@ -102,7 +95,13 @@ def ingest_json(json_data, conf_obj, sys_db=None, dry=False):
             v = super_dict[k]
             r = merge_doc_basis(super_dict[k], conf_obj.vertex_config.index(k))
             cnt += len(r)
-            query0 = upsert_docs_batch(v,  conf_obj.vertex_config.name(v), conf_obj.vertex_config.index(k), "doc", True)
+            query0 = upsert_docs_batch(
+                v,
+                conf_obj.vertex_config.name(k),
+                conf_obj.vertex_config.index(k),
+                "doc",
+                True,
+            )
             if not dry and sys_db is not None:
                 cursor = sys_db.aql.execute(query0)
 
@@ -113,24 +112,25 @@ def ingest_json(json_data, conf_obj, sys_db=None, dry=False):
         cnt = 0
 
         for uv in kkey_edge:
-            u, v = uv
+            vfrom, vto = uv
             if len(super_dict[uv]) == 0:
-                logger.error(f" for unknown reason edge batch {u}, {v} is empty")
+                logger.error(f" for unknown reason edge batch {vfrom}, {vto} is empty")
                 logger.error(
                     f" for unknown reason edge batch "
-                    f"size of {u} : {len(super_dict[u])}, {v} : {len(super_dict[v])}"
+                    f"size of {vfrom} : {len(super_dict[vfrom])}, {vto} : {len(super_dict[vto])}"
                 )
                 continue
             cnt += len(super_dict[uv])
             query0 = insert_edges_batch(
                 super_dict[uv],
-                vmap(u),
-                vmap(v),
-                graphs[uv]["edge_name"],
-                index_fields_dict(u),
-                index_fields_dict(v),
+                conf_obj.vertex_config.name(vfrom),
+                conf_obj.vertex_config.name(vto),
+                conf_obj.graph(vfrom, vto)["edge_name"],
+                conf_obj.vertex_config.index(vfrom),
+                conf_obj.vertex_config.index(vto),
                 False,
             )
+
             if not dry and sys_db is not None:
                 cursor = sys_db.aql.execute(query0)
 
@@ -154,7 +154,7 @@ def ingest_csvs(
     config=None,
 ):
 
-    conf_obj = gcic.prepare_config(config)
+    conf_obj = TConfigurator(config)
 
     if clean_start == "all":
         delete_collections(db_client, [], [], delete_all=True)

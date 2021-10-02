@@ -4,7 +4,7 @@ import pandas as pd
 import yaml
 import logging
 from graph_cast.arango.util import get_arangodb_client, define_collections_and_indices
-from graph_cast.input.csv import process_table, prepare_config
+from graph_cast.input.csv import process_table
 
 
 logger = logging.getLogger(__name__)
@@ -105,42 +105,42 @@ if __name__ == "__main__":
         args.protocol, args.id_addr, args.port, args.db, args.cred_name, args.cred_pass
     )
 
-    (
-        vmap,
-        index_fields_dict,
-        extra_indices,
-        graphs_def,
-        modes2collections,
-        field_maps,
-        vcollection_fields_map,
-        modes2graphs,
-        transformation_maps,
-        encodings,
-        weights_definition,
-        vcollection_numeric_fields_map,
-        blank_collections,
-    ) = prepare_config(config)
+    # (
+    #     vmap,
+    #     index_fields_dict,
+    #     extra_indices,
+    #     graphs_def,
+    #     modes2collections,
+    #     field_maps,
+    #     vcollection_fields_map,
+    #     modes2graphs,
+    #     transformation_maps,
+    #     encodings,
+    #     weights_definition,
+    #     vcollection_numeric_fields_map,
+    #     blank_collections,
+    # ) = prepare_config(config)
 
-    define_collections_and_indices(
-        db_client, graphs_def, vmap, index_fields_dict, extra_indices
-    )
+    # define_collections_and_indices(
+    #     db_client, graphs_def, vmap, index_fields_dict, extra_indices
+    # )
 
     mode = "ibes"
 
     tabular_resource = pd.read_csv(join(cpath, "../data/ibes/ibes_test.csv.gz"))
     tabular_resource = tabular_resource.fillna("")
-    process_table(
-        tabular_resource,
-        10,
-        10000,
-        modes2graphs[mode],
-        modes2collections[mode],
-        graphs_def,
-        field_maps[mode],
-        index_fields_dict,
-        vmap,
-        vcollection_fields_map,
-        weights_definition[mode],
-        transformation_maps[mode],
-        db_client,
-    )
+    # process_table(
+    #     tabular_resource,
+    #     10,
+    #     10000,
+    #     modes2graphs[mode],
+    #     modes2collections[mode],
+    #     graphs_def,
+    #     field_maps[mode],
+    #     index_fields_dict,
+    #     vmap,
+    #     vcollection_fields_map,
+    #     weights_definition[mode],
+    #     transformation_maps[mode],
+    #     db_client,
+    # )

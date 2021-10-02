@@ -1,3 +1,6 @@
+from collections import defaultdict
+
+
 class VertexConfig:
     _vcollections = set()
 
@@ -143,8 +146,15 @@ class GraphConfig:
 
     _graphs = dict()
 
-    def __init__(self, econfig, vmap):
-        self._init_edges(econfig)
+    _exclude_fields = defaultdict(list)
+
+    def __init__(self, econfig, vmap, jconfig=None):
+        if jconfig:
+            self._init_jedges(jconfig)
+        else:
+            self._init_edges(econfig)
+        self._init_extra_edges(econfig)
+        self._check_edges_extra_edges_consistency()
         self._define_graphs(econfig, vmap)
 
     def _init_edges(self, config):
@@ -154,6 +164,8 @@ class GraphConfig:
             if len(set(self._edges)) < len(self._edges):
                 raise ValueError(f" Potentially duplicate edges in edges definition")
             self._edges = set(self._edges)
+
+    def _init_extra_edges(self, config):
         if "extra" in config:
             self._extra_edges = [
                 (item["source"], item["target"]) for item in config["extra"]
@@ -163,6 +175,8 @@ class GraphConfig:
                     f" Potentially duplicate edges in extra edges definition"
                 )
             self._extra_edges = set(self._extra_edges)
+
+    def _check_edges_extra_edges_consistency(self):
         if len(set(list(self._edges) + list(self._extra_edges))) < len(
             list(self._edges) + list(self._extra_edges)
         ):
@@ -170,10 +184,50 @@ class GraphConfig:
                 f" Potentially duplicate edges between edges and extra edges definition"
             )
 
+    def _init_jedges(self, jconfig):
+        acc_edges = set()
+        exclude_fields = defaultdict(list)
+
+        self._edges, self._exclude_fields = self._parse_jedges(
+            jconfig, acc_edges, exclude_fields
+        )
+
+    def _parse_jedges(self, croot, edge_accumulator, exclusion_fields):
+        # TODO push mapping_fields etc to architecture
+        """
+        extract edge definition and edge fields from definition dict
+        :param croot:
+        :param edge_accumulator:
+        :param exclusion_fields:
+        :return:
+        """
+        if isinstance(croot, dict):
+            if "maps" in croot:
+                for m in croot["maps"]:
+                    edge_acc_, exclusion_fields = self._parse_jedges(
+                        m, edge_accumulator, exclusion_fields
+                    )
+                    edge_accumulator |= edge_acc_
+            if "edges" in croot:
+                edge_acc_ = set()
+                for evw in croot["edges"]:
+                    vname, wname = evw["source"]["name"], evw["target"]["name"]
+                    edge_acc_ |= {(vname, wname)}
+                    if "field" in evw["source"]:
+                        exclusion_fields[vname] += [evw["source"]["field"]]
+                    if "field" in evw["target"]:
+                        exclusion_fields[wname] += [evw["target"]["field"]]
+                return edge_acc_ | edge_accumulator, exclusion_fields
+            else:
+                return set(), defaultdict(list)
+
     def _define_graphs(self, config, vmap):
+
         aux = []
         if "main" in config:
             aux.extend(config["main"])
+        else:
+            aux.extend([{"source": u, "target": v} for u, v in self._edges])
         if "extra" in config:
             aux.extend(config["extra"])
 
@@ -220,3 +274,9 @@ class GraphConfig:
     @property
     def all_edges(self):
         return list(self._edges) + list(self._extra_edges)
+
+    def exclude_fields(self, k):
+        if k in self._exclude_fields:
+            return self._exclude_fields[k]
+        else:
+            return ()

@@ -1,18 +1,18 @@
-from graph_cast.architecture.schema import VertexConfig, GraphConfig
+from collections import defaultdict
 from copy import deepcopy
+from graph_cast.architecture.general import Configurator
 
 
-class JConfigurator:
-    weights_definition = {}
+class JConfigurator(Configurator):
+    eedges = []
+    mfields = defaultdict(list)
 
     def __init__(self, config):
-        self.vertex_config = VertexConfig(config["vertex_collections"])
-        self.graph_config = GraphConfig(
-            config["edge_collections"], self.vertex_config.name
-        )
+        super().__init__(config)
         self.json = deepcopy(config["json"])
 
     def graph(self, u, v):
         return self.graph_config.graph(u, v)
 
-
+    def exclude_fields(self, k):
+        return self.graph_config.exclude_fields(k)

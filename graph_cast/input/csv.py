@@ -6,7 +6,6 @@ from os.path import isfile, join
 import pandas as pd
 
 from graph_cast.util.io import Chunker, ChunkerDataFrame
-from graph_cast.architecture.table import TConfigurator
 
 from graph_cast.arango.util import (
     upsert_docs_batch,
@@ -114,8 +113,7 @@ def table_to_vcollections(
                 else:
                     for ubatch, vbatch in permutations(vdocs[u]):
                         ebatch = [
-                            {"source": x, "target": y}
-                            for x, y in zip(ubatch, ubatch)
+                            {"source": x, "target": y} for x, y in zip(ubatch, ubatch)
                         ]
                 cfields = conf.graph_config.weights(*g)
                 if cfields:
@@ -194,10 +192,3 @@ def process_table(tabular_resource, batch_size, max_lines, db_client, conf):
                     False,
                 )
                 cursor = db_client.aql.execute(query0)
-
-
-def prepare_config(config):
-
-    conf_obj = TConfigurator(config)
-
-    return conf_obj
