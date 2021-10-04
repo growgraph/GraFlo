@@ -1,8 +1,5 @@
 from itertools import permutations, product
 from collections import defaultdict, ChainMap
-from os import listdir
-from os.path import isfile, join
-
 import pandas as pd
 
 from graph_cast.util.io import Chunker, ChunkerDataFrame
@@ -15,23 +12,6 @@ from graph_cast.arango.util import (
 from graph_cast.input.util import (
     transform_foo,
 )
-
-
-def discover_files(modes, fpath, limit_files=None):
-    files_dict = {}
-
-    for keyword in modes:
-        files_dict[keyword] = sorted(
-            [
-                join(fpath, f)
-                for f in listdir(fpath)
-                if isfile(join(fpath, f)) and keyword in f
-            ]
-        )
-
-    if limit_files:
-        files_dict = {k: v[:limit_files] for k, v in files_dict.items()}
-    return files_dict
 
 
 def table_to_vcollections(
@@ -133,6 +113,7 @@ def process_table(tabular_resource, batch_size, max_lines, db_client, conf):
         chk = ChunkerDataFrame(tabular_resource, batch_size, max_lines)
     elif isinstance(tabular_resource, str):
         chk = Chunker(tabular_resource, batch_size, max_lines, encoding=conf.encoding)
+        conf.set_current_resource_name(tabular_resource)
     else:
         raise TypeError(f"tabular_resource type is not str or pd.DataFrame")
     header = chk.pop_header()

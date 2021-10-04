@@ -155,7 +155,7 @@ def ingest_csvs(
 ):
 
     conf_obj = TConfigurator(config)
-
+    # TODO introduce modes update etc
     if clean_start == "all":
         delete_collections(db_client, [], [], delete_all=True)
         #     delete_collections(sys_db, vcollections + ecollections, actual_graphs)
@@ -168,11 +168,9 @@ def ingest_csvs(
         )
 
     # file discovery
-    files_dict = gcic.discover_files(
-        conf_obj.modes2collections.keys(), fpath, limit_files=limit_files
-    )
+    conf_obj.discover_files(fpath, limit_files=limit_files)
 
-    logger.info(files_dict)
+    logger.info(conf_obj.mode2files)
 
     for mode in conf_obj.modes2collections:
         with timer.Timer() as t_pro:
@@ -188,9 +186,9 @@ def ingest_csvs(
             n_proc = 1
             if n_proc > 1:
                 with mp.Pool(n_proc) as p:
-                    ldicts = p.map(func, files_dict[mode])
+                    ldicts = p.map(func, conf_obj.mode2files[mode])
             else:
-                for f in files_dict[mode]:
+                for f in conf_obj.mode2files[mode]:
                     func(f)
         logger.info(f"{mode} took {t_pro.elapsed:.1f} sec")
 

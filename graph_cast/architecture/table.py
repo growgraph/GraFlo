@@ -1,19 +1,23 @@
 from collections import defaultdict
 from itertools import permutations
 from graph_cast.architecture.general import Configurator
+from os import listdir
+from os.path import isfile, join
 
 
 class TConfigurator(Configurator):
     # table_type -> [{collection: cname, collection_maps: maps}]
     modes2collections = defaultdict(list)
     modes2graphs = defaultdict(list)
+    mode2files = defaultdict(list)
+    current_fname = None
 
     mode = None
 
     def __init__(self, config):
         super().__init__(config)
 
-        self.table_config = TableConfig(config["csv"], self.graph_config)
+        self.table_config = TablesConfig(config["csv"], self.graph_config)
         self._init_modes2graphs(config["csv"], self.graph_config.edges)
 
     def set_mode(self, mode):
@@ -69,8 +73,26 @@ class TConfigurator(Configurator):
 
         self.modes2graphs = {k: list(set(v)) for k, v in self.modes2graphs.items()}
 
+    def discover_files(self, fpath, limit_files=None):
+        for keyword in self.modes2graphs:
+            if keyword == "_all":
+                keyword = ""
+            self.mode2files[keyword] = sorted(
+                [
+                    join(fpath, f)
+                    for f in listdir(fpath)
+                    if isfile(join(fpath, f)) and (keyword in f) and ("csv" in f)
+                ]
+            )
 
-class TableConfig:
+        if limit_files:
+            self.mode2files = {k: v[:limit_files] for k, v in self.mode2files.items()}
+
+    def set_current_resource_name(self, tabular_resource):
+        self.current_fname = tabular_resource
+
+
+class TablesConfig:
     _tables = set()
 
     # table_type -> [ {vertex_collection :vc, map: (table field -> collection field)} ]
@@ -161,6 +183,26 @@ class TableConfig:
                 self.logic[item["tabletype"]] = item["logic"]
             else:
                 self.logic[item["tabletype"]] = None
+
+    def vertices(self, table_type):
+        return self._vertices[table_type]
+
+    def edges(self, table_type):
+        return self._edges[table_type]
+
+    def transforms(self, table_type):
+        if table_type in self._transforms:
+            return self._transforms[table_type]
+        else:
+            return dict()
+
+
+# TODO move atomic operation from TablesConfig
+class TableConfig:
+    logic = {}
+
+    def __init__(self):
+        pass
 
     def vertices(self, table_type):
         return self._vertices[table_type]

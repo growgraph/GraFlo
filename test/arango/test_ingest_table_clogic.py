@@ -92,7 +92,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config-path",
         type=str,
-        default=join(cpath, "../../conf/ticker_history.yaml"),
+        default=join(cpath, "../../conf/ticker.yaml"),
         help="",
     )
 
