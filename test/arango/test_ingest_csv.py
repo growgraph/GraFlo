@@ -21,7 +21,11 @@ class TestIngestCSV(unittest.TestCase):
     cred_name = "root"
     cred_pass = "123"
 
-    modes = ["ibes", "wos"]
+    modes = [
+        "ibes",
+        "wos",
+        # "ticker"
+    ]
 
     def _atomic(self, mode):
 
@@ -74,6 +78,7 @@ class TestIngestCSV(unittest.TestCase):
     def test_modes(self):
         for mode in self.modes:
             self._atomic(mode)
+
 
 
 if __name__ == "__main__":

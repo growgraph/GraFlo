@@ -10,7 +10,7 @@ from graph_cast.arango.util import (
     insert_return_batch,
 )
 from graph_cast.input.util import (
-    transform_foo,
+    transform_foo_light,
 )
 
 
@@ -32,14 +32,14 @@ def table_to_vcollections(
         [
             item
             for transformation in conf.current_transformations
-            for item in transformation["output"]
+            for item in transformation.output
         ]
     )
     rows_working = []
 
     for doc in rows_raw:
         transformed = [
-            transform_foo(transformation, doc)
+            transform_foo_light(transformation, doc)
             for transformation in conf.current_transformations
         ]
         doc_upd = {**doc, **dict(ChainMap(*transformed))}
