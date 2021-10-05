@@ -5,12 +5,13 @@ from collections import defaultdict, ChainMap
 from functools import partial
 from itertools import product
 
-from graph_cast.input.util import parse_vcollection, transform_foo
+from graph_cast.input.util import parse_vcollection
 from graph_cast.util.io import FPSmart
 from graph_cast.util.transform import pick_unique_dict
 from graph_cast.input.util import define_graphs, update_graph_extra_edges
 from graph_cast.architecture.json import JConfigurator
 from graph_cast.architecture.schema import VertexConfig
+from graph_cast.architecture.general import Transform, transform_foo
 from typing import Dict
 
 xml_dummy = "#text"
@@ -40,7 +41,9 @@ def apply_mapper(mapper: Dict, document, vertex_config: VertexConfig):
                 doc_ = dict()
                 if "transforms" in mapper:
                     for t in mapper["transforms"]:
-                        doc_.update(transform_foo(t, document))
+                        t_ = Transform(**t)
+                        # doc_.update(transform_foo(t, document))
+                        doc_.update(transform_foo(t_, document))
 
                 if "map" in mapper:
                     kkeys += [k for k in mapper["map"] if k not in kkeys]

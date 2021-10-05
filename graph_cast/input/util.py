@@ -1,4 +1,3 @@
-import importlib
 import logging
 
 logger = logging.getLogger(__name__)
@@ -83,40 +82,3 @@ def update_graph_extra_edges(graphs_definition, vmap, subconfig):
     return graphs_definition
 
 
-def transform_foo(transform, doc):
-    if "module" in transform:
-        module = importlib.import_module(transform["module"])
-    elif "class" in transform:
-        module = eval(transform["class"])
-    else:
-        raise KeyError("Either module or class keys should be present")
-    try:
-        foo = getattr(module, transform["foo"])
-        if "input" in transform:
-            if "output" in transform:
-                args = [doc[k] for k in transform["input"]]
-                upd = {k: v for k, v in zip(transform["output"], foo(*args))}
-            else:
-                args = [doc[k] for k in transform["input"]]
-                upd = foo(*args)
-        elif "fields" in transform:
-            upd = {k: foo(v) for k, v in doc.items() if k in transform["fields"]}
-    except:
-        upd = {}
-    return upd
-
-
-def transform_foo_light(transform, doc):
-    upd = {}
-    if transform.input:
-        if transform.output:
-            args = [doc[k] for k in transform.input]
-            upd = {k: v for k, v in zip(transform.output, transform(*args))}
-        else:
-            print(doc.keys())
-            print(transform.input)
-            args = [doc[k] for k in transform.input]
-            upd = transform(*args)
-    # elif "fields" in transform:
-    #     upd = {k: transform.foo(v) for k, v in doc.items() if k in transform.foo["fields"]}
-    return upd

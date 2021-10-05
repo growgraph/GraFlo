@@ -80,6 +80,5 @@ class TestIngestCSV(unittest.TestCase):
             self._atomic(mode)
 
 
-
 if __name__ == "__main__":
     unittest.main()

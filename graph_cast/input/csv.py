@@ -9,9 +9,7 @@ from graph_cast.arango.util import (
     insert_edges_batch,
     insert_return_batch,
 )
-from graph_cast.input.util import (
-    transform_foo_light,
-)
+from graph_cast.architecture.general import transform_foo
 
 
 def table_to_vcollections(
@@ -39,7 +37,7 @@ def table_to_vcollections(
 
     for doc in rows_raw:
         transformed = [
-            transform_foo_light(transformation, doc)
+            transform_foo(transformation, doc)
             for transformation in conf.current_transformations
         ]
         doc_upd = {**doc, **dict(ChainMap(*transformed))}

@@ -1,9 +1,9 @@
 from collections import defaultdict
 from itertools import permutations
-import importlib
-from graph_cast.architecture.general import Configurator
+from graph_cast.architecture.general import Configurator, Transform
 from os import listdir
 from os.path import isfile, join
+
 
 class TConfigurator(Configurator):
     # table_type -> [{collection: cname, collection_maps: maps}]
@@ -170,7 +170,9 @@ class TablesConfig:
     def _init_transformations(self, subconfig):
         for item in subconfig:
             if "transforms" in item:
-                self._transforms[item["tabletype"]] = [Transform(**citem) for citem in item["transforms"]]
+                self._transforms[item["tabletype"]] = [
+                    Transform(**citem) for citem in item["transforms"]
+                ]
 
     def _init_encodings(self, subconfig):
         for item in subconfig:
@@ -217,45 +219,3 @@ class TableConfig:
             return self._transforms[table_type]
         else:
             return dict()
-
-
-class Transform:
-    _module = None
-    _foo = None
-    _params = dict()
-    _outputs = ()
-    _inputs = ()
-
-    def __init__(self, **kwargs):
-        self._init_module(**kwargs)
-        try:
-            self._foo = getattr(self._module, kwargs["foo"])
-        except:
-            raise ValueError
-        if "params" in kwargs:
-            self._params = kwargs["params"]
-        if not isinstance(self._params, dict):
-            raise TypeError("params should be dict-like")
-        if "input" in kwargs:
-            self._inputs = kwargs["input"]
-        if "output" in kwargs:
-            self._outputs = kwargs["output"]
-
-    def _init_module(self, **kwargs):
-        if "module" in kwargs:
-            self._module = importlib.import_module(kwargs["module"])
-        elif "class" in kwargs:
-            self._module = eval(kwargs["module"])
-        else:
-            raise KeyError("Either module or class keys should be present")
-
-    def __call__(self, *nargs, **kwargs):
-        return self._foo(*nargs, **kwargs, **self._params)
-
-    @property
-    def input(self):
-        return self._inputs
-
-    @property
-    def output(self):
-        return self._outputs
