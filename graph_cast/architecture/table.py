@@ -1,13 +1,18 @@
 from collections import defaultdict
 from itertools import permutations
-from graph_cast.architecture.general import Configurator, Transform
+from graph_cast.architecture.general import (
+    Configurator,
+    Transform,
+    Mapper,
+    LocalVertexCollections,
+)
 from os import listdir
 from os.path import isfile, join
+from copy import deepcopy
 
 
 class TConfigurator(Configurator):
     # table_type -> [{collection: cname, collection_maps: maps}]
-    modes2collections = defaultdict(list)
     modes2graphs = defaultdict(list)
     mode2files = defaultdict(list)
     current_fname = None
@@ -16,7 +21,9 @@ class TConfigurator(Configurator):
 
     def __init__(self, config):
         super().__init__(config)
-
+        self.modes2collections = defaultdict(LocalVertexCollections)
+        self.modes2graphs = defaultdict(list)
+        self.mode2files = defaultdict(list)
         self.table_config = TablesConfig(config["csv"], self.graph_config)
         self._init_modes2graphs(config["csv"], self.graph_config.edges)
 
@@ -48,12 +55,12 @@ class TConfigurator(Configurator):
     def current_transformations(self):
         return self.table_config.transforms(self.mode)
 
-    @property
-    def current_field_maps(self):
-        if self.mode in self.table_config.tables:
-            return self.table_config.table_collection_maps[self.mode]
-        else:
-            return None
+    # @property
+    # def current_field_maps(self):
+    #     if self.mode in self.table_config.tables:
+    #         return self.table_config.table_collection_maps[self.mode]
+    #     else:
+    #         return None
 
     def graph(self, u, v):
         return self.graph_config.graph(u, v)
@@ -66,7 +73,9 @@ class TConfigurator(Configurator):
             vcols = [iitem["type"] for iitem in item["vertex_collections"]]
             # here transform into standard form [{"collection": col_name, "map" map}]
             # from [{"collection": col_name, "maps" maps}] (where many maps are applied)
-            self.modes2collections[table_type] = item["vertex_collections"]
+            self.modes2collections[table_type] = LocalVertexCollections(
+                item["vertex_collections"]
+            )
             for u, v in permutations(vcols, 2):
                 if (u, v) in edges:
                     self.modes2graphs[table_type] += [(u, v)]
@@ -114,13 +123,12 @@ class TablesConfig:
     _edges = {}
 
     # table_type -> transforms
-    _transforms = dict()
+    _transforms = defaultdict(list)
 
     def __init__(self, vconfig, graph_config):
         self._init_tables(vconfig)
         self._init_transformations(vconfig)
         self._init_input_output_field_map(vconfig)
-        self._init_transformations(vconfig)
         self._init_encodings(vconfig)
         self._init_vertices(vconfig)
         self._init_edges(graph_config)
@@ -162,17 +170,25 @@ class TablesConfig:
         # work out encapsulation
         for item in subconfig:
             self.table_collection_maps[item["tabletype"]] = [
-                {"type": vc["type"], "map": vc["map_fields"]}
+                {"type": vc["type"], "map": vc["map"]}
                 for vc in item["vertex_collections"]
-                if "map_fields" in vc
+                if "map" in vc
             ]
 
     def _init_transformations(self, subconfig):
         for item in subconfig:
             if "transforms" in item:
-                self._transforms[item["tabletype"]] = [
-                    Transform(**citem) for citem in item["transforms"]
-                ]
+                for citem in item["transforms"]:
+                    if "maps" in citem:
+                        cmaps = deepcopy(citem["maps"])
+                        for cmap in cmaps:
+                            kwargs = deepcopy(citem)
+                            kwargs["input"] = cmap["input"]
+                            if "output" in cmap:
+                                kwargs["output"] = cmap["output"]
+                            self._transforms[item["tabletype"]] += [Transform(**kwargs)]
+                    else:
+                        self._transforms[item["tabletype"]] += [Transform(**citem)]
 
     def _init_encodings(self, subconfig):
         for item in subconfig:
@@ -201,21 +217,21 @@ class TablesConfig:
             return dict()
 
 
-# TODO move atomic operation from TablesConfig
-class TableConfig:
-    logic = {}
-
-    def __init__(self):
-        pass
-
-    def vertices(self, table_type):
-        return self._vertices[table_type]
-
-    def edges(self, table_type):
-        return self._edges[table_type]
-
-    def transforms(self, table_type):
-        if table_type in self._transforms:
-            return self._transforms[table_type]
-        else:
-            return dict()
+# # TODO move atomic operation from TablesConfig
+# class TableConfig:
+#     logic = {}
+#
+#     def __init__(self):
+#         pass
+#
+#     def vertices(self, table_type):
+#         return self._vertices[table_type]
+#
+#     def edges(self, table_type):
+#         return self._edges[table_type]
+#
+#     def transforms(self, table_type):
+#         if table_type in self._transforms:
+#             return self._transforms[table_type]
+#         else:
+#             return dict()

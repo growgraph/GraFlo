@@ -13,8 +13,8 @@ csv:
 #                   - feature
 #                   - value
         transforms:
-            -   foo: round
-                module: builtins
+            -   foo: round_str
+                module: graph_cast.util.transform
                 maps:
                     -
                         input:
@@ -34,16 +34,14 @@ csv:
                 module: graph_cast.util.transform
                 input:
                     - Date
-                output:
-                    - t_obs
         vertex_collections:
             -
                 type: ticker
-                map_fields:
+                map:
                     _filename: cusip
             -
                 type: feature
-                map_fields:
+                map:
                     _filename: cusip
 
         weights:

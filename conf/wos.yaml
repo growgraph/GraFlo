@@ -6,14 +6,14 @@ csv:
         vertex_collections:
             -
                 type: publication
-                map_fields:
+                map:
                     wos_id: _key
                     pubyear: year
                     pubmonth: month
                     pubday: day
             -
                 type: medium
-                map_fields:
+                map:
                     source: title
             -
                 type: language
@@ -24,7 +24,7 @@ csv:
                 type: contributor
             -
                 type: publication
-                map_fields:
+                map:
                     wos_id: _key
     -
         tabletype: institutions
@@ -33,18 +33,18 @@ csv:
                 type: organization
             -
                 type: publication
-                map_fields:
+                map:
                     wos_id: _key
     -
         tabletype: refs
         vertex_collections:
             -
                 type: publication
-                map_fields:
+                map:
                     wos_id: _key
             -
                 type: publication
-                map_fields:
+                map:
                     uid: _key
 vertex_collections:
     collections:

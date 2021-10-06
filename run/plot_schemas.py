@@ -360,8 +360,8 @@ class SchemaPlotter:
             for item in vcols:
                 cname = item["type"]
                 ref_fields = self.config["vertex_collections"][cname]["index"]
-                if "map_fields" in item:
-                    cmap = item["map_fields"]
+                if "map" in item:
+                    cmap = item["map"]
                 else:
                     cmap = dict()
                 fields_collection_complementary = set(ref_fields) - set(cmap.values())

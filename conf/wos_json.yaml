@@ -643,6 +643,8 @@ json:
                                                                     module: graph_cast.util.transform
                                                                     input:
                                                                         - '#text'
+                                                                    output:
+                                                                        - year
                                                 -
                                                     how: dict
                                                     name: medium_title

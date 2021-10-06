@@ -100,7 +100,7 @@ def define_edge_collections(sys_db, graph_config):
 def define_vertex_indices(sys_db, vertex_config):
     for c in vertex_config.collections:
         for index_dict in vertex_config.extra_index_list(c):
-            general_collection = sys_db.collection(vertex_config.name(c))
+            general_collection = sys_db.collection(vertex_config.dbname(c))
             ih = general_collection.add_hash_index(
                 fields=index_dict["fields"], unique=index_dict["unique"]
             )

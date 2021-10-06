@@ -29,19 +29,19 @@ csv:
         vertex_collections:
             -
                 type: ticker
-                map_fields:
+                map:
                     CUSIP: cusip
                     CNAME: cname
                     OFTIC: oftic
             -
                 type: agency
-                map_fields:
+                map:
                     ESTIMID: aname
             -
                 type: analyst
             -
                 type: recommendation
-                map_fields:
+                map:
                     ERECCD: erec
                     ETEXT: etext
                     IRECCD: irec

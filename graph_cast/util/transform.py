@@ -48,6 +48,23 @@ def parse_date_ibes(date0, time0):
     return (timestamp,)
 
 
+def parse_date_yahoo(date0):
+    """
+
+    :param date0: as "20160126"
+    :param time0: as "9:35:52"
+    :return: datetime as "2013-01-15T14:19:09.522"
+    """
+
+    dt = datetime.strptime(date0, "%Y-%m-%d").timetuple()
+    timestamp = time.mktime(dt)
+    return (timestamp,)
+
+
+def round_str(x, **kwargs):
+    return (round(float(x), **kwargs),)
+
+
 def parse_date_standard_to_epoch(input_str):
     dt = datetime.strptime(input_str, "%Y-%m-%d")
     timestamp = time.mktime(dt)
@@ -80,6 +97,10 @@ def cast_ibes_analyst(s):
 
 
 def parse_date_reference(input_str):
+    return (_parse_date_reference(input_str)["year"],)
+
+
+def _parse_date_reference(input_str):
     """
     examples:
 

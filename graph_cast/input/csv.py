@@ -43,9 +43,8 @@ def table_to_vcollections(
         doc_upd = {**doc, **dict(ChainMap(*transformed))}
         rows_working += [doc_upd]
 
-    for ccitem in conf.current_collections:
+    for vcol, local_map in conf.current_collections:
         vdoc_acc = []
-        vcol = ccitem["type"]
 
         current_fields = set(vertex_conf.index(vcol)) | set(vertex_conf.fields(vcol))
 
@@ -56,13 +55,8 @@ def table_to_vcollections(
         if default_input:
             vdoc_acc += [[{f: item[f] for f in default_input} for item in rows_working]]
 
-        if "map_fields" in ccitem:
-            vdoc_acc += [
-                [
-                    {v: item[k] for k, v in ccitem["map_fields"].items()}
-                    for item in rows_working
-                ]
-            ]
+        if local_map.input:
+            vdoc_acc += [[local_map(item) for item in rows_working]]
         vdocs[vcol].append([dict(ChainMap(*auxs)) for auxs in zip(*vdoc_acc)])
 
     # if blank collection has no aux fields - inflate it
@@ -132,14 +126,14 @@ def process_table(tabular_resource, batch_size, max_lines, db_client, conf):
                     # blank nodes: push and get back their keys  {"_key": ...}
                     if vcol in conf.vertex_config.blank_collections:
                         query0 = insert_return_batch(
-                            data, conf.vertex_config.name(vcol)
+                            data, conf.vertex_config.dbname(vcol)
                         )
                         cursor = db_client.aql.execute(query0)
                         vdocuments[vcol][j] = [item for item in cursor]
                     else:
                         query0 = upsert_docs_batch(
                             data,
-                            conf.vertex_config.name(vcol),
+                            conf.vertex_config.dbname(vcol),
                             conf.vertex_config.index(vcol),
                             "doc",
                             True,
@@ -163,8 +157,8 @@ def process_table(tabular_resource, batch_size, max_lines, db_client, conf):
             for (vfrom, vto), data in edocuments.items():
                 query0 = insert_edges_batch(
                     data,
-                    conf.vertex_config.name(vfrom),
-                    conf.vertex_config.name(vto),
+                    conf.vertex_config.dbname(vfrom),
+                    conf.vertex_config.dbname(vto),
                     conf.graph(vfrom, vto)["edge_name"],
                     conf.vertex_config.index(vfrom),
                     conf.vertex_config.index(vto),

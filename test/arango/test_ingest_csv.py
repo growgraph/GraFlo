@@ -5,15 +5,13 @@ import logging
 from pprint import pprint
 from graph_cast.arango.util import get_arangodb_client
 from graph_cast.main import ingest_csvs
+import argparse
 
 logger = logging.getLogger(__name__)
 
 
 class TestIngestCSV(unittest.TestCase):
     cpath = dirname(realpath(__file__))
-
-    # set_reference = True
-    set_reference = False
 
     id_addr = "127.0.0.1"
     protocol = "http"
@@ -26,6 +24,8 @@ class TestIngestCSV(unittest.TestCase):
         "wos",
         # "ticker"
     ]
+
+    set_reference = False
 
     def _atomic(self, mode):
 
@@ -81,4 +81,9 @@ class TestIngestCSV(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--reset", action="store_true", help="reset test results")
+    args = parser.parse_args()
+
+    TestIngestCSV.set_reference = args.reset
     unittest.main()

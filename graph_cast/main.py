@@ -97,7 +97,7 @@ def ingest_json(json_data, conf_obj: JConfigurator, sys_db=None, dry=False, ncor
             cnt += len(r)
             query0 = upsert_docs_batch(
                 v,
-                conf_obj.vertex_config.name(k),
+                conf_obj.vertex_config.dbname(k),
                 conf_obj.vertex_config.index(k),
                 "doc",
                 True,
@@ -123,8 +123,8 @@ def ingest_json(json_data, conf_obj: JConfigurator, sys_db=None, dry=False, ncor
             cnt += len(super_dict[uv])
             query0 = insert_edges_batch(
                 super_dict[uv],
-                conf_obj.vertex_config.name(vfrom),
-                conf_obj.vertex_config.name(vto),
+                conf_obj.vertex_config.dbname(vfrom),
+                conf_obj.vertex_config.dbname(vto),
                 conf_obj.graph(vfrom, vto)["edge_name"],
                 conf_obj.vertex_config.index(vfrom),
                 conf_obj.vertex_config.index(vto),
@@ -194,7 +194,7 @@ def ingest_csvs(
 
     for cname in conf_obj.vertex_config.collections:
         for field in conf_obj.vertex_config.numeric_fields_list(cname):
-            query0 = update_to_numeric(conf_obj.vertex_config.name(cname), field)
+            query0 = update_to_numeric(conf_obj.vertex_config.dbname(cname), field)
             cursor = db_client.aql.execute(query0)
 
     # create edge u -> v from u->w, v->w edges

@@ -1,7 +1,68 @@
 from collections import defaultdict
 
 
+class CollectionIndex:
+    def __init__(self, *args, **kwargs):
+        self._fields = list()
+        self._unique = None
+        self._type = None
+        if None not in args and args:
+            self._fields = list(args)
+        if kwargs is not None and kwargs:
+            self._fields = list(kwargs["fields"])
+            self._type = kwargs["type"]
+            self._unique = kwargs["unique"]
+        if not self._fields:
+            self._fields = ["_key"]
+
+    def check(self, fields):
+        if self._fields not in set(fields + ["_key"]):
+            raise ValueError(f"{self._fields} spill out of {fields}")
+
+
+class Vertex:
+    def __init__(
+        self,
+        name,
+        basename=None,
+        index=(),
+        fields=(),
+        extra_index=(),
+        numeric_fields=(),
+    ):
+        self._name = name
+        self._dbname = name if basename is None else basename
+        self._fields = list(fields)
+        self._index = CollectionIndex(*index)
+        if extra_index is not None:
+            self._extra_indices = [CollectionIndex(**item) for item in extra_index]
+        self._numeric_fields = numeric_fields
+
+    @property
+    def dbname(self):
+        return self._dbname
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def index(self):
+        return self._index
+
+    @property
+    def extra_indices(self):
+        return iter(self._extra_indices)
+
+    @property
+    def numeric_fields(self):
+        return self._numeric_fields
+
+
 class VertexConfig:
+
+    _vcollections_all = []
+
     _vcollections = set()
 
     # vertex_type -> vertex_collection_name
@@ -40,6 +101,7 @@ class VertexConfig:
 
     def _init_vcollections(self, vconfig):
         self._vcollections = set(vconfig.keys())
+        self._vcollections_all = {k: Vertex(name=k, **v) for k, v in vconfig.items()}
 
     def _init_names(self, vconfig):
         try:
@@ -51,7 +113,7 @@ class VertexConfig:
                 "vconfig does not have 'basename' for one of the vertex collections!"
             )
 
-    def name(self, vertex_name):
+    def dbname(self, vertex_name):
         # old vmap
         if vertex_name in self._vcollections:
             if vertex_name in self._vmap:

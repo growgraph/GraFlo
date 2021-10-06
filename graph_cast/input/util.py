@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 def parse_vcollection(config, conf_obj):
 
     # vertex_type -> vertex_collection_name
-    conf_obj.name = {
+    conf_obj.dbname = {
         k: f'{v["basename"]}' for k, v in config["vertex_collections"].items()
     }
 
@@ -80,5 +80,3 @@ def update_graph_extra_edges(graphs_definition, vmap, subconfig):
         if "index" in item:
             graphs_definition[u_, v_]["index"] = item["index"]
     return graphs_definition
-
-

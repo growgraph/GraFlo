@@ -18,7 +18,7 @@ logging.basicConfig(
 class TestIngestJSON(unittest.TestCase):
     cpath = dirname(realpath(__file__))
 
-    set_reference = True
+    # set_reference = True
     set_reference = False
 
     id_addr = "127.0.0.1"

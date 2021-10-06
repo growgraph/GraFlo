@@ -5,7 +5,7 @@ from graph_cast.architecture.general import Transform
 logger = logging.getLogger(__name__)
 
 
-class TestIngestCSV(unittest.TestCase):
+class TestTransform(unittest.TestCase):
     def test_transform(self):
         kwargs = {
             "module": "builtins",
