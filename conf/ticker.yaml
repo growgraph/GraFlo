@@ -42,7 +42,13 @@ csv:
             -
                 type: feature
                 map:
-                    _filename: cusip
+                    "@key": name
+                    Open: value
+            -
+                type: feature
+                map:
+                    "@key": name
+                    Close: value
 
         weights:
             -

@@ -18,6 +18,20 @@ class TestMapper(unittest.TestCase):
         m = Mapper(**kwargs)
         self.assertTrue(m({"uid": 123}) == {"ticker": "AAPL"})
 
+    def test_transform_fname_dyn(self):
+        kwargs = {"map": {"_filename": "ticker"}}
+        m = Mapper(**kwargs)
+        m.update(**{"filename": "AAPL"})
+        self.assertTrue(m({"uid": 123}) == {"ticker": "AAPL"})
+
+    def test_transform_name(self):
+        kwargs = {"map": {"Close": "value", "@key": "name"}}
+        doc = {"Close": 15.35}
+        m = Mapper(**kwargs)
+        m.update(**{"filename": "AAPL"})
+        r = m(doc)
+        self.assertTrue(r == {'value': 15.35, 'name': 'Close'})
+
 
 if __name__ == "__main__":
     unittest.main()

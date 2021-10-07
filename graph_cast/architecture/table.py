@@ -101,6 +101,8 @@ class TConfigurator(Configurator):
 
     def set_current_resource_name(self, tabular_resource):
         self.current_fname = tabular_resource
+        for mode, vcol_resource in self.modes2collections.items():
+            vcol_resource.update_mappers(filename=self.current_fname)
 
 
 class TablesConfig:
@@ -128,7 +130,6 @@ class TablesConfig:
     def __init__(self, vconfig, graph_config):
         self._init_tables(vconfig)
         self._init_transformations(vconfig)
-        self._init_input_output_field_map(vconfig)
         self._init_encodings(vconfig)
         self._init_vertices(vconfig)
         self._init_edges(graph_config)
@@ -163,17 +164,6 @@ class TablesConfig:
             ]
 
         # run check : wrt to vertex_config
-
-    def _init_input_output_field_map(self, subconfig):
-        # TODO verify against VertexConfig
-        # TODO not called currently - bring maps from vertex_collection definition to the current table
-        # work out encapsulation
-        for item in subconfig:
-            self.table_collection_maps[item["tabletype"]] = [
-                {"type": vc["type"], "map": vc["map"]}
-                for vc in item["vertex_collections"]
-                if "map" in vc
-            ]
 
     def _init_transformations(self, subconfig):
         for item in subconfig:

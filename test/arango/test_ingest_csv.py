@@ -20,9 +20,9 @@ class TestIngestCSV(unittest.TestCase):
     cred_pass = "123"
 
     modes = [
-        "ibes",
-        "wos",
-        # "ticker"
+        # "ibes",
+        # "wos",
+        "ticker"
     ]
 
     set_reference = False
