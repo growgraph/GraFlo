@@ -34,6 +34,8 @@ class Transform:
             self._inputs = kwargs["input"]
         if "output" in kwargs:
             self._outputs = kwargs["output"]
+        else:
+            self._outputs = kwargs["input"]
 
     def _init_module(self, **kwargs):
         if "module" in kwargs:
@@ -103,20 +105,26 @@ class Mapper:
 
     def update(self, **kwargs):
         for k, v in kwargs.items():
-            setattr(self, f"_{k}", v)
+            if self._request_filename and k == "filename":
+                setattr(self, f"_{k}", v.split("/")[-1].split(".")[0])
 
     @property
     def input(self):
         return self._map.keys()
 
+    @property
+    def dynamic_transformations(self):
+        return self._request_filename
+
     def __call__(self, item, filename=None):
         acc = {v: item[k] for k, v in self._map.items()}
-        if self._request_filename and filename is not None:
-            self._update_filename(filename)
+        # if self._request_filename and filename is not None:
+        #     self._update_filename(filename)
         if self._request_filename and self._filename_field:
             acc[self._filename_field] = self._filename
+        # TODO what if there is more than one key in _map when "@key" is present?
         if self._key_field is not None:
-            acc[self._key_field] = list(item.keys())[0]
+            acc[self._key_field] = list(self._map.keys())[0]
         return acc
 
     def __str__(self):

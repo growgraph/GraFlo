@@ -26,9 +26,8 @@ class TestMapper(unittest.TestCase):
 
     def test_transform_name(self):
         kwargs = {"map": {"Close": "value", "@key": "name"}}
-        doc = {"Close": 15.35}
+        doc = {"key_a": "value_a", "Close": 15.35, "key_b": "value_b"}
         m = Mapper(**kwargs)
-        m.update(**{"filename": "AAPL"})
         r = m(doc)
         self.assertTrue(r == {'value': 15.35, 'name': 'Close'})
 

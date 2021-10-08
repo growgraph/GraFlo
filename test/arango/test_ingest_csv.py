@@ -1,3 +1,4 @@
+import sys
 import unittest
 from os.path import join, dirname, realpath
 import yaml
@@ -20,12 +21,16 @@ class TestIngestCSV(unittest.TestCase):
     cred_pass = "123"
 
     modes = [
-        # "ibes",
-        # "wos",
+        "ibes",
+        "wos",
         "ticker"
     ]
 
     set_reference = False
+
+    def __init__(self, set_ref):
+        super().__init__()
+        self.set_reference = set_ref
 
     def _atomic(self, mode):
 
@@ -75,7 +80,7 @@ class TestIngestCSV(unittest.TestCase):
                 pprint(f"{k} {v} {w}")
             self.assertTrue(test_sizes == ref_sizes)
 
-    def test_modes(self):
+    def runTest(self):
         for mode in self.modes:
             self._atomic(mode)
 
@@ -84,6 +89,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--reset", action="store_true", help="reset test results")
     args = parser.parse_args()
-
-    TestIngestCSV.set_reference = args.reset
-    unittest.main()
+    suite = unittest.TestSuite()
+    suite.addTest(TestIngestCSV(args.reset))
+    unittest.TextTestRunner(verbosity=2).run(suite)

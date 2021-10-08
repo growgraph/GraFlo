@@ -55,7 +55,7 @@ def table_to_vcollections(
         if default_input:
             vdoc_acc += [[{f: item[f] for f in default_input} for item in rows_working]]
 
-        if local_map.input:
+        if local_map.input or local_map.dynamic_transformations:
             vdoc_acc += [[local_map(item) for item in rows_working]]
         vdocs[vcol].append([dict(ChainMap(*auxs)) for auxs in zip(*vdoc_acc)])
 
