@@ -29,7 +29,7 @@ class TestMapper(unittest.TestCase):
         doc = {"key_a": "value_a", "Close": 15.35, "key_b": "value_b"}
         m = Mapper(**kwargs)
         r = m(doc)
-        self.assertTrue(r == {'value': 15.35, 'name': 'Close'})
+        self.assertTrue(r == {"value": 15.35, "name": "Close"})
 
 
 if __name__ == "__main__":
