@@ -1,4 +1,3 @@
-import sys
 import unittest
 from os.path import join, dirname, realpath
 import yaml
@@ -56,8 +55,9 @@ class TestIngestCSV(unittest.TestCase):
             path,
             db_client,
             limit_files=None,
-            max_lines=None,
+            # max_lines=50,
             config=config,
+            clean_start=True,
         )
         cols = db_client.collections()
         test_sizes = []

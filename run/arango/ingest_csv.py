@@ -79,10 +79,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--clean-start",
-        type=str,
-        default="all",
-        help='"all" to wipe all the collections, "edges" to wipe only edges',
+        "--clean-start", action="store_true", help="wipe all the collections"
     )
 
     parser.add_argument(
@@ -105,6 +102,7 @@ if __name__ == "__main__":
         args.path,
         db_client,
         limit_files=None,
-        max_lines=None,
+        max_lines=args.max_lines,
         config=config,
+        clean_start=args.clean_start,
     )

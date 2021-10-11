@@ -3,15 +3,6 @@ general:
 csv:
     -
         tabletype: _all
-#        logic:
-#            type: _column
-#            map:
-#               _column:
-#                   - feature
-#                   - name
-#               _value:
-#                   - feature
-#                   - value
         transforms:
             -   foo: round_str
                 module: graph_cast.util.transform
@@ -34,6 +25,8 @@ csv:
                 module: graph_cast.util.transform
                 input:
                     - Date
+                output:
+                    - t_obs
         vertex_collections:
             -
                 type: ticker
@@ -42,14 +35,17 @@ csv:
             -
                 type: feature
                 map:
-                    "@key": name
-                    Open: value
+                    Open:
+                        key: name
             -
                 type: feature
                 map:
-                    "@key": name
-                    Close: value
-
+                    Close:
+                        key: name
+            -   type: feature
+                map:
+                    Volume:
+                        key: name
         weights:
             -
                 edge_collections:
@@ -89,10 +85,9 @@ edge_collections:
     main:
         -   source: ticker
             target: feature
+            weight:
+                - t_obs
             index:
                 -   fields:
                         - t_obs
-                        - window
-                        - projection_type
-                        - name
                     unique: false

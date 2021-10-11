@@ -149,23 +149,23 @@ def ingest_csvs(
     db_client,
     limit_files=None,
     max_lines=None,
-    batch_size=50000000,
-    clean_start="all",
+    batch_size=5000000,
+    clean_start=False,
     config=None,
 ):
 
     conf_obj = TConfigurator(config)
     # TODO introduce modes update etc
-    if clean_start == "all":
+    if clean_start:
         delete_collections(db_client, [], [], delete_all=True)
         #     delete_collections(sys_db, vcollections + ecollections, actual_graphs)
         # elif clean_start == "edges":
         #     delete_collections(sys_db, ecollections, [])
-        define_collections_and_indices(
-            db_client,
-            conf_obj.graph_config,
-            conf_obj.vertex_config,
-        )
+    define_collections_and_indices(
+        db_client,
+        conf_obj.graph_config,
+        conf_obj.vertex_config,
+    )
 
     # file discovery
     conf_obj.discover_files(fpath, limit_files=limit_files)

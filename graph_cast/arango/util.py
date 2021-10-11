@@ -120,6 +120,7 @@ def define_edge_indices(sys_db, graph_config):
 def define_collections_and_indices(sys_db, graph_config, vertex_config):
     define_vertex_collections(sys_db, graph_config, vertex_config.index)
     define_edge_collections(sys_db, graph_config)
+    # TODO add indices if absent
     define_vertex_indices(sys_db, vertex_config)
     define_edge_indices(sys_db, graph_config)
 

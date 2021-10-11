@@ -1,7 +1,5 @@
 import unittest
 import logging
-
-
 from graph_cast.architecture.general import Mapper
 
 logger = logging.getLogger(__name__)
@@ -25,7 +23,7 @@ class TestMapper(unittest.TestCase):
         self.assertTrue(m({"uid": 123}) == {"ticker": "AAPL"})
 
     def test_transform_name(self):
-        kwargs = {"map": {"Close": "value", "@key": "name"}}
+        kwargs = {"map": {"Close": {"value": "value", "key": "name"}}}
         doc = {"key_a": "value_a", "Close": 15.35, "key_b": "value_b"}
         m = Mapper(**kwargs)
         r = m(doc)

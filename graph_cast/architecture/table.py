@@ -49,7 +49,7 @@ class TConfigurator(Configurator):
         if self.mode in self.modes2collections:
             return self.modes2collections[self.mode]
         else:
-            return None
+            return []
 
     @property
     def current_transformations(self):

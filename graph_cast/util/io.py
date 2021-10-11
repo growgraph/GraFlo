@@ -9,9 +9,18 @@ logger = logging.getLogger(__name__)
 
 class Chunker:
     def __init__(self, fname, batch_size, n_lines_max=None, encoding="utf-8"):
+        """
+
+        :param fname:
+        :param batch_size: batch size in bytes
+        :param n_lines_max:
+        :param encoding:
+        """
         self.acc = []
         self.j = 0
-        self.batch_size = batch_size
+        self.batch_size = (
+            batch_size if n_lines_max is None else min([20 * n_lines_max, batch_size])
+        )
         self.n_lines_max = n_lines_max
         if fname[-2:] == "gz":
             self.file_obj = gzip.open(fname, "rt", encoding=encoding)
@@ -31,17 +40,17 @@ class Chunker:
                 next(csv.reader([line.rstrip()], skipinitialspace=True))
                 for line in lines
             ]
-            self.j += len(lines)
+            self.j += len(lines2)
             if not lines2:
                 self.done = True
                 self.file_obj.close()
-                return False
+                return []
             else:
                 return lines2
         else:
             self.done = True
             self.file_obj.close()
-            return False
+            return []
 
     def done(self):
         return self.done
