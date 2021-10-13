@@ -81,6 +81,25 @@ vertex_collections:
                     unique: false
                     fields:
                         - value
+            filters:
+                -
+                    a:
+                        field: name
+                        foo: __eq__
+                        value: Open
+                    b:
+                        field: value
+                        foo: __gt__
+                        value: 0
+                -
+                    a:
+                        field: name
+                        foo: __eq__
+                        value: Close
+                    b:
+                        field: value
+                        foo: __gt__
+                        value: 0
 edge_collections:
     main:
         -   source: ticker

@@ -208,9 +208,3 @@ class LocalVertexCollections:
     def update_mappers(self, **kwargs):
         for k, m in self:
             m.update(**kwargs)
-
-    #
-    # def __str__(self):
-    #     str_collection = "vcollections: ".join([f"{k} : {v}" for k in self._vcollections])
-    #
-    #     return f"{k: v for k, v in }"

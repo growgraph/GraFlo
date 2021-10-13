@@ -29,6 +29,7 @@ class Vertex:
         fields=(),
         extra_index=(),
         numeric_fields=(),
+        filters=(),
     ):
         self._name = name
         self._dbname = name if basename is None else basename
@@ -37,6 +38,8 @@ class Vertex:
         if extra_index is not None:
             self._extra_indices = [CollectionIndex(**item) for item in extra_index]
         self._numeric_fields = numeric_fields
+        # set of filters
+        self._filters = [Filter(**item) for item in filters]
 
     @property
     def dbname(self):
@@ -58,9 +61,61 @@ class Vertex:
     def numeric_fields(self):
         return self._numeric_fields
 
+    @property
+    def filters(self):
+        return self._filters
+
+
+class Filter:
+    def __init__(self, b, a=None):
+        """
+        for a given doc it's a(doc) => b(doc) implication
+        `a` and `b` are conditions. Return `False` means `doc` should be filtered out.
+        if `doc` satisfies `a` condition then return the result of condition `b`
+        if `doc` satisfies `a` condition then return True (not filtered)
+        `a` is None condition then return the result of condition `b`
+        :param b:
+        :param a:
+        """
+        self.a = Condition(**a)
+        self.b = Condition(**b)
+
+    def __call__(self, doc):
+        if self.a is not None:
+            if self.a(**doc):
+                return self.b(**doc)
+            else:
+                return True
+        else:
+            return self.b(**doc)
+
+    def __str__(self):
+        return f"{self.__class__} | a: {self.a} b: {self.b}"
+
+    __repr__ = __str__
+
+
+class Condition:
+    def __init__(self, field, foo, value=None):
+        self.field = field
+        self.value = value
+        # self.foo = getattr(self.value, foo)
+        self.foo = foo
+
+    def __call__(self, **kwargs):
+        if self.field in kwargs:
+            foo = getattr(kwargs[self.field], self.foo)
+            return foo(self.value)
+        else:
+            return True
+
+    def __str__(self):
+        return f"{self.__class__} | field: {self.field} value: {self.value} -> foo: {self.foo}"
+
+    __repr__ = __str__
+
 
 class VertexConfig:
-
     _vcollections_all = []
 
     _vcollections = set()
@@ -85,6 +140,7 @@ class VertexConfig:
 
     def __init__(self, vconfig):
         config = vconfig["collections"]
+
         self._init_vcollections(config)
         self._init_names(config)
         self._init_indices(config)
@@ -199,6 +255,13 @@ class VertexConfig:
             raise ValueError(
                 f" Accessing vertex collection numeric fields: vertex collection {vertex_name} was not defined in config"
             )
+
+    def filters(self):
+        return (
+            (vcol, f)
+            for vcol, item in self._vcollections_all.items()
+            for f in item.filters
+        )
 
 
 class GraphConfig:

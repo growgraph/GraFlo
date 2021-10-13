@@ -27,7 +27,7 @@ class TestTransform(unittest.TestCase):
 
     def test_transform_problems(self):
         mode = "ticker"
-        tabular_resource = join(self.cpath, f"./data/all/PAYC_corrupt.test.csv.gz")
+        tabular_resource = join(self.cpath, f"./data/all/ticker.use_tranform.csv.gz")
 
         config_path = join(self.cpath, f"../conf/{mode}.yaml")
 

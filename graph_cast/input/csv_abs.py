@@ -60,6 +60,14 @@ def table_to_vcollections(
         else:
             vdocs[vcol].append([{}] * len(rows))
 
+    # apply filter : add a flag
+
+    for vcol, vfilter in conf.vertex_config.filters():
+        for j, clist in enumerate(vdocs[vcol]):
+            for doc in clist:
+                if not vfilter(doc):
+                    doc.update({f"_status@{vfilter.b.field}": vfilter(doc)})
+
     for u, v in conf.current_graphs:
         g = u, v
         if (

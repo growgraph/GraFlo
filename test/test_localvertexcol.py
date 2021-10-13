@@ -1,7 +1,5 @@
 import unittest
 import logging
-
-
 from graph_cast.architecture.general import LocalVertexCollections
 
 logger = logging.getLogger(__name__)
