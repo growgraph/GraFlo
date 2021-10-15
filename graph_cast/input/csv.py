@@ -1,5 +1,6 @@
 from itertools import product
 import pandas as pd
+import logging
 
 from graph_cast.input.csv_abs import table_to_vcollections
 from graph_cast.util.io import Chunker, ChunkerDataFrame
@@ -9,6 +10,9 @@ from graph_cast.arango.util import (
     insert_edges_batch,
     insert_return_batch,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def process_table(tabular_resource, batch_size, max_lines, db_client, conf):
@@ -22,6 +26,8 @@ def process_table(tabular_resource, batch_size, max_lines, db_client, conf):
         raise TypeError(f"tabular_resource type is not str or pd.DataFrame")
     header = chk.pop_header()
     header_dict = dict(zip(header, range(len(header))))
+
+    logger.info(f"processing current table resource : {tabular_resource}")
 
     while not chk.done:
         lines = chk.pop()

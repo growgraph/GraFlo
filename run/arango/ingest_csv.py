@@ -9,14 +9,6 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    logging.basicConfig(
-        filename="ingest_csv.log",
-        format="%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        level=logging.INFO,
-        filemode="w",
-    )
-
     parser.add_argument("--path", type=str, help="path to csv datafiles")
 
     parser.add_argument(
@@ -91,6 +83,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    logging.basicConfig(
+        filename=f"ingest_csv_{args.config_path.split('/')[-1]}.log",
+        format="%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        level=logging.INFO,
+        filemode="w",
+    )
+
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     ingest_csvs(
         args.path,
         db_client,
-        limit_files=None,
+        limit_files=args.limit_files,
         max_lines=args.max_lines,
         config=config,
         clean_start=args.clean_start,
