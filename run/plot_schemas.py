@@ -7,6 +7,8 @@ from os.path import join, dirname, realpath
 import argparse
 
 from graph_cast.input.json import parse_edges
+from graph_cast.architecture.table import TConfigurator
+
 
 """
 
@@ -127,8 +129,10 @@ class SchemaPlotter:
 
         if "json" in self.config:
             self.type = "json"
+            # self.conf =
         elif "csv" in self.config:
             self.type = "csv"
+            self.conf = TConfigurator(self.config)
         else:
             raise KeyError(f"Configured to plot json or csv mapper schemas")
 
@@ -138,12 +142,10 @@ class SchemaPlotter:
         g = nx.DiGraph()
         nodes = []
         edges = []
-
-        for k, props in self.config["vertex_collections"].items():
-            if "index" not in props:
-                props["index"] = ["_key"]
-            index_fields = props["index"]
-            props["fields"] = list(set(index_fields) | set(props["fields"]))
+        vconf = self.conf.vertex_config
+        for k in vconf.collections:
+            index_fields = vconf.index(k)
+            fields = vconf.fields(k)
             nodes_collection = [(k, {"type": "vcollection"})]
             nodes_fields = [
                 (
@@ -153,7 +155,7 @@ class SchemaPlotter:
                         "label": item,
                     },
                 )
-                for item in props["fields"]
+                for item in fields
             ]
             nodes += nodes_collection
             nodes += nodes_fields
@@ -202,8 +204,8 @@ class SchemaPlotter:
         # level_one = [x[0] for x in vclusters_index]
         # ag.add_subgraph(level_one, rank='same')
 
-        for k, props in self.config["vertex_collections"].items():
-            level_index = [f"{k}:{item}" for item in props["index"]]
+        for k in vconf.collections:
+            level_index = [f"{k}:{item}" for item in vconf.index(k)]
             index_subgraph = ag.add_subgraph(level_index, name=f"cluster_{k}:def")
             index_subgraph.node_attr["style"] = "filled"
             index_subgraph.node_attr["label"] = "definition"
@@ -236,12 +238,13 @@ class SchemaPlotter:
         elif self.type == "csv":
             g = nx.MultiDiGraph()
             edges = []
-            for n in self.config[self.type]:
-                k = n["tabletype"]
+            for k, local_vertex_cols in self.conf.modes2collections.items():
+                # for n in self.config[self.type]:
+                # k = n["tabletype"]
                 nodes_table = [(k, {"type": "table"})]
                 nodes_collection = [
-                    (item["type"], {"type": "vcollection"})
-                    for item in n["vertex_collections"]
+                    (vc, {"type": "vcollection"})
+                    for vc in local_vertex_cols.collections
                 ]
                 nodes += nodes_table
                 nodes += nodes_collection
@@ -283,6 +286,7 @@ class SchemaPlotter:
         :return:
         """
         g = nx.DiGraph()
+
         if self.type == "json":
             edge_def, excl_fields = parse_edges(
                 self.config[self.type], [], defaultdict(list)
@@ -294,17 +298,16 @@ class SchemaPlotter:
         elif self.type == "csv":
             nodes = []
             edges = []
-            for n in self.config[self.type]:
+            for mode, local_vertex_cols in self.conf.modes2collections.items():
+                # for n in self.config[self.type]:
                 nodes_collection = [
-                    (item["type"], {"type": "vcollection"})
-                    for item in n["vertex_collections"]
+                    (vcol, {"type": "vcollection"})
+                    for vcol in local_vertex_cols.collections
                 ]
                 nodes += nodes_collection
 
-            edges += [
-                (item["source"], item["target"])
-                for item in self.config["edge_collections"]
-            ]
+            for _, item in self.conf.modes2graphs.items():
+                edges += [(u, v) for u, v in item]
 
         g.add_nodes_from(nodes)
         g.add_edges_from(edges)
@@ -457,8 +460,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     plotter = SchemaPlotter(args.config)
-    plotter.plot_vc2fields()
-    plotter.plot_source2vc()
-    plotter.plot_vc2vc(prune_leaves=args.prune_low_degree_nodes)
+    # plotter.plot_vc2fields()
+    # plotter.plot_source2vc()
+    # plotter.plot_vc2vc(prune_leaves=args.prune_low_degree_nodes)
     if plotter.type == "csv":
         plotter.plot_source2vc_detailed()

@@ -19,6 +19,12 @@ csv:
                     -
                         input:
                             - Close
+            -   foo: int
+                module: builtins
+                maps:
+                    -
+                        input:
+                            - Volume
                 params:
                     ndigits: 3
             -   foo: parse_date_yahoo

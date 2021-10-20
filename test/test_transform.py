@@ -14,6 +14,11 @@ logger = logging.getLogger(__name__)
 class TestTransform(unittest.TestCase):
     cpath = dirname(realpath(__file__))
 
+    def test_transform_int(self):
+        kwargs = {"module": "builtins", "foo": "int", "input": "x", "output": "y"}
+        t = Transform(**kwargs)
+        self.assertTrue(t("12345") == 12345)
+
     def test_transform(self):
         kwargs = {
             "module": "builtins",

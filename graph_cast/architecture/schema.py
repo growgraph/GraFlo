@@ -116,29 +116,30 @@ class Condition:
 
 
 class VertexConfig:
-    _vcollections_all = []
-
-    _vcollections = set()
-
-    # vertex_type -> vertex_collection_name
-    _vmap = {}
-
-    # vertex_collection_name -> indices
-    _index_fields_dict = {}
-
-    # vertex_collection_name -> extra_index
-    _extra_indices = {}
-
-    # vertex_collection_name -> fields
-    _vfields = {}
-
-    # vertex_collection_name -> [numeric fields]
-    _vcollection_numeric_fields_map = {}
-
-    # list of blank collections
-    _blank_collections = set()
-
     def __init__(self, vconfig):
+        self._vcollections_all = []
+
+        self._vcollections = set()
+
+        # vertex_type -> vertex_collection_name
+        self._vmap = {}
+
+        # vertex_collection_name -> indices
+        self._index_fields_dict = {}
+
+        # vertex_collection_name -> extra_index
+        self._extra_indices = {}
+
+        # vertex_collection_name -> fields
+        self._vfields = {}
+
+        # vertex_collection_name -> [numeric fields]
+        self._vcollection_numeric_fields_map = {}
+
+        # list of blank collections
+        self._blank_collections = set()
+
+        # TODO introduce meaningful error in case `collections` key is absent
         config = vconfig["collections"]
 
         self._init_vcollections(config)
@@ -195,7 +196,7 @@ class VertexConfig:
                 return ["_key"]
         else:
             raise ValueError(
-                f" Accessing vertex collection indexes: vertex collection {vertex_name} was not defined in config"
+                f" Accessing vertex collection indexes: vertex collection `{vertex_name}` was not defined in config"
             )
 
     def _init_extra_indexes(self, vconfig):

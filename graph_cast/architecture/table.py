@@ -12,16 +12,13 @@ from copy import deepcopy
 
 
 class TConfigurator(Configurator):
-    # table_type -> [{collection: cname, collection_maps: maps}]
-    modes2graphs = defaultdict(list)
-    mode2files = defaultdict(list)
-    current_fname = None
-
-    mode = None
-
     def __init__(self, config):
         super().__init__(config)
+        self.current_fname = None
+        self.mode = None
         self.modes2collections = defaultdict(LocalVertexCollections)
+
+        # table_type -> [{collection: cname, collection_maps: maps}]
         self.modes2graphs = defaultdict(list)
         self.mode2files = defaultdict(list)
         self.table_config = TablesConfig(config["csv"], self.graph_config)
