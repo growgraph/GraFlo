@@ -8,6 +8,7 @@ import argparse
 
 from graph_cast.input.json import parse_edges
 from graph_cast.architecture.table import TConfigurator
+from graph_cast.architecture.json import JConfigurator
 
 
 """
@@ -129,7 +130,7 @@ class SchemaPlotter:
 
         if "json" in self.config:
             self.type = "json"
-            # self.conf =
+            self.conf = JConfigurator(self.config)
         elif "csv" in self.config:
             self.type = "csv"
             self.conf = TConfigurator(self.config)
@@ -293,7 +294,7 @@ class SchemaPlotter:
             )
             edges = [x[:2] for x in edge_def]
             nodes = [
-                (n, {"type": "vcollection"}) for n in self.config["vertex_collections"]
+                (n, {"type": "vcollection"}) for n in self.config["vertex_collections"]["collections"]
             ]
         elif self.type == "csv":
             nodes = []
@@ -345,6 +346,7 @@ class SchemaPlotter:
         )
 
     def plot_source2vc_detailed(self):
+        # TODO adjust to TConfig
 
         """
             source (json vertex or table) -> source fields -> vertex collection fields -> vertex collection
@@ -460,8 +462,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     plotter = SchemaPlotter(args.config)
-    # plotter.plot_vc2fields()
-    # plotter.plot_source2vc()
-    # plotter.plot_vc2vc(prune_leaves=args.prune_low_degree_nodes)
-    if plotter.type == "csv":
-        plotter.plot_source2vc_detailed()
+    plotter.plot_vc2fields()
+    plotter.plot_source2vc()
+    plotter.plot_vc2vc(prune_leaves=args.prune_low_degree_nodes)
+    # if plotter.type == "csv":
+    #     plotter.plot_source2vc_detailed()
