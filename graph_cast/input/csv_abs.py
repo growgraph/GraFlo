@@ -13,10 +13,10 @@ def table_to_vcollections(
     vdocs = defaultdict(list)
     edocs = defaultdict(list)
     vertex_conf = conf.vertex_config
-    # perform possible transforms
 
     rows_raw = [{k: item[v] for k, v in header_dict.items()} for item in rows]
 
+    # perform possible transforms
     transformation_outputs = set(
         [
             item
@@ -61,7 +61,6 @@ def table_to_vcollections(
             vdocs[vcol].append([{}] * len(rows))
 
     # apply filter : add a flag
-
     for vcol, vfilter in conf.vertex_config.filters():
         for j, clist in enumerate(vdocs[vcol]):
             for doc in clist:

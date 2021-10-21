@@ -12,21 +12,15 @@ csv:
                             - Open
                     -
                         input:
-                            - High
-                    -
-                        input:
-                            - Low
-                    -
-                        input:
                             - Close
+                params:
+                    ndigits: 3
             -   foo: int
                 module: builtins
                 maps:
                     -
                         input:
                             - Volume
-                params:
-                    ndigits: 3
             -   foo: parse_date_yahoo
                 module: graph_cast.util.transform
                 input:
@@ -37,7 +31,7 @@ csv:
             -
                 type: ticker
                 map:
-                    _filename: cusip
+                    _filename: oftic
             -
                 type: feature
                 map:
@@ -48,7 +42,8 @@ csv:
                 map:
                     Close:
                         key: name
-            -   type: feature
+            -
+                type: feature
                 map:
                     Volume:
                         key: name

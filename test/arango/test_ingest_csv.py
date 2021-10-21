@@ -67,6 +67,7 @@ class TestIngestCSV(unittest.TestCase):
                 size = next(cursor)
                 test_sizes += [(c["name"], size)]
         test_sizes = sorted(test_sizes, key=lambda x: x[0])
+        pprint(f"mode : {mode}")
         if self.set_reference:
             ref_path = join(self.cpath, f"./ref/{mode}_sizes.yaml")
             with open(ref_path, "w") as file:

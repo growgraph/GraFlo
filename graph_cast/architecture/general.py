@@ -1,6 +1,6 @@
 import importlib
 import logging
-from collections import defaultdict
+from collections import defaultdict, Iterable
 from graph_cast.architecture.schema import VertexConfig, GraphConfig
 
 logger = logging.getLogger(__name__)
@@ -79,7 +79,11 @@ def transform_foo(transform, doc):
         try:
             if transform.output:
                 args = [doc[k] for k in transform.input]
-                upd = {k: v for k, v in zip(transform.output, transform(*args))}
+                transform_result = transform(*args)
+                if isinstance(transform_result, Iterable):
+                    upd = {k: v for k, v in zip(transform.output, transform_result)}
+                else:
+                    upd = {transform.output[0]: transform_result}
             else:
                 args = [doc[k] for k in transform.input]
                 upd = {k: v for k, v in zip(transform.input, transform(*args))}

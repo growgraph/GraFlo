@@ -294,7 +294,8 @@ class SchemaPlotter:
             )
             edges = [x[:2] for x in edge_def]
             nodes = [
-                (n, {"type": "vcollection"}) for n in self.config["vertex_collections"]["collections"]
+                (n, {"type": "vcollection"})
+                for n in self.config["vertex_collections"]["collections"]
             ]
         elif self.type == "csv":
             nodes = []
