@@ -66,7 +66,7 @@ def round_str(x, **kwargs):
 
 
 def parse_date_standard_to_epoch(input_str):
-    dt = datetime.strptime(input_str, "%Y-%m-%d")
+    dt = datetime.strptime(input_str, "%Y-%m-%d").timetuple()
     timestamp = time.mktime(dt)
     return (timestamp,)
 
