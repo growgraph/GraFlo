@@ -47,16 +47,6 @@ csv:
                 map:
                     Volume:
                         key: name
-        weights:
-            -
-                edge_collections:
-                    -
-                        source:
-                            name: ticker
-                        target:
-                            name: feature
-                        fields:
-                            - date
 vertex_collections:
     collections:
         ticker:
