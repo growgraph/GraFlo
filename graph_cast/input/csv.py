@@ -27,7 +27,7 @@ def process_table(tabular_resource, batch_size, max_lines, db_client, conf):
     header = chk.pop_header()
     header_dict = dict(zip(header, range(len(header))))
 
-    logger.info(f"processing current table resource : {tabular_resource}")
+    logger.debug(f"processing current table resource : {tabular_resource}")
 
     while not chk.done:
         lines = chk.pop()
