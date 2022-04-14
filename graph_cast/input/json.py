@@ -463,14 +463,14 @@ def get_json_data(source, pattern=None):
     return data
 
 
-def foo_parallel(data, kwargs, n=None):
-    func = partial(process_document_top, **kwargs)
-    n_proc = 4
-    if n is not None:
-        data = data[:n]
-    with mp.Pool(n_proc) as p:
-        r = p.map(func, data)
-    return r
+# def foo_parallel(data, kwargs, n=None):
+#     func = partial(process_document_top, **kwargs)
+#     n_proc = 4
+#     if n is not None:
+#         data = data[:n]
+#     with mp.Pool(n_proc) as p:
+#         r = p.map(func, data)
+#     return r
 
 
 def parse_config(config=None):

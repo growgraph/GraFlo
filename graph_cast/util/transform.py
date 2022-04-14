@@ -171,11 +171,22 @@ def pick_unique_dict(docs):
 
 
 def merge_doc_basis(docs, keys):
+    """
+
+    :param docs:
+    :param keys:
+    :return:
+    """
+
+    # represent each doc as a sorted tuple keeping only keys from keys
     flat_rep = [
         tuple(sorted({k: v for k, v in item.items() if k in keys}.items()))
         for item in docs
     ]
+
+    # take only unique tuples
     qdict = {q: dict() for q in set(flat_rep)}
+
     for item in docs:
         q = tuple(sorted({k: v for k, v in item.items() if k in keys}.items()))
         qdict[q].update(item)

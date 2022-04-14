@@ -93,7 +93,7 @@ def ingest_json(json_data, conf_obj: JConfigurator, sys_db=None, dry=False, ncor
         cnt = 0
         for k in kkey_vertex:
             v = super_dict[k]
-            r = merge_doc_basis(super_dict[k], conf_obj.vertex_config.index(k))
+            r = merge_doc_basis(v, conf_obj.vertex_config.index(k))
             cnt += len(r)
             query0 = upsert_docs_batch(
                 v,
@@ -105,7 +105,7 @@ def ingest_json(json_data, conf_obj: JConfigurator, sys_db=None, dry=False, ncor
             if not dry and sys_db is not None:
                 cursor = sys_db.aql.execute(query0)
 
-    logger.info(f" ingested {cnt} vertices {t_ingest.elapsed:.2f} sec")
+    # logger.info(f" ingested {cnt} vertices {t_ingest.elapsed:.2f} sec")
 
     with timer.Timer() as t_ingest_edges:
 

@@ -16,6 +16,11 @@ To test csv schemas
 foo@bar:~$ python -m unittest test.arango.test_ingest_csv
 ```
 NB: collections `wos_test`, `ibes_test` and `ticker_test` should be created on your instance of ArangoDB.
+E.g.
+
+```js
+db._createDatabase("wos_test")
+```
  
 
 To test json schemas 

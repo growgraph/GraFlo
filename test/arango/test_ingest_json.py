@@ -3,6 +3,7 @@ from os.path import join, dirname, realpath
 import yaml
 import logging
 from pprint import pprint
+import pandas as pd
 from graph_cast.arango.util import get_arangodb_client
 from graph_cast.main import ingest_json_files
 
@@ -18,8 +19,8 @@ logging.basicConfig(
 class TestIngestJSON(unittest.TestCase):
     cpath = dirname(realpath(__file__))
 
-    # set_reference = True
     set_reference = False
+    # set_reference = True
 
     id_addr = "127.0.0.1"
     protocol = "http"
@@ -31,7 +32,7 @@ class TestIngestJSON(unittest.TestCase):
 
     def _atomic(self, mode):
         prefix = f"{mode}_json"
-        db = f"{prefix}_test"
+        db = f"{mode}_test"
 
         path = join(self.cpath, f"../data/{prefix}")
 
@@ -54,7 +55,7 @@ class TestIngestJSON(unittest.TestCase):
         )
 
         ingest_json_files(
-            path, db_client=db_client, keyword="wos", config=config, ncores=4
+            path, db_client=db_client, keyword="wos", config=config, ncores=1
         )
 
         cols = db_client.collections()
@@ -70,15 +71,49 @@ class TestIngestJSON(unittest.TestCase):
             with open(ref_path, "w") as file:
                 yaml.dump(test_sizes, file)
         else:
-            for (k, v), (q, w) in zip(test_sizes, ref_sizes):
-                if v != w:
-                    pprint("non eq")
-                    pprint(f"{k} {v} {w}")
-            self.assertTrue(test_sizes == ref_sizes)
+            t = pd.DataFrame(test_sizes).set_index(0).rename(columns={1: "test"}).sort_index()
+            r = pd.DataFrame(ref_sizes).set_index(0).rename(columns={1: "ref"}).sort_index()
+            cmp = pd.concat([r, t], axis=1)
+            outstanding = cmp[cmp["test"] != cmp["ref"]]
+            pprint(outstanding)
+            pprint((cmp["test"] == cmp["ref"]).all())
+            self.assertTrue((cmp["test"] == cmp["ref"]).all())
 
+
+    @unittest.skip("")
     def test_modes(self):
         for mode in self.modes:
             self._atomic(mode)
+
+    def test_one_json(self):
+        import gzip
+        import json
+        from graph_cast.architecture.json import JConfigurator
+        from graph_cast.main import ingest_json
+        fpath = join(self.cpath, f"../data/wos_json/wos_unit.json.gz")
+
+        config_path = join(self.cpath, f"../../conf/wos_json.yaml")
+        with open(config_path, "r") as f:
+            config = yaml.load(f, Loader=yaml.FullLoader)
+        with gzip.GzipFile(fpath, "rb") as fps:
+            data = json.load(fps)
+
+        json_data = data
+
+        db = f"json_test"
+
+        db_client = get_arangodb_client(
+            self.protocol,
+            self.id_addr,
+            self.port,
+            db,
+            self.cred_name,
+            self.cred_pass,
+        )
+
+        conf_obj = JConfigurator(config)
+
+        r = ingest_json(json_data, conf_obj, sys_db=None, dry=True)
 
 
 if __name__ == "__main__":
