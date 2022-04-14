@@ -62,7 +62,7 @@ def ingest_json(json_data, conf_obj: JConfigurator, sys_db=None, dry=False, ncor
             "config": conf_obj,
             "merge_collections": ["publication"],
         }
-        func = partial(gcij.process_document_top, **kwargs)
+        func = partial(gcij.jsondoc_to_vertices_edges, **kwargs)
         if ncores > 1:
             with mp.Pool(ncores) as p:
                 ldicts = p.map(func, json_data)

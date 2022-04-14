@@ -73,14 +73,13 @@ class TestIngestJSON(unittest.TestCase):
         else:
             t = pd.DataFrame(test_sizes).set_index(0).rename(columns={1: "test"}).sort_index()
             r = pd.DataFrame(ref_sizes).set_index(0).rename(columns={1: "ref"}).sort_index()
-            cmp = pd.concat([r, t], axis=1)
+            cmp = pd.concat([r, t], axis=1).sort_index()
             outstanding = cmp[cmp["test"] != cmp["ref"]]
             pprint(outstanding)
             pprint((cmp["test"] == cmp["ref"]).all())
             self.assertTrue((cmp["test"] == cmp["ref"]).all())
 
 
-    @unittest.skip("")
     def test_modes(self):
         for mode in self.modes:
             self._atomic(mode)
@@ -90,7 +89,7 @@ class TestIngestJSON(unittest.TestCase):
         import json
         from graph_cast.architecture.json import JConfigurator
         from graph_cast.main import ingest_json
-        fpath = join(self.cpath, f"../data/wos_json/wos_unit.json.gz")
+        fpath = join(self.cpath, f"../data/wos_unit.json.gz")
 
         config_path = join(self.cpath, f"../../conf/wos_json.yaml")
         with open(config_path, "r") as f:

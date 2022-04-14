@@ -313,6 +313,8 @@ json:
                                         -
                                             how: dict
                                             name: publication
+                                            __extra:
+                                                anchor: main
                                             filter:
                                                 '@type': item
                                             map:

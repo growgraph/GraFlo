@@ -350,13 +350,14 @@ def parse_edges(croot, edge_acc, mapping_fields):
             return [], defaultdict(list)
 
 
-def merge_documents(docs, main_key="_key", anchor_key="anchor"):
+def merge_documents(docs, main_key="_key", anchor_key="anchor", anchor_value="main"):
     """
-    split docs into
+    docs contain docs with main_key and without
+    all docs without main_key should be merged with the doc that has doc[anchor_key] == anchor_value
     :param docs:
     :param main_key:
     :param anchor_key:
-    :return:
+    :return: list of docs, each of which contains main_key
     """
     mains_, mains, auxs, anchors = [], [], [], []
     # split docs into two groups with and without main_key
@@ -364,9 +365,9 @@ def merge_documents(docs, main_key="_key", anchor_key="anchor"):
         (mains_ if main_key in item else auxs).append(item)
 
     for item in mains_:
-        (anchors if anchor_key in item and item[anchor_key] else mains).append(item)
+        (anchors if anchor_key in item and item[anchor_key] == anchor_value else mains).append(item)
 
-    auxs = auxs + anchors
+    auxs += anchors
     r = [dict(ChainMap(*auxs))] + mains
     return r
 
@@ -425,7 +426,7 @@ def smart_merge(
     return agg
 
 
-def process_document_top(doc, config: JConfigurator, merge_collections):
+def jsondoc_to_vertices_edges(doc, config: JConfigurator, merge_collections):
     """
     top level function such that (json, config) -> List[docs]
     :param doc:
@@ -438,7 +439,7 @@ def process_document_top(doc, config: JConfigurator, merge_collections):
 
     for k, v in acc.items():
         v = pick_unique_dict(v)
-        # TODO the meaning of "isinstance(k, tuple)" ???
+        # not isinstance(k, tuple) equivalent to (k is a vertex col)
         if not isinstance(k, tuple):
             if config.exclude_fields(k):
                 v = project_dicts(v, config.exclude_fields(k), how="exclude")

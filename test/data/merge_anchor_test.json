@@ -1,0 +1,74 @@
+[
+    {
+        "title":"SURVEY OF THE FINISH CHARACTERISTICS OF MACHINED OPTICAL-SURFACES"
+    },
+    {
+        "_key":"WOS:A1979HV28900009",
+        "anchor":"reference",
+        "first_page":"93",
+        "title":"MEASUREMENT OF SURFACE TEXTURE AND TOPOGRAPHY BY DIFFERENTIAL LIGHT-SCATTERING",
+        "volume":"57"
+    },
+    {
+        "_key":"WOS:A1982PY45800018",
+        "anchor":"reference",
+        "first_page":"189",
+        "title":"SPECTRAL-ANALYSIS OF THE FINISH OF POLISHED OPTICAL-SURFACES",
+        "volume":"83"
+    },
+    {
+        "_key":"WOS:A1985AHD0600004.2",
+        "anchor":"reference",
+        "volume":"24"
+    },
+    {
+        "anchor":"main",
+        "has_abstract":"N",
+        "issue":"3",
+        "volume":"24"
+    },
+    {
+        "_key":"WOS:A1977DT56200008",
+        "anchor":"reference",
+        "doi":"10.1117/12.7972054",
+        "first_page":"360",
+        "title":"MEASUREMENT OF FINISH OF DIAMOND-TURNED METAL-SURFACES BY DIFFERENTIAL LIGHT-SCATTERING",
+        "volume":"16"
+    },
+    {
+        "_key":"WOS:A1985AHD0600005",
+        "anchor":"main"
+    },
+    {
+        "_key":"WOS:A1984SL25000002",
+        "anchor":"reference",
+        "first_page":"101",
+        "title":"AN OPTICAL PROFILOMETER FOR SURFACE CHARACTERIZATION OF MAGNETIC MEDIA",
+        "volume":"27"
+    },
+    {
+        "anchor":"main",
+        "first_page":"396",
+        "last_page":"403",
+        "page_count":"8",
+        "str_pages":"396-403"
+    },
+    {
+        "_key":"WOS:A1984TZ60400012.2",
+        "anchor":"reference"
+    },
+    {
+        "_key":"WOS:A1983SU56500014",
+        "anchor":"reference",
+        "first_page":"105",
+        "title":"DIRECT COMPARISON OF MECHANICAL AND OPTICAL MEASUREMENTS OF THE FINISH OF PRECISION-MACHINED SURFACES",
+        "volume":"429"
+    },
+    {
+        "_key":"WOS:A1984AAJ5100004",
+        "anchor":"reference",
+        "first_page":"18",
+        "title":"STATISTICAL EFFECTS IN THE MEASUREMENT AND CHARACTERIZATION OF SMOOTH SCATTERING SURFACES",
+        "volume":"511"
+    }
+]
