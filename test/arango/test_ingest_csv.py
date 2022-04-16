@@ -20,7 +20,7 @@ class TestIngestCSV(unittest.TestCase):
         "cred_name": "root",
         "cred_pass": "123",
         "database": "root",
-        "db_type": "arango"
+        "db_type": "arango",
     }
 
     modes = ["ibes", "wos", "ticker"]

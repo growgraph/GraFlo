@@ -161,7 +161,7 @@ def ingest_csvs(
         #     delete_collections(sys_db, vcollections + ecollections, actual_graphs)
         # elif clean_start == "edges":
         #     delete_collections(sys_db, ecollections, [])
-    db_client.define_collections_and_indices(
+    db_client.define_collections(
         conf_obj.graph_config,
         conf_obj.vertex_config,
     )
