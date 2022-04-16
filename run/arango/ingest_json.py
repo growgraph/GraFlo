@@ -3,7 +3,7 @@ import yaml
 from os.path import expanduser
 
 from graph_cast.main import ingest_json_files
-from graph_cast.arango.util import get_arangodb_client
+from graph_cast.db.arango import get_arangodb_client
 import logging
 
 logger = logging.getLogger(__name__)

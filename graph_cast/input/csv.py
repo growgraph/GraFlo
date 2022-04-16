@@ -5,7 +5,7 @@ import logging
 from graph_cast.input.csv_abs import table_to_vcollections
 from graph_cast.util.io import Chunker, ChunkerDataFrame
 
-from graph_cast.arango.util import (
+from graph_cast.db.arango.util import (
     upsert_docs_batch,
     insert_edges_batch,
     insert_return_batch,
@@ -46,7 +46,7 @@ def process_table(tabular_resource, batch_size, max_lines, db_client, conf):
                         query0 = insert_return_batch(
                             data, conf.vertex_config.dbname(vcol)
                         )
-                        cursor = db_client.aql.execute(query0)
+                        cursor = db_client.execute(query0)
                         vdocuments[vcol][j] = [item for item in cursor]
                     else:
                         query0 = upsert_docs_batch(
@@ -56,7 +56,7 @@ def process_table(tabular_resource, batch_size, max_lines, db_client, conf):
                             "doc",
                             True,
                         )
-                        cursor = db_client.aql.execute(query0)
+                        cursor = db_client.execute(query0)
 
             # update edge data with blank node edges
             for vcol in conf.vertex_config.blank_collections:
@@ -82,4 +82,4 @@ def process_table(tabular_resource, batch_size, max_lines, db_client, conf):
                     conf.vertex_config.index(vto),
                     False,
                 )
-                cursor = db_client.aql.execute(query0)
+                cursor = db_client.execute(query0)

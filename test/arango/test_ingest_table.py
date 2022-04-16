@@ -3,7 +3,7 @@ from os.path import dirname, realpath, join
 import pandas as pd
 import yaml
 import logging
-from graph_cast.arango.util import get_arangodb_client, define_collections_and_indices
+from graph_cast.db.arango import get_arangodb_client, define_collections_and_indices
 from graph_cast.input.csv import process_table
 from graph_cast.architecture.table import TConfigurator
 

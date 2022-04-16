@@ -1,4 +1,4 @@
-from graph_cast.arango.util import get_arangodb_client
+from graph_cast.db.arango import get_arangodb_client
 import logging
 import argparse
 import sys

@@ -7,7 +7,7 @@ from os import listdir
 from os.path import isfile, join
 import logging
 
-from graph_cast.arango.util import (
+from graph_cast.db.arango.util import (
     delete_collections,
     define_collections_and_indices,
     upsert_docs_batch,
@@ -157,12 +157,11 @@ def ingest_csvs(
     conf_obj = TConfigurator(config)
     # TODO introduce modes update etc
     if clean_start:
-        delete_collections(db_client, [], [], delete_all=True)
+        db_client.delete_collections([], [], delete_all=True)
         #     delete_collections(sys_db, vcollections + ecollections, actual_graphs)
         # elif clean_start == "edges":
         #     delete_collections(sys_db, ecollections, [])
-    define_collections_and_indices(
-        db_client,
+    db_client.define_collections_and_indices(
         conf_obj.graph_config,
         conf_obj.vertex_config,
     )
@@ -195,10 +194,10 @@ def ingest_csvs(
     for cname in conf_obj.vertex_config.collections:
         for field in conf_obj.vertex_config.numeric_fields_list(cname):
             query0 = update_to_numeric(conf_obj.vertex_config.dbname(cname), field)
-            cursor = db_client.aql.execute(query0)
+            cursor = db_client.execute(query0)
 
     # create edge u -> v from u->w, v->w edges
     # find edge_cols uw and vw
     for u, v in conf_obj.graph_config.extra_edges:
         query0 = define_extra_edges(conf_obj.graph(u, v))
-        cursor = db_client.aql.execute(query0)
+        cursor = db_client.execute(query0)

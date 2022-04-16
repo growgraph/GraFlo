@@ -4,7 +4,7 @@ import yaml
 import logging
 from pprint import pprint
 import pandas as pd
-from graph_cast.arango.util import get_arangodb_client
+from graph_cast.db.arango import get_arangodb_client
 from graph_cast.main import ingest_json_files
 
 logging.basicConfig(
@@ -71,14 +71,23 @@ class TestIngestJSON(unittest.TestCase):
             with open(ref_path, "w") as file:
                 yaml.dump(test_sizes, file)
         else:
-            t = pd.DataFrame(test_sizes).set_index(0).rename(columns={1: "test"}).sort_index()
-            r = pd.DataFrame(ref_sizes).set_index(0).rename(columns={1: "ref"}).sort_index()
+            t = (
+                pd.DataFrame(test_sizes)
+                .set_index(0)
+                .rename(columns={1: "test"})
+                .sort_index()
+            )
+            r = (
+                pd.DataFrame(ref_sizes)
+                .set_index(0)
+                .rename(columns={1: "ref"})
+                .sort_index()
+            )
             cmp = pd.concat([r, t], axis=1).sort_index()
             outstanding = cmp[cmp["test"] != cmp["ref"]]
             pprint(outstanding)
             pprint((cmp["test"] == cmp["ref"]).all())
             self.assertTrue((cmp["test"] == cmp["ref"]).all())
-
 
     def test_modes(self):
         for mode in self.modes:
@@ -89,6 +98,7 @@ class TestIngestJSON(unittest.TestCase):
         import json
         from graph_cast.architecture.json import JConfigurator
         from graph_cast.main import ingest_json
+
         fpath = join(self.cpath, f"../data/wos_unit.json.gz")
 
         config_path = join(self.cpath, f"../../conf/wos_json.yaml")

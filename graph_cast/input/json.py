@@ -365,7 +365,11 @@ def merge_documents(docs, main_key="_key", anchor_key="anchor", anchor_value="ma
         (mains_ if main_key in item else auxs).append(item)
 
     for item in mains_:
-        (anchors if anchor_key in item and item[anchor_key] == anchor_value else mains).append(item)
+        (
+            anchors
+            if anchor_key in item and item[anchor_key] == anchor_value
+            else mains
+        ).append(item)
 
     auxs += anchors
     r = [dict(ChainMap(*auxs))] + mains

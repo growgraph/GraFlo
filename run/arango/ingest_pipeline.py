@@ -12,7 +12,7 @@ import shutil
 from graph_cast.xml.io import convert
 import graph_cast.util.timer as timer
 from graph_cast.main import ingest_json_files
-from graph_cast.arango.util import get_arangodb_client
+from graph_cast.db.arango import get_arangodb_client
 
 logger = logging.getLogger(__name__)
 
