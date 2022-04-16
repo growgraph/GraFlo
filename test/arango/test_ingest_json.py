@@ -4,7 +4,7 @@ import yaml
 import logging
 from pprint import pprint
 import pandas as pd
-from graph_cast.db.arango import get_arangodb_client
+from graph_cast.db import ConnectionManager
 from graph_cast.main import ingest_json_files
 
 logging.basicConfig(
@@ -22,11 +22,15 @@ class TestIngestJSON(unittest.TestCase):
     set_reference = False
     # set_reference = True
 
-    id_addr = "127.0.0.1"
-    protocol = "http"
-    port = 8529
-    cred_name = "root"
-    cred_pass = "123"
+    db_args = {
+        "protocol": "http",
+        "ip_addr": "127.0.0.1",
+        "port": 8529,
+        "cred_name": "root",
+        "cred_pass": "123",
+        "database": "root",
+        "db_type": "arango",
+    }
 
     modes = ["wos"]
 
@@ -45,49 +49,44 @@ class TestIngestJSON(unittest.TestCase):
             with open(ref_path, "r") as f:
                 ref_sizes = yaml.load(f, Loader=yaml.FullLoader)
 
-        db_client = get_arangodb_client(
-            self.protocol,
-            self.id_addr,
-            self.port,
-            db,
-            self.cred_name,
-            self.cred_pass,
-        )
+        db_args = dict(self.db_args)
+        db_args["database"] = db
+        with ConnectionManager(args=db_args) as db_client:
 
-        ingest_json_files(
-            path, db_client=db_client, keyword="wos", config=config, ncores=1
-        )
+            ingest_json_files(
+                path, db_client=db_client, keyword="wos", config=config, ncores=1
+            )
 
-        cols = db_client.collections()
-        test_sizes = []
-        for c in cols:
-            if not c["system"]:
-                cursor = db_client.aql.execute(f"return LENGTH({c['name']})")
-                size = next(cursor)
-                test_sizes += [(c["name"], size)]
-        test_sizes = sorted(test_sizes, key=lambda x: x[0])
-        if self.set_reference:
-            ref_path = join(self.cpath, f"./ref/{prefix}_sizes.yaml")
-            with open(ref_path, "w") as file:
-                yaml.dump(test_sizes, file)
-        else:
-            t = (
-                pd.DataFrame(test_sizes)
-                .set_index(0)
-                .rename(columns={1: "test"})
-                .sort_index()
-            )
-            r = (
-                pd.DataFrame(ref_sizes)
-                .set_index(0)
-                .rename(columns={1: "ref"})
-                .sort_index()
-            )
-            cmp = pd.concat([r, t], axis=1).sort_index()
-            outstanding = cmp[cmp["test"] != cmp["ref"]]
-            pprint(outstanding)
-            pprint((cmp["test"] == cmp["ref"]).all())
-            self.assertTrue((cmp["test"] == cmp["ref"]).all())
+            cols = db_client.get_collections()
+            test_sizes = []
+            for c in cols:
+                if not c["system"]:
+                    cursor = db_client.execute(f"return LENGTH({c['name']})")
+                    size = next(cursor)
+                    test_sizes += [(c["name"], size)]
+            test_sizes = sorted(test_sizes, key=lambda x: x[0])
+            if self.set_reference:
+                ref_path = join(self.cpath, f"./ref/{prefix}_sizes.yaml")
+                with open(ref_path, "w") as file:
+                    yaml.dump(test_sizes, file)
+            else:
+                t = (
+                    pd.DataFrame(test_sizes)
+                    .set_index(0)
+                    .rename(columns={1: "test"})
+                    .sort_index()
+                )
+                r = (
+                    pd.DataFrame(ref_sizes)
+                    .set_index(0)
+                    .rename(columns={1: "ref"})
+                    .sort_index()
+                )
+                cmp = pd.concat([r, t], axis=1).sort_index()
+                outstanding = cmp[cmp["test"] != cmp["ref"]]
+                pprint(outstanding)
+                pprint((cmp["test"] == cmp["ref"]).all())
+                self.assertTrue((cmp["test"] == cmp["ref"]).all())
 
     def test_modes(self):
         for mode in self.modes:
@@ -110,15 +109,6 @@ class TestIngestJSON(unittest.TestCase):
         json_data = data
 
         db = f"json_test"
-
-        db_client = get_arangodb_client(
-            self.protocol,
-            self.id_addr,
-            self.port,
-            db,
-            self.cred_name,
-            self.cred_pass,
-        )
 
         conf_obj = JConfigurator(config)
 

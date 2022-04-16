@@ -32,10 +32,14 @@ def ingest_json_files(
     conf_obj = JConfigurator(config)
 
     if clean_start == "all":
-        delete_collections(db_client, [], [], delete_all=True)
+        db_client.delete_collections([], [], delete_all=True)
 
-        define_collections_and_indices(
-            db_client,
+        db_client.define_collections(
+            conf_obj.graph_config,
+            conf_obj.vertex_config,
+        )
+
+        db_client.define_indices(
             conf_obj.graph_config,
             conf_obj.vertex_config,
         )
@@ -103,7 +107,7 @@ def ingest_json(json_data, conf_obj: JConfigurator, sys_db=None, dry=False, ncor
                 True,
             )
             if not dry and sys_db is not None:
-                cursor = sys_db.aql.execute(query0)
+                cursor = sys_db.execute(query0)
 
     # logger.info(f" ingested {cnt} vertices {t_ingest.elapsed:.2f} sec")
 
@@ -132,7 +136,7 @@ def ingest_json(json_data, conf_obj: JConfigurator, sys_db=None, dry=False, ncor
             )
 
             if not dry and sys_db is not None:
-                cursor = sys_db.aql.execute(query0)
+                cursor = sys_db.execute(query0)
 
     logger.info(f" ingested {cnt} edges {t_ingest_edges.elapsed:.2f} sec")
 
@@ -162,6 +166,11 @@ def ingest_csvs(
         # elif clean_start == "edges":
         #     delete_collections(sys_db, ecollections, [])
     db_client.define_collections(
+        conf_obj.graph_config,
+        conf_obj.vertex_config,
+    )
+
+    db_client.define_indices(
         conf_obj.graph_config,
         conf_obj.vertex_config,
     )
