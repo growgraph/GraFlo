@@ -1,12 +1,1 @@
-edocs:
-  ? !!python/tuple
-  - ticker
-  - feature
-  : 13
-vdocs:
-  feature:
-  - 5
-  - 3
-  - 5
-  ticker:
-  - 5
+feature: 0

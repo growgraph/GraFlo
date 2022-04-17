@@ -3,12 +3,13 @@ import csv
 import re
 import json
 import logging
-
+import io
+import pkgutil
 logger = logging.getLogger(__name__)
 
 
 class Chunker:
-    def __init__(self, fname, batch_size, n_lines_max=None, encoding="utf-8"):
+    def __init__(self, fname=None, pkg_spec=None, batch_size=10000, n_lines_max=None, encoding="utf-8"):
         """
 
         :param fname:
@@ -16,20 +17,29 @@ class Chunker:
         :param n_lines_max:
         :param encoding:
         """
+        if fname is None and pkg_spec is None:
+            raise ValueError(f" both fname and file_obj are None")
         self.acc = []
         self.j = 0
         self.batch_size = (
             batch_size if n_lines_max is None else min([20 * n_lines_max, batch_size])
         )
         self.n_lines_max = n_lines_max
-        if fname[-2:] == "gz":
-            self.file_obj = gzip.open(fname, "rt", encoding=encoding)
+        if fname is not None:
+            if fname[-2:] == "gz":
+                self.file_obj = gzip.open(fname, "rt", encoding=encoding)
+            else:
+                self.file_obj = open(fname, "rt")
         else:
-            self.file_obj = open(fname, "rt")
+            bytes_ = pkgutil.get_data(*pkg_spec)
+            if pkg_spec[1][-2:] == "gz":
+                self.file_obj = gzip.GzipFile(fileobj=io.BytesIO(bytes_), mode="r")
+            else:
+                self.file_obj = io.BytesIO(bytes_)
         self.done = False
 
     def pop_header(self):
-        header = self.file_obj.readline().rstrip("\n")
+        header = self.file_obj.readline().decode("utf-8").rstrip("\n")
         header = header.split(",")
         return header
 
@@ -37,7 +47,7 @@ class Chunker:
         if not self.n_lines_max or (self.n_lines_max and self.j < self.n_lines_max):
             lines = self.file_obj.readlines(self.batch_size)
             lines2 = [
-                next(csv.reader([line.rstrip()], skipinitialspace=True))
+                next(csv.reader([line.decode("utf-8").rstrip()], skipinitialspace=True))
                 for line in lines
             ]
             self.j += len(lines2)

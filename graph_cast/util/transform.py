@@ -97,7 +97,7 @@ def cast_ibes_analyst(s):
 
 
 def parse_date_reference(input_str):
-    return (_parse_date_reference(input_str)["year"],)
+    return _parse_date_reference(input_str)["year"],
 
 
 def _parse_date_reference(input_str):

@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
     mode = "ibes"
 
-    tabular_resource = pd.read_csv(join(cpath, "../data/ibes/ibes_test.csv.gz"))
+    tabular_resource = pd.read_csv(join(cpath, "../data/all/ibes.csv.gz"))
     tabular_resource = tabular_resource.fillna("")
     conf_obj.set_mode(mode)
     process_table(tabular_resource, 10, 10000, db_client, conf_obj)

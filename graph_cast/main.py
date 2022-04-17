@@ -8,8 +8,6 @@ from os.path import isfile, join
 import logging
 
 from graph_cast.db.arango.util import (
-    delete_collections,
-    define_collections_and_indices,
     upsert_docs_batch,
     insert_edges_batch,
     update_to_numeric,

@@ -83,3 +83,5 @@ def process_table(tabular_resource, batch_size, max_lines, db_client, conf):
                     False,
                 )
                 cursor = db_client.execute(query0)
+
+
