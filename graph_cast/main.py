@@ -109,6 +109,3 @@ def ingest_csvs(
                 for f in conf_obj.mode2files[mode]:
                     func(f)
         logger.info(f"{mode} took {klepsidra.elapsed:.1f} sec")
-
-
-

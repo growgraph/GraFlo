@@ -1,7 +1,8 @@
-from typing import Union
+from typing import Union, Optional
 import pandas as pd
+import contextlib
 
-from graph_cast.db import ConnectionConfigType, ConnectionManager
+from graph_cast.db import ConnectionConfigType, ConnectionManager, ConnectionType
 from graph_cast.db.arango.util import (
     insert_return_batch,
     upsert_docs_batch,
@@ -16,15 +17,17 @@ from graph_cast.architecture import ConfiguratorType
 def process_table(
     tabular_resource: Union[str, pd.DataFrame],
     conf: ConfiguratorType,
-    db_config: ConnectionConfigType,
-    batch_size: int,
-    max_lines: int,
+    db_config: Optional[ConnectionConfigType] = None,
+    db_client: Optional[ConnectionType] = None,
+    batch_size: int = 1000,
+    max_lines: int = 10000,
 ):
     """
         given a table, config that specifies table to graph mapping and db_config, transform table and load it into db
     :param tabular_resource:
     :param conf:
     :param db_config:
+    :param db_client:
     :param batch_size:
     :param max_lines:
     :return:
@@ -56,6 +59,8 @@ def process_table(
             # ingest vcols, ecols
 
             with ConnectionManager(connection_config=db_config) as db_client:
+                # if db_config is not None \
+                #     else contextlib.nullcontext():
                 for vcol, data in vdocuments.items():
                     # blank nodes: push and get back their keys  {"_key": ...}
                     if vcol in conf.vertex_config.blank_collections:

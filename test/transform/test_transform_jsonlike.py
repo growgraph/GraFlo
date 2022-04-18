@@ -18,7 +18,7 @@ class TestTransformJsonlike(unittest.TestCase):
         self.reset = reset
 
     def _atomic(self, mode):
-        jsonlike = ResourceHandler.load(f"test.data.json.{mode}", f"{mode}.json")
+        jsonlike = ResourceHandler.load(f"test.data.json.{mode}", f"{mode}.json.gz")
         config = ResourceHandler.load(f"conf.json", f"{mode}.yaml")
         conf_obj = JConfigurator(config)
 

@@ -1,1 +1,0 @@
-for doc in analysts limit 5 return doc

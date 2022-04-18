@@ -1,57 +1,66 @@
-from graph_cast.db.arango import get_arangodb_client
+import unittest
+from os.path import join, dirname, realpath
 import logging
-import argparse
 import sys
+from graph_cast.db.arango.util import insert_return_batch
+
+from graph_cast.db import ConnectionManager, ConfigFactory
 
 logger = logging.getLogger(__name__)
 
 
+class TestDBAccess(unittest.TestCase):
+    cpath = dirname(realpath(__file__))
+
+    db_args = {
+        "protocol": "http",
+        "ip_addr": "127.0.0.1",
+        "port": 8529,
+        "cred_name": "root",
+        "cred_pass": "123",
+        "database": "root",
+        "db_type": "arango",
+    }
+
+    def test_db_access(self):
+        db_args = dict(self.db_args)
+        db_args["database"] = "wos_test"
+        conn_conf = ConfigFactory.create_config(args=db_args)
+
+        with ConnectionManager(connection_config=conn_conf) as db_client:
+            cnames = [c["name"] for c in db_client.get_collections() if c["name"][0] != "_"]
+            for c in cnames:
+                logger.info(c)
+
+    def test_insert_return(self):
+        db_args = dict(self.db_args)
+        db_args["database"] = "wos_test"
+        conn_conf = ConfigFactory.create_config(args=db_args)
+        with ConnectionManager(connection_config=conn_conf) as db_client:
+            cnames = [c["name"] for c in db_client.get_collections() if c["name"][0] != "_"]
+
+        docs = [{"value": i} for i in range(5)]
+        query0 = insert_return_batch(docs, "test")
+
+        cursor = db_client.execute(query0)
+        for item in cursor:
+            logger.info(item)
+
+    def test_query(self):
+        db_args = dict(self.db_args)
+        db_args["database"] = "ibes_test"
+        conn_conf = ConfigFactory.create_config(args=db_args)
+
+        q = """for doc in analysts limit 5 return doc
+        """
+
+        with ConnectionManager(connection_config=conn_conf) as db_client:
+            cursor = db_client.execute(q)
+        chunk = list(cursor.batch())
+        logger.info(chunk)
+
+
 if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser()
-
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+    unittest.main()
 
-    parser.add_argument(
-        "-i",
-        "--id-addr",
-        default="127.0.0.1",
-        type=str,
-        help="port for arangodb connection",
-    )
-
-    parser.add_argument(
-        "--protocol", default="http", type=str, help="protocol for arangodb connection"
-    )
-
-    parser.add_argument(
-        "-p", "--port", default=8529, type=int, help="port for arangodb connection"
-    )
-
-    parser.add_argument(
-        "-l", "--login-name", default="root", help="login name for arangodb connection"
-    )
-
-    parser.add_argument(
-        "-w",
-        "--login-password",
-        default="123",
-        help="login password for arangodb connection",
-    )
-
-    parser.add_argument("--db", default="_system", help="db for arangodb connection")
-
-    args = parser.parse_args()
-
-    sys_db = get_arangodb_client(
-        args.protocol,
-        args.id_addr,
-        args.port,
-        args.db,
-        args.login_name,
-        args.login_password,
-    )
-
-    cnames = [c["name"] for c in sys_db.collections() if c["name"][0] != "_"]
-    for c in cnames:
-        logger.info(c)
