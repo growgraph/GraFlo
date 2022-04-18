@@ -19,7 +19,7 @@ class TestTransformTable(unittest.TestCase):
 
     def _atomic(self, mode):
         df = ResourceHandler.load(f"test.data.all", f"{mode}.csv.gz")
-        config = ResourceHandler.load(f"conf", f"{mode}.yaml")
+        config = ResourceHandler.load(f"conf.table", f"{mode}.yaml")
         conf_obj = TConfigurator(config)
 
         header = df.columns

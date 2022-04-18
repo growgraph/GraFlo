@@ -100,9 +100,9 @@ if __name__ == "__main__":
 
     ingest_csvs(
         args.path,
+        config,
         db_client,
         limit_files=args.limit_files,
         max_lines=args.max_lines,
-        config=config,
         clean_start=args.clean_start,
     )

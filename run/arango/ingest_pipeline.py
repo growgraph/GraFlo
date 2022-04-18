@@ -135,7 +135,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config-path",
         type=str,
-        default="../conf/wos_json.yaml",
+        default="../conf/wos.yaml",
         help="",
     )
 

@@ -1,4 +1,3 @@
-import importlib
 import logging
 from typing import TypeVar
 from collections import defaultdict, Iterable
@@ -20,55 +19,6 @@ class Configurator:
             self.vertex_config.dbname,
             config["json"] if "json" in config else None,
         )
-
-
-class Transform:
-    def __init__(self, **kwargs):
-        self._module = None
-        self._foo = None
-        self._params = dict()
-        self._outputs = ()
-        self._inputs = ()
-        self._init_module(**kwargs)
-
-        try:
-            self._foo = getattr(self._module, kwargs["foo"])
-        except:
-            raise ValueError
-        if "params" in kwargs:
-            self._params = kwargs["params"]
-        if not isinstance(self._params, dict):
-            raise TypeError("params should be dict-like")
-        if "input" in kwargs:
-            self._inputs = kwargs["input"]
-        if "output" in kwargs:
-            self._outputs = kwargs["output"]
-        else:
-            self._outputs = kwargs["input"]
-
-    def _init_module(self, **kwargs):
-        if "module" in kwargs:
-            self._module = importlib.import_module(kwargs["module"])
-        elif "class" in kwargs:
-            self._module = eval(kwargs["module"])
-        else:
-            raise KeyError("Either module or class keys should be present")
-
-    def __call__(self, *nargs, **kwargs):
-        return self._foo(*nargs, **kwargs, **self._params)
-
-    @property
-    def input(self):
-        return self._inputs
-
-    @property
-    def output(self):
-        return self._outputs
-
-    def __str__(self):
-        return f"{id(self)} | {self._foo} {self._inputs} -> {self._outputs}"
-
-    __repr__ = __str__
 
 
 class TransformException(BaseException):

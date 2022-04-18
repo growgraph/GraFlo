@@ -7,7 +7,8 @@ from graph_cast.input.util import parse_vcollection
 from graph_cast.util.io import FPSmart
 from graph_cast.input.util import define_graphs, update_graph_extra_edges
 from graph_cast.architecture.schema import VertexConfig
-from graph_cast.architecture.general import Transform, transform_foo
+from graph_cast.architecture.general import transform_foo
+from graph_cast.architecture.transform import Transform
 from typing import Dict
 
 xml_dummy = "#text"

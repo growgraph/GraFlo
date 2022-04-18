@@ -2,10 +2,10 @@ from collections import defaultdict
 from itertools import permutations
 from graph_cast.architecture.general import (
     Configurator,
-    Transform,
     Mapper,
     LocalVertexCollections,
 )
+from graph_cast.architecture.transform import Transform
 from os import listdir
 from os.path import isfile, join
 from copy import deepcopy

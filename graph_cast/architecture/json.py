@@ -4,11 +4,12 @@ from graph_cast.architecture.general import Configurator
 
 
 class JConfigurator(Configurator):
-    eedges = []
-    mfields = defaultdict(list)
-
     def __init__(self, config):
         super().__init__(config)
+
+        self.eedges = []
+        self.mfields = defaultdict(list)
+
         self.json = deepcopy(config["json"])
         # which collections should be merged? (if they are found in different parts of json doc)
         self.merge_collections = tuple()

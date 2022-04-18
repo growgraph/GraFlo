@@ -2,7 +2,7 @@ import unittest
 import logging
 import argparse
 from os.path import join, dirname, realpath
-from graph_cast.input import jsonlike_to_collections
+from graph_cast.input import jsondoc_to_collections
 from graph_cast.util import ResourceHandler, equals
 from graph_cast.architecture import JConfigurator
 
@@ -19,10 +19,10 @@ class TestTransformJsonlike(unittest.TestCase):
 
     def _atomic(self, mode):
         jsonlike = ResourceHandler.load(f"test.data.json.{mode}", f"{mode}.json")
-        config = ResourceHandler.load(f"conf", f"{mode}.yaml")
+        config = ResourceHandler.load(f"conf.json", f"{mode}.yaml")
         conf_obj = JConfigurator(config)
 
-        defdict = jsonlike_to_collections(jsonlike[0], conf_obj)
+        defdict = jsondoc_to_collections(jsonlike[0], conf_obj)
 
         vc = {k: len(v) for k, v in defdict.items()}
 

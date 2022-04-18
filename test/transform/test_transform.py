@@ -1,7 +1,7 @@
 import unittest
 from os.path import join, dirname, realpath
 import logging
-from graph_cast.architecture.general import Transform
+from graph_cast.architecture.transform import Transform
 import yaml
 from graph_cast.architecture.table import TConfigurator
 from graph_cast.util.io import Chunker
@@ -32,7 +32,7 @@ class TestTransform(unittest.TestCase):
 
     def test_transform_problems(self):
         mode = "ticker"
-        config = ResourceHandler.load(f"conf", f"{mode}.yaml")
+        config = ResourceHandler.load(f"conf.table", f"{mode}.yaml")
         conf = TConfigurator(config)
 
         conf.set_mode("_all")

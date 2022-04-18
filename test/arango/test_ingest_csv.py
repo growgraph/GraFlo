@@ -34,18 +34,17 @@ class TestIngestCSV(unittest.TestCase):
         db = f"{mode}_test"
 
         path = join(self.cpath, f"../data/csv/{mode}")
-        config = ResourceHandler.load(f"conf", f"{mode}.yaml")
+        config = ResourceHandler.load(f"conf.table", f"{mode}.yaml")
 
         db_args = dict(self.db_args)
         db_args["database"] = db
         conn_conf = ConfigFactory.create_config(args=db_args)
 
-        # loop over files
         ingest_csvs(
             path,
+            config,
             conn_conf,
             limit_files=None,
-            config=config,
             clean_start=True,
         )
 

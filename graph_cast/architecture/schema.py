@@ -1,4 +1,5 @@
 from collections import defaultdict
+from graph_cast.architecture.transform import Transform
 from typing import Set, Tuple, Any, Dict, DefaultDict, List
 
 
@@ -31,6 +32,7 @@ class Vertex:
         extra_index=(),
         numeric_fields=(),
         filters=(),
+        transforms=()
     ):
         self._name = name
         self._dbname = name if basename is None else basename
@@ -41,6 +43,8 @@ class Vertex:
         self._numeric_fields = numeric_fields
         # set of filters
         self._filters = [Filter(**item) for item in filters]
+        # currently not used
+        self._transforms = [Transform(**item) for item in transforms]
 
     @property
     def dbname(self):
@@ -267,14 +271,6 @@ class VertexConfig:
 
 
 class GraphConfig:
-    _edges: Set[Tuple[Any, Any]] = set()
-
-    _extra_edges: Set[Tuple[Any, Any]] = set()
-
-    _graphs: Dict[Tuple[Any, Any], Dict] = dict()
-
-    _exclude_fields = defaultdict(list)
-
     def __init__(self, econfig, vmap, jconfig=None):
         """
 
@@ -283,6 +279,14 @@ class GraphConfig:
         :param jconfig: in json config edges might be defined locally,
                             so json schema should be parsed for flat edges list
         """
+        self._edges: Set[Tuple[Any, Any]] = set()
+
+        self._extra_edges: Set[Tuple[Any, Any]] = set()
+
+        self._graphs: Dict[Tuple[Any, Any], Dict] = dict()
+
+        self._exclude_fields = defaultdict(list)
+
         self._init_edges(econfig)
         if jconfig is not None:
             self._init_jedges(jconfig)
