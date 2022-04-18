@@ -37,8 +37,12 @@ class TestTransform(unittest.TestCase):
 
         conf.set_mode("_all")
 
-        chk = Chunker(fname=None, pkg_spec=(f"test.data.all", f"{mode}.use_tranform.csv.gz"),
-                      batch_size=10000000, encoding=conf.encoding)
+        chk = Chunker(
+            fname=None,
+            pkg_spec=(f"test.data.all", f"{mode}.use_tranform.csv.gz"),
+            batch_size=10000000,
+            encoding=conf.encoding,
+        )
         # conf.set_current_resource_name(tabular_resource)
         header = chk.pop_header()
         header_dict = dict(zip(header, range(len(header))))

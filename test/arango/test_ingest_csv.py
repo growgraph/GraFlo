@@ -1,10 +1,10 @@
 import unittest
 from os.path import join, dirname, realpath
-import yaml
 import logging
-from pprint import pprint
 from graph_cast.main import ingest_csvs
-from graph_cast.db import ConnectionManager
+from graph_cast.util import ResourceHandler, equals
+from graph_cast.architecture import TConfigurator
+from graph_cast.db import ConnectionManager, ConfigFactory
 import argparse
 
 logger = logging.getLogger(__name__)
@@ -23,57 +23,56 @@ class TestIngestCSV(unittest.TestCase):
         "db_type": "arango",
     }
 
-    modes = ["ibes", "wos", "ticker"]
+    modes = [
+        "ibes",
+        "wos",
+        "ticker"
+    ]
 
-    set_reference = False
-
-    def __init__(self, set_ref):
+    def __init__(self, reset):
         super().__init__()
-        self.set_reference = set_ref
+        self.reset = reset
 
     def _atomic(self, mode):
-
         db = f"{mode}_test"
 
         path = join(self.cpath, f"../data/{mode}")
-
-        config_path = join(self.cpath, f"../../conf/{mode}.yaml")
-        with open(config_path, "r") as f:
-            config = yaml.load(f, Loader=yaml.FullLoader)
-
-        if not self.set_reference:
-            ref_path = join(self.cpath, f"./ref/{mode}_sizes.yaml")
-            with open(ref_path, "r") as f:
-                ref_sizes = yaml.load(f, Loader=yaml.FullLoader)
+        config = ResourceHandler.load(f"conf", f"{mode}.yaml")
+        # conf_obj = TConfigurator(config)
 
         db_args = dict(self.db_args)
         db_args["database"] = db
-        with ConnectionManager(args=db_args) as db_client:
-            ingest_csvs(
-                path,
-                db_client,
-                limit_files=None,
-                # max_lines=50,
-                config=config,
-                clean_start=True,
-            )
+        conn_conf = ConfigFactory.create_config(args=db_args)
+
+        # loop over files
+        ingest_csvs(
+            path,
+            conn_conf,
+            limit_files=None,
+            config=config,
+            clean_start=True,
+        )
+
+        with ConnectionManager(connection_config=conn_conf) as db_client:
             cols = db_client.get_collections()
-            test_sizes = []
+            vc = {}
             for c in cols:
                 if not c["system"]:
                     cursor = db_client.execute(f"return LENGTH({c['name']})")
                     size = next(cursor)
-                    test_sizes += [(c["name"], size)]
-            test_sizes = sorted(test_sizes, key=lambda x: x[0])
-            pprint(f"mode : {mode}")
-            if self.set_reference:
-                ref_path = join(self.cpath, f"./ref/{mode}_sizes.yaml")
-                with open(ref_path, "w") as file:
-                    yaml.dump(test_sizes, file)
-            else:
-                for (k, v), (q, w) in zip(test_sizes, ref_sizes):
-                    pprint(f"{k} {v} {w}")
-                self.assertTrue(test_sizes == ref_sizes)
+                    vc[c["name"]] = size
+        if not self.reset:
+            ref_vc = ResourceHandler.load(f"test.ref", f"{mode}_sizes_ingest_csv.yaml")
+            flag = equals(vc, ref_vc)
+            if not flag:
+                print(vc)
+                print(ref_vc)
+            self.assertTrue(flag)
+
+        else:
+            ResourceHandler.dump(
+                vc, join(self.cpath, f"../ref/{mode}_sizes_ingest_csv.yaml")
+            )
 
     def runTest(self):
         for mode in self.modes:

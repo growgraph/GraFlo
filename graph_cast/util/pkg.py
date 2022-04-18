@@ -65,13 +65,7 @@ class ResourceHandler:
 
     @classmethod
     def load(
-        cls,
-        ppath=None,
-        pname=None,
-        how="yaml",
-        compression=None,
-        fpath=None,
-        **kwargs
+        cls, ppath=None, pname=None, how="yaml", compression=None, fpath=None, **kwargs
     ):
         if fpath is None:
             lemmas = pname.split(".")
@@ -145,11 +139,9 @@ def equals(a, b):
             return False
         else:
             return all([equals(a[k], b[k]) for k in a.keys()])
-    elif (isinstance(a, Iterable) and not isinstance(a, excluded_types))\
-            and (isinstance(b, Iterable) and not isinstance(b, excluded_types)):
+    elif (isinstance(a, Iterable) and not isinstance(a, excluded_types)) and (
+        isinstance(b, Iterable) and not isinstance(b, excluded_types)
+    ):
         all([equals(ea, eb) for ea, eb in zip(a, b)])
     else:
         return a == b
-
-
-

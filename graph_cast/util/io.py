@@ -5,11 +5,19 @@ import json
 import logging
 import io
 import pkgutil
+
 logger = logging.getLogger(__name__)
 
 
 class Chunker:
-    def __init__(self, fname=None, pkg_spec=None, batch_size=10000, n_lines_max=None, encoding="utf-8"):
+    def __init__(
+        self,
+        fname=None,
+        pkg_spec=None,
+        batch_size=10000,
+        n_lines_max=None,
+        encoding="utf-8",
+    ):
         """
 
         :param fname:
@@ -36,10 +44,11 @@ class Chunker:
                 self.file_obj = gzip.GzipFile(fileobj=io.BytesIO(bytes_), mode="r")
             else:
                 self.file_obj = io.BytesIO(bytes_)
+            self.file_obj = io.TextIOWrapper(self.file_obj, encoding='utf-8')
         self.done = False
 
     def pop_header(self):
-        header = self.file_obj.readline().decode("utf-8").rstrip("\n")
+        header = self.file_obj.readline().rstrip("\n")
         header = header.split(",")
         return header
 
@@ -47,7 +56,7 @@ class Chunker:
         if not self.n_lines_max or (self.n_lines_max and self.j < self.n_lines_max):
             lines = self.file_obj.readlines(self.batch_size)
             lines2 = [
-                next(csv.reader([line.decode("utf-8").rstrip()], skipinitialspace=True))
+                next(csv.reader([line.rstrip()], skipinitialspace=True))
                 for line in lines
             ]
             self.j += len(lines2)

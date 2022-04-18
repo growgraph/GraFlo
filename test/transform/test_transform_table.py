@@ -1,7 +1,7 @@
 import unittest
 import logging
 import argparse
-from graph_cast.input.csv import table_to_vcollections
+from graph_cast.input.table import table_to_vcollections
 from graph_cast.util import ResourceHandler, equals
 from graph_cast.architecture.table import TConfigurator
 from graph_cast.util.transform import pick_unique_dict

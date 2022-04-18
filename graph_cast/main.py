@@ -15,11 +15,12 @@ from graph_cast.db.arango.util import (
 )
 
 import graph_cast.input.json as gcij
-import graph_cast.input.csv as gcic
+import graph_cast.input.table
 from graph_cast.util import timer as timer
 from graph_cast.util.transform import merge_doc_basis
-from graph_cast.architecture.table import TConfigurator
-from graph_cast.architecture.json import JConfigurator
+from graph_cast.architecture import TConfigurator, JConfigurator
+from graph_cast.db import ConnectionManager, ConnectionConfigType, ConnectionType
+
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +149,7 @@ def ingest_json(json_data, conf_obj: JConfigurator, sys_db=None, dry=False, ncor
 
 def ingest_csvs(
     fpath,
-    db_client,
+    conn_config: ConnectionConfigType,
     limit_files=None,
     max_lines=None,
     batch_size=5000000,
@@ -157,7 +158,59 @@ def ingest_csvs(
 ):
 
     conf_obj = TConfigurator(config)
-    # TODO introduce modes update etc
+    with ConnectionManager(connection_config=conn_config) as db_client:
+        init_db(db_client, conf_obj, clean_start)
+
+    # file discovery
+    conf_obj.discover_files(fpath, limit_files=limit_files)
+
+    logger.info(conf_obj.mode2files)
+
+    for mode in conf_obj.modes2collections:
+        conf_obj.set_mode(mode)
+        kwargs = {
+            "batch_size": batch_size,
+            "max_lines": max_lines,
+            "conf": conf_obj,
+            "db_config": conn_config,
+        }
+
+        with timer.Timer() as klepsidra:
+            func = partial(graph_cast.input.table.process_table, **kwargs)
+            n_proc = 1
+            if n_proc > 1:
+                with mp.Pool(n_proc) as p:
+                    p.map(func, conf_obj.mode2files[mode])
+            else:
+                for f in conf_obj.mode2files[mode]:
+                    func(f)
+        logger.info(f"{mode} took {klepsidra.elapsed:.1f} sec")
+
+
+def etl_over_files(
+    fpath,
+    db_config,
+    limit_files=None,
+    max_lines=None,
+    batch_size=5000000,
+    clean_start=False,
+    config=None,
+):
+
+    pass
+    # init db: collections, indexes
+
+    # identify files
+
+    # loop over files
+    # file to vcols, ecols
+    # transform vcols, ecols
+    # ingest vcols, ecols
+
+    # extra definitions - should be part atomic
+
+
+def init_db(db_client: ConnectionType, conf_obj, clean_start):
     if clean_start:
         db_client.delete_collections([], [], delete_all=True)
         #     delete_collections(sys_db, vcollections + ecollections, actual_graphs)
@@ -173,38 +226,16 @@ def ingest_csvs(
         conf_obj.vertex_config,
     )
 
-    # file discovery
-    conf_obj.discover_files(fpath, limit_files=limit_files)
 
-    logger.info(conf_obj.mode2files)
-
-    for mode in conf_obj.modes2collections:
-        with timer.Timer() as t_pro:
-            conf_obj.set_mode(mode)
-            kwargs = {
-                "batch_size": batch_size,
-                "max_lines": max_lines,
-                "conf": conf_obj,
-                "db_client": db_client,
-            }
-
-            func = partial(gcic.process_table, **kwargs)
-            n_proc = 1
-            if n_proc > 1:
-                with mp.Pool(n_proc) as p:
-                    ldicts = p.map(func, conf_obj.mode2files[mode])
-            else:
-                for f in conf_obj.mode2files[mode]:
-                    func(f)
-        logger.info(f"{mode} took {t_pro.elapsed:.1f} sec")
-
+def concluding_db_transform(conf_obj, db_config):
+    # TODO this should be made part of atomic etl (not applied to the whole db)
     for cname in conf_obj.vertex_config.collections:
         for field in conf_obj.vertex_config.numeric_fields_list(cname):
             query0 = update_to_numeric(conf_obj.vertex_config.dbname(cname), field)
-            cursor = db_client.execute(query0)
+            cursor = db_config.execute(query0)
 
     # create edge u -> v from u->w, v->w edges
     # find edge_cols uw and vw
     for u, v in conf_obj.graph_config.extra_edges:
         query0 = define_extra_edges(conf_obj.graph(u, v))
-        cursor = db_client.execute(query0)
+        cursor = db_config.execute(query0)

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Set, Tuple, Any, Dict
 
 
 class CollectionIndex:
@@ -267,11 +268,11 @@ class VertexConfig:
 
 
 class GraphConfig:
-    _edges = set()
+    _edges: Set[Tuple[Any, Any]] = set()
 
-    _extra_edges = set()
+    _extra_edges: Set[Tuple[Any, Any]] = set()
 
-    _graphs = dict()
+    _graphs: Dict[Tuple[Any, Any], Dict] = dict()
 
     _exclude_fields = defaultdict(list)
 
@@ -287,16 +288,16 @@ class GraphConfig:
     def _init_edges(self, config):
         # check that the edges are unique
         if "main" in config:
-            self._edges = [(item["source"], item["target"]) for item in config["main"]]
+            self._edges = {(item["source"], item["target"]) for item in config["main"]}
             if len(set(self._edges)) < len(self._edges):
                 raise ValueError(f" Potentially duplicate edges in edges definition")
             self._edges = set(self._edges)
 
     def _init_extra_edges(self, config):
         if "extra" in config:
-            self._extra_edges = [
+            self._extra_edges = {
                 (item["source"], item["target"]) for item in config["extra"]
-            ]
+            }
             if len(set(self._extra_edges)) < len(self._extra_edges):
                 raise ValueError(
                     f" Potentially duplicate edges in extra edges definition"

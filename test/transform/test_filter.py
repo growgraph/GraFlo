@@ -1,6 +1,6 @@
 import unittest
 import logging
-from os.path import  dirname, realpath
+from os.path import dirname, realpath
 import argparse
 from graph_cast.architecture.schema import Filter, Condition
 
