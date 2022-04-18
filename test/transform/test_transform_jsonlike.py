@@ -27,14 +27,14 @@ class TestTransformJsonlike(unittest.TestCase):
         vc = {k: len(v) for k, v in defdict.items()}
 
         if not self.reset:
-            ref_vc = ResourceHandler.load(f"test.ref.json", f"{mode}_sizes.yaml")
+            ref_vc = ResourceHandler.load(f"test.ref", f"{mode}_sizes.yaml")
             flag = equals(vc, ref_vc)
             if not flag:
                 print(vc)
                 print(ref_vc)
             self.assertTrue(flag)
         else:
-            ResourceHandler.dump(vc, join(self.cpath, f"../ref/json/{mode}_sizes.yaml"))
+            ResourceHandler.dump(vc, join(self.cpath, f"../ref/{mode}_sizes.yaml"))
 
     def runTest(self):
         for mode in self.modes:

@@ -25,10 +25,7 @@ class TestIngestJSON(unittest.TestCase):
         "db_type": "arango",
     }
 
-    modes = [
-        "wos",
-         "freshcaller"
-    ]
+    modes = ["wos", "freshcaller"]
 
     def __init__(self, reset):
         super().__init__()
@@ -44,9 +41,7 @@ class TestIngestJSON(unittest.TestCase):
         db_args["database"] = db
         conn_conf = ConfigFactory.create_config(args=db_args)
 
-        ingest_json_files(
-            path, config, conn_conf=conn_conf, ncores=1
-        )
+        ingest_json_files(path, config, conn_conf=conn_conf, ncores=1)
 
         with ConnectionManager(connection_config=conn_conf) as db_client:
             cols = db_client.get_collections()
@@ -66,9 +61,7 @@ class TestIngestJSON(unittest.TestCase):
             self.assertTrue(flag)
 
         else:
-            ResourceHandler.dump(
-                vc, join(self.cpath, f"../ref/json/{mode}_sizes.yaml")
-            )
+            ResourceHandler.dump(vc, join(self.cpath, f"../ref/json/{mode}_sizes.yaml"))
 
     def test_modes(self):
         for mode in self.modes:
@@ -99,6 +92,7 @@ class TestIngestJSON(unittest.TestCase):
     def runTest(self):
         for mode in self.modes:
             self._atomic(mode)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

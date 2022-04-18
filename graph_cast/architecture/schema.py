@@ -32,7 +32,7 @@ class Vertex:
         extra_index=(),
         numeric_fields=(),
         filters=(),
-        transforms=()
+        transforms=(),
     ):
         self._name = name
         self._dbname = name if basename is None else basename

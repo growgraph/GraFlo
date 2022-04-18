@@ -12,11 +12,11 @@ logger = logging.getLogger(__name__)
 
 
 def process_jsonlike(
-        json_data: List,
-        conf_obj: JConfigurator,
-        db_config: ConnectionConfigType,
-        ncores=1,
-        dry=False
+    json_data: List,
+    conf_obj: JConfigurator,
+    db_config: ConnectionConfigType,
+    ncores=1,
+    dry=False,
 ):
 
     vdocs, edocs = jsonlike_to_collections(json_data, conf_obj, ncores)

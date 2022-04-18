@@ -24,7 +24,11 @@ class TestIngestCSV(unittest.TestCase):
         "db_type": "arango",
     }
 
-    modes = ["ibes", "wos", "ticker"]
+    modes = [
+        "ibes",
+        "wos",
+        "ticker",
+    ]
 
     def __init__(self, reset):
         super().__init__()

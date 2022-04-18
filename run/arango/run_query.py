@@ -110,11 +110,11 @@ n = list(r)[0]
 if current_query["main_collection"] == "publications" and nq != "6":
     order_max = int(np.log(n) / np.log(10))
     orders = np.arange(1, order_max + 1, 1)
-    limits = 10 ** orders
+    limits = 10**orders
 else:
     order_max = int(np.log(n / 5) / np.log(2))
     orders = np.arange(0, order_max + 1, 1)
-    limits = 5 * 2 ** orders
+    limits = 5 * 2**orders
 
 q0 = current_query["q"]
 for k in sub_keys:

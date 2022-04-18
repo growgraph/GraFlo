@@ -1,6 +1,3 @@
-call: 1
-participant: 2
-? !!python/tuple
-- participant
-- call
-: 2
+calls: 1
+participants: 2
+participants_calls_edges: 2

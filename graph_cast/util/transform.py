@@ -43,22 +43,24 @@ def parse_date_ibes(date0, time0):
     full_datetime = f"{year}-{month}-{day}T{time0}Z"
 
     # full_datetime = f"{year}-{month}-{day}T{time0}"
-    dt = datetime.strptime(full_datetime, "%Y-%m-%dT%H:%M:%SZ").timetuple()
-    timestamp = time.mktime(dt)
-    return (timestamp,)
+    # dt = datetime.strptime(full_datetime, "%Y-%m-%dT%H:%M:%SZ").timetuple()
+    # timestamp = time.mktime(dt)
+    # return (timestamp,)
+    return (full_datetime,)
 
 
 def parse_date_yahoo(date0):
     """
 
-    :param date0: as "20160126"
-    :param time0: as "9:35:52"
-    :return: datetime as "2013-01-15T14:19:09.522"
+    :param date0: as "2016-01-26"
+    :return: datetime as "2016-01-26T14:19:09.522"
     """
+    full_datetime = f"{date0}T12:00:00Z"
+    # dt = datetime.strptime(date0, "%Y-%m-%d").timetuple()
 
-    dt = datetime.strptime(date0, "%Y-%m-%d").timetuple()
-    timestamp = time.mktime(dt)
-    return (timestamp,)
+    # timestamp = time.mktime(dt)
+    # return (timestamp,)
+    return (full_datetime,)
 
 
 def round_str(x, **kwargs):

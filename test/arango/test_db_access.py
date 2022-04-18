@@ -28,7 +28,9 @@ class TestDBAccess(unittest.TestCase):
         conn_conf = ConfigFactory.create_config(args=db_args)
 
         with ConnectionManager(connection_config=conn_conf) as db_client:
-            cnames = [c["name"] for c in db_client.get_collections() if c["name"][0] != "_"]
+            cnames = [
+                c["name"] for c in db_client.get_collections() if c["name"][0] != "_"
+            ]
             for c in cnames:
                 logger.info(c)
 
@@ -37,7 +39,9 @@ class TestDBAccess(unittest.TestCase):
         db_args["database"] = "wos_test"
         conn_conf = ConfigFactory.create_config(args=db_args)
         with ConnectionManager(connection_config=conn_conf) as db_client:
-            cnames = [c["name"] for c in db_client.get_collections() if c["name"][0] != "_"]
+            cnames = [
+                c["name"] for c in db_client.get_collections() if c["name"][0] != "_"
+            ]
 
         docs = [{"value": i} for i in range(5)]
         query0 = insert_return_batch(docs, "test")
@@ -63,4 +67,3 @@ class TestDBAccess(unittest.TestCase):
 if __name__ == "__main__":
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     unittest.main()
-
