@@ -1,7 +1,7 @@
 import unittest
 import logging
 import argparse
-from graph_cast.input.table import table_to_vcollections
+from graph_cast.input import table_to_collections
 from graph_cast.util import ResourceHandler, equals
 from graph_cast.architecture.table import TConfigurator
 from graph_cast.util.transform import pick_unique_dict
@@ -26,7 +26,7 @@ class TestIngestCSV(unittest.TestCase):
         header_dict = dict(zip(header, range(len(header))))
         lines = list(df.values)
         conf_obj.set_mode(mode)
-        vdocuments, edocuments = table_to_vcollections(
+        vdocuments, edocuments = table_to_collections(
             lines,
             header_dict,
             conf_obj,

@@ -3,7 +3,6 @@ from os.path import join, dirname, realpath
 import logging
 from graph_cast.main import ingest_csvs
 from graph_cast.util import ResourceHandler, equals
-from graph_cast.architecture import TConfigurator
 from graph_cast.db import ConnectionManager, ConfigFactory
 import argparse
 
@@ -38,7 +37,6 @@ class TestIngestCSV(unittest.TestCase):
 
         path = join(self.cpath, f"../data/{mode}")
         config = ResourceHandler.load(f"conf", f"{mode}.yaml")
-        # conf_obj = TConfigurator(config)
 
         db_args = dict(self.db_args)
         db_args["database"] = db

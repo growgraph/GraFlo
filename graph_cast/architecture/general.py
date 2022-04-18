@@ -1,9 +1,12 @@
 import importlib
 import logging
+from typing import TypeVar
 from collections import defaultdict, Iterable
 from graph_cast.architecture.schema import VertexConfig, GraphConfig
 
 logger = logging.getLogger(__name__)
+
+ConfiguratorType = TypeVar("ConfiguratorType", bound="Configurator")
 
 
 class Configurator:

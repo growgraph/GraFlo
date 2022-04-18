@@ -1,98 +1,130 @@
-from itertools import product
-import pandas as pd
+from collections import defaultdict, ChainMap
+from itertools import product, combinations, chain
 import logging
-from typing import Union
-from graph_cast.input.csv_abs import table_to_vcollections
-from graph_cast.util.io import Chunker, ChunkerDataFrame
-from graph_cast.db import ConnectionManager, ConnectionConfigType
+from typing import List, Dict
 
-from graph_cast.db.arango.util import (
-    upsert_docs_batch,
-    insert_edges_batch,
-    insert_return_batch,
-)
-
+from graph_cast.architecture import ConfiguratorType
+from graph_cast.architecture.general import transform_foo
 
 logger = logging.getLogger(__name__)
 
 
-def process_table(
-    tabular_resource: Union[str, pd.DataFrame],
-    batch_size,
-    max_lines,
-    db_config: ConnectionConfigType,
-    conf,
+def table_to_collections(
+    rows: List[List],
+    header_dict: Dict[str, int],
+    conf: ConfiguratorType,
 ):
-    if isinstance(tabular_resource, pd.DataFrame):
-        chk = ChunkerDataFrame(tabular_resource, batch_size, max_lines)
-    elif isinstance(tabular_resource, str):
-        chk = Chunker(tabular_resource, batch_size, max_lines, encoding=conf.encoding)
-        conf.set_current_resource_name(tabular_resource)
-    else:
-        raise TypeError(f"tabular_resource type is not str or pd.DataFrame")
-    header = chk.pop_header()
-    header_dict = dict(zip(header, range(len(header))))
 
-    logger.debug(f"processing current table resource : {tabular_resource}")
+    vdocs = defaultdict(list)
+    edocs = defaultdict(list)
+    vertex_conf = conf.vertex_config
 
-    while not chk.done:
-        lines = chk.pop()
-        if lines:
+    rows_raw = [{k: item[v] for k, v in header_dict.items()} for item in rows]
 
-            # file to vcols, ecols
-            vdocuments, edocuments = table_to_vcollections(
-                lines,
-                header_dict,
-                conf,
-            )
+    # perform possible transforms
+    transformation_outputs = set(
+        [
+            item
+            for transformation in conf.current_transformations
+            for item in transformation.output
+        ]
+    )
+    rows_working = []
 
-            # transform vcols, ecols
-            # ingest vcols, ecols
+    for doc in rows_raw:
+        transformed = [
+            transform_foo(transformation, doc)
+            for transformation in conf.current_transformations
+        ]
+        doc_upd = {**doc, **dict(ChainMap(*transformed))}
+        rows_working += [doc_upd]
 
-            with ConnectionManager(connection_config=db_config) as db_client:
-                for vcol, data in vdocuments.items():
-                    # blank nodes: push and get back their keys  {"_key": ...}
-                    if vcol in conf.vertex_config.blank_collections:
-                        query0 = insert_return_batch(
-                            data, conf.vertex_config.dbname(vcol)
-                        )
-                        cursor = db_client.execute(query0)
-                        vdocuments[vcol] = [item for item in cursor]
-                    else:
-                        query0 = upsert_docs_batch(
-                            data,
-                            conf.vertex_config.dbname(vcol),
-                            conf.vertex_config.index(vcol),
-                            "doc",
-                            True,
-                        )
-                        cursor = db_client.execute(query0)
+    for vcol, local_map in conf.current_collections:
+        vdoc_acc = []
 
-                # update edge data with blank node edges
-                for vcol in conf.vertex_config.blank_collections:
-                    for vfrom, vto in conf.current_graphs:
-                        if vcol == vfrom or vcol == vto:
-                            edocuments[(vfrom, vto)].extend(
+        current_fields = set(vertex_conf.index(vcol)) | set(vertex_conf.fields(vcol))
+
+        default_input = current_fields & (
+            transformation_outputs | set(header_dict.keys())
+        )
+
+        if default_input:
+            vdoc_acc += [[{f: item[f] for f in default_input} for item in rows_working]]
+
+        if local_map.active:
+            vdoc_acc += [[local_map(item) for item in rows_working]]
+        vdocs[vcol].append([dict(ChainMap(*auxs)) for auxs in zip(*vdoc_acc)])
+
+    # if blank collection has no aux fields - inflate it
+    for vcol in vertex_conf.blank_collections:
+        # if blank collection is in vdocs - inflate it, otherwise - create
+        if vcol in vdocs:
+            for j, docs in enumerate(vdocs[vcol]):
+                if not docs:
+                    vdocs[vcol][j] = [{}] * len(rows)
+        else:
+            vdocs[vcol].append([{}] * len(rows))
+
+    # apply filter : add a flag
+    for vcol, vfilter in conf.vertex_config.filters():
+        for j, clist in enumerate(vdocs[vcol]):
+            for doc in clist:
+                if not vfilter(doc):
+                    doc.update({f"_status@{vfilter.b.field}": vfilter(doc)})
+
+    for u, v in conf.current_graphs:
+        g = u, v
+        if (
+            u not in vertex_conf.blank_collections
+            and v not in vertex_conf.blank_collections
+        ):
+            if conf.graph(u, v)["type"] == "direct":
+                if u != v:
+                    ziter = product(vdocs[u], vdocs[v])
+                else:
+                    ziter = combinations(vdocs[u], r=2)
+                for ubatch, vbatch in ziter:
+                    ebatch = [
+                        {"source": x, "target": y}
+                        for x, y in zip(ubatch, vbatch)
+                        if not (
+                            any(
                                 [
-                                    {"source": x, "target": y}
-                                    for x, y in zip(vdocuments[vfrom], vdocuments[vto])
+                                    f"_status@{xkey}" in x
+                                    for xkey in vertex_conf.fields(u)
                                 ]
                             )
+                            or any(
+                                [
+                                    f"_status@{ykey}" in y
+                                    for ykey in vertex_conf.fields(v)
+                                ]
+                            )
+                        )
+                    ]
+                    # add weights from available rows
+                    cfields = conf.graph_config.weights(*g)
+                    if cfields:
+                        weights = [
+                            {f: item[f] for f in cfields} for item in rows_working
+                        ]
+                        ebatch = [
+                            {**item, **{"attributes": attr}}
+                            for item, attr in zip(ebatch, weights)
+                        ]
+                    edocs[g].extend(ebatch)
 
-                for (vfrom, vto), data in edocuments.items():
-                    query0 = insert_edges_batch(
-                        data,
-                        conf.vertex_config.dbname(vfrom),
-                        conf.vertex_config.dbname(vto),
-                        conf.graph(vfrom, vto)["edge_name"],
-                        conf.vertex_config.index(vfrom),
-                        conf.vertex_config.index(vto),
-                        False,
-                    )
-                    cursor = db_client.execute(query0)
+    for u, vlists in vdocs.items():
+        vdocs[u] = [
+            [
+                item
+                for item in vlist
+                if not any(
+                    [f"_status@{xkey}" in item for xkey in vertex_conf.fields(u)]
+                )
+            ]
+            for vlist in vlists
+        ]
+        vdocs[u] = list(chain.from_iterable(vdocs[u]))
 
-                # #create edge u -> v from u->w, v->w edges
-                # # find edge_cols uw and vw
-                # for u, v in conf_obj.graph_config.extra_edges:
-                #     query0 = define_extra_edges(conf_obj.graph(u, v))
-                #     cursor = db_config.execute(query0)
+    return vdocs, edocs

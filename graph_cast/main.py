@@ -7,6 +7,7 @@ from os import listdir
 from os.path import isfile, join
 import logging
 
+import graph_cast.input.table_flow
 from graph_cast.db.arango.util import (
     upsert_docs_batch,
     insert_edges_batch,
@@ -176,7 +177,7 @@ def ingest_csvs(
         }
 
         with timer.Timer() as klepsidra:
-            func = partial(graph_cast.input.table.process_table, **kwargs)
+            func = partial(graph_cast.input.table_flow.process_table, **kwargs)
             n_proc = 1
             if n_proc > 1:
                 with mp.Pool(n_proc) as p:

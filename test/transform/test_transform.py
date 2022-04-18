@@ -5,7 +5,7 @@ from graph_cast.architecture.general import Transform
 import yaml
 from graph_cast.architecture.table import TConfigurator
 from graph_cast.util.io import Chunker
-from graph_cast.input.csv_abs import table_to_vcollections
+from graph_cast.input import table_to_collections
 from graph_cast.util import ResourceHandler, equals
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ class TestTransform(unittest.TestCase):
         while not chk.done:
             lines = chk.pop()
             if lines:
-                vdocuments, edocuments = table_to_vcollections(
+                vdocuments, edocuments = table_to_collections(
                     lines,
                     header_dict,
                     conf,

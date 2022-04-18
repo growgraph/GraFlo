@@ -4,7 +4,7 @@ import pandas as pd
 import yaml
 import logging
 from graph_cast.db.arango import get_arangodb_client, define_collections_and_indices
-from graph_cast.input.table import process_table
+from graph_cast.input.table_flow import process_table
 from graph_cast.architecture.table import TConfigurator
 
 
