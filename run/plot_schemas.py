@@ -6,7 +6,7 @@ from itertools import product
 from os.path import join, dirname, realpath
 import argparse
 
-from graph_cast.input.json import parse_edges
+from graph_cast.input.json_aux import parse_edges
 from graph_cast.architecture.table import TConfigurator
 from graph_cast.architecture.json import JConfigurator
 

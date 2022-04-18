@@ -3,14 +3,14 @@ import logging
 import argparse
 from graph_cast.input import table_to_collections
 from graph_cast.util import ResourceHandler, equals
-from graph_cast.architecture.table import TConfigurator
+from graph_cast.architecture import TConfigurator
 from graph_cast.util.transform import pick_unique_dict
 
 
 logger = logging.getLogger(__name__)
 
 
-class TestIngestCSV(unittest.TestCase):
+class TestTransformTable(unittest.TestCase):
     modes = ["ibes", "ticker"]
 
     def __init__(self, reset):
@@ -26,6 +26,7 @@ class TestIngestCSV(unittest.TestCase):
         header_dict = dict(zip(header, range(len(header))))
         lines = list(df.values)
         conf_obj.set_mode(mode)
+
         vdocuments, edocuments = table_to_collections(
             lines,
             header_dict,
@@ -54,5 +55,5 @@ if __name__ == "__main__":
     parser.add_argument("--reset", action="store_true", help="reset test results")
     args = parser.parse_args()
     suite = unittest.TestSuite()
-    suite.addTest(TestIngestCSV(args.reset))
+    suite.addTest(TestTransformTable(args.reset))
     unittest.TextTestRunner(verbosity=2).run(suite)

@@ -12,8 +12,11 @@ ConfiguratorType = TypeVar("ConfiguratorType", bound="Configurator")
 class Configurator:
     def __init__(self, config):
         self.vertex_config = VertexConfig(config["vertex_collections"])
+        edge_collections = (
+            config["edge_collections"] if "edge_collections" in config else ()
+        )
         self.graph_config = GraphConfig(
-            config["edge_collections"],
+            edge_collections,
             self.vertex_config.dbname,
             config["json"] if "json" in config else None,
         )
@@ -66,9 +69,6 @@ class Transform:
         return f"{id(self)} | {self._foo} {self._inputs} -> {self._outputs}"
 
     __repr__ = __str__
-
-
-# ValueError
 
 
 class TransformException(BaseException):
@@ -141,9 +141,9 @@ class Mapper:
         for k, item in self._map_splitter.items():
             if not isinstance(item, dict):
                 raise TypeError(f" self._raw_map should be a dict : {self._raw_map}")
-            if not "key" in item:
+            if "key" not in item:
                 raise KeyError(f" item should contain 'key' and 'value' : {item}")
-            if not "value" in item:
+            if "value" not in item:
                 item["value"] = "value"
 
     def _update_filename(self, filename):

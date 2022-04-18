@@ -107,7 +107,7 @@ if __name__ == "__main__":
     ingest_json_files(
         expanduser(args.datapath),
         config=config_,
-        db_client=db_client,
+        conn_conf=db_client,
         keyword=args.keyword,
         clean_start=clean_start,
     )

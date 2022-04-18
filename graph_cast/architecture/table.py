@@ -25,6 +25,11 @@ class TConfigurator(Configurator):
         self._init_modes2graphs(config["csv"], self.graph_config.edges)
 
     def set_mode(self, mode):
+        """
+        TConfigurator configure several types of tables, mode tells TConfigurator which type to table to deal with currently
+        :param mode:
+        :return:
+        """
         self.mode = mode
 
     @property

@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Set, Tuple, Any, Dict
+from typing import Set, Tuple, Any, Dict, DefaultDict, List
 
 
 class CollectionIndex:
@@ -276,10 +276,16 @@ class GraphConfig:
     _exclude_fields = defaultdict(list)
 
     def __init__(self, econfig, vmap, jconfig=None):
-        if jconfig:
+        """
+
+        :param econfig: edges config : direct definitions of edges
+        :param vmap: map of vcollection id to vcollection name in db
+        :param jconfig: in json config edges might be defined locally,
+                            so json schema should be parsed for flat edges list
+        """
+        self._init_edges(econfig)
+        if jconfig is not None:
             self._init_jedges(jconfig)
-        else:
-            self._init_edges(econfig)
         self._init_extra_edges(econfig)
         self._check_edges_extra_edges_consistency()
         self._define_graphs(econfig, vmap)
@@ -315,11 +321,15 @@ class GraphConfig:
         acc_edges = set()
         exclude_fields = defaultdict(list)
 
-        self._edges, self._exclude_fields = self._parse_jedges(
+        edges, self._exclude_fields = self._parse_jedges(
             jconfig, acc_edges, exclude_fields
         )
 
-    def _parse_jedges(self, croot, edge_accumulator, exclusion_fields):
+        self._edges |= edges
+
+    def _parse_jedges(
+        self, croot, edge_accumulator, exclusion_fields
+    ) -> (Set, DefaultDict[str, List]):
         # TODO push mapping_fields etc to architecture
         """
         extract edge definition and edge fields from definition dict

@@ -72,7 +72,7 @@ def process_units(
                 ingest_json_files(
                     tmp_dir,
                     config,
-                    db_client=db_client,
+                    conn_conf=db_client,
                     keyword="json",
                     clean_start="all" if j == 0 and init_collections else None,
                     dry=dry,

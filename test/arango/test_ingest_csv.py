@@ -1,10 +1,12 @@
 import unittest
 from os.path import join, dirname, realpath
 import logging
+import argparse
+from pprint import pprint
+
 from graph_cast.main import ingest_csvs
 from graph_cast.util import ResourceHandler, equals
 from graph_cast.db import ConnectionManager, ConfigFactory
-import argparse
 
 logger = logging.getLogger(__name__)
 
@@ -22,11 +24,7 @@ class TestIngestCSV(unittest.TestCase):
         "db_type": "arango",
     }
 
-    modes = [
-        "ibes",
-        "wos",
-        "ticker"
-    ]
+    modes = ["ibes", "wos", "ticker"]
 
     def __init__(self, reset):
         super().__init__()
@@ -35,7 +33,7 @@ class TestIngestCSV(unittest.TestCase):
     def _atomic(self, mode):
         db = f"{mode}_test"
 
-        path = join(self.cpath, f"../data/{mode}")
+        path = join(self.cpath, f"../data/csv/{mode}")
         config = ResourceHandler.load(f"conf", f"{mode}.yaml")
 
         db_args = dict(self.db_args)
@@ -60,17 +58,17 @@ class TestIngestCSV(unittest.TestCase):
                     size = next(cursor)
                     vc[c["name"]] = size
         if not self.reset:
-            ref_vc = ResourceHandler.load(f"test.ref", f"{mode}_sizes_ingest_csv.yaml")
+            ref_vc = ResourceHandler.load(f"test.ref.csv", f"{mode}_sizes.yaml")
             flag = equals(vc, ref_vc)
             if not flag:
-                print(vc)
-                print(ref_vc)
+                pprint(f"ref keys: {sorted(ref_vc.keys())}")
+                pprint(f"cur keys: {sorted(vc.keys())}")
+                for k in vc.keys():
+                    pprint(f"ref: {ref_vc[k]}, current: {vc[k]}")
             self.assertTrue(flag)
 
         else:
-            ResourceHandler.dump(
-                vc, join(self.cpath, f"../ref/{mode}_sizes_ingest_csv.yaml")
-            )
+            ResourceHandler.dump(vc, join(self.cpath, f"../ref/csv/{mode}_sizes.yaml"))
 
     def runTest(self):
         for mode in self.modes:

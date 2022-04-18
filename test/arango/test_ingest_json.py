@@ -2,25 +2,18 @@ import unittest
 from os.path import join, dirname, realpath
 import yaml
 import logging
+import argparse
 from pprint import pprint
 import pandas as pd
-from graph_cast.db import ConnectionManager
+from graph_cast.db import ConnectionManager, ConfigFactory
+from graph_cast.util import ResourceHandler, equals
 from graph_cast.main import ingest_json_files
 
-logging.basicConfig(
-    filename="test_ingest_json.log",
-    format="%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    level=logging.INFO,
-    filemode="w",
-)
+logger = logging.getLogger(__name__)
 
 
 class TestIngestJSON(unittest.TestCase):
     cpath = dirname(realpath(__file__))
-
-    set_reference = False
-    # set_reference = True
 
     db_args = {
         "protocol": "http",
@@ -34,59 +27,46 @@ class TestIngestJSON(unittest.TestCase):
 
     modes = ["wos"]
 
+    def __init__(self, reset):
+        super().__init__()
+        self.reset = reset
+
     def _atomic(self, mode):
         prefix = f"{mode}_json"
         db = f"{mode}_test"
 
-        path = join(self.cpath, f"../data/{prefix}")
-
-        config_path = join(self.cpath, f"../../conf/{prefix}.yaml")
-        with open(config_path, "r") as f:
-            config = yaml.load(f, Loader=yaml.FullLoader)
-
-        if not self.set_reference:
-            ref_path = join(self.cpath, f"./ref/{prefix}_sizes.yaml")
-            with open(ref_path, "r") as f:
-                ref_sizes = yaml.load(f, Loader=yaml.FullLoader)
+        path = join(self.cpath, f"../data/{mode}")
+        config = ResourceHandler.load(f"conf", f"{mode}.yaml")
 
         db_args = dict(self.db_args)
         db_args["database"] = db
-        with ConnectionManager(args=db_args) as db_client:
+        conn_conf = ConfigFactory.create_config(args=db_args)
 
-            ingest_json_files(
-                path, db_client=db_client, keyword="wos", config=config, ncores=1
-            )
+        ingest_json_files(
+            path, conn_conf=conn_conf, keyword="wos", config=config, ncores=1
+        )
 
-            cols = db_client.get_collections()
-            test_sizes = []
-            for c in cols:
-                if not c["system"]:
-                    cursor = db_client.execute(f"return LENGTH({c['name']})")
-                    size = next(cursor)
-                    test_sizes += [(c["name"], size)]
-            test_sizes = sorted(test_sizes, key=lambda x: x[0])
-            if self.set_reference:
-                ref_path = join(self.cpath, f"./ref/{prefix}_sizes.yaml")
-                with open(ref_path, "w") as file:
-                    yaml.dump(test_sizes, file)
-            else:
-                t = (
-                    pd.DataFrame(test_sizes)
-                    .set_index(0)
-                    .rename(columns={1: "test"})
-                    .sort_index()
-                )
-                r = (
-                    pd.DataFrame(ref_sizes)
-                    .set_index(0)
-                    .rename(columns={1: "ref"})
-                    .sort_index()
-                )
-                cmp = pd.concat([r, t], axis=1).sort_index()
-                outstanding = cmp[cmp["test"] != cmp["ref"]]
-                pprint(outstanding)
-                pprint((cmp["test"] == cmp["ref"]).all())
-                self.assertTrue((cmp["test"] == cmp["ref"]).all())
+        # with ConnectionManager(connection_config=conn_conf) as db_client:
+        #     cols = db_client.get_collections()
+        #     vc = {}
+        #     for c in cols:
+        #         if not c["system"]:
+        #             cursor = db_client.execute(f"return LENGTH({c['name']})")
+        #             size = next(cursor)
+        #             vc[c["name"]] = size
+        #
+        # if not self.reset:
+        #     ref_vc = ResourceHandler.load(f"test.ref", f"{mode}_sizes_ingest_csv.yaml")
+        #     flag = equals(vc, ref_vc)
+        #     if not flag:
+        #         print(vc)
+        #         print(ref_vc)
+        #     self.assertTrue(flag)
+        #
+        # else:
+        #     ResourceHandler.dump(
+        #         vc, join(self.cpath, f"../ref/{mode}_sizes_ingest_csv.yaml")
+        #     )
 
     def test_modes(self):
         for mode in self.modes:
@@ -96,7 +76,7 @@ class TestIngestJSON(unittest.TestCase):
         import gzip
         import json
         from graph_cast.architecture.json import JConfigurator
-        from graph_cast.main import ingest_json
+        from graph_cast.input.json_flow import process_jsonlike
 
         fpath = join(self.cpath, f"../data/wos_unit.json.gz")
 
@@ -112,8 +92,13 @@ class TestIngestJSON(unittest.TestCase):
 
         conf_obj = JConfigurator(config)
 
-        r = ingest_json(json_data, conf_obj, sys_db=None, dry=True)
+        r = process_jsonlike(json_data, conf_obj, db_config=None, dry=True)
 
 
 if __name__ == "__main__":
-    unittest.main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--reset", action="store_true", help="reset test results")
+    args = parser.parse_args()
+    suite = unittest.TestSuite()
+    suite.addTest(TestIngestCSV(args.reset))
+    unittest.TextTestRunner(verbosity=2).run(suite)

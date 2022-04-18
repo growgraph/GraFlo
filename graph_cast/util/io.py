@@ -44,7 +44,7 @@ class Chunker:
                 self.file_obj = gzip.GzipFile(fileobj=io.BytesIO(bytes_), mode="r")
             else:
                 self.file_obj = io.BytesIO(bytes_)
-            self.file_obj = io.TextIOWrapper(self.file_obj, encoding='utf-8')
+            self.file_obj = io.TextIOWrapper(self.file_obj, encoding="utf-8")
         self.done = False
 
     def pop_header(self):

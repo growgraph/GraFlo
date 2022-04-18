@@ -1,9 +1,10 @@
 import logging
+from graph_cast.architecture import ConfiguratorType
 
 logger = logging.getLogger(__name__)
 
 
-def parse_vcollection(config, conf_obj):
+def parse_vcollection(config, conf_obj: ConfiguratorType):
 
     # vertex_type -> vertex_collection_name
     conf_obj.dbname = {

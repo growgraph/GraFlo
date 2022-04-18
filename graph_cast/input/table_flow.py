@@ -2,7 +2,11 @@ from typing import Union
 import pandas as pd
 
 from graph_cast.db import ConnectionConfigType, ConnectionManager
-from graph_cast.db.arango.util import insert_return_batch, upsert_docs_batch, insert_edges_batch
+from graph_cast.db.arango.util import (
+    insert_return_batch,
+    upsert_docs_batch,
+    insert_edges_batch,
+)
 from graph_cast.input import table_to_collections
 from graph_cast.input.table import logger
 from graph_cast.util.io import ChunkerDataFrame, Chunker
@@ -11,11 +15,20 @@ from graph_cast.architecture import ConfiguratorType
 
 def process_table(
     tabular_resource: Union[str, pd.DataFrame],
+    conf: ConfiguratorType,
+    db_config: ConnectionConfigType,
     batch_size: int,
     max_lines: int,
-    db_config: ConnectionConfigType,
-    conf: ConfiguratorType
 ):
+    """
+        given a table, config that specifies table to graph mapping and db_config, transform table and load it into db
+    :param tabular_resource:
+    :param conf:
+    :param db_config:
+    :param batch_size:
+    :param max_lines:
+    :return:
+    """
     if isinstance(tabular_resource, pd.DataFrame):
         chk = ChunkerDataFrame(tabular_resource, batch_size, max_lines)
     elif isinstance(tabular_resource, str):

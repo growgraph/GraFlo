@@ -1,7 +1,7 @@
 from collections import defaultdict, ChainMap
 from itertools import product, combinations, chain
 import logging
-from typing import List, Dict
+from typing import List, Dict, DefaultDict
 
 from graph_cast.architecture import ConfiguratorType
 from graph_cast.architecture.general import transform_foo
@@ -13,7 +13,7 @@ def table_to_collections(
     rows: List[List],
     header_dict: Dict[str, int],
     conf: ConfiguratorType,
-):
+) -> DefaultDict:
 
     vdocs = defaultdict(list)
     edocs = defaultdict(list)
