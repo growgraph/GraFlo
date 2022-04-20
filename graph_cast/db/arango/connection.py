@@ -16,15 +16,18 @@ class ArangoConnection(Connection):
         )
 
     def define_collections(self, graph_config, vertex_config):
-        self.define_vertex_collections(graph_config, vertex_config.index)
+        self.define_vertex_collections(graph_config, vertex_config)
         self.define_edge_collections(graph_config)
 
     def define_indices(self, graph_config, vertex_config):
         self.define_vertex_indices(vertex_config)
         self.define_edge_indices(graph_config)
 
-    def define_vertex_collections(self, graph_config, vertex_index):
+    def define_vertex_collections(self, graph_config, vertex_config):
+        vertex_index = vertex_config.index
         edges = graph_config.all_edges
+
+        disconnected_vertex_collections = set(vertex_config.collections) - set([v for edge in edges for v in edge])
         for u, v in edges:
             item = graph_config.graph(u, v)
             gname = item["graph_name"]
@@ -45,6 +48,10 @@ class ArangoConnection(Connection):
                 item["target"],
                 vertex_index(v),
             )
+        for v in disconnected_vertex_collections:
+            dbc = self.conn.create_collection(vertex_config._vmap[v])
+            # TODO default unique index here
+            ih = dbc.add_hash_index(fields=vertex_config.index(v))
 
     def define_edge_collections(self, graph_config):
         edges = graph_config.all_edges

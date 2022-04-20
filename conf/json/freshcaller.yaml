@@ -35,12 +35,6 @@ vertex_collections:
                 - created_time
             index:
                 - id
-#            transforms:
-#                -
-#                    foo: lower
-#                    class: str
-#                    fields:
-#                        - title
         participant:
             basename: participants
             fields:
@@ -54,3 +48,6 @@ vertex_collections:
                     unique: false
                     fields:
                         - issn
+        dummy:
+            basename: dummies
+
