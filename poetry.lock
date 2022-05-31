@@ -93,6 +93,17 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "neo4j"
+version = "4.4.3"
+description = "Neo4j Bolt driver for Python"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+
+[package.dependencies]
+pytz = "*"
+
+[[package]]
 name = "networkx"
 version = "2.8"
 description = "Python package for creating and manipulating graphs and networks"
@@ -332,7 +343,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "2a856e7baf0f694dac3f76713f365a592498072f2a2b8340416685091f44addb"
+content-hash = "b5daa41b6a311192c1a334c8e96efea935aa0dfdf9986209455c6392389b92c4"
 
 [metadata.files]
 black = [
@@ -408,6 +419,9 @@ mypy = [
 mypy-extensions = [
     {file = "mypy_extensions-0.4.3-py2.py3-none-any.whl", hash = "sha256:090fedd75945a69ae91ce1303b5824f428daf5a028d2f6ab8a299250a846f15d"},
     {file = "mypy_extensions-0.4.3.tar.gz", hash = "sha256:2d82818f5bb3e369420cb3c4060a7970edba416647068eb4c5343488a6c604a8"},
+]
+neo4j = [
+    {file = "neo4j-4.4.3.tar.gz", hash = "sha256:f2c9838607f7c95fa6e0c0153be48dfbbcef6f29930df3c596509490ca9eea8c"},
 ]
 networkx = [
     {file = "networkx-2.8-py3-none-any.whl", hash = "sha256:1a1e8fe052cc1b4e0339b998f6795099562a264a13a5af7a32cad45ab9d4e126"},
