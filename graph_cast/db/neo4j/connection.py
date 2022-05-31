@@ -9,7 +9,9 @@ logger = logging.getLogger(__name__)
 class Neo4jConnection(Connection):
     def __init__(self, config: ConnectionConfigType):
         super().__init__(config)
-        driver = GraphDatabase.driver(uri=config.hosts, auth=(config.cred_name, config.cred_pass))
+        driver = GraphDatabase.driver(
+            uri=config.hosts, auth=(config.cred_name, config.cred_pass)
+        )
         self.conn = driver.session()
 
         # self.conn = client.db(

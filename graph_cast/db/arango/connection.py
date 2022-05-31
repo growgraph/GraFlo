@@ -27,7 +27,9 @@ class ArangoConnection(Connection):
         vertex_index = vertex_config.index
         edges = graph_config.all_edges
 
-        disconnected_vertex_collections = set(vertex_config.collections) - set([v for edge in edges for v in edge])
+        disconnected_vertex_collections = set(vertex_config.collections) - set(
+            [v for edge in edges for v in edge]
+        )
         for u, v in edges:
             item = graph_config.graph(u, v)
             gname = item["graph_name"]
