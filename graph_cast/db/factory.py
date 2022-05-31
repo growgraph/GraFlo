@@ -5,6 +5,7 @@ from typing import Type
 import yaml
 
 from graph_cast.db.arango.config import ArangoConnectionConfig
+from graph_cast.db.neo4j.config import Neo4jConnectionConfig
 from graph_cast.db.abstract_config import ConnectionConfig
 
 
@@ -41,8 +42,10 @@ class ConfigFactory:
 
         if db_type == "arango":
             return ArangoConnectionConfig(**config)
-        elif db_type == "noe4j":
-            pass
+        elif db_type == "neo4j":
+            return Neo4jConnectionConfig(**config)
+        else:
+            raise NotImplementedError
 
 
 class ConnectionFactory:

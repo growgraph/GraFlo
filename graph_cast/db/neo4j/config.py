@@ -1,9 +1,9 @@
 from graph_cast.db.abstract_config import ConnectionConfig
-from graph_cast.db.arango.connection import ArangoConnection
+from graph_cast.db.neo4j.connection import Neo4jConnection
 
 
-class ArangoConnectionConfig(ConnectionConfig):
-    connection_class = ArangoConnection
+class Neo4jConnectionConfig(ConnectionConfig):
+    connection_class = Neo4jConnection
 
     def __init__(self, **args):
         super().__init__(**args)
@@ -11,5 +11,6 @@ class ArangoConnectionConfig(ConnectionConfig):
 
     def _init_values(self, **config):
         super()._init_values(**config)
-        self.port = config.get("port", 8529)
+        self.port = config.get("port", 7687)
+        self.protocol = config.get("protocol", "bolt")
         self.hosts = f"{self.protocol}://{self.ip_addr}:{self.port}"
