@@ -134,12 +134,16 @@ def add_weights(mapper, agg):
 
         if "vertex" in edge_def:
             for item in edge_def["vertex"]:
-                c = item["condition"]
-                vs = [doc for doc in agg[item["name"]] if all([q in doc for q in c])]
+                vs = [doc for doc in agg[item["name"]]]
+                if "condition" in item.keys():
+                    c = item["condition"]
+                    vs = [doc for doc in vs if all([q in doc for q in c])]
                 if vs:
                     doc = vs[0]
-                    flag = all([doc[k] == v for k, v in c.items()])
-                    if flag:
+                    if "condition" not in item.keys() or (
+                        "condition" in item.keys()
+                        and all([doc[k] == v for k, v in c.items()])
+                    ):
                         for edoc in edges:
                             edoc["attributes"].update(
                                 {item["name"]: doc[item["field"]]}

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class TestTransformJsonlike(unittest.TestCase):
     cpath = dirname(realpath(__file__))
-    modes = ["freshcaller"]
+    modes = ["freshcaller", "kg_v0"]
 
     def __init__(self, reset):
         super().__init__()
