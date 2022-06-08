@@ -83,7 +83,7 @@ json:
 vertex_collections:
     collections:
         publication:
-            basename: publication
+            basename: publications
             fields:
                 - id
             index:
