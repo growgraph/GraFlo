@@ -6,11 +6,11 @@ import yaml
 
 from graph_cast.db.arango.config import ArangoConnectionConfig
 from graph_cast.db.neo4j.config import Neo4jConnectionConfig
-from graph_cast.db.abstract_config import ConnectionConfig
+from graph_cast.db.abstract_config import ConnectionConfig, WSGIConfig
 
 
 class ConfigFactory:
-    _supported_dbs = ("arango", "neo4j")
+    _supported_dbs = ("arango", "neo4j", "wsgi")
 
     @classmethod
     def create_config(cls, secret_path=None, args=None):
@@ -44,6 +44,8 @@ class ConfigFactory:
             return ArangoConnectionConfig(**config)
         elif db_type == "neo4j":
             return Neo4jConnectionConfig(**config)
+        elif db_type == "wsgi":
+            return WSGIConfig(**config)
         else:
             raise NotImplementedError
 

@@ -10,7 +10,7 @@ class Neo4jConnectionConfig(ConnectionConfig):
         self._init_values(**args)
 
     def _init_values(self, **config):
-        super()._init_values(**config)
+        super().__init__(**config)
         self.port = config.get("port", 7687)
         self.protocol = config.get("protocol", "bolt")
         self.hosts = f"{self.protocol}://{self.ip_addr}:{self.port}"

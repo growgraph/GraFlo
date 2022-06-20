@@ -10,6 +10,6 @@ class ArangoConnectionConfig(ConnectionConfig):
         self._init_values(**args)
 
     def _init_values(self, **config):
-        super()._init_values(**config)
+        super().__init__(**config)
         self.port = config.get("port", 8529)
         self.hosts = f"{self.protocol}://{self.ip_addr}:{self.port}"
