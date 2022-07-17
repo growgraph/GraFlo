@@ -43,6 +43,7 @@ class Vertex:
         self._numeric_fields = numeric_fields
         # set of filters
         self._filters = [Filter(**item) for item in filters]
+
         # currently not used
         self._transforms = [Transform(**item) for item in transforms]
 

@@ -3,7 +3,7 @@ import yaml
 from os.path import expanduser
 
 from graph_cast.main import ingest_json_files
-from graph_cast.db.arango import get_arangodb_client
+from graph_cast.db import ConfigFactory
 import logging
 
 logger = logging.getLogger(__name__)
@@ -95,19 +95,12 @@ if __name__ == "__main__":
 
     logging.basicConfig(filename="ingest_json.log", level=logging.INFO)
 
-    db_client = get_arangodb_client(
-        protocol=args.protocol,
-        ip_addr=args.id_addr,
-        port=args.port,
-        database=args.db,
-        cred_name=args.login_name,
-        cred_pass=args.login_password,
-    )
+    conn_conf = ConfigFactory.create_config(args=args)
 
     ingest_json_files(
         expanduser(args.datapath),
         config=config_,
-        conn_conf=db_client,
+        conn_conf=conn_conf,
         keyword=args.keyword,
         clean_start=clean_start,
     )

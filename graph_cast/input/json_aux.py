@@ -39,7 +39,6 @@ def apply_mapper(mapper: Dict, document, vertex_config: VertexConfig):
                 if "transforms" in mapper:
                     for t in mapper["transforms"]:
                         t_ = Transform(**t)
-                        # doc_.update(transform_foo(t, document))
                         doc_.update(transform_foo(t_, document))
 
                 if "map" in mapper:
@@ -283,15 +282,6 @@ def pick_indexed_items_anchor_logic(items, indices, set_spec, anchor_key="anchor
     return items_
 
 
-def assign_edge_label(edges, label, condition):
-    edges_new = [(u, v, label) if condition(u, v) else (u, v, {}) for u, v in edges]
-    return edges_new
-
-
-def clean_arobas(item):
-    return {k: v for k, v in item.items() if k[0] != "@"}
-
-
 def project_dict(item, keys, how="include"):
     if how == "include":
         return {k: v for k, v in item.items() if k in keys}
@@ -307,17 +297,6 @@ def project_dicts(items, keys, how="include"):
     else:
         raise ValueError(f" `how` should be exclude or include : instead {how}")
 
-
-def clean_aux_fields(pack):
-    pack_out = {}
-    for k, cpack in pack.items():
-        if k != "@edges":
-            pack_out[k] = [clean_arobas(x) for x in cpack]
-        else:
-            pack_out[k] = [
-                (clean_arobas(x[0]), clean_arobas(x[1]), x[2:]) for x in cpack
-            ]
-    return pack_out
 
 
 def parse_edges(croot, edge_acc, mapping_fields):
@@ -353,11 +332,12 @@ def parse_edges(croot, edge_acc, mapping_fields):
 
 def merge_documents(docs, main_key="_key", anchor_key="anchor", anchor_value="main"):
     """
-    docs contain docs with main_key and without
+    docs contain documents with main_key and documents without
     all docs without main_key should be merged with the doc that has doc[anchor_key] == anchor_value
     :param docs:
     :param main_key:
     :param anchor_key:
+    :param anchor_value:
     :return: list of docs, each of which contains main_key
     """
     mains_, mains, auxs, anchors = [], [], [], []
@@ -431,57 +411,66 @@ def smart_merge(
     return agg
 
 
-def get_json_data(source, pattern=None):
-    if source[-2:] == "gz":
-        open_foo = gzip.GzipFile
-    else:
-        open_foo = open
-
-    with open_foo(source, "rb") as fp:
-        if pattern:
-            fps = FPSmart(fp, pattern)
-        else:
-            fps = fp
-        data = json.load(fps)
-    return data
+# def assign_edge_label(edges, label, condition):
+#     edges_new = [(u, v, label) if condition(u, v) else (u, v, {}) for u, v in edges]
+#     return edges_new
 
 
-# def foo_parallel(data, kwargs, n=None):
-#     func = partial(process_document_top, **kwargs)
-#     n_proc = 4
-#     if n is not None:
-#         data = data[:n]
-#     with mp.Pool(n_proc) as p:
-#         r = p.map(func, data)
-#     return r
+# def clean_arobas(item):
+#     return {k: v for k, v in item.items() if k[0] != "@"}
 
+# def clean_aux_fields(pack):
+#     pack_out = {}
+#     for k, cpack in pack.items():
+#         if k != "@edges":
+#             pack_out[k] = [clean_arobas(x) for x in cpack]
+#         else:
+#             pack_out[k] = [
+#                 (clean_arobas(x[0]), clean_arobas(x[1]), x[2:]) for x in cpack
+#             ]
+#     return pack_out
 
-def parse_config(config=None):
-    """
-    only parse_edges depends on json
-
-    :param config:
-    :param prefix:
-    :return:
-    """
-
-    (
-        vmap,
-        index_fields_dict,
-        extra_indices,
-        vfields,
-        blank_collections,
-    ) = parse_vcollection(config)
-
-    edge_def, excl_fields = parse_edges(config["json"], [], defaultdict(list))
-
-    graphs_definition = define_graphs(edge_def, vmap)
-    graphs_definition = update_graph_extra_edges(
-        graphs_definition, vmap, config["extra_edges"]
-    )
-
-    vcollections = list(
-        set([graphs_definition[g]["source"] for g in graphs_definition])
-        | set([graphs_definition[g]["target"] for g in graphs_definition])
-    )
-    return vcollections, vmap, graphs_definition, index_fields_dict, extra_indices
+# def get_json_data(source, pattern=None):
+#     if source[-2:] == "gz":
+#         open_foo = gzip.GzipFile
+#     else:
+#         open_foo = open
+#
+#     with open_foo(source, "rb") as fp:
+#         if pattern:
+#             fps = FPSmart(fp, pattern)
+#         else:
+#             fps = fp
+#         data = json.load(fps)
+#     return data
+#
+#
+# def parse_config(config=None):
+#     """
+#     only parse_edges depends on json
+#
+#     :param config:
+#     :param prefix:
+#     :return:
+#     """
+#
+#     (
+#         vmap,
+#         index_fields_dict,
+#         extra_indices,
+#         vfields,
+#         blank_collections,
+#     ) = parse_vcollection(config)
+#
+#     edge_def, excl_fields = parse_edges(config["json"], [], defaultdict(list))
+#
+#     graphs_definition = define_graphs(edge_def, vmap)
+#     graphs_definition = update_graph_extra_edges(
+#         graphs_definition, vmap, config["extra_edges"]
+#     )
+#
+#     vcollections = list(
+#         set([graphs_definition[g]["source"] for g in graphs_definition])
+#         | set([graphs_definition[g]["target"] for g in graphs_definition])
+#     )
+#     return vcollections, vmap, graphs_definition, index_fields_dict, extra_indices

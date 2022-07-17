@@ -1,7 +1,7 @@
 import argparse
 import yaml
 import logging
-from graph_cast.db.arango import get_arangodb_client
+from graph_cast.db import ConfigFactory
 from graph_cast.main import ingest_csvs
 
 logger = logging.getLogger(__name__)
@@ -94,14 +94,12 @@ if __name__ == "__main__":
     with open(args.config_path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    db_client = get_arangodb_client(
-        args.protocol, args.id_addr, args.port, args.db, args.cred_name, args.cred_pass
-    )
+    conn_conf = ConfigFactory.create_config(args=config)
 
     ingest_csvs(
         args.path,
         config,
-        db_client,
+        conn_conf,
         limit_files=args.limit_files,
         max_lines=args.max_lines,
         clean_start=args.clean_start,
