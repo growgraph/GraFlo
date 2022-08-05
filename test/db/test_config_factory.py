@@ -3,7 +3,6 @@ from graph_cast.db.factory import ConfigFactory
 
 
 class FactoryTest(unittest.TestCase):
-
     def test_factory(self):
         arango_args = {
             "protocol": "http",
@@ -23,7 +22,7 @@ class FactoryTest(unittest.TestCase):
             "protocol": "http",
             "ip_addr": "127.0.0.1",
             "port": 8529,
-            "path": "/re"
+            "path": "/re",
         }
         ac = ConfigFactory.create_config(args=args)
         self.assertEqual(ac.hosts[-2:], "re")

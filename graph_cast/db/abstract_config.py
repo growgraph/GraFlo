@@ -26,5 +26,3 @@ class WSGIConfig(ConnectionConfig):
         self.path = config.get("path", "/")
         self.hosts = f"{self.protocol}://{self.ip_addr}:{self.port}{self.path}"
         self.host = config.get("host", None)
-
-
