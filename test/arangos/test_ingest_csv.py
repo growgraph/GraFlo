@@ -18,10 +18,10 @@ class TestIngestCSV(unittest.TestCase):
         "protocol": "http",
         "ip_addr": "127.0.0.1",
         "port": 8529,
-        "cred_name": "root",
+        "cred_name": "test",
         "cred_pass": "123",
-        "database": "root",
-        "db_type": "arango",
+        "database": "testdb",
+        "db_type": "arangos",
     }
 
     modes = [
@@ -38,15 +38,15 @@ class TestIngestCSV(unittest.TestCase):
         db = f"{mode}_test"
 
         path = join(self.cpath, f"../data/csv/{mode}")
-        config = ResourceHandler.load(f"conf.table", f"{mode}.yaml")
+        schema_config = ResourceHandler.load(f"conf.table", f"{mode}.yaml")
 
         db_args = dict(self.db_args)
-        db_args["database"] = db
+        db_args["database"] = "testdb"
         conn_conf = ConfigFactory.create_config(args=db_args)
 
         ingest_csvs(
             path,
-            config,
+            schema_config,
             conn_conf,
             limit_files=None,
             clean_start=True,
@@ -60,6 +60,9 @@ class TestIngestCSV(unittest.TestCase):
                     cursor = db_client.execute(f"return LENGTH({c['name']})")
                     size = next(cursor)
                     vc[c["name"]] = size
+
+            db_client.delete_collections([], [], delete_all=True)
+
         if not self.reset:
             ref_vc = ResourceHandler.load(f"test.ref.csv", f"{mode}_sizes.yaml")
             flag = equals(vc, ref_vc)

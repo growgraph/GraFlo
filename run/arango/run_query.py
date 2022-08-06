@@ -79,7 +79,7 @@ database = args.db
 cred_name = args.login_name
 cred_pass = args.login_password
 
-fpath = "./../../results/arango"
+fpath = "./../../results/arangos"
 
 hosts = f"http://{ip_addr}:{port}"
 

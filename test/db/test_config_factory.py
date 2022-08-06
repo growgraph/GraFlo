@@ -11,7 +11,7 @@ class FactoryTest(unittest.TestCase):
             "cred_name": "root",
             "cred_pass": "123",
             "database": "root",
-            "db_type": "arango",
+            "db_type": "arangos",
         }
         ac = ConfigFactory.create_config(args=arango_args)
         self.assertEqual(ac.port, 8529)

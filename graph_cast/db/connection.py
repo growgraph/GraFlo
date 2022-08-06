@@ -15,6 +15,58 @@ class Connection(abc.ABC):
     def __init__(self, config: ConnectionConfig):
         pass
 
+    @abc.abstractmethod
+    def create_database(self, name: str):
+        pass
+
+    @abc.abstractmethod
+    def delete_database(self, name: str):
+        pass
+
+    @abc.abstractmethod
+    def execute(self, query):
+        pass
+
+    @abc.abstractmethod
+    def close(self):
+        pass
+
+    @abc.abstractmethod
+    def define_indices(self, graph_config, vertex_config):
+        pass
+
+    # @abc.abstractmethod
+    # def define_collections(self, graph_config, vertex_config):
+    #     pass
+    #
+    # @abc.abstractmethod
+    # def define_vertex_collections(self, graph_config, vertex_config):
+    #     pass
+    #
+    # @abc.abstractmethod
+    # def define_edge_collections(self, graph_config):
+    #     pass
+    #
+    # @abc.abstractmethod
+    # def define_vertex_indices(self, vertex_config):
+    #     pass
+    #
+    # @abc.abstractmethod
+    # def define_edge_indices(self, graph_config):
+    #     pass
+    #
+    # @abc.abstractmethod
+    # def create_collection_if_absent(self, g, vcol, index, unique=True):
+    #     pass
+    #
+    # @abc.abstractmethod
+    # def delete_collections(self, cnames=(), gnames=(), delete_all=False):
+    #     pass
+    #
+    # @abc.abstractmethod
+    # def get_collections(self):
+    #     pass
+
 
 def init_db(db_client: ConnectionType, conf_obj, clean_start):
     if clean_start:

@@ -15,6 +15,14 @@ class ArangoConnection(Connection):
             config.database, username=config.cred_name, password=config.cred_pass
         )
 
+    def create_database(self, name: str):
+        if not self.conn.has_database(name):
+            self.conn.create_database(name)
+
+    def delete_database(self, name: str):
+        if not self.conn.has_database(name):
+            self.conn.delete_database(name)
+
     def define_collections(self, graph_config, vertex_config):
         self.define_vertex_collections(graph_config, vertex_config)
         self.define_edge_collections(graph_config)

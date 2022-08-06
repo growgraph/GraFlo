@@ -82,6 +82,7 @@ def ingest_csvs(
 ):
 
     conf_obj = TConfigurator(config)
+
     with ConnectionManager(connection_config=conn_config) as db_client:
         init_db(db_client, conf_obj, clean_start)
 

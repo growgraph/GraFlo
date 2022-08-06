@@ -15,34 +15,34 @@ if __name__ == "__main__":
         "-d", "--datapath", default=expanduser("../data/wos"), help="path to data files"
     )
 
-    parser.add_argument(
-        "-i",
-        "--id-addr",
-        default="127.0.0.1",
-        type=str,
-        help="port for arangodb connection",
-    )
-
-    parser.add_argument(
-        "--protocol", default="http", type=str, help="protocol for arangodb connection"
-    )
-
-    parser.add_argument(
-        "-p", "--port", default=8529, type=int, help="port for arangodb connection"
-    )
-
-    parser.add_argument(
-        "-l", "--login-name", default="root", help="login name for arangodb connection"
-    )
-
-    parser.add_argument(
-        "-w",
-        "--login-password",
-        default="123",
-        help="login password for arangodb connection",
-    )
-
-    parser.add_argument("--db", default="_system", help="db for arangodb connection")
+    # parser.add_argument(
+    #     "-i",
+    #     "--id-addr",
+    #     default="127.0.0.1",
+    #     type=str,
+    #     help="port for arangodb connection",
+    # )
+    #
+    # parser.add_argument(
+    #     "--protocol", default="http", type=str, help="protocol for arangodb connection"
+    # )
+    #
+    # parser.add_argument(
+    #     "-p", "--port", default=8529, type=int, help="port for arangodb connection"
+    # )
+    #
+    # parser.add_argument(
+    #     "-l", "--login-name", default="root", help="login name for arangodb connection"
+    # )
+    #
+    # parser.add_argument(
+    #     "-w",
+    #     "--login-password",
+    #     default="123",
+    #     help="login password for arangodb connection",
+    # )
+    #
+    # parser.add_argument("--db", default="_system", help="db for arangodb connection")
 
     parser.add_argument(
         "-f",
@@ -81,6 +81,12 @@ if __name__ == "__main__":
         help="",
     )
 
+    parser.add_argument(
+        "--db-config-path",
+        type=str,
+        help="",
+    )
+
     args = parser.parse_args()
 
     limit_files_ = args.limit_files
@@ -95,19 +101,15 @@ if __name__ == "__main__":
 
     logging.basicConfig(filename="ingest_json.log", level=logging.INFO)
 
-    db_client = get_arangodb_client(
-        protocol=args.protocol,
-        ip_addr=args.id_addr,
-        port=args.port,
-        database=args.db,
-        cred_name=args.login_name,
-        cred_pass=args.login_password,
+    schema_config = ResourceHandler.load(fpath=args.config_path)
+    conn_conf = ConfigFactory.create_config(
+        args=ResourceHandler.load(fpath=args.db_config_path)
     )
 
     ingest_json_files(
         expanduser(args.datapath),
-        config=config_,
-        conn_conf=db_client,
+        config=schema_config,
+        conn_conf=conn_conf,
         keyword=args.keyword,
         clean_start=clean_start,
     )

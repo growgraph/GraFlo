@@ -19,10 +19,10 @@ class TestIngestJSON(unittest.TestCase):
         "protocol": "http",
         "ip_addr": "127.0.0.1",
         "port": 8529,
-        "cred_name": "root",
+        "cred_name": "test",
         "cred_pass": "123",
-        "database": "root",
-        "db_type": "arango",
+        "database": "testdb",
+        "db_type": "arangos",
     }
 
     modes = ["wos", "freshcaller"]
@@ -32,13 +32,12 @@ class TestIngestJSON(unittest.TestCase):
         self.reset = reset
 
     def _atomic(self, mode):
-        db = f"{mode}_test"
 
         path = join(self.cpath, f"../data/json/{mode}")
         config = ResourceHandler.load(f"conf.json", f"{mode}.yaml")
 
         db_args = dict(self.db_args)
-        db_args["database"] = db
+        db_args["database"] = "testdb"
         conn_conf = ConfigFactory.create_config(args=db_args)
 
         ingest_json_files(path, config, conn_conf=conn_conf, ncores=1)

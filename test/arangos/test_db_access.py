@@ -16,15 +16,16 @@ class TestDBAccess(unittest.TestCase):
         "protocol": "http",
         "ip_addr": "127.0.0.1",
         "port": 8529,
-        "cred_name": "root",
+        "cred_name": "test",
         "cred_pass": "123",
-        "database": "root",
-        "db_type": "arango",
+        "database": "testdb",
+        "db_type": "arangos",
     }
 
+    @unittest.skip("")
     def test_db_access(self):
         db_args = dict(self.db_args)
-        db_args["database"] = "wos_test"
+        db_args["database"] = "testdb"
         conn_conf = ConfigFactory.create_config(args=db_args)
 
         with ConnectionManager(connection_config=conn_conf) as db_client:
@@ -34,9 +35,10 @@ class TestDBAccess(unittest.TestCase):
             for c in cnames:
                 logger.info(c)
 
+    @unittest.skip("")
     def test_insert_return(self):
         db_args = dict(self.db_args)
-        db_args["database"] = "wos_test"
+        db_args["database"] = "testdb"
         conn_conf = ConfigFactory.create_config(args=db_args)
         with ConnectionManager(connection_config=conn_conf) as db_client:
             cnames = [
@@ -50,9 +52,10 @@ class TestDBAccess(unittest.TestCase):
         for item in cursor:
             logger.info(item)
 
+    @unittest.skip("")
     def test_query(self):
         db_args = dict(self.db_args)
-        db_args["database"] = "ibes_test"
+        db_args["database"] = "testdb"
         conn_conf = ConfigFactory.create_config(args=db_args)
 
         q = """for doc in analysts limit 5 return doc
