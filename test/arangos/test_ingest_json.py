@@ -22,7 +22,7 @@ class TestIngestJSON(unittest.TestCase):
         "cred_name": "test",
         "cred_pass": "123",
         "database": "testdb",
-        "db_type": "arangos",
+        "db_type": "arango",
     }
 
     modes = ["wos", "freshcaller"]

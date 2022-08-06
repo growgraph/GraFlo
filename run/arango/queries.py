@@ -6,7 +6,7 @@ all_stops = puncts + stop_words_nltk
 
 
 def get_issns(counts_limit=10):
-    fpath = "./../../results/arangos/journal_count.csv"
+    fpath = "./../../results/arango/journal_count.csv"
     df = pd.read_csv(fpath, index_col=0)
     mask = df["issn"].notnull()
     mask2 = df["counts"] > counts_limit
@@ -16,7 +16,7 @@ def get_issns(counts_limit=10):
 
 
 def get_pubs(head=100):
-    fpath = "./../../results/arangos/q4_result.csv"
+    fpath = "./../../results/arango/q4_result.csv"
     df = pd.read_csv(fpath, index_col=0)
     ids = df.head(head)["id"].to_list()
     return ids
