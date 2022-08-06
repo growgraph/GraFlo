@@ -1,17 +1,16 @@
 #!/bin/bash
 
-if [ $# -ne 3 ]; then
-        echo "please specify 3 command line arguments"
+if [ $# -ne 2 ]; then
+        echo "please specify db-config-path and data-path"
 		exit 1
 fi
 
-credname=$1
-credpass=$2
-mainpath=$3
+confpath=$1
+mainpath=$2
 ibespath="$mainpath/ibes/main/"
 yahoopath="$mainpath/yahoo/history/"
 
 
 
-python ./arango/ingest_csv.py --config-path ../conf/ibes.yaml --path "$ibespath" --db finance --clean-start --cred-name "$credname" --cred-pass "$credpass"
-python ./arango/ingest_csv.py --config-path ../conf/ticker.yaml --path "$yahoopath" --db finance --cred-name "$credname" --cred-pass "$credpass"
+python ./arango/ingest_csv.py --config-path ../conf/ibes.yaml --path "$ibespath" --db-config-path "$confpath"
+python ./arango/ingest_csv.py --config-path ../conf/ticker.yaml --path "$yahoopath" --db-config-path "$confpath"
