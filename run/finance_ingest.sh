@@ -12,5 +12,5 @@ yahoopath="$mainpath/yahoo/history/"
 
 
 
-python ./arango/ingest_csv.py --config-path ../conf/ibes.yaml --path "$ibespath" --db-config-path "$confpath"
-python ./arango/ingest_csv.py --config-path ../conf/ticker.yaml --path "$yahoopath" --db-config-path "$confpath"
+python ./arango/ingest_csv.py --config-path ../conf/table/ibes.yaml --path "$ibespath" --db-config-path "$confpath"
+python ./arango/ingest_csv.py --config-path ../conf/table/ticker.yaml --path "$yahoopath" --db-config-path "$confpath"
