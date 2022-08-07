@@ -23,7 +23,11 @@ def basic_query(
 
     sys_db = client.db(db_name, username=cred_name, password=cred_pass)
     cursor = sys_db.aql.execute(
-        query, profile=profile, stream=True, batch_size=batch_size, bind_vars=bind_vars
+        query,
+        profile=profile,
+        stream=True,
+        batch_size=batch_size,
+        bind_vars=bind_vars,
     )
     return cursor
 

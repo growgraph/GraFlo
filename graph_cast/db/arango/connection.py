@@ -12,7 +12,9 @@ class ArangoConnection(Connection):
         client = ArangoClient(hosts=config.hosts)
 
         self.conn = client.db(
-            config.database, username=config.cred_name, password=config.cred_pass
+            config.database,
+            username=config.cred_name,
+            password=config.cred_pass,
         )
 
     def create_database(self, name: str):
@@ -94,7 +96,8 @@ class ArangoConnection(Connection):
                 for index_dict in item["index"]:
                     general_collection = self.conn.collection(item["edge_name"])
                     ih = general_collection.add_hash_index(
-                        fields=index_dict["fields"], unique=index_dict["unique"]
+                        fields=index_dict["fields"],
+                        unique=index_dict["unique"],
                     )
 
     def create_collection_if_absent(self, g, vcol, index, unique=True):

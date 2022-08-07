@@ -249,7 +249,11 @@ def add_edges(mapper, agg, vertex_config):
                             ]
                         else:
                             agg[(source, target)] += [
-                                {"source": up, "target": v, "attributes": weight}
+                                {
+                                    "source": up,
+                                    "target": v,
+                                    "attributes": weight,
+                                }
                                 for v in target_items.values()
                             ]
                     else:
@@ -484,4 +488,10 @@ def parse_config(config=None):
         set([graphs_definition[g]["source"] for g in graphs_definition])
         | set([graphs_definition[g]["target"] for g in graphs_definition])
     )
-    return vcollections, vmap, graphs_definition, index_fields_dict, extra_indices
+    return (
+        vcollections,
+        vmap,
+        graphs_definition,
+        index_fields_dict,
+        extra_indices,
+    )

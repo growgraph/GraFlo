@@ -43,7 +43,10 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--protocol", default="http", type=str, help="protocol for arangodb connection"
+    "--protocol",
+    default="http",
+    type=str,
+    help="protocol for arangodb connection",
 )
 
 parser.add_argument(
@@ -53,7 +56,10 @@ parser.add_argument(
 parser.add_argument("--db", default="_system", help="db for arangodb connection")
 
 parser.add_argument(
-    "-l", "--login-name", default="root", help="login name for arangodb connection"
+    "-l",
+    "--login-name",
+    default="root",
+    help="login name for arangodb connection",
 )
 
 parser.add_argument(

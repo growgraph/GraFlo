@@ -2,7 +2,11 @@ from typing import Union, Optional
 import pandas as pd
 import contextlib
 
-from graph_cast.db import ConnectionConfigType, ConnectionManager, ConnectionType
+from graph_cast.db import (
+    ConnectionConfigType,
+    ConnectionManager,
+    ConnectionType,
+)
 from graph_cast.db.arango.util import (
     insert_return_batch,
     upsert_docs_batch,

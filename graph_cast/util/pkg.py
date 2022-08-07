@@ -65,7 +65,13 @@ class ResourceHandler:
 
     @classmethod
     def load(
-        cls, ppath=None, pname=None, how="yaml", compression=None, fpath=None, **kwargs
+        cls,
+        ppath=None,
+        pname=None,
+        how="yaml",
+        compression=None,
+        fpath=None,
+        **kwargs,
     ):
         if fpath is None:
             lemmas = pname.split(".")

@@ -148,15 +148,25 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--protocol", default="http", type=str, help="protocol for arangodb connection"
+        "--protocol",
+        default="http",
+        type=str,
+        help="protocol for arangodb connection",
     )
 
     parser.add_argument(
-        "-p", "--port", default=8529, type=int, help="port for arangodb connection"
+        "-p",
+        "--port",
+        default=8529,
+        type=int,
+        help="port for arangodb connection",
     )
 
     parser.add_argument(
-        "-l", "--cred-name", default="root", help="login name for arangodb connection"
+        "-l",
+        "--cred-name",
+        default="root",
+        help="login name for arangodb connection",
     )
 
     parser.add_argument(

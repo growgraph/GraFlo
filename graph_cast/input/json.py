@@ -7,7 +7,11 @@ from typing import List, Tuple
 import logging
 
 from graph_cast.architecture import JConfigurator
-from graph_cast.input.json_aux import apply_mapper, project_dicts, merge_documents
+from graph_cast.input.json_aux import (
+    apply_mapper,
+    project_dicts,
+    merge_documents,
+)
 from graph_cast.util.transform import pick_unique_dict
 
 

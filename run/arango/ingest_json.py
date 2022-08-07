@@ -12,7 +12,10 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-d", "--datapath", default=expanduser("../data/wos"), help="path to data files"
+        "-d",
+        "--datapath",
+        default=expanduser("../data/wos"),
+        help="path to data files",
     )
 
     # parser.add_argument(

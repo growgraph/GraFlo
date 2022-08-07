@@ -15,7 +15,12 @@ class TestTransform(unittest.TestCase):
     cpath = dirname(realpath(__file__))
 
     def test_transform_int(self):
-        kwargs = {"module": "builtins", "foo": "int", "input": "x", "output": "y"}
+        kwargs = {
+            "module": "builtins",
+            "foo": "int",
+            "input": "x",
+            "output": "y",
+        }
         t = Transform(**kwargs)
         self.assertTrue(t("12345") == 12345)
 

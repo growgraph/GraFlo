@@ -336,14 +336,19 @@ class SchemaPlotter:
         for e in g.edges(data=True):
             s, t, _ = e
             target_props = g.nodes[s]
-            upd_dict = {"style": edge_status[target_props["type"]], "arrowhead": "vee"}
+            upd_dict = {
+                "style": edge_status[target_props["type"]],
+                "arrowhead": "vee",
+            }
             for k, v in upd_dict.items():
                 g.edges[s, t][k] = v
 
         ag = nx.nx_agraph.to_agraph(g)
         # ['neato' | 'dot' | 'twopi' | 'circo' | 'fdp' | 'nop']
         ag.draw(
-            os.path.join(self.figgpath, f"{self.prefix}_vc2vc.pdf"), "pdf", prog="dot"
+            os.path.join(self.figgpath, f"{self.prefix}_vc2vc.pdf"),
+            "pdf",
+            prog="dot",
         )
 
     def plot_source2vc_detailed(self):

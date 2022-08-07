@@ -56,8 +56,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    name = args.config_path.split("/")[-1]
+    name = name.split(".")[0]
+
     logging.basicConfig(
-        filename=f"ingest_csv_{args.config_path.split('/')[-1]}.log",
+        filename=f"ingest_csv_{name}.log",
         format="%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
         level=logging.INFO,

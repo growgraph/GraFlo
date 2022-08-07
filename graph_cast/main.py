@@ -15,7 +15,6 @@ from graph_cast.input.json_flow import process_jsonlike
 from graph_cast.util import timer as timer
 from graph_cast.architecture import TConfigurator, JConfigurator
 from graph_cast.db import ConnectionManager, ConnectionConfigType
-from graph_cast.architecture import ConfiguratorType
 
 logger = logging.getLogger(__name__)
 
