@@ -43,10 +43,12 @@ def process_table(
     header = chk.pop_header()
     header_dict = dict(zip(header, range(len(header))))
 
-    logger.debug(f"processing current table resource : {tabular_resource}")
+    logger.info(f"processing current table resource : {tabular_resource}")
 
     while not chk.done:
         lines = chk.pop()
+        logger.info(f" processing :{len(lines)}")
+
         if lines:
 
             # file to vcols, ecols
@@ -60,8 +62,6 @@ def process_table(
             # ingest vcols, ecols
 
             with ConnectionManager(connection_config=db_config) as db_client:
-                # if db_config is not None \
-                #     else contextlib.nullcontext():
                 for vcol, data in vdocuments.items():
                     # blank nodes: push and get back their keys  {"_key": ...}
                     if vcol in conf.vertex_config.blank_collections:
@@ -108,3 +108,5 @@ def process_table(
                 # for u, v in conf_obj.graph_config.extra_edges:
                 #     query0 = define_extra_edges(conf_obj.graph(u, v))
                 #     cursor = db_config.execute(query0)
+
+            logger.info(f" processed so far :{chk.j} lines")

@@ -63,7 +63,7 @@ if __name__ == "__main__":
         filename=f"ingest_csv_{name}.log",
         format="%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
-        level=logging.DEBUG,
+        level=logging.INFO,
         filemode="w",
     )
 
@@ -76,6 +76,7 @@ if __name__ == "__main__":
         args.path,
         schema_config,
         conn_conf,
+        batch_size=args.batch_size,
         limit_files=args.limit_files,
         max_lines=args.max_lines,
         clean_start=args.clean_start,

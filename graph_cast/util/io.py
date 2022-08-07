@@ -5,6 +5,7 @@ import json
 import logging
 import io
 import pkgutil
+import gc
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,10 @@ class Chunker:
             batch_size if n_lines_max is None else min([20 * n_lines_max, batch_size])
         )
         self.n_lines_max = n_lines_max
+
+        logger.info(
+            f"Chunker init with batch_size : {self.batch_size} n_lines_max {self.n_lines_max}"
+        )
         if fname is not None:
             if fname[-2:] == "gz":
                 self.file_obj = gzip.open(fname, "rt", encoding=encoding)
