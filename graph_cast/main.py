@@ -78,7 +78,27 @@ def ingest_csvs(
     max_lines=None,
     batch_size=5000000,
     clean_start=False,
+    n_thread=1,
 ):
+    """
+
+    :param fpath:
+    :param config:
+    :param conn_config:
+    :param limit_files:
+    :param max_lines:
+    :param batch_size:
+    :param clean_start:
+    :param n_thread: if there are multiple files per mode, they will be processed using n_core threads
+    :return:
+
+    """
+
+    logger.info("in ingest_csvs")
+    logger.info(f"limit_files : {limit_files}")
+    logger.info(f"max_lines : {max_lines}")
+    logger.info(f"batch_size : {batch_size}")
+    logger.info(f"clean_start : {clean_start}")
 
     conf_obj = TConfigurator(config)
 
@@ -100,12 +120,24 @@ def ingest_csvs(
         }
 
         with timer.Timer() as klepsidra:
-            func = partial(graph_cast.input.table_flow.process_table, **kwargs)
-            n_proc = 1
-            if n_proc > 1:
-                with mp.Pool(n_proc) as p:
-                    p.map(func, conf_obj.mode2files[mode])
+            if n_thread > 1:
+                func = partial(
+                    graph_cast.input.table_flow.process_table_with_queue, **kwargs
+                )
+                assert (
+                    mp.get_start_method() == "fork"
+                ), "Requires 'forking' operating system"
+                processes = []
+                tasks = mp.Queue()
+                for item in conf_obj.mode2files[mode]:
+                    tasks.put(item)
+                for w in range(n_thread):
+                    p = mp.Process(target=func, args=(tasks,), kwargs=kwargs)
+                    processes.append(p)
+                    p.start()
+                for p in processes:
+                    p.join()
             else:
-                for f in conf_obj.mode2files[mode]:
-                    func(f)
+                for batch in conf_obj.mode2files[mode]:
+                    graph_cast.input.table_flow.process_table(batch, **kwargs)
         logger.info(f"{mode} took {klepsidra.elapsed:.1f} sec")

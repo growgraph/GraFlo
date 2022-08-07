@@ -166,7 +166,7 @@ def upsert_docs_batch(
     q_update = f"""FOR doc in {docs}
                         UPSERT {upsert_line}
                         INSERT doc
-                        UPDATE {update_line} in {collection_name}"""
+                        UPDATE {update_line} in {collection_name} OPTIONS {{ exclusive: true }}"""
     return q_update
 
 
@@ -233,7 +233,7 @@ def insert_edges_batch(
 
     q_update = f"""
         FOR edge in {docs_edges} {source_filter} {target_filter}
-            INSERT {result} in {edge_col_name}"""
+            INSERT {result} in {edge_col_name} OPTIONS {{ exclusive: true }}"""
     return q_update
 
 

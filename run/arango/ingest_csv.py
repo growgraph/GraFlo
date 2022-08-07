@@ -38,6 +38,13 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--n-thread",
+        default=1,
+        type=int,
+        help="number of thread used when there are multiple files per mode",
+    )
+
+    parser.add_argument(
         "--clean-start", action="store_true", help="wipe all the collections"
     )
 
@@ -80,4 +87,5 @@ if __name__ == "__main__":
         limit_files=args.limit_files,
         max_lines=args.max_lines,
         clean_start=args.clean_start,
+        n_thread=args.n_thread,
     )

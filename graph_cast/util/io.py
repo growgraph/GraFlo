@@ -1,3 +1,4 @@
+from __future__ import annotations
 import gzip
 import csv
 import re
@@ -16,13 +17,15 @@ class Chunker:
         fname=None,
         pkg_spec=None,
         batch_size=10000,
-        n_lines_max=None,
+        n_lines_max: int | None = None,
         encoding="utf-8",
     ):
         """
+        WARNING : if data sources are gzipped - batch_size does not correspond to lines, instead it's a proxy for bytes
 
         :param fname:
-        :param batch_size: batch size in bytes
+        :param batch_size: batch size in bytes : batch_size = 15000 corresponds to 100 lines ~ 100 symbols each
+                        for gzipped sources
         :param n_lines_max:
         :param encoding:
         """
@@ -30,10 +33,8 @@ class Chunker:
             raise ValueError(f" both fname and file_obj are None")
         self.acc = []
         self.j = 0
-        self.batch_size = (
-            batch_size if n_lines_max is None else min([20 * n_lines_max, batch_size])
-        )
-        self.n_lines_max = n_lines_max
+        self.batch_size = batch_size
+        self.n_lines_max: int | None = n_lines_max
 
         logger.info(
             f"Chunker init with batch_size : {self.batch_size} n_lines_max {self.n_lines_max}"
@@ -58,18 +59,25 @@ class Chunker:
         return header
 
     def pop(self):
-        if not self.n_lines_max or (self.n_lines_max and self.j < self.n_lines_max):
+        if self.n_lines_max is None or (
+            self.n_lines_max is not None and self.j < self.n_lines_max
+        ):
             lines = self.file_obj.readlines(self.batch_size)
             lines2 = [
                 next(csv.reader([line.rstrip()], skipinitialspace=True))
                 for line in lines
             ]
+            if self.n_lines_max is not None and (
+                self.j + len(lines2) > self.n_lines_max
+            ):
+                lines2 = lines2[: (self.n_lines_max - self.j)]
             self.j += len(lines2)
             if not lines2:
                 self.done = True
                 self.file_obj.close()
                 return []
             else:
+
                 return lines2
         else:
             self.done = True

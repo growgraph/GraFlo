@@ -1,10 +1,11 @@
+import queue
 from typing import Union, Optional
+import multiprocessing as mp
 import pandas as pd
 
 from graph_cast.db import (
     ConnectionConfigType,
     ConnectionManager,
-    ConnectionType,
 )
 from graph_cast.db.arango.util import (
     insert_return_batch,
@@ -33,10 +34,22 @@ def process_table(
     :param max_lines:
     :return:
     """
+
+    logger.info("in process_table")
+    logger.info(f"max_lines : {max_lines}")
+    logger.info(f"batch_size : {batch_size}")
+
     if isinstance(tabular_resource, pd.DataFrame):
-        chk = ChunkerDataFrame(tabular_resource, batch_size, max_lines)
+        chk = ChunkerDataFrame(
+            tabular_resource, batch_size=batch_size, n_lines_max=max_lines
+        )
     elif isinstance(tabular_resource, str):
-        chk = Chunker(tabular_resource, batch_size, max_lines, encoding=conf.encoding)
+        chk = Chunker(
+            tabular_resource,
+            batch_size=batch_size,
+            n_lines_max=max_lines,
+            encoding=conf.encoding,
+        )
         conf.set_current_resource_name(tabular_resource)
     else:
         raise TypeError(f"tabular_resource type is not str or pd.DataFrame")
@@ -109,4 +122,14 @@ def process_table(
                 #     query0 = define_extra_edges(conf_obj.graph(u, v))
                 #     cursor = db_config.execute(query0)
 
-            logger.info(f" processed so far :{chk.j} lines")
+            logger.info(f" processed so far: {chk.j} lines")
+
+
+def process_table_with_queue(tasks: mp.Queue, **kwargs):
+    while True:
+        try:
+            task = tasks.get_nowait()
+        except queue.Empty:
+            break
+        else:
+            process_table(tabular_resource=task, **kwargs)
