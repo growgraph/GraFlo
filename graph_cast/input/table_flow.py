@@ -1,6 +1,5 @@
 from typing import Union, Optional
 import pandas as pd
-import contextlib
 
 from graph_cast.db import (
     ConnectionConfigType,
@@ -22,7 +21,6 @@ def process_table(
     tabular_resource: Union[str, pd.DataFrame],
     conf: ConfiguratorType,
     db_config: Optional[ConnectionConfigType] = None,
-    db_client: Optional[ConnectionType] = None,
     batch_size: int = 1000,
     max_lines: int = 10000,
 ):
@@ -31,7 +29,6 @@ def process_table(
     :param tabular_resource:
     :param conf:
     :param db_config:
-    :param db_client:
     :param batch_size:
     :param max_lines:
     :return:
