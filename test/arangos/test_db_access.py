@@ -1,10 +1,10 @@
-import unittest
-from os.path import join, dirname, realpath
 import logging
 import sys
-from graph_cast.db.arango.util import insert_return_batch
+import unittest
+from os.path import dirname, realpath
 
-from graph_cast.db import ConnectionManager, ConfigFactory
+from graph_cast.db import ConfigFactory, ConnectionManager
+from graph_cast.db.arango.util import insert_return_batch
 
 logger = logging.getLogger(__name__)
 
@@ -16,31 +16,37 @@ class TestDBAccess(unittest.TestCase):
         "protocol": "http",
         "ip_addr": "127.0.0.1",
         "port": 8529,
-        "cred_name": "root",
+        "cred_name": "test",
         "cred_pass": "123",
-        "database": "root",
+        "database": "testdb",
         "db_type": "arango",
     }
 
+    @unittest.skip("")
     def test_db_access(self):
         db_args = dict(self.db_args)
-        db_args["database"] = "wos_test"
+        db_args["database"] = "testdb"
         conn_conf = ConfigFactory.create_config(args=db_args)
 
         with ConnectionManager(connection_config=conn_conf) as db_client:
             cnames = [
-                c["name"] for c in db_client.get_collections() if c["name"][0] != "_"
+                c["name"]
+                for c in db_client.get_collections()
+                if c["name"][0] != "_"
             ]
             for c in cnames:
                 logger.info(c)
 
+    @unittest.skip("")
     def test_insert_return(self):
         db_args = dict(self.db_args)
-        db_args["database"] = "wos_test"
+        db_args["database"] = "testdb"
         conn_conf = ConfigFactory.create_config(args=db_args)
         with ConnectionManager(connection_config=conn_conf) as db_client:
             cnames = [
-                c["name"] for c in db_client.get_collections() if c["name"][0] != "_"
+                c["name"]
+                for c in db_client.get_collections()
+                if c["name"][0] != "_"
             ]
 
         docs = [{"value": i} for i in range(5)]
@@ -50,9 +56,10 @@ class TestDBAccess(unittest.TestCase):
         for item in cursor:
             logger.info(item)
 
+    @unittest.skip("")
     def test_query(self):
         db_args = dict(self.db_args)
-        db_args["database"] = "ibes_test"
+        db_args["database"] = "testdb"
         conn_conf = ConfigFactory.create_config(args=db_args)
 
         q = """for doc in analysts limit 5 return doc

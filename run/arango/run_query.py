@@ -1,7 +1,10 @@
+import argparse
+
 import numpy as np
 from arango import ArangoClient
+
 from graph_cast.db.arango import profile_query
-import argparse
+
 from .queries import qdict
 
 
@@ -18,7 +21,9 @@ def str2bool(v):
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("-t", "--test", default=False, type=str2bool, help="test setting")
+parser.add_argument(
+    "-t", "--test", default=False, type=str2bool, help="test setting"
+)
 parser.add_argument("--verbose", default=True, type=str2bool, help="verbosity")
 parser.add_argument(
     "-n", "--nprofile", default=1, type=int, help="number of times to profile"
@@ -43,17 +48,25 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--protocol", default="http", type=str, help="protocol for arangodb connection"
+    "--protocol",
+    default="http",
+    type=str,
+    help="protocol for arangodb connection",
 )
 
 parser.add_argument(
     "-p", "--port", default=8529, type=int, help="port for arangodb connection"
 )
 
-parser.add_argument("--db", default="_system", help="db for arangodb connection")
+parser.add_argument(
+    "--db", default="_system", help="db for arangodb connection"
+)
 
 parser.add_argument(
-    "-l", "--login-name", default="root", help="login name for arangodb connection"
+    "-l",
+    "--login-name",
+    default="root",
+    help="login name for arangodb connection",
 )
 
 parser.add_argument(
@@ -104,7 +117,9 @@ if nq == "4":
 elif nq == "6":
     r = [current_query["__pids_head"]]
 else:
-    r = sys_db.aql.execute(f'RETURN LENGTH({current_query["main_collection"]})')
+    r = sys_db.aql.execute(
+        f'RETURN LENGTH({current_query["main_collection"]})'
+    )
 
 n = list(r)[0]
 if current_query["main_collection"] == "publications" and nq != "6":
@@ -135,7 +150,9 @@ print(f"max docs: {n}; limits: {limits}")
 for limit in limits:
     print(q0)
     if limit:
-        q = q0.replace("__insert_limit", f"LIMIT {2*limit} SORT RAND() LIMIT {limit} ")
+        q = q0.replace(
+            "__insert_limit", f"LIMIT {2*limit} SORT RAND() LIMIT {limit} "
+        )
     else:
         q = q0.replace("__insert_limit", f"")
     if "__issns" in current_query:

@@ -1,15 +1,17 @@
-from typing import DefaultDict
-from graph_cast.util import timer as timer
+import logging
 import multiprocessing as mp
 from collections import defaultdict
 from functools import partial
-from typing import List, Tuple
-import logging
+from typing import DefaultDict, List, Tuple
 
 from graph_cast.architecture import JConfigurator
-from graph_cast.input.json_aux import apply_mapper, project_dicts, merge_documents
+from graph_cast.input.json_aux import (
+    apply_mapper,
+    merge_documents,
+    project_dicts,
+)
+from graph_cast.util import timer as timer
 from graph_cast.util.transform import pick_unique_dict
-
 
 logger = logging.getLogger(__name__)
 

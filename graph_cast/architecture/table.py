@@ -1,20 +1,20 @@
 from collections import defaultdict
+from copy import deepcopy
 from itertools import permutations
-from graph_cast.architecture.general import (
-    Configurator,
-    Mapper,
-    LocalVertexCollections,
-)
-from graph_cast.architecture.transform import Transform
 from os import listdir
 from os.path import isfile, join
-from copy import deepcopy
+
+from graph_cast.architecture.general import (
+    Configurator,
+    LocalVertexCollections,
+    Mapper,
+)
+from graph_cast.architecture.transform import Transform
 
 
 class TConfigurator(Configurator):
     def __init__(self, config):
         super().__init__(config)
-        self.current_fname = None
         self.mode = None
         self.modes2collections = defaultdict(LocalVertexCollections)
 
@@ -26,7 +26,8 @@ class TConfigurator(Configurator):
 
     def set_mode(self, mode):
         """
-        TConfigurator configure several types of tables, mode tells TConfigurator which type to table to deal with currently
+        TConfigurator configure several types of tables, mode tells TConfigurator
+        which type to table to deal with currently
         :param mode:
         :return:
         """
@@ -82,7 +83,9 @@ class TConfigurator(Configurator):
                 if (u, v) in edges:
                     self.modes2graphs[table_type] += [(u, v)]
 
-        self.modes2graphs = {k: list(set(v)) for k, v in self.modes2graphs.items()}
+        self.modes2graphs = {
+            k: list(set(v)) for k, v in self.modes2graphs.items()
+        }
 
     def discover_files(self, fpath, limit_files=None):
         for keyword in self.modes2graphs:
@@ -94,12 +97,16 @@ class TConfigurator(Configurator):
                 [
                     join(fpath, f)
                     for f in listdir(fpath)
-                    if isfile(join(fpath, f)) and (search_pattern in f) and ("csv" in f)
+                    if isfile(join(fpath, f))
+                    and (search_pattern in f)
+                    and ("csv" in f)
                 ]
             )
 
         if limit_files:
-            self.mode2files = {k: v[:limit_files] for k, v in self.mode2files.items()}
+            self.mode2files = {
+                k: v[:limit_files] for k, v in self.mode2files.items()
+            }
 
     def set_current_resource_name(self, tabular_resource):
         self.current_fname = tabular_resource
@@ -108,26 +115,23 @@ class TConfigurator(Configurator):
 
 
 class TablesConfig:
-    _tables = set()
+    _tables: set[str] = set()
 
     # table_type -> [ {vertex_collection :vc, map: (table field -> collection field)} ]
     # vertex_collection -> (table field -> collection field)
-    table_collection_maps = dict()
+    table_collection_maps: dict[str, dict[str, str]] = dict()
 
-    # table_type -> transforms
-    encodings_map = dict()
-
-    # table_type -> extra logic
-    logic = {}
+    # table_type -> encoding
+    encodings_map: dict[str, str] = dict()
 
     # table_type -> vertex_collections
-    _vertices = {}
+    _vertices: dict[str, str] = {}
 
     # table_type -> edge_collections
-    _edges = {}
+    _edges: dict[str, str] = {}
 
     # table_type -> transforms
-    _transforms = defaultdict(list)
+    _transforms: defaultdict[str, list[dict[str, str]]] = defaultdict(list)
 
     def __init__(self, vconfig, graph_config):
         self._init_tables(vconfig)
@@ -178,9 +182,13 @@ class TablesConfig:
                             kwargs["input"] = cmap["input"]
                             if "output" in cmap:
                                 kwargs["output"] = cmap["output"]
-                            self._transforms[item["tabletype"]] += [Transform(**kwargs)]
+                            self._transforms[item["tabletype"]] += [
+                                Transform(**kwargs)
+                            ]
                     else:
-                        self._transforms[item["tabletype"]] += [Transform(**citem)]
+                        self._transforms[item["tabletype"]] += [
+                            Transform(**citem)
+                        ]
 
     def _init_encodings(self, subconfig):
         for item in subconfig:
@@ -188,13 +196,6 @@ class TablesConfig:
                 self.encodings_map[item["tabletype"]] = item["encoding"]
             else:
                 self.encodings_map[item["tabletype"]] = None
-
-    def parse_logic(self, subconfig):
-        for item in subconfig:
-            if "logic" in item:
-                self.logic[item["tabletype"]] = item["logic"]
-            else:
-                self.logic[item["tabletype"]] = None
 
     def vertices(self, table_type):
         return self._vertices[table_type]

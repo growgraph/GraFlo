@@ -1,5 +1,6 @@
-import pandas as pd
 import string
+
+import pandas as pd
 
 puncts = list(string.punctuation)
 all_stops = puncts + stop_words_nltk

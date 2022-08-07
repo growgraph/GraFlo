@@ -1,21 +1,20 @@
 import gzip
 import json
+import logging
 import multiprocessing as mp
 from functools import partial
 from os import listdir
 from os.path import isfile, join
-import logging
 from typing import Optional
 
 import graph_cast.input.json
-import graph_cast.input.table_flow
 import graph_cast.input.table
+import graph_cast.input.table_flow
+from graph_cast.architecture import JConfigurator, TConfigurator
+from graph_cast.db import ConnectionConfigType, ConnectionManager
 from graph_cast.db.connection import init_db
 from graph_cast.input.json_flow import process_jsonlike
 from graph_cast.util import timer as timer
-from graph_cast.architecture import TConfigurator, JConfigurator
-from graph_cast.db import ConnectionManager, ConnectionConfigType
-from graph_cast.architecture import ConfiguratorType
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +56,9 @@ def ingest_json_files(
         init_db(db_client, conf_obj, clean_start)
 
     # file discovery <- move this foo to JConfigurator
-    files = sorted([f for f in listdir(fpath) if isfile(join(fpath, f)) if "json" in f])
+    files = sorted(
+        [f for f in listdir(fpath) if isfile(join(fpath, f)) if "json" in f]
+    )
     if keyword is not None:
         files = [f for f in files if keyword in f]
 
@@ -67,7 +68,9 @@ def ingest_json_files(
         with gzip.GzipFile(join(fpath, filename), "rb") as fps:
             with timer.Timer() as t_pro:
                 data = json.load(fps)
-                process_jsonlike(data, conf_obj, conn_conf, ncores=ncores, dry=dry)
+                process_jsonlike(
+                    data, conf_obj, conn_conf, ncores=ncores, dry=dry
+                )
             logger.info(f" processing {filename} took {t_pro.elapsed:.2f} sec")
 
 
@@ -79,9 +82,30 @@ def ingest_csvs(
     max_lines=None,
     batch_size=5000000,
     clean_start=False,
+    n_thread=1,
 ):
+    """
+
+    :param fpath:
+    :param config:
+    :param conn_config:
+    :param limit_files:
+    :param max_lines:
+    :param batch_size:
+    :param clean_start:
+    :param n_thread: if there are multiple files per mode, they will be processed using n_core threads
+    :return:
+
+    """
+
+    logger.info("in ingest_csvs")
+    logger.info(f"limit_files : {limit_files}")
+    logger.info(f"max_lines : {max_lines}")
+    logger.info(f"batch_size : {batch_size}")
+    logger.info(f"clean_start : {clean_start}")
 
     conf_obj = TConfigurator(config)
+
     with ConnectionManager(connection_config=conn_config) as db_client:
         init_db(db_client, conf_obj, clean_start)
 
@@ -100,12 +124,25 @@ def ingest_csvs(
         }
 
         with timer.Timer() as klepsidra:
-            func = partial(graph_cast.input.table_flow.process_table, **kwargs)
-            n_proc = 1
-            if n_proc > 1:
-                with mp.Pool(n_proc) as p:
-                    p.map(func, conf_obj.mode2files[mode])
+            if n_thread > 1:
+                func = partial(
+                    graph_cast.input.table_flow.process_table_with_queue,
+                    **kwargs,
+                )
+                assert (
+                    mp.get_start_method() == "fork"
+                ), "Requires 'forking' operating system"
+                processes = []
+                tasks: mp.Queue = mp.Queue()
+                for item in conf_obj.mode2files[mode]:
+                    tasks.put(item)
+                for w in range(n_thread):
+                    p = mp.Process(target=func, args=(tasks,), kwargs=kwargs)
+                    processes.append(p)
+                    p.start()
+                for p in processes:
+                    p.join()
             else:
-                for f in conf_obj.mode2files[mode]:
-                    func(f)
+                for batch in conf_obj.mode2files[mode]:
+                    graph_cast.input.table_flow.process_table(batch, **kwargs)
         logger.info(f"{mode} took {klepsidra.elapsed:.1f} sec")

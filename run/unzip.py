@@ -1,5 +1,5 @@
-import zipfile
 import argparse
+import zipfile
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

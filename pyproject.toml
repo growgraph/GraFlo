@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "graph_cast"
-version = "0.2.0"
+version = "0.9.0"
 description = "ETL to cast tabular and json data types into graphs (collections of vertices and edges)"
 authors = ["Alexander Belikov <alexander@growgraph.dev>"]
 
@@ -14,6 +14,11 @@ pyyaml = "^6"
 pygraphviz = "^1.6"
 python-arango = "^7.3.3"
 xmltodict = "^0.12.0"
+mypy = "^0.971"
+isort = "^5.10.1"
+autoflake = "^1.4"
+pre-commit = "^2.20.0"
+types-PyYAML = "^6.0.11"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

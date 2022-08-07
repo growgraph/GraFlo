@@ -1,5 +1,5 @@
-from graph_cast.db.abstract_config import ConnectionConfig
 from graph_cast.db.arango.connection import ArangoConnection
+from graph_cast.db.connection import ConnectionConfig
 
 
 class ArangoConnectionConfig(ConnectionConfig):

@@ -1,10 +1,12 @@
 import argparse
-import yaml
+import logging
 from os.path import expanduser
 
-from graph_cast.main import ingest_json_files
+import yaml
+
 from graph_cast.db import ConfigFactory
-import logging
+from graph_cast.main import ingest_json_files
+from graph_cast.util import ResourceHandler
 
 logger = logging.getLogger(__name__)
 
@@ -12,37 +14,40 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-d", "--datapath", default=expanduser("../data/wos"), help="path to data files"
+        "-d",
+        "--datapath",
+        default=expanduser("../data/wos"),
+        help="path to data files",
     )
 
-    parser.add_argument(
-        "-i",
-        "--id-addr",
-        default="127.0.0.1",
-        type=str,
-        help="port for arangodb connection",
-    )
-
-    parser.add_argument(
-        "--protocol", default="http", type=str, help="protocol for arangodb connection"
-    )
-
-    parser.add_argument(
-        "-p", "--port", default=8529, type=int, help="port for arangodb connection"
-    )
-
-    parser.add_argument(
-        "-l", "--login-name", default="root", help="login name for arangodb connection"
-    )
-
-    parser.add_argument(
-        "-w",
-        "--login-password",
-        default="123",
-        help="login password for arangodb connection",
-    )
-
-    parser.add_argument("--db", default="_system", help="db for arangodb connection")
+    # parser.add_argument(
+    #     "-i",
+    #     "--id-addr",
+    #     default="127.0.0.1",
+    #     type=str,
+    #     help="port for arangodb connection",
+    # )
+    #
+    # parser.add_argument(
+    #     "--protocol", default="http", type=str, help="protocol for arangodb connection"
+    # )
+    #
+    # parser.add_argument(
+    #     "-p", "--port", default=8529, type=int, help="port for arangodb connection"
+    # )
+    #
+    # parser.add_argument(
+    #     "-l", "--login-name", default="root", help="login name for arangodb connection"
+    # )
+    #
+    # parser.add_argument(
+    #     "-w",
+    #     "--login-password",
+    #     default="123",
+    #     help="login password for arangodb connection",
+    # )
+    #
+    # parser.add_argument("--db", default="_system", help="db for arangodb connection")
 
     parser.add_argument(
         "-f",
@@ -65,7 +70,9 @@ if __name__ == "__main__":
         "--keyword", default="DSSHPSH", help="prefix for files to be processed"
     )
 
-    parser.add_argument("--prefix", default="wos", help="prefix for collection names")
+    parser.add_argument(
+        "--prefix", default="wos", help="prefix for collection names"
+    )
 
     parser.add_argument(
         "--clean-start",
@@ -78,6 +85,12 @@ if __name__ == "__main__":
         "--config-path",
         type=str,
         default="../../conf/wos.yaml",
+        help="",
+    )
+
+    parser.add_argument(
+        "--db-config-path",
+        type=str,
         help="",
     )
 
@@ -95,11 +108,14 @@ if __name__ == "__main__":
 
     logging.basicConfig(filename="ingest_json.log", level=logging.INFO)
 
-    conn_conf = ConfigFactory.create_config(args=args)
+    schema_config = ResourceHandler.load(fpath=args.config_path)
+    conn_conf = ConfigFactory.create_config(
+        args=ResourceHandler.load(fpath=args.db_config_path)
+    )
 
     ingest_json_files(
         expanduser(args.datapath),
-        config=config_,
+        config=schema_config,
         conn_conf=conn_conf,
         keyword=args.keyword,
         clean_start=clean_start,

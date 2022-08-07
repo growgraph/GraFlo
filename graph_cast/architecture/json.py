@@ -1,5 +1,6 @@
 from collections import defaultdict
 from copy import deepcopy
+
 from graph_cast.architecture.general import Configurator
 
 
@@ -23,3 +24,6 @@ class JConfigurator(Configurator):
 
     def exclude_fields(self, k):
         return self.graph_config.exclude_fields(k)
+
+    def set_current_resource_name(self, resource):
+        self.current_fname = resource

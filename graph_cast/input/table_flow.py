@@ -1,24 +1,25 @@
-from typing import Union, Optional
-import pandas as pd
-import contextlib
+import multiprocessing as mp
+import queue
+from typing import Optional, Union
 
-from graph_cast.db import ConnectionConfigType, ConnectionManager, ConnectionType
+import pandas as pd
+
+from graph_cast.architecture import ConfiguratorType
+from graph_cast.db import ConnectionConfigType, ConnectionManager
 from graph_cast.db.arango.util import (
+    insert_edges_batch,
     insert_return_batch,
     upsert_docs_batch,
-    insert_edges_batch,
 )
 from graph_cast.input import table_to_collections
 from graph_cast.input.table import logger
-from graph_cast.util.io import ChunkerDataFrame, Chunker
-from graph_cast.architecture import ConfiguratorType
+from graph_cast.util.io import AbsChunker, Chunker, ChunkerDataFrame
 
 
 def process_table(
     tabular_resource: Union[str, pd.DataFrame],
     conf: ConfiguratorType,
     db_config: Optional[ConnectionConfigType] = None,
-    db_client: Optional[ConnectionType] = None,
     batch_size: int = 1000,
     max_lines: int = 10000,
 ):
@@ -27,25 +28,38 @@ def process_table(
     :param tabular_resource:
     :param conf:
     :param db_config:
-    :param db_client:
     :param batch_size:
     :param max_lines:
     :return:
     """
+
+    logger.info("in process_table")
+    logger.info(f"max_lines : {max_lines}")
+    logger.info(f"batch_size : {batch_size}")
+
     if isinstance(tabular_resource, pd.DataFrame):
-        chk = ChunkerDataFrame(tabular_resource, batch_size, max_lines)
+        chk: AbsChunker = ChunkerDataFrame(
+            tabular_resource, batch_size=batch_size, n_lines_max=max_lines
+        )
     elif isinstance(tabular_resource, str):
-        chk = Chunker(tabular_resource, batch_size, max_lines, encoding=conf.encoding)
+        chk = Chunker(
+            tabular_resource,
+            batch_size=batch_size,
+            n_lines_max=max_lines,
+            encoding=conf.encoding,
+        )
         conf.set_current_resource_name(tabular_resource)
     else:
         raise TypeError(f"tabular_resource type is not str or pd.DataFrame")
     header = chk.pop_header()
     header_dict = dict(zip(header, range(len(header))))
 
-    logger.debug(f"processing current table resource : {tabular_resource}")
+    logger.info(f"processing current table resource : {tabular_resource}")
 
     while not chk.done:
         lines = chk.pop()
+        logger.info(f" processing :{len(lines)}")
+
         if lines:
 
             # file to vcols, ecols
@@ -59,8 +73,6 @@ def process_table(
             # ingest vcols, ecols
 
             with ConnectionManager(connection_config=db_config) as db_client:
-                # if db_config is not None \
-                #     else contextlib.nullcontext():
                 for vcol, data in vdocuments.items():
                     # blank nodes: push and get back their keys  {"_key": ...}
                     if vcol in conf.vertex_config.blank_collections:
@@ -86,7 +98,9 @@ def process_table(
                             edocuments[(vfrom, vto)].extend(
                                 [
                                     {"source": x, "target": y}
-                                    for x, y in zip(vdocuments[vfrom], vdocuments[vto])
+                                    for x, y in zip(
+                                        vdocuments[vfrom], vdocuments[vto]
+                                    )
                                 ]
                             )
 
@@ -107,3 +121,15 @@ def process_table(
                 # for u, v in conf_obj.graph_config.extra_edges:
                 #     query0 = define_extra_edges(conf_obj.graph(u, v))
                 #     cursor = db_config.execute(query0)
+
+            logger.info(f" processed so far: {chk.units_processed} lines")
+
+
+def process_table_with_queue(tasks: mp.Queue, **kwargs):
+    while True:
+        try:
+            task = tasks.get_nowait()
+        except queue.Empty:
+            break
+        else:
+            process_table(tabular_resource=task, **kwargs)

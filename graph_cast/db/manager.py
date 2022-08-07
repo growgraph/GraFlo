@@ -1,7 +1,6 @@
 from typing import Optional
-from graph_cast.db import ConfigFactory
-from graph_cast.db.abstract_config import ConnectionConfigType
-from graph_cast.db.factory import ConnectionFactory
+
+from graph_cast.db import ConfigFactory, ConnectionConfigType
 
 
 class ConnectionManager:
@@ -11,16 +10,16 @@ class ConnectionManager:
         args=None,
         connection_config: Optional[ConnectionConfigType] = None,
     ):
-        if connection_config is None:
-            self.config: ConnectionConfigType = ConfigFactory.create_config(
-                secret_path, args
-            )
-        else:
-            self.config: ConnectionConfigType = connection_config
+        self.config: ConnectionConfigType = (
+            ConfigFactory.create_config(secret_path, args)
+            if connection_config is None
+            else connection_config
+        )
         self.conn = None
 
     def __enter__(self):
-        self.conn = ConnectionFactory.create_connection(self.config)
+        cls = self.config.connection_class
+        self.conn = cls(self.config)
         return self.conn
 
     def __exit__(self, exc_type, exc_value, exc_traceback):

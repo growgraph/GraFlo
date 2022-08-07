@@ -1,6 +1,7 @@
-from arango import ArangoClient
 import argparse
 from os import environ
+
+from arango import ArangoClient
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--collection", default="all", help="test setting")

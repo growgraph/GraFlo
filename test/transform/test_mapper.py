@@ -1,5 +1,6 @@
-import unittest
 import logging
+import unittest
+
 from graph_cast.architecture.general import Mapper
 
 logger = logging.getLogger(__name__)

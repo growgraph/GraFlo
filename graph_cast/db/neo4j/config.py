@@ -1,4 +1,4 @@
-from graph_cast.db.abstract_config import ConnectionConfig
+from graph_cast.db.connection import ConnectionConfig
 from graph_cast.db.neo4j.connection import Neo4jConnection
 
 

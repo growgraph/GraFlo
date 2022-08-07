@@ -1,7 +1,11 @@
+from __future__ import annotations
+
+import abc
 import logging
+from collections import Iterable, defaultdict
 from typing import TypeVar
-from collections import defaultdict, Iterable
-from graph_cast.architecture.schema import VertexConfig, GraphConfig
+
+from graph_cast.architecture.schema import GraphConfig, VertexConfig
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +23,30 @@ class Configurator:
             self.vertex_config.dbname,
             config["json"] if "json" in config else None,
         )
+        self.current_fname: str | None = None
+
+    @abc.abstractmethod
+    def set_current_resource_name(self, resource):
+        pass
+
+    @property
+    def encoding(self):
+        return "utf-8"
+
+    @property
+    def current_graphs(self):
+        return []
+
+    @property
+    def current_collections(self):
+        return []
+
+    @property
+    def current_transformations(self):
+        return []
+
+    def graph(self, u, v):
+        return self.graph_config.graph(u, v)
 
 
 class TransformException(BaseException):
@@ -34,7 +62,10 @@ def transform_foo(transform, doc):
                 args = [doc[k] for k in transform.input]
                 transform_result = transform(*args)
                 if isinstance(transform_result, Iterable):
-                    upd = {k: v for k, v in zip(transform.output, transform_result)}
+                    upd = {
+                        k: v
+                        for k, v in zip(transform.output, transform_result)
+                    }
                 else:
                     upd = {transform.output[0]: transform_result}
             else:
@@ -82,7 +113,9 @@ class Mapper:
             del self._map["_filename"]
 
     def _process_maps(self):
-        self._map = {k: v for k, v in self._raw_map.items() if isinstance(v, str)}
+        self._map = {
+            k: v for k, v in self._raw_map.items() if isinstance(v, str)
+        }
         self._map_splitter = {
             k: v for k, v in self._raw_map.items() if not isinstance(v, str)
         }
@@ -90,9 +123,13 @@ class Mapper:
     def _check_map_splitter(self):
         for k, item in self._map_splitter.items():
             if not isinstance(item, dict):
-                raise TypeError(f" self._raw_map should be a dict : {self._raw_map}")
+                raise TypeError(
+                    f" self._raw_map should be a dict : {self._raw_map}"
+                )
             if "key" not in item:
-                raise KeyError(f" item should contain 'key' and 'value' : {item}")
+                raise KeyError(
+                    f" item should contain 'key' and 'value' : {item}"
+                )
             if "value" not in item:
                 item["value"] = "value"
 
@@ -156,7 +193,9 @@ class LocalVertexCollections:
                 self._vcollections[cc["type"]] += [Mapper(**cc)]
 
     def __iter__(self):
-        return ((k, m) for k in self.collections for m in self._vcollections[k])
+        return (
+            (k, m) for k in self.collections for m in self._vcollections[k]
+        )
 
     @property
     def collections(self):

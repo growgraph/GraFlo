@@ -1,11 +1,11 @@
-import unittest
-import logging
 import argparse
+import logging
+import unittest
+
+from graph_cast.architecture import TConfigurator
 from graph_cast.input import table_to_collections
 from graph_cast.util import ResourceHandler, equals
-from graph_cast.architecture import TConfigurator
 from graph_cast.util.transform import pick_unique_dict
-
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,9 @@ class TestTransformTable(unittest.TestCase):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--reset", action="store_true", help="reset test results")
+    parser.add_argument(
+        "--reset", action="store_true", help="reset test results"
+    )
     args = parser.parse_args()
     suite = unittest.TestSuite()
     suite.addTest(TestTransformTable(args.reset))
