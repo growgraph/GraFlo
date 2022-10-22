@@ -1,7 +1,8 @@
 import gzip
 import json
-from os.path import join
 import logging
+from os.path import join
+
 from arango import ArangoClient
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,9 @@ def profile_query(query, nq, profile_times, fpath, limit=None, **kwargs):
             cursor = basic_query(query, profile=True, **kwargs)
             profiling += [cursor.profile()]
             cursor.close()
-        with open(join(fpath, f"query{nq}_profile{limit_str}.json"), "w") as fp:
+        with open(
+            join(fpath, f"query{nq}_profile{limit_str}.json"), "w"
+        ) as fp:
             json.dump(profiling, fp, indent=4)
 
     logger.info(f"starting actual query at {limit}")

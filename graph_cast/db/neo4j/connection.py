@@ -1,14 +1,16 @@
 import logging
+
 from neo4j import GraphDatabase
+
+from graph_cast.db import ConnectionConfigType
 from graph_cast.db.connection import Connection
-from graph_cast.db.abstract_config import ConnectionConfigType
 
 logger = logging.getLogger(__name__)
 
 
 class Neo4jConnection(Connection):
     def __init__(self, config: ConnectionConfigType):
-        super().__init__(config)
+        super().__init__()
         driver = GraphDatabase.driver(
             uri=config.hosts, auth=(config.cred_name, config.cred_pass)
         )
@@ -127,7 +129,7 @@ class Neo4jConnection(Connection):
     #
     # def get_collections(self):
     #     return self.conn.collections()
-    #
+
     def execute(self, query, params=None):
         cursor = self.conn.run(query, params)
         return cursor

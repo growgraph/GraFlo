@@ -1,12 +1,12 @@
-from typing import List
 import logging
+from typing import List
 
 from graph_cast.architecture import JConfigurator
 from graph_cast.db import ConnectionConfigType, ConnectionManager
-from graph_cast.db.arango.util import upsert_docs_batch, insert_edges_batch
+from graph_cast.db.arango.util import insert_edges_batch, upsert_docs_batch
+from graph_cast.input.json import jsonlike_to_collections
 from graph_cast.util import timer as timer
 from graph_cast.util.transform import merge_doc_basis
-from graph_cast.input.json import jsonlike_to_collections
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def process_jsonlike(
                     True,
                 )
                 if not dry:
-                    cursor = db_client.execute(query0)
+                    db_client.execute(query0)
 
     logger.info(f" ingested {cnt} vertices {t_ingest.elapsed:.2f} sec")
 
@@ -55,7 +55,7 @@ def process_jsonlike(
                 )
 
                 if not dry:
-                    cursor = db_client.execute(query0)
+                    db_client.execute(query0)
 
     logger.info(f" ingested {cnt} edges {t_ingest_edges.elapsed:.2f} sec")
 

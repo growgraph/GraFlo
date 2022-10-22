@@ -1,6 +1,7 @@
 import json
-from arango import ArangoClient
 import logging
+
+from arango import ArangoClient
 
 from graph_cast.util.transform import pick_unique_dict
 
@@ -18,7 +19,9 @@ def create_collection_if_absent(db_client, g, vcol, index, unique=True):
             return None
 
 
-def get_arangodb_client(protocol, ip_addr, port, database, cred_name, cred_pass):
+def get_arangodb_client(
+    protocol, ip_addr, port, database, cred_name, cred_pass
+):
     hosts = f"{protocol}://{ip_addr}:{port}"
     client = ArangoClient(hosts=hosts)
 
@@ -33,7 +36,9 @@ def delete_collections(sys_db, cnames=(), gnames=(), delete_all=False):
     logger.info([c for c in sys_db.collections() if c["name"][0] != "_"])
 
     if delete_all:
-        cnames = [c["name"] for c in sys_db.collections() if c["name"][0] != "_"]
+        cnames = [
+            c["name"] for c in sys_db.collections() if c["name"][0] != "_"
+        ]
         gnames = [g["name"] for g in sys_db.graphs()]
 
     for cn in cnames:

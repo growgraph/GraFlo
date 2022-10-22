@@ -19,12 +19,20 @@ isort:
 
 .PHONY: autoflake
 autoflake:
-	autoflake --remove-unused-variables --verbose --in-place  ./lm_service/**/*py
+	autoflake --remove-unused-variables --verbose --in-place  ./graph_cast/**/*py
 
-all: autoflake black isort mypy
+.PHONY: prettyyaml
+prettyyaml:
+	find . -name "*yaml" -and -not -ipath './.*' -type f | xargs pretty-format-yaml --autofix --indent 4
+
+.PHONY: prettyjson
+prettyjson:
+	find . -name "*json" -and -not -ipath './.*' -type f | xargs pretty-format-json --autofix --indent 4
+
+all: autoflake black isort mypy prettyyaml prettyjson
 
 #.PHONY: pylint
 #pylint:
-#	pylint lm_service
+#	pylint package_name
 
 

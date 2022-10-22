@@ -1,6 +1,7 @@
 from collections import defaultdict
+from typing import Any, Dict, Set, Tuple
+
 from graph_cast.architecture.transform import Transform
-from typing import Set, Tuple, Any, Dict, DefaultDict, List
 
 
 class CollectionIndex:
@@ -39,10 +40,13 @@ class Vertex:
         self._fields = list(fields)
         self._index = CollectionIndex(*index)
         if extra_index is not None:
-            self._extra_indices = [CollectionIndex(**item) for item in extra_index]
+            self._extra_indices = [
+                CollectionIndex(**item) for item in extra_index
+            ]
         self._numeric_fields = numeric_fields
         # set of filters
         self._filters = [Filter(**item) for item in filters]
+
         # currently not used
         self._transforms = [Transform(**item) for item in transforms]
 
@@ -163,7 +167,9 @@ class VertexConfig:
 
     def _init_vcollections(self, vconfig):
         self._vcollections = set(vconfig.keys())
-        self._vcollections_all = {k: Vertex(name=k, **v) for k, v in vconfig.items()}
+        self._vcollections_all = {
+            k: Vertex(name=k, **v) for k, v in vconfig.items()
+        }
 
     def _init_names(self, vconfig):
         try:
@@ -206,7 +212,9 @@ class VertexConfig:
 
     def _init_extra_indexes(self, vconfig):
         self._extra_indices = {
-            k: v["extra_index"] for k, v in vconfig.items() if "extra_index" in v
+            k: v["extra_index"]
+            for k, v in vconfig.items()
+            if "extra_index" in v
         }
 
     def extra_index_list(self, vertex_name):
@@ -233,7 +241,9 @@ class VertexConfig:
         return iter(self._blank_collections)
 
     def _init_fields(self, vconfig):
-        self._vfields = {k: v["fields"] for k, v in vconfig.items() if "fields" in v}
+        self._vfields = {
+            k: v["fields"] for k, v in vconfig.items() if "fields" in v
+        }
 
     def fields(self, vertex_name):
         if vertex_name in self._vcollections:
@@ -248,7 +258,9 @@ class VertexConfig:
 
     def _init_numeric_fields(self, vconfig):
         self._vcollection_numeric_fields_map = {
-            k: v["numeric_fields"] for k, v in vconfig.items() if "numeric_fields" in v
+            k: v["numeric_fields"]
+            for k, v in vconfig.items()
+            if "numeric_fields" in v
         }
 
     def numeric_fields_list(self, vertex_name):
@@ -297,9 +309,13 @@ class GraphConfig:
     def _init_edges(self, config):
         # check that the edges are unique
         if "main" in config:
-            self._edges = {(item["source"], item["target"]) for item in config["main"]}
+            self._edges = {
+                (item["source"], item["target"]) for item in config["main"]
+            }
             if len(set(self._edges)) < len(self._edges):
-                raise ValueError(f" Potentially duplicate edges in edges definition")
+                raise ValueError(
+                    f" Potentially duplicate edges in edges definition"
+                )
             self._edges = set(self._edges)
 
     def _init_extra_edges(self, config):
@@ -333,7 +349,7 @@ class GraphConfig:
 
     def _parse_jedges(
         self, croot, edge_accumulator, exclusion_fields
-    ) -> (Set, DefaultDict[str, List]):
+    ) -> tuple[set, defaultdict[str, list]]:
         # TODO push mapping_fields etc to architecture
         """
         extract edge definition and edge fields from definition dict
@@ -359,8 +375,7 @@ class GraphConfig:
                     if "field" in evw["target"]:
                         exclusion_fields[wname] += [evw["target"]["field"]]
                 return edge_acc_ | edge_accumulator, exclusion_fields
-            else:
-                return set(), defaultdict(list)
+        return set(), defaultdict(list)
 
     def _define_graphs(self, config, vmap):
 
@@ -396,7 +411,9 @@ class GraphConfig:
         try:
             return self._graphs[u, v]
         except:
-            raise KeyError(f" Requested graph {u, v} not present in GraphConfig")
+            raise KeyError(
+                f" Requested graph {u, v} not present in GraphConfig"
+            )
 
     def weights(self, u, v):
         if (u, v) in self._graphs and "weight" in self._graphs[u, v]:

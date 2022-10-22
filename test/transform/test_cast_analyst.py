@@ -1,4 +1,5 @@
 import unittest
+
 from graph_cast.util.transform import cast_ibes_analyst
 
 

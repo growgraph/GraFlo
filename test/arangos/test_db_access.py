@@ -1,10 +1,10 @@
-import unittest
-from os.path import join, dirname, realpath
 import logging
 import sys
-from graph_cast.db.arango.util import insert_return_batch
+import unittest
+from os.path import dirname, realpath
 
-from graph_cast.db import ConnectionManager, ConfigFactory
+from graph_cast.db import ConfigFactory, ConnectionManager
+from graph_cast.db.arango.util import insert_return_batch
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,9 @@ class TestDBAccess(unittest.TestCase):
 
         with ConnectionManager(connection_config=conn_conf) as db_client:
             cnames = [
-                c["name"] for c in db_client.get_collections() if c["name"][0] != "_"
+                c["name"]
+                for c in db_client.get_collections()
+                if c["name"][0] != "_"
             ]
             for c in cnames:
                 logger.info(c)
@@ -42,7 +44,9 @@ class TestDBAccess(unittest.TestCase):
         conn_conf = ConfigFactory.create_config(args=db_args)
         with ConnectionManager(connection_config=conn_conf) as db_client:
             cnames = [
-                c["name"] for c in db_client.get_collections() if c["name"][0] != "_"
+                c["name"]
+                for c in db_client.get_collections()
+                if c["name"][0] != "_"
             ]
 
         docs = [{"value": i} for i in range(5)]

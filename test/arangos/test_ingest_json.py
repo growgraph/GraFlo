@@ -1,13 +1,14 @@
-import unittest
-from os.path import join, dirname, realpath
-import yaml
-import logging
 import argparse
-from pprint import pprint
+import logging
+import unittest
+from os.path import dirname, join, realpath
+
 import pandas as pd
-from graph_cast.db import ConnectionManager, ConfigFactory
-from graph_cast.util import ResourceHandler, equals
+import yaml
+
+from graph_cast.db import ConfigFactory, ConnectionManager
 from graph_cast.main import ingest_json_files
+from graph_cast.util import ResourceHandler, equals
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,9 @@ class TestIngestJSON(unittest.TestCase):
                     vc[c["name"]] = size
 
         if not self.reset:
-            ref_vc = ResourceHandler.load(f"test.ref.json", f"{mode}_sizes.yaml")
+            ref_vc = ResourceHandler.load(
+                f"test.ref.json", f"{mode}_sizes.yaml"
+            )
             flag = equals(vc, ref_vc)
             if not flag:
                 print(vc)
@@ -60,7 +63,9 @@ class TestIngestJSON(unittest.TestCase):
             self.assertTrue(flag)
 
         else:
-            ResourceHandler.dump(vc, join(self.cpath, f"../ref/json/{mode}_sizes.yaml"))
+            ResourceHandler.dump(
+                vc, join(self.cpath, f"../ref/json/{mode}_sizes.yaml")
+            )
 
     def test_modes(self):
         for mode in self.modes:
@@ -95,7 +100,9 @@ class TestIngestJSON(unittest.TestCase):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--reset", action="store_true", help="reset test results")
+    parser.add_argument(
+        "--reset", action="store_true", help="reset test results"
+    )
     args = parser.parse_args()
     suite = unittest.TestSuite()
     suite.addTest(TestIngestJSON(args.reset))

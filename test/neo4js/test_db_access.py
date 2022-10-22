@@ -1,10 +1,10 @@
-import unittest
-from os.path import join, dirname, realpath
 import logging
 import sys
-from graph_cast.db.arango.util import insert_return_batch
+import unittest
+from os.path import dirname, realpath
 
-from graph_cast.db import ConnectionManager, ConfigFactory
+from graph_cast.db import ConfigFactory, ConnectionManager
+from graph_cast.db.arango.util import insert_return_batch
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class TestDBAccess(unittest.TestCase):
         with ConnectionManager(connection_config=conn_conf) as db_client:
             query = "MATCH(n) RETURN n LIMIT 3"
             result = db_client.execute(query, params=None)
-            r = [record for record in result]
+            [record for record in result]
 
 
 if __name__ == "__main__":

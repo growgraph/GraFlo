@@ -1,12 +1,12 @@
-import unittest
-from os.path import join, dirname, realpath
-import logging
 import argparse
+import logging
+import unittest
+from os.path import dirname, join, realpath
 from pprint import pprint
 
+from graph_cast.db import ConfigFactory, ConnectionManager
 from graph_cast.main import ingest_csvs
 from graph_cast.util import ResourceHandler, equals
-from graph_cast.db import ConnectionManager, ConfigFactory
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class TestIngestCSV(unittest.TestCase):
         self.reset = reset
 
     def _atomic(self, mode):
-        db = f"{mode}_test"
+        f"{mode}_test"
 
         path = join(self.cpath, f"../data/csv/{mode}")
         schema_config = ResourceHandler.load(f"conf.table", f"{mode}.yaml")
@@ -64,7 +64,9 @@ class TestIngestCSV(unittest.TestCase):
             db_client.delete_collections([], [], delete_all=True)
 
         if not self.reset:
-            ref_vc = ResourceHandler.load(f"test.ref.csv", f"{mode}_sizes.yaml")
+            ref_vc = ResourceHandler.load(
+                f"test.ref.csv", f"{mode}_sizes.yaml"
+            )
             flag = equals(vc, ref_vc)
             if not flag:
                 pprint(f"ref keys: {sorted(ref_vc.keys())}")
@@ -74,7 +76,9 @@ class TestIngestCSV(unittest.TestCase):
             self.assertTrue(flag)
 
         else:
-            ResourceHandler.dump(vc, join(self.cpath, f"../ref/csv/{mode}_sizes.yaml"))
+            ResourceHandler.dump(
+                vc, join(self.cpath, f"../ref/csv/{mode}_sizes.yaml")
+            )
 
     def runTest(self):
         for mode in self.modes:
@@ -83,7 +87,9 @@ class TestIngestCSV(unittest.TestCase):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--reset", action="store_true", help="reset test results")
+    parser.add_argument(
+        "--reset", action="store_true", help="reset test results"
+    )
     args = parser.parse_args()
     suite = unittest.TestSuite()
     suite.addTest(TestIngestCSV(args.reset))

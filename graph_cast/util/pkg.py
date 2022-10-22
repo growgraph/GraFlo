@@ -1,14 +1,14 @@
 import gzip
-import json
-import yaml
-import pickle
-import pandas as pd
-import pkgutil
 import io
+import json
 import logging
-from os.path import expanduser
+import pickle
+import pkgutil
 from collections.abc import Iterable
+from os.path import expanduser
 
+import pandas as pd
+import yaml
 
 logger = logging.getLogger(__name__)
 

@@ -3,51 +3,44 @@ general:
 json:
     type: item
     edges:
-        -
-            how: all
-            source:
-                name: participant
-            target:
-                name: call
-    maps:
-        -
-            how: dict
+    -   how: all
+        source:
+            name: participant
+        target:
             name: call
-        -
-            type: item
-            descend_key: participants
+    maps:
+    -   how: dict
+        name: call
+    -   type: item
+        descend_key: participants
+        maps:
+        -   type: list
             maps:
-                -
-                    type: list
-                    maps:
-                        -
-                            type: item
-                            maps:
-                                -
-                                    how: dict
-                                    name: participant
+            -   type: item
+                maps:
+                -   how: dict
+                    name: participant
 vertex_collections:
     collections:
         call:
             basename: calls
             fields:
-                - id
-                - created_time
+            -   id
+            -   created_time
             index:
-                - id
+            -   id
         participant:
             basename: participants
             fields:
-                - id
-                - participant_type
+            -   id
+            -   participant_type
             index:
-                - id
+            -   id
             extra_index:
-                -
-                    type: hash
-                    unique: false
-                    fields:
-                        - issn
+            -   type: hash
+                unique: false
+                fields:
+                -   issn
         dummy:
             basename: dummies
 

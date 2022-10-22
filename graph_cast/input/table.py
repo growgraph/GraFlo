@@ -1,7 +1,9 @@
-from collections import defaultdict, ChainMap
-from itertools import product, combinations, chain
+from __future__ import annotations
+
 import logging
-from typing import List, Dict, DefaultDict, Tuple
+from collections import ChainMap, defaultdict
+from itertools import chain, combinations, product
+from typing import Any, Dict, List
 
 from graph_cast.architecture import ConfiguratorType
 from graph_cast.architecture.general import transform_foo
@@ -13,10 +15,15 @@ def table_to_collections(
     rows: List[List],
     header_dict: Dict[str, int],
     conf: ConfiguratorType,
-) -> Tuple[DefaultDict, DefaultDict]:
+) -> tuple[
+    defaultdict[str, list[dict[str, Any]]],
+    defaultdict[tuple[str, str], list[dict[str, Any]]],
+]:
 
-    vdocs = defaultdict(list)
-    edocs = defaultdict(list)
+    vdocs: defaultdict[str, list[list[dict[str, Any]]]] = defaultdict(list)
+    edocs: defaultdict[tuple[str, str], list[dict[str, Any]]] = defaultdict(
+        list
+    )
     vertex_conf = conf.vertex_config
 
     rows_raw = [{k: item[v] for k, v in header_dict.items()} for item in rows]
@@ -42,14 +49,18 @@ def table_to_collections(
     for vcol, local_map in conf.current_collections:
         vdoc_acc = []
 
-        current_fields = set(vertex_conf.index(vcol)) | set(vertex_conf.fields(vcol))
+        current_fields = set(vertex_conf.index(vcol)) | set(
+            vertex_conf.fields(vcol)
+        )
 
         default_input = current_fields & (
             transformation_outputs | set(header_dict.keys())
         )
 
         if default_input:
-            vdoc_acc += [[{f: item[f] for f in default_input} for item in rows_working]]
+            vdoc_acc += [
+                [{f: item[f] for f in default_input} for item in rows_working]
+            ]
 
         if local_map.active:
             vdoc_acc += [[local_map(item) for item in rows_working]]
@@ -79,6 +90,7 @@ def table_to_collections(
             and v not in vertex_conf.blank_collections
         ):
             if conf.graph(u, v)["type"] == "direct":
+                ziter: product | combinations
                 if u != v:
                     ziter = product(vdocs[u], vdocs[v])
                 else:
@@ -106,7 +118,8 @@ def table_to_collections(
                     cfields = conf.graph_config.weights(*g)
                     if cfields:
                         weights = [
-                            {f: item[f] for f in cfields} for item in rows_working
+                            {f: item[f] for f in cfields}
+                            for item in rows_working
                         ]
                         ebatch = [
                             {**item, **{"attributes": attr}}
@@ -114,17 +127,21 @@ def table_to_collections(
                         ]
                     edocs[g].extend(ebatch)
 
+    vdocs_output: defaultdict[str, list[dict[str, Any]]] = defaultdict(list)
     for u, vlists in vdocs.items():
-        vdocs[u] = [
+        stub = [
             [
                 item
                 for item in vlist
                 if not any(
-                    [f"_status@{xkey}" in item for xkey in vertex_conf.fields(u)]
+                    [
+                        f"_status@{xkey}" in item
+                        for xkey in vertex_conf.fields(u)
+                    ]
                 )
             ]
             for vlist in vlists
         ]
-        vdocs[u] = list(chain.from_iterable(vdocs[u]))
+        vdocs_output[u] = list(chain.from_iterable(stub))
 
-    return vdocs, edocs
+    return vdocs_output, edocs

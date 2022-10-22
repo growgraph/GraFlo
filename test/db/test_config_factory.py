@@ -1,4 +1,5 @@
 import unittest
+
 from graph_cast.db.factory import ConfigFactory
 
 

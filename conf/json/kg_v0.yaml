@@ -3,23 +3,24 @@ general:
 json:
     type: item
     weights:
-        - source:
-              name: concept
-          target:
-              name: concept
-          vertex:
-              - name: publication
-                field: id
+    -   source:
+            name: concept
+        target:
+            name: concept
+        vertex:
+        -   name: publication
+            mapper:
+                id: publication
+
     edges:
-        -
-            how: all
-            source:
-                name: publication
-            target:
-                name: concept
-                anchor: meta
-                fields:
-                    - anchor
+    -   how: all
+        source:
+            name: publication
+        target:
+            name: concept
+            anchor: meta
+            fields:
+            -   anchor
 #    weights:
 #        - source:
 #              name: publication
@@ -31,53 +32,44 @@ json:
 #                condition:
 #                    anchor: main
     maps:
-        -
-            how: dict
-            name: publication
-            map:
-                publication_id: id
+    -   how: dict
+        name: publication
+        map:
+            publication_id: id
 
-        -
-            type: item
-            descend_key: triples
+    -   type: item
+        descend_key: triples
+        maps:
+        -   type: list
             maps:
-                -
-                    type: list
+            -   type: item
+                edges:
+                -   how: all
+                    source:
+                        name: concept
+                        anchor: meta
+                    target:
+                        name: concept
+                        anchor: core
+                        weight_exclusive:
+                        -   tritype
+                maps:
+                -   type: item
+                    descend_key: triple_meta
                     maps:
-                        -
-                            type: item
-                            edges:
-                                -
-                                  how: all
-                                  source:
-                                      name: concept
-                                      anchor: meta
-                                  target:
-                                      name: concept
-                                      anchor: core
-                                      weight_exclusive:
-                                          - tritype
-                            maps:
-                                -
-                                    type: item
-                                    descend_key: triple_meta
-                                    maps:
-                                        -
-                                            how: dict
-                                            __extra:
-                                                anchor: meta
-                                            name: concept
-                                -
-                                    type: list
-                                    descend_key: triple
-                                    maps:
-                                        -
-                                            how: dict
-                                            __extra:
-                                                anchor: core
-                                            name: concept
-                                            map:
-                                                type: tritype
+                    -   how: dict
+                        __extra:
+                            anchor: meta
+                        name: concept
+                -   type: list
+                    descend_key: triple
+                    maps:
+                    -   how: dict
+                        __extra:
+                            anchor: core
+                        name: concept
+                        map:
+                            type: tritype
 
 
 vertex_collections:
@@ -85,14 +77,14 @@ vertex_collections:
         publication:
             basename: publications
             fields:
-                - id
+            -   id
             index:
-                - id
+            -   id
         concept:
             basename: concepts
             fields:
-                - hash
-                - text
+            -   hash
+            -   text
             index:
-                - hash
+            -   hash
 

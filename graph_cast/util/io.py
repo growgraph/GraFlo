@@ -1,17 +1,36 @@
 from __future__ import annotations
-import gzip
+
+import abc
 import csv
-import re
+import gc
+import gzip
+import io
 import json
 import logging
-import io
 import pkgutil
-import gc
+import re
+from typing import TypeVar
+
+AbsChunkerType = TypeVar("AbsChunkerType", bound="AbsChunker")
 
 logger = logging.getLogger(__name__)
 
 
-class Chunker:
+class AbsChunker(abc.ABC):
+    def __init__(self):
+        self.units_processed = 0
+
+    def pop(self):
+        pass
+
+    def pop_header(self):
+        pass
+
+    def done(self):
+        pass
+
+
+class Chunker(AbsChunker):
     def __init__(
         self,
         fname=None,
@@ -29,10 +48,10 @@ class Chunker:
         :param n_lines_max:
         :param encoding:
         """
+        super().__init__()
         if fname is None and pkg_spec is None:
             raise ValueError(f" both fname and file_obj are None")
-        self.acc = []
-        self.j = 0
+
         self.batch_size = batch_size
         self.n_lines_max: int | None = n_lines_max
 
@@ -46,12 +65,18 @@ class Chunker:
                 self.file_obj = open(fname, "rt")
         else:
             bytes_ = pkgutil.get_data(*pkg_spec)
-            if pkg_spec[1][-2:] == "gz":
-                self.file_obj = gzip.GzipFile(fileobj=io.BytesIO(bytes_), mode="r")
+            if isinstance(bytes_, bytes):
+                if pkg_spec[1][-2:] == "gz":
+                    self.file_obj = gzip.GzipFile(
+                        fileobj=io.BytesIO(bytes_), mode="r"
+                    )
+                else:
+                    self.file_obj = io.BytesIO(bytes_)
             else:
-                self.file_obj = io.BytesIO(bytes_)
-            self.file_obj = io.TextIOWrapper(self.file_obj, encoding="utf-8")
-        self.done = False
+                raise TypeError(f"bytes_ should be a bytes Type")
+
+            self.file_obj = io.TextIOWrapper(self.file_obj, encoding="utf-8")  # type: ignore
+        self._done = False
 
     def pop_header(self):
         header = self.file_obj.readline().rstrip("\n")
@@ -60,7 +85,8 @@ class Chunker:
 
     def pop(self):
         if self.n_lines_max is None or (
-            self.n_lines_max is not None and self.j < self.n_lines_max
+            self.n_lines_max is not None
+            and self.units_processed < self.n_lines_max
         ):
             lines = self.file_obj.readlines(self.batch_size)
             lines2 = [
@@ -68,35 +94,37 @@ class Chunker:
                 for line in lines
             ]
             if self.n_lines_max is not None and (
-                self.j + len(lines2) > self.n_lines_max
+                self.units_processed + len(lines2) > self.n_lines_max
             ):
-                lines2 = lines2[: (self.n_lines_max - self.j)]
-            self.j += len(lines2)
+                lines2 = lines2[: (self.n_lines_max - self.units_processed)]
+            self.units_processed += len(lines2)
             if not lines2:
-                self.done = True
+                self._done = True
                 self.file_obj.close()
                 return []
             else:
 
                 return lines2
         else:
-            self.done = True
+            self._done = True
             self.file_obj.close()
             return []
 
+    @property
     def done(self):
-        return self.done
+        return self._done
 
 
-class ChunkerDataFrame:
+class ChunkerDataFrame(AbsChunker):
     def __init__(self, df, batch_size, n_lines_max=None):
-        self.acc = []
-        self.j = 0
+        super().__init__()
         self.batch_size = batch_size
         self.n_lines_max = n_lines_max
         self.file_obj = df
         self.done = False
-        self.idx = [i for i in range(0, self.file_obj.shape[0], self.batch_size)][::-1]
+        self.idx = [
+            i for i in range(0, self.file_obj.shape[0], self.batch_size)
+        ][::-1]
 
     def pop_header(self):
         return self.file_obj.columns
@@ -104,8 +132,10 @@ class ChunkerDataFrame:
     def pop(self):
         if self.idx:
             cid = self.idx.pop()
-            lines = self.file_obj.iloc[cid : cid + self.batch_size].values.tolist()
-            self.j += len(lines)
+            lines = self.file_obj.iloc[
+                cid : cid + self.batch_size
+            ].values.tolist()
+            self.units_processed += len(lines)
             if not lines:
                 self.done = True
                 return False
@@ -150,7 +180,9 @@ class ChunkFlusherMono:
             gc.collect()
 
     def stop(self):
-        return self.maxchunks is not None and (self.chunk_count >= self.maxchunks)
+        return self.maxchunks is not None and (
+            self.chunk_count >= self.maxchunks
+        )
 
     def items_processed(self):
         return self.iprocessed
@@ -173,7 +205,7 @@ class FPSmart:
         return self.transform(s).encode()
 
     def transform(self, s):
-        m = self.p.search(s)
+        self.p.search(s)
         r = self.p.sub(self.sub, s, count=self.count)
         return r
 

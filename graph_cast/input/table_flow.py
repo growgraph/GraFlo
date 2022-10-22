@@ -1,21 +1,19 @@
-import queue
-from typing import Union, Optional
 import multiprocessing as mp
+import queue
+from typing import Optional, Union
+
 import pandas as pd
 
-from graph_cast.db import (
-    ConnectionConfigType,
-    ConnectionManager,
-)
+from graph_cast.architecture import ConfiguratorType
+from graph_cast.db import ConnectionConfigType, ConnectionManager
 from graph_cast.db.arango.util import (
+    insert_edges_batch,
     insert_return_batch,
     upsert_docs_batch,
-    insert_edges_batch,
 )
 from graph_cast.input import table_to_collections
 from graph_cast.input.table import logger
-from graph_cast.util.io import ChunkerDataFrame, Chunker
-from graph_cast.architecture import ConfiguratorType
+from graph_cast.util.io import AbsChunker, Chunker, ChunkerDataFrame
 
 
 def process_table(
@@ -40,7 +38,7 @@ def process_table(
     logger.info(f"batch_size : {batch_size}")
 
     if isinstance(tabular_resource, pd.DataFrame):
-        chk = ChunkerDataFrame(
+        chk: AbsChunker = ChunkerDataFrame(
             tabular_resource, batch_size=batch_size, n_lines_max=max_lines
         )
     elif isinstance(tabular_resource, str):
@@ -100,7 +98,9 @@ def process_table(
                             edocuments[(vfrom, vto)].extend(
                                 [
                                     {"source": x, "target": y}
-                                    for x, y in zip(vdocuments[vfrom], vdocuments[vto])
+                                    for x, y in zip(
+                                        vdocuments[vfrom], vdocuments[vto]
+                                    )
                                 ]
                             )
 
@@ -122,7 +122,7 @@ def process_table(
                 #     query0 = define_extra_edges(conf_obj.graph(u, v))
                 #     cursor = db_config.execute(query0)
 
-            logger.info(f" processed so far: {chk.j} lines")
+            logger.info(f" processed so far: {chk.units_processed} lines")
 
 
 def process_table_with_queue(tasks: mp.Queue, **kwargs):

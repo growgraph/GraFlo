@@ -1,8 +1,9 @@
-import unittest
-import logging
-from os.path import dirname, realpath
 import argparse
-from graph_cast.architecture.schema import Filter, Condition
+import logging
+import unittest
+from os.path import dirname, realpath
+
+from graph_cast.architecture.schema import Condition, Filter
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,9 @@ class TestFilter(unittest.TestCase):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--reset", action="store_true", help="reset test results")
+    parser.add_argument(
+        "--reset", action="store_true", help="reset test results"
+    )
     args = parser.parse_args()
     suite = unittest.TestSuite()
     unittest.TextTestRunner(verbosity=2).run(suite)

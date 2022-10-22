@@ -1,10 +1,12 @@
-import logging
 import gzip
-from shutil import copyfileobj
-from contextlib import contextmanager
-from graph_cast.util.io import ChunkFlusherMono, FPSmart
+import logging
 import xml.etree.ElementTree as et
+from contextlib import contextmanager
+from shutil import copyfileobj
+
 import xmltodict
+
+from graph_cast.util.io import ChunkFlusherMono, FPSmart
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +38,9 @@ def parse_simple(fp, good_cf):
     rec_ = "REC"
     for event, pub in context:
         if event == "end" and pub.tag == rec_:
-            item = et.tostring(pub, encoding="utf8", method="xml").decode("utf")
+            item = et.tostring(pub, encoding="utf8", method="xml").decode(
+                "utf"
+            )
             obj = xmltodict.parse(
                 item,
                 force_cdata=True,
@@ -92,7 +96,9 @@ def convert(
     target_prefix = target.split(".")[0]
     good_cf = ChunkFlusherMono(target_prefix, chunksize, maxchunks)
     if how == "standard":
-        bad_cf = ChunkFlusherMono(target_prefix, chunksize, maxchunks, suffix="bad")
+        bad_cf = ChunkFlusherMono(
+            target_prefix, chunksize, maxchunks, suffix="bad"
+        )
 
     if isinstance(source, str):
         if source[-2:] == "gz":
@@ -102,7 +108,9 @@ def convert(
         else:
             raise ValueError("Unknown file type")
 
-    with (open_foo(source, "rb") if isinstance(source, str) else nullcontext()) as fp:
+    with (
+        open_foo(source, "rb") if isinstance(source, str) else nullcontext()
+    ) as fp:
         if pattern:
             fp = FPSmart(fp, pattern)
         else:
@@ -113,7 +121,9 @@ def convert(
         # terminal flush
         good_cf.flush_chunk()
 
-        logger.error(f" not an error : {good_cf.items_processed()} good records")
+        logger.error(
+            f" not an error : {good_cf.items_processed()} good records"
+        )
         if how == "standard":
             bad_cf.flush_chunk()
             logger.error(f"{bad_cf.items_processed()} bad records")

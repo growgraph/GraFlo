@@ -1,15 +1,19 @@
 import gzip
 import json
-from collections import defaultdict, ChainMap
+from collections import ChainMap, defaultdict
 from itertools import product
-
-from graph_cast.input.util import parse_vcollection
-from graph_cast.util.io import FPSmart
-from graph_cast.input.util import define_graphs, update_graph_extra_edges
-from graph_cast.architecture.schema import VertexConfig
-from graph_cast.architecture.general import transform_foo
-from graph_cast.architecture.transform import Transform
 from typing import Dict
+
+from graph_cast.architecture.general import transform_foo
+from graph_cast.architecture.schema import VertexConfig
+from graph_cast.architecture.transform import Transform
+
+# from graph_cast.input.util import (
+#     define_graphs,
+#     parse_vcollection,
+#     update_graph_extra_edges,
+# )
+from graph_cast.util.io import FPSmart
 
 xml_dummy = "#text"
 
@@ -24,12 +28,20 @@ def apply_mapper(mapper: Dict, document, vertex_config: VertexConfig):
                 ("filter" not in mapper and "unfilter" not in mapper)
                 or (
                     "filter" in mapper
-                    and all([document[kk] == vv for kk, vv in mapper["filter"].items()])
+                    and all(
+                        [
+                            document[kk] == vv
+                            for kk, vv in mapper["filter"].items()
+                        ]
+                    )
                 )
                 or (
                     "unfilter" in mapper
                     and any(
-                        [document[kk] != vv for kk, vv in mapper["unfilter"].items()]
+                        [
+                            document[kk] != vv
+                            for kk, vv in mapper["unfilter"].items()
+                        ]
                     )
                 )
             ):
@@ -39,7 +51,6 @@ def apply_mapper(mapper: Dict, document, vertex_config: VertexConfig):
                 if "transforms" in mapper:
                     for t in mapper["transforms"]:
                         t_ = Transform(**t)
-                        # doc_.update(transform_foo(t, document))
                         doc_.update(transform_foo(t_, document))
 
                 if "map" in mapper:
@@ -80,7 +91,7 @@ def apply_mapper(mapper: Dict, document, vertex_config: VertexConfig):
             raise KeyError("Mapper must have map key if it has vertex key")
     # traverse non terminal nodes
     elif "type" in mapper:
-        agg = defaultdict(list)
+        agg: defaultdict[str, list[str]] = defaultdict(list)
         if "descend_key" in mapper:
             if document and mapper["descend_key"] in document:
                 document = document[mapper["descend_key"]]
@@ -134,20 +145,34 @@ def add_weights(mapper, agg):
 
         if "vertex" in edge_def:
             for item in edge_def["vertex"]:
+                # item
+                # name: publication
+                # condition:
+                #       anchor: main
+                # keys:
+                # mapper:
+                #   k1: q1
+
+                # should rather become index for the given vcollection (item["name"])
+                keys_to_add = item["keys"] if "keys" in item else []
+                keys_to_map = item["mapper"] if "mapper" in item else {}
+                keys_to_map.update({k: k for k in keys_to_add})
+
                 vs = [doc for doc in agg[item["name"]]]
                 if "condition" in item.keys():
                     c = item["condition"]
-                    vs = [doc for doc in vs if all([q in doc for q in c])]
+                    vs = [
+                        doc
+                        for doc in vs
+                        if all([doc[q] == v in doc for q, v in c.items()])
+                    ]
                 if vs:
+                    # TODO : possible issue
                     doc = vs[0]
-                    if "condition" not in item.keys() or (
-                        "condition" in item.keys()
-                        and all([doc[k] == v for k, v in c.items()])
-                    ):
-                        for edoc in edges:
-                            edoc["attributes"].update(
-                                {item["name"]: doc[item["field"]]}
-                            )
+                    for edoc in edges:
+                        edoc["attributes"].update(
+                            {q: doc[k] for k, q in keys_to_map.items()}
+                        )
         agg[(source, target)] = edges
     return agg
 
@@ -199,7 +224,9 @@ def add_edges(mapper, agg, vertex_config):
                             weight[k] = v[k]
                             del v[k]
                 if "values" in edge_def:
-                    weight.update({k: v for k, v in edge_def["values"].items()})
+                    weight.update(
+                        {k: v for k, v in edge_def["values"].items()}
+                    )
                 agg[(source, target)] += [
                     {
                         "source": project_dict(u, source_index),
@@ -219,7 +246,9 @@ def add_edges(mapper, agg, vertex_config):
                 target_items, target_index, edge_def["target"]
             )
 
-            target_items = [item for item in target_items if target_field in item]
+            target_items = [
+                item for item in target_items if target_field in item
+            ]
 
             if target_items:
                 target_items = dict(
@@ -232,10 +261,16 @@ def add_edges(mapper, agg, vertex_config):
                     weight = dict()
                     if "fields" in edge_def["source"]:
                         weight.update(
-                            {k: u[k] for k in edge_def["source"]["fields"] if k in u}
+                            {
+                                k: u[k]
+                                for k in edge_def["source"]["fields"]
+                                if k in u
+                            }
                         )
                     if "values" in edge_def:
-                        weight.update({k: v for k, v in edge_def["values"].items()})
+                        weight.update(
+                            {k: v for k, v in edge_def["values"].items()}
+                        )
                     up = project_dict(u, source_index)
                     if source_field in u:
                         pointer = u[source_field]
@@ -264,7 +299,9 @@ def add_edges(mapper, agg, vertex_config):
     return agg
 
 
-def pick_indexed_items_anchor_logic(items, indices, set_spec, anchor_key="anchor"):
+def pick_indexed_items_anchor_logic(
+    items, indices, set_spec, anchor_key="anchor"
+):
     """
 
     :param items: list of documents (dict)
@@ -287,15 +324,6 @@ def pick_indexed_items_anchor_logic(items, indices, set_spec, anchor_key="anchor
     return items_
 
 
-def assign_edge_label(edges, label, condition):
-    edges_new = [(u, v, label) if condition(u, v) else (u, v, {}) for u, v in edges]
-    return edges_new
-
-
-def clean_arobas(item):
-    return {k: v for k, v in item.items() if k[0] != "@"}
-
-
 def project_dict(item, keys, how="include"):
     if how == "include":
         return {k: v for k, v in item.items() if k in keys}
@@ -307,21 +335,13 @@ def project_dicts(items, keys, how="include"):
     if how == "include":
         return [{k: v for k, v in item.items() if k in keys} for item in items]
     elif how == "exclude":
-        return [{k: v for k, v in item.items() if k not in keys} for item in items]
+        return [
+            {k: v for k, v in item.items() if k not in keys} for item in items
+        ]
     else:
-        raise ValueError(f" `how` should be exclude or include : instead {how}")
-
-
-def clean_aux_fields(pack):
-    pack_out = {}
-    for k, cpack in pack.items():
-        if k != "@edges":
-            pack_out[k] = [clean_arobas(x) for x in cpack]
-        else:
-            pack_out[k] = [
-                (clean_arobas(x[0]), clean_arobas(x[1]), x[2:]) for x in cpack
-            ]
-    return pack_out
+        raise ValueError(
+            f" `how` should be exclude or include : instead {how}"
+        )
 
 
 def parse_edges(croot, edge_acc, mapping_fields):
@@ -336,7 +356,9 @@ def parse_edges(croot, edge_acc, mapping_fields):
     if isinstance(croot, dict):
         if "maps" in croot:
             for m in croot["maps"]:
-                edge_acc_, mapping_fields = parse_edges(m, edge_acc, mapping_fields)
+                edge_acc_, mapping_fields = parse_edges(
+                    m, edge_acc, mapping_fields
+                )
                 edge_acc += edge_acc_
         if "edges" in croot:
             edge_acc_ = []
@@ -355,13 +377,16 @@ def parse_edges(croot, edge_acc, mapping_fields):
             return [], defaultdict(list)
 
 
-def merge_documents(docs, main_key="_key", anchor_key="anchor", anchor_value="main"):
+def merge_documents(
+    docs, main_key="_key", anchor_key="anchor", anchor_value="main"
+):
     """
-    docs contain docs with main_key and without
+    docs contain documents with main_key and documents without
     all docs without main_key should be merged with the doc that has doc[anchor_key] == anchor_value
     :param docs:
     :param main_key:
     :param anchor_key:
+    :param anchor_value:
     :return: list of docs, each of which contains main_key
     """
     mains_, mains, auxs, anchors = [], [], [], []
@@ -401,7 +426,10 @@ def smart_merge(
     # merge non_standard onto standard (not replacing fields are already standard item)
     for item in agg[collection_name]:
         if discriminant_key in item:
-            if "wos_standard" in item and item[discriminant_key] == discriminant_value:
+            if (
+                "wos_standard" in item
+                and item[discriminant_key] == discriminant_value
+            ):
                 wos_standard[item["wos_standard"]] += [item]
             else:
                 without_standard_heap += [item]
@@ -460,38 +488,38 @@ def get_json_data(source, pattern=None):
 #     return r
 
 
-def parse_config(config=None):
-    """
-    only parse_edges depends on json
-
-    :param config:
-    :param prefix:
-    :return:
-    """
-
-    (
-        vmap,
-        index_fields_dict,
-        extra_indices,
-        vfields,
-        blank_collections,
-    ) = parse_vcollection(config)
-
-    edge_def, excl_fields = parse_edges(config["json"], [], defaultdict(list))
-
-    graphs_definition = define_graphs(edge_def, vmap)
-    graphs_definition = update_graph_extra_edges(
-        graphs_definition, vmap, config["extra_edges"]
-    )
-
-    vcollections = list(
-        set([graphs_definition[g]["source"] for g in graphs_definition])
-        | set([graphs_definition[g]["target"] for g in graphs_definition])
-    )
-    return (
-        vcollections,
-        vmap,
-        graphs_definition,
-        index_fields_dict,
-        extra_indices,
-    )
+# def parse_config(config=None):
+#     """
+#     only parse_edges depends on json
+#
+#     :param config:
+#     :param prefix:
+#     :return:
+#     """
+#
+#     (
+#         vmap,
+#         index_fields_dict,
+#         extra_indices,
+#         vfields,
+#         blank_collections,
+#     ) = parse_vcollection(config)
+#
+#     edge_def, excl_fields = parse_edges(config["json"], [], defaultdict(list))
+#
+#     graphs_definition = define_graphs(edge_def, vmap)
+#     graphs_definition = update_graph_extra_edges(
+#         graphs_definition, vmap, config["extra_edges"]
+#     )
+#
+#     vcollections = list(
+#         set([graphs_definition[g]["source"] for g in graphs_definition])
+#         | set([graphs_definition[g]["target"] for g in graphs_definition])
+#     )
+#     return (
+#         vcollections,
+#         vmap,
+#         graphs_definition,
+#         index_fields_dict,
+#         extra_indices,
+#     )

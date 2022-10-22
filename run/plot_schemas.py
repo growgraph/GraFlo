@@ -1,15 +1,15 @@
-import yaml
+import argparse
 import os
-import networkx as nx
 from collections import defaultdict
 from itertools import product
-from os.path import join, dirname, realpath
-import argparse
+from os.path import dirname, join, realpath
 
-from graph_cast.input.json_aux import parse_edges
-from graph_cast.architecture.table import TConfigurator
+import networkx as nx
+import yaml
+
 from graph_cast.architecture.json import JConfigurator
-
+from graph_cast.architecture.table import TConfigurator
+from graph_cast.input.json_aux import parse_edges
 
 """
 
@@ -152,7 +152,9 @@ class SchemaPlotter:
                 (
                     f"{k}:{item}",
                     {
-                        "type": "def_field" if item in index_fields else "field",
+                        "type": "def_field"
+                        if item in index_fields
+                        else "field",
                         "label": item,
                     },
                 )
@@ -160,7 +162,10 @@ class SchemaPlotter:
             ]
             nodes += nodes_collection
             nodes += nodes_fields
-            edges += [(x[0], y[0]) for x, y in product(nodes_collection, nodes_fields)]
+            edges += [
+                (x[0], y[0])
+                for x, y in product(nodes_collection, nodes_fields)
+            ]
 
         g.add_nodes_from(nodes)
         g.add_edges_from(edges)
@@ -207,7 +212,9 @@ class SchemaPlotter:
 
         for k in vconf.collections:
             level_index = [f"{k}:{item}" for item in vconf.index(k)]
-            index_subgraph = ag.add_subgraph(level_index, name=f"cluster_{k}:def")
+            index_subgraph = ag.add_subgraph(
+                level_index, name=f"cluster_{k}:def"
+            )
             index_subgraph.node_attr["style"] = "filled"
             index_subgraph.node_attr["label"] = "definition"
 
@@ -250,7 +257,8 @@ class SchemaPlotter:
                 nodes += nodes_table
                 nodes += nodes_collection
                 edges += [
-                    (nt[0], nc[0]) for nt, nc in product(nodes_table, nodes_collection)
+                    (nt[0], nc[0])
+                    for nt, nc in product(nodes_table, nodes_collection)
                 ]
 
             g.add_nodes_from(nodes)
@@ -375,10 +383,16 @@ class SchemaPlotter:
                     cmap = item["map"]
                 else:
                     cmap = dict()
-                fields_collection_complementary = set(ref_fields) - set(cmap.values())
-                cmap.update({qq: qq for qq in list(fields_collection_complementary)})
+                fields_collection_complementary = set(ref_fields) - set(
+                    cmap.values()
+                )
+                cmap.update(
+                    {qq: qq for qq in list(fields_collection_complementary)}
+                )
 
-                index_fields = self.config["vertex_collections"][cname]["index"]
+                index_fields = self.config["vertex_collections"][cname][
+                    "index"
+                ]
 
                 node_collection = (
                     f"collection:{cname}",
@@ -392,7 +406,9 @@ class SchemaPlotter:
                     (
                         f"collection:field:{kk}",
                         {
-                            "type": "def_field" if kk in index_fields else "field",
+                            "type": "def_field"
+                            if kk in index_fields
+                            else "field",
                             "label": kk,
                         },
                     )
@@ -402,7 +418,9 @@ class SchemaPlotter:
                     (f"table:field:{kk}", f"collection:field:{vv}")
                     for kk, vv in cmap.items()
                 ]
-                edge_table_fields = [(f"table:{k}", q) for q, _ in nodes_fields_table]
+                edge_table_fields = [
+                    (f"table:{k}", q) for q, _ in nodes_fields_table
+                ]
                 edge_collection_fields = [
                     (q, node_collection[0]) for q, _ in nodes_fields_collection
                 ]
@@ -412,7 +430,9 @@ class SchemaPlotter:
                     + nodes_fields_table
                     + nodes_fields_collection
                 )
-                edges += edges_fields + edge_table_fields + edge_collection_fields
+                edges += (
+                    edges_fields + edge_table_fields + edge_collection_fields
+                )
 
         g.add_nodes_from(nodes)
         g.add_edges_from(edges)
@@ -431,7 +451,7 @@ class SchemaPlotter:
 
         for e in g.edges(data=True):
             s, t, _ = e
-            target_props = g.nodes[s]
+            g.nodes[s]
             upd_dict = {
                 # "style": edge_status[target_props["type"]],
                 "arrowhead": "vee"
@@ -442,13 +462,19 @@ class SchemaPlotter:
         ag = nx.nx_agraph.to_agraph(g)
 
         for k, props in self.config["vertex_collections"].items():
-            level_index = [f"collection:field:{item}" for item in props["index"]]
-            index_subgraph = ag.add_subgraph(level_index, name=f"cluster_{k[:3]}:def")
+            level_index = [
+                f"collection:field:{item}" for item in props["index"]
+            ]
+            index_subgraph = ag.add_subgraph(
+                level_index, name=f"cluster_{k[:3]}:def"
+            )
             index_subgraph.node_attr["style"] = "filled"
             index_subgraph.node_attr["label"] = "definition"
 
         ag.draw(
-            os.path.join(self.figgpath, f"{self.prefix}_source2vc_detailed.pdf"),
+            os.path.join(
+                self.figgpath, f"{self.prefix}_source2vc_detailed.pdf"
+            ),
             "pdf",
             prog="dot",
         )
@@ -457,7 +483,9 @@ class SchemaPlotter:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-c", "--config", default=None, help="config file name")
+    parser.add_argument(
+        "-c", "--config", default=None, help="config file name"
+    )
     parser.add_argument(
         "-p",
         "--prune-low-degree-nodes",

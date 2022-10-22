@@ -1,10 +1,12 @@
 import argparse
-import yaml
+import logging
 from os.path import expanduser
 
+import yaml
+
+from graph_cast.db import ConfigFactory
 from graph_cast.main import ingest_json_files
-from graph_cast.db.arango import get_arangodb_client
-import logging
+from graph_cast.util import ResourceHandler
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +70,9 @@ if __name__ == "__main__":
         "--keyword", default="DSSHPSH", help="prefix for files to be processed"
     )
 
-    parser.add_argument("--prefix", default="wos", help="prefix for collection names")
+    parser.add_argument(
+        "--prefix", default="wos", help="prefix for collection names"
+    )
 
     parser.add_argument(
         "--clean-start",

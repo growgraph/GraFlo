@@ -1,7 +1,7 @@
 import json
 import logging
-from datetime import datetime
 import time
+from datetime import datetime
 
 day_endings = ["st", "nd", "rd", "th"]
 
@@ -161,7 +161,8 @@ def try_int(x):
 
 def clear_first_level_nones(docs, keys_keep_nones=None):
     docs = [
-        {k: v for k, v in tdict.items() if v or k in keys_keep_nones} for tdict in docs
+        {k: v for k, v in tdict.items() if v or k in keys_keep_nones}
+        for tdict in docs
     ]
     return docs
 

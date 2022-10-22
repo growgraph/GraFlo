@@ -1,12 +1,14 @@
-import unittest
-from os.path import join, dirname, realpath
 import logging
-from graph_cast.architecture.transform import Transform
+import unittest
+from os.path import dirname, realpath
+
 import yaml
+
 from graph_cast.architecture.table import TConfigurator
-from graph_cast.util.io import Chunker
+from graph_cast.architecture.transform import Transform
 from graph_cast.input import table_to_collections
 from graph_cast.util import ResourceHandler, equals
+from graph_cast.util.io import Chunker
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +54,7 @@ class TestTransform(unittest.TestCase):
         header = chk.pop_header()
         header_dict = dict(zip(header, range(len(header))))
 
-        while not chk.done:
+        while not chk._done:
             lines = chk.pop()
             if lines:
                 vdocuments, edocuments = table_to_collections(

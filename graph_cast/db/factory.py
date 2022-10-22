@@ -1,12 +1,13 @@
 import json
 import os
 from copy import deepcopy
-from typing import Type
+
 import yaml
 
+from graph_cast.db import ConnectionConfigType
 from graph_cast.db.arango.config import ArangoConnectionConfig
+from graph_cast.db.connection import ConnectionConfig, WSGIConfig
 from graph_cast.db.neo4j.config import Neo4jConnectionConfig
-from graph_cast.db.abstract_config import ConnectionConfig, WSGIConfig
 
 
 class ConfigFactory:
@@ -48,9 +49,3 @@ class ConfigFactory:
             return WSGIConfig(**config)
         else:
             raise NotImplementedError
-
-
-class ConnectionFactory:
-    @classmethod
-    def create_connection(cls, config: Type[ConnectionConfig]):
-        return config.connection_class(config)

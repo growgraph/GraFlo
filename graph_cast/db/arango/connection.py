@@ -1,14 +1,16 @@
 import logging
+
 from arango import ArangoClient
+
+from graph_cast.db import ConnectionConfigType
 from graph_cast.db.connection import Connection
-from graph_cast.db.abstract_config import ConnectionConfigType
 
 logger = logging.getLogger(__name__)
 
 
 class ArangoConnection(Connection):
     def __init__(self, config: ConnectionConfigType):
-        super().__init__(config)
+        super().__init__()
         client = ArangoClient(hosts=config.hosts)
 
         self.conn = client.db(
@@ -84,7 +86,9 @@ class ArangoConnection(Connection):
     def define_vertex_indices(self, vertex_config):
         for c in vertex_config.collections:
             for index_dict in vertex_config.extra_index_list(c):
-                general_collection = self.conn.collection(vertex_config.dbname(c))
+                general_collection = self.conn.collection(
+                    vertex_config.dbname(c)
+                )
                 ih = general_collection.add_hash_index(
                     fields=index_dict["fields"], unique=index_dict["unique"]
                 )
@@ -94,7 +98,9 @@ class ArangoConnection(Connection):
             item = graph_config.graph(u, v)
             if "index" in item:
                 for index_dict in item["index"]:
-                    general_collection = self.conn.collection(item["edge_name"])
+                    general_collection = self.conn.collection(
+                        item["edge_name"]
+                    )
                     ih = general_collection.add_hash_index(
                         fields=index_dict["fields"],
                         unique=index_dict["unique"],
@@ -105,17 +111,25 @@ class ArangoConnection(Connection):
             _ = g.create_vertex_collection(vcol)
             general_collection = self.conn.collection(vcol)
             if index is not None and index != ["_key"]:
-                ih = general_collection.add_hash_index(fields=index, unique=unique)
+                ih = general_collection.add_hash_index(
+                    fields=index, unique=unique
+                )
                 return ih
             else:
                 return None
 
     def delete_collections(self, cnames=(), gnames=(), delete_all=False):
         logger.info("collections (non system):")
-        logger.info([c for c in self.conn.collections() if c["name"][0] != "_"])
+        logger.info(
+            [c for c in self.conn.collections() if c["name"][0] != "_"]
+        )
 
         if delete_all:
-            cnames = [c["name"] for c in self.conn.collections() if c["name"][0] != "_"]
+            cnames = [
+                c["name"]
+                for c in self.conn.collections()
+                if c["name"][0] != "_"
+            ]
             gnames = [g["name"] for g in self.conn.graphs()]
 
         for cn in cnames:
@@ -123,7 +137,9 @@ class ArangoConnection(Connection):
                 self.conn.delete_collection(cn)
 
         logger.info("collections (after delete operation):")
-        logger.info([c for c in self.conn.collections() if c["name"][0] != "_"])
+        logger.info(
+            [c for c in self.conn.collections() if c["name"][0] != "_"]
+        )
 
         logger.info("graphs:")
         logger.info(self.conn.graphs())

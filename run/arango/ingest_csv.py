@@ -1,8 +1,9 @@
 import argparse
 import logging
-from graph_cast.util import ResourceHandler
-from graph_cast.main import ingest_csvs
+
 from graph_cast.db import ConfigFactory
+from graph_cast.main import ingest_csvs
+from graph_cast.util import ResourceHandler
 
 logger = logging.getLogger(__name__)
 
