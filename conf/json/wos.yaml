@@ -14,7 +14,8 @@ json:
                     name: publication
                     condition:
                         anchor: main
-                    field: _key
+                    mapper:
+                        _key: publication
         -
             source:
                 name: contributor
@@ -25,7 +26,8 @@ json:
                     name: publication
                     condition:
                         anchor: main
-                    field: _key
+                    mapper:
+                        _key: publication
         -
             source:
                 name: publisher
@@ -36,7 +38,8 @@ json:
                     name: publication
                     condition:
                         anchor: main
-                    field: _key
+                    mapper:
+                        _key: publication
     edges:
         -
             how: all

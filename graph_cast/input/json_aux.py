@@ -145,20 +145,34 @@ def add_weights(mapper, agg):
 
         if "vertex" in edge_def:
             for item in edge_def["vertex"]:
+                # item
+                # name: publication
+                # condition:
+                #       anchor: main
+                # keys:
+                # mapper:
+                #   k1: q1
+
+                # should rather become index for the given vcollection (item["name"])
+                keys_to_add = item["keys"] if "keys" in item else []
+                keys_to_map = item["mapper"] if "mapper" in item else {}
+                keys_to_map.update({k: k for k in keys_to_add})
+
                 vs = [doc for doc in agg[item["name"]]]
                 if "condition" in item.keys():
                     c = item["condition"]
-                    vs = [doc for doc in vs if all([q in doc for q in c])]
+                    vs = [
+                        doc
+                        for doc in vs
+                        if all([doc[q] == v in doc for q, v in c.items()])
+                    ]
                 if vs:
+                    # TODO : possible issue
                     doc = vs[0]
-                    if "condition" not in item.keys() or (
-                        "condition" in item.keys()
-                        and all([doc[k] == v for k, v in c.items()])
-                    ):
-                        for edoc in edges:
-                            edoc["attributes"].update(
-                                {item["name"]: doc[item["field"]]}
-                            )
+                    for edoc in edges:
+                        edoc["attributes"].update(
+                            {q: doc[k] for k, q in keys_to_map.items()}
+                        )
         agg[(source, target)] = edges
     return agg
 

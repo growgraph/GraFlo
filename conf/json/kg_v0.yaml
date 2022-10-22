@@ -9,7 +9,9 @@ json:
               name: concept
           vertex:
               - name: publication
-                field: id
+                mapper:
+                    id: publication
+
     edges:
         -
             how: all
