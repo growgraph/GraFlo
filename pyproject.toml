@@ -19,6 +19,8 @@ isort = "^5.10.1"
 autoflake = "^1.4"
 pre-commit = "^2.20.0"
 types-PyYAML = "^6.0.11"
+language-formatters-pre-commit-hooks = "^2.4.0"
+pre-commit-hooks = "^4.3.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

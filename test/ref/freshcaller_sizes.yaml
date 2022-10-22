@@ -1,6 +1,5 @@
 call: 1
 participant: 2
-? !!python/tuple
-- participant
-- call
+?   -   participant
+    -   call
 : 2

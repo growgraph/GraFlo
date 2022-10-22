@@ -1,107 +1,97 @@
 general:
     name: ticker_history
 csv:
-    -
-        tabletype: _all
-        transforms:
-            -   foo: round_str
-                module: graph_cast.util.transform
-                maps:
-                    -
-                        input:
-                            - Open
-                    -
-                        input:
-                            - Close
-                params:
-                    ndigits: 3
-            -   foo: int
-                module: builtins
-                maps:
-                    -
-                        input:
-                            - Volume
-            -   foo: parse_date_yahoo
-                module: graph_cast.util.transform
-                input:
-                    - Date
-                output:
-                    - t_obs
-        vertex_collections:
-            -
-                type: ticker
-                map:
-                    _filename: oftic
-            -
-                type: feature
-                map:
-                    Open:
-                        key: name
-            -
-                type: feature
-                map:
-                    Close:
-                        key: name
-            -
-                type: feature
-                map:
-                    Volume:
-                        key: name
+-   tabletype: _all
+    transforms:
+    -   foo: round_str
+        module: graph_cast.util.transform
+        maps:
+        -   input:
+            -   Open
+        -   input:
+            -   Close
+        params:
+            ndigits: 3
+    -   foo: int
+        module: builtins
+        maps:
+        -   input:
+            -   Volume
+    -   foo: parse_date_yahoo
+        module: graph_cast.util.transform
+        input:
+        -   Date
+        output:
+        -   t_obs
+    vertex_collections:
+    -   type: ticker
+        map:
+            _filename: oftic
+    -   type: feature
+        map:
+            Open:
+                key: name
+    -   type: feature
+        map:
+            Close:
+                key: name
+    -   type: feature
+        map:
+            Volume:
+                key: name
 vertex_collections:
     collections:
         ticker:
             basename: tickers
             fields:
-                - cusip
-                - cname
-                - oftic
+            -   cusip
+            -   cname
+            -   oftic
             index:
-                - cusip
-                - cname
-                - oftic
+            -   cusip
+            -   cname
+            -   oftic
         feature:
             basename: features
             fields:
-                - name
-                - value
+            -   name
+            -   value
             index:
-                - name
-                - value
+            -   name
+            -   value
             extra_index:
-                -   type: hash
-                    unique: false
-                    fields:
-                        - value
-                -   type: hash
-                    unique: false
-                    fields:
-                        - name
+            -   type: hash
+                unique: false
+                fields:
+                -   value
+            -   type: hash
+                unique: false
+                fields:
+                -   name
             filters:
-                -
-                    a:
-                        field: name
-                        foo: __eq__
-                        value: Open
-                    b:
-                        field: value
-                        foo: __gt__
-                        value: 0
-                -
-                    a:
-                        field: name
-                        foo: __eq__
-                        value: Close
-                    b:
-                        field: value
-                        foo: __gt__
-                        value: 0
+            -   a:
+                    field: name
+                    foo: __eq__
+                    value: Open
+                b:
+                    field: value
+                    foo: __gt__
+                    value: 0
+            -   a:
+                    field: name
+                    foo: __eq__
+                    value: Close
+                b:
+                    field: value
+                    foo: __gt__
+                    value: 0
 edge_collections:
     main:
-        -   source: ticker
-            target: feature
-            weight:
-                - t_obs
-            index:
-                -   fields:
-                        - t_obs
-                    unique: false
+    -   source: ticker
+        target: feature
+        weight:
+        -   t_obs
+        index:
+        -   fields:
+            -   t_obs
+            unique: false
