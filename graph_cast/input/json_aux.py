@@ -7,12 +7,6 @@ from typing import Dict
 from graph_cast.architecture.general import transform_foo
 from graph_cast.architecture.schema import VertexConfig
 from graph_cast.architecture.transform import Transform
-
-# from graph_cast.input.util import (
-#     define_graphs,
-#     parse_vcollection,
-#     update_graph_extra_edges,
-# )
 from graph_cast.util.io import FPSmart
 
 xml_dummy = "#text"
@@ -48,6 +42,7 @@ def apply_mapper(mapper: Dict, document, vertex_config: VertexConfig):
                 kkeys = vertex_config.fields(vcol)
 
                 doc_ = dict()
+                # TODO :  check what if there are transforms defined at collection definition level
                 if "transforms" in mapper:
                     for t in mapper["transforms"]:
                         t_ = Transform(**t)
@@ -79,10 +74,6 @@ def apply_mapper(mapper: Dict, document, vertex_config: VertexConfig):
                     doc_.update(mapper["__extra"])
             else:
                 doc_ = dict()
-            # if "transforms" in vertex_config[vcol]:
-            #     for t in vertex_config[vcol]["transforms"]:
-            #         upd = transform_foo(t, doc_)
-            #         doc_.update(upd)
             return {vcol: [doc_]}
         elif mode == "value":
             key = mapper["key"]

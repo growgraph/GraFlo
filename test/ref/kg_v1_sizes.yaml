@@ -1,0 +1,15 @@
+publication: 1
+entity: 36
+mention: 102
+? !!python/tuple
+- mention
+- entity
+: 42
+? !!python/tuple
+- mention
+- mention
+: 78
+? !!python/tuple
+- publication
+- mention
+: 26

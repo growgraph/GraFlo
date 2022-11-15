@@ -32,11 +32,11 @@ repos:
         exclude: (^test/|^run/)
 #        args: [--strict]
 
--   repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-    rev: v2.4.0
-    hooks:
-    -   id: pretty-format-yaml
-        args: [--autofix, --indent, '4', --preserve-quotes]
+#-   repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+#    rev: v2.4.0
+#    hooks:
+#    -   id: pretty-format-yaml
+#        args: [--autofix, --indent, '4', --preserve-quotes]
 
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.3.0

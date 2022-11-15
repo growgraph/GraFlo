@@ -23,7 +23,7 @@ autoflake:
 
 .PHONY: prettyyaml
 prettyyaml:
-	find . -name "*yaml" -and -not -ipath './.*' -type f | xargs pretty-format-yaml --autofix --indent 4
+	find . -name "*yaml" -and -not -ipath './.*' -type f -and -not -name "*sizes*" | xargs pretty-format-yaml --autofix --indent 4
 
 .PHONY: prettyjson
 prettyjson:
