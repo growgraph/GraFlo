@@ -97,15 +97,9 @@ def init_db(db_client: ConnectionType, conf_obj, clean_start):
         #     delete_collections(sys_db, vcollections + ecollections, actual_graphs)
         # elif clean_start == "edges":
         #     delete_collections(sys_db, ecollections, [])
-    db_client.define_collections(
-        conf_obj.graph_config,
-        conf_obj.vertex_config,
-    )
+    db_client.define_collections(conf_obj.graph_config, conf_obj.vertex_config)
 
-    db_client.define_indices(
-        conf_obj.graph_config,
-        conf_obj.vertex_config,
-    )
+    db_client.define_indices(conf_obj.graph_config, conf_obj.vertex_config)
 
 
 def concluding_db_transform(db_client: ConnectionType, conf_obj):
@@ -113,7 +107,7 @@ def concluding_db_transform(db_client: ConnectionType, conf_obj):
     for cname in conf_obj.vertex_config.collections:
         for field in conf_obj.vertex_config.numeric_fields_list(cname):
             query0 = update_to_numeric(
-                conf_obj.vertex_config.dbname(cname), field
+                conf_obj.vertex_config.vertex_dbname(cname), field
             )
             db_client.execute(query0)
 

@@ -67,7 +67,8 @@ def jsonlike_to_collections(
                 super_dict[k].extend(v)
 
     logger.info(
-        f" converting json to vertices and edges took {t_parse.elapsed:.2f} sec"
+        " converting json to vertices and edges took"
+        f" {t_parse.elapsed:.2f} sec"
     )
 
     vdocs = defaultdict(list)

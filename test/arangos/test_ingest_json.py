@@ -3,9 +3,6 @@ import logging
 import unittest
 from os.path import dirname, join, realpath
 
-import pandas as pd
-import yaml
-
 from graph_cast.db import ConfigFactory, ConnectionManager
 from graph_cast.main import ingest_json_files
 from graph_cast.util import ResourceHandler, equals
@@ -33,7 +30,6 @@ class TestIngestJSON(unittest.TestCase):
         self.reset = reset
 
     def _atomic(self, mode):
-
         path = join(self.cpath, f"../data/json/{mode}")
         config = ResourceHandler.load(f"conf.json", f"{mode}.yaml")
 
@@ -51,7 +47,6 @@ class TestIngestJSON(unittest.TestCase):
                     cursor = db_client.execute(f"return LENGTH({c['name']})")
                     size = next(cursor)
                     vc[c["name"]] = size
-
         if not self.reset:
             ref_vc = ResourceHandler.load(
                 f"test.ref.json", f"{mode}_sizes.yaml"

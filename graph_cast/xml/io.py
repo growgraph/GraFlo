@@ -90,7 +90,6 @@ def convert(
     pattern=r"xmlns=\".*[^\"]\"(?=>)",
     how="standard",
 ):
-
     logger.info(f" chunksize : {chunksize} | maxchunks {maxchunks} ")
 
     target_prefix = target.split(".")[0]

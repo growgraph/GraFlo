@@ -58,18 +58,7 @@ class TConfigurator(Configurator):
     def current_transformations(self):
         return self.table_config.transforms(self.mode)
 
-    # @property
-    # def current_field_maps(self):
-    #     if self.mode in self.table_config.tables:
-    #         return self.table_config.table_collection_maps[self.mode]
-    #     else:
-    #         return None
-
-    def graph(self, u, v):
-        return self.graph_config.graph(u, v)
-
     def _init_modes2graphs(self, subconfig, edges):
-
         for item in subconfig:
             table_type = item["tabletype"]
 

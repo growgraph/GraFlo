@@ -12,11 +12,7 @@ logger = logging.getLogger(__name__)
 
 class TestTransformJsonlike(unittest.TestCase):
     cpath = dirname(realpath(__file__))
-    modes = [
-        # "freshcaller",
-        # "kg_v0",
-        "kg_v1"
-    ]
+    modes = ["freshcaller", "kg_v0", "kg_v1"]
 
     def __init__(self, reset):
         super().__init__()
@@ -45,9 +41,39 @@ class TestTransformJsonlike(unittest.TestCase):
                 vc, join(self.cpath, f"../ref/{mode}_sizes.yaml")
             )
 
+    def test_weights(self):
+        jsonlike = ResourceHandler.load(
+            f"test.data.json.kg_v1", f"kg_v1.json.gz"
+        )
+        config = ResourceHandler.load(f"conf.json", f"kg_v1_weight.yaml")
+        conf_obj = JConfigurator(config)
+
+        defdict = jsondoc_to_collections(jsonlike[0], conf_obj)
+
+        flag = all(
+            ["publication" in item for item in defdict[("mention", "mention")]]
+        )
+        self.assertTrue(flag)
+
+        flag = all(
+            [
+                len(item["publication"]) == 1
+                for item in defdict[("mention", "mention")]
+            ]
+        )
+
+        self.assertTrue(flag)
+        self.assertEqual(
+            conf_obj.graph_config.graph("publication", "mention")
+            .index[0]
+            .fields,
+            ["publication.arxiv", "publication.doi"],
+        )
+
     def runTest(self):
-        for mode in self.modes:
-            self._atomic(mode)
+        # for mode in self.modes:
+        #     self._atomic(mode)
+        self.test_weights()
 
 
 if __name__ == "__main__":

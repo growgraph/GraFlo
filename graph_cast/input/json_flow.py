@@ -18,7 +18,6 @@ def process_jsonlike(
     ncores=1,
     dry=False,
 ):
-
     vdocs, edocs = jsonlike_to_collections(json_data, conf_obj, ncores)
     with timer.Timer() as t_ingest:
         cnt = 0
@@ -28,7 +27,7 @@ def process_jsonlike(
                 cnt += len(r)
                 query0 = upsert_docs_batch(
                     v,
-                    conf_obj.vertex_config.dbname(k),
+                    conf_obj.vertex_config.vertex_dbname(k),
                     conf_obj.vertex_config.index(k),
                     "doc",
                     True,
@@ -39,18 +38,17 @@ def process_jsonlike(
     logger.info(f" ingested {cnt} vertices {t_ingest.elapsed:.2f} sec")
 
     with timer.Timer() as t_ingest_edges:
-
         cnt = 0
         with ConnectionManager(connection_config=db_config) as db_client:
             for (vfrom, vto), batch in edocs.items():
                 cnt += len(batch)
                 query0 = insert_edges_batch(
                     batch,
-                    conf_obj.vertex_config.dbname(vfrom),
-                    conf_obj.vertex_config.dbname(vto),
-                    conf_obj.graph(vfrom, vto)["edge_name"],
-                    conf_obj.vertex_config.index(vfrom),
-                    conf_obj.vertex_config.index(vto),
+                    conf_obj.vertex_config.vertex_dbname(vfrom),
+                    conf_obj.vertex_config.vertex_dbname(vto),
+                    conf_obj.graph(vfrom, vto).edge_name,
+                    conf_obj.vertex_config.index(vfrom).fields,
+                    conf_obj.vertex_config.index(vto).fields,
                     False,
                 )
 

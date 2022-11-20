@@ -1,5 +1,6 @@
 import gzip
 import json
+import logging
 from collections import ChainMap, defaultdict
 from itertools import product
 from typing import Dict
@@ -8,6 +9,9 @@ from graph_cast.architecture.general import transform_foo
 from graph_cast.architecture.schema import VertexConfig
 from graph_cast.architecture.transform import Transform
 from graph_cast.util.io import FPSmart
+
+logger = logging.getLogger(__name__)
+
 
 xml_dummy = "#text"
 
@@ -108,7 +112,7 @@ def apply_mapper(mapper: Dict, document, vertex_config: VertexConfig):
                 agg = add_edges(mapper, agg, vertex_config)
             if "weights" in mapper:
                 # check update
-                agg = add_weights(mapper, agg)
+                agg = add_weights(mapper, agg, vertex_config)
             if "merge" in mapper:
                 for item in mapper["merge"]:
                     agg = smart_merge(
@@ -126,7 +130,7 @@ def apply_mapper(mapper: Dict, document, vertex_config: VertexConfig):
         raise KeyError("Mapper type has does not have either how or type keys")
 
 
-def add_weights(mapper, agg):
+def add_weights(mapper, agg, vertex_config: VertexConfig):
     for edge_def in mapper["weights"]:
         source, target = (
             edge_def["source"]["name"],
@@ -149,6 +153,7 @@ def add_weights(mapper, agg):
                 keys_to_map = item["mapper"] if "mapper" in item else {}
                 keys_to_map.update({k: k for k in keys_to_add})
 
+                # choose vertices from which to generate weights (conceptually there should be only one)
                 vs = [doc for doc in agg[item["name"]]]
                 if "condition" in item.keys():
                     c = item["condition"]
@@ -158,12 +163,29 @@ def add_weights(mapper, agg):
                         if all([doc[q] == v in doc for q, v in c.items()])
                     ]
                 if vs:
-                    # TODO : possible issue
+                    # if there are multiple vs, we don't know which one to use to add weights
                     doc = vs[0]
+                    # updating with raw fields
+                    if keys_to_map:
+                        weight = {q: doc[k] for k, q in keys_to_map.items()}
+                    else:
+                        try:
+                            weight = {
+                                item["name"]: {
+                                    k: doc[k]
+                                    for k in vertex_config.index(item["name"])
+                                    if k in doc
+                                }
+                            }
+                        except ValueError:
+                            weight = {}
+                            logger.error(
+                                " weights mapper error : weight definition on"
+                                f" {source} {target} refers to a non existent"
+                                f" vcollection {item['name']}"
+                            )
                     for edoc in edges:
-                        edoc["attributes"].update(
-                            {q: doc[k] for k, q in keys_to_map.items()}
-                        )
+                        edoc.update(weight)
         agg[(source, target)] = edges
     return agg
 
@@ -186,7 +208,6 @@ def add_edges(mapper, agg, vertex_config):
         source_items, target_items = agg[source], agg[target]
 
         if edge_def["how"] == "all":
-
             source_items = pick_indexed_items_anchor_logic(
                 source_items, source_index, edge_def["source"]
             )

@@ -25,7 +25,10 @@ def get_pubs(head=100):
 
 qdict = {
     "1": {
-        "description": "return most popular journals by number of publications, for year _current_year",
+        "description": (
+            "return most popular journals by number of publications, for year"
+            " _current_year"
+        ),
         "_current_year": 1978,
         "main_collection": "media",
         "q": f"""
@@ -40,7 +43,9 @@ qdict = {
                 RETURN doc""",
     },
     "2": {
-        "description": "return 1000 most popular words (minus stop words) from titles",
+        "description": (
+            "return 1000 most popular words (minus stop words) from titles"
+        ),
         "main_collection": "publications",
         "q": f"""
                 FOR doc IN publications FILTER doc.title __insert_limit 
@@ -51,8 +56,11 @@ qdict = {
                         RETURN {{uword, count}}""",
     },
     "3": {
-        "description": "return the list of authors who changed their country more than twice. "
-        "NB: make sure contributors_organizations_edges collection is set up",
+        "description": (
+            "return the list of authors who changed their country more than"
+            " twice. NB: make sure contributors_organizations_edges collection"
+            " is set up"
+        ),
         "main_collection": "contributors",
         "q": f"""
                 FOR a IN contributors __insert_limit
@@ -70,9 +78,11 @@ qdict = {
                             IN contributors_organizations_edges""",
     },
     "4": {
-        "description": "for publication x compute the ratio of number of second order neighbours to "
-        "first order neighbours in the directed network of citations. "
-        "(neighbours cite x)",
+        "description": (
+            "for publication x compute the ratio of number of second order"
+            " neighbours to first order neighbours in the directed network of"
+            " citations. (neighbours cite x)"
+        ),
         "_threshold": 5,
         "_current_year": 1978,
         "main_collection": "publications",
@@ -87,13 +97,15 @@ qdict = {
                     RETURN {{f: fraction, ids: gg[*].p._key}}""",
     },
     "5": {
-        "description": "aux calculation for eigenfactor:"
-        "count the number of times publications from journal j,"
-        " published during census period (_current_year)"
-        " cite publications in journal j prime published in target period"
-        " (_current_year - , _current_year - _delta_year"
-        "NB: take 10 most popular journals from q1."
-        " The result is a 10 by 10 matrix.",
+        "description": (
+            "aux calculation for eigenfactor:"
+            "count the number of times publications from journal j,"
+            " published during census period (_current_year)"
+            " cite publications in journal j prime published in target period"
+            " (_current_year - , _current_year - _delta_year"
+            "NB: take 10 most popular journals from q1."
+            " The result is a 10 by 10 matrix."
+        ),
         "_current_year": 1978,
         "_delta_year": 5,
         "__issns": get_issns(),
@@ -113,9 +125,11 @@ qdict = {
                 )}})""",
     },
     "6": {
-        "description": "given a subset of publications, compute the cardinality of the power set,"
-        " defined as papers cited by p, papers that are cited by papers cited by p etc. "
-        "5 order out",
+        "description": (
+            "given a subset of publications, compute the cardinality of the"
+            " power set, defined as papers cited by p, papers that are cited"
+            " by papers cited by p etc. 5 order out"
+        ),
         "_current_year": 1978,
         "__pids_head": 100,
         "__pids": get_pubs,

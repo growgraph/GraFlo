@@ -4,7 +4,6 @@ from graph_cast.util.transform import cast_ibes_analyst
 
 
 class TestCastAnalyst(unittest.TestCase):
-
     examples = ["ADKINS/NARRA", "/ZHANG/LI/YA", "/ZHANG/LI", "ARFSTROM      J"]
     result = [
         ("ADKINS", "N"),

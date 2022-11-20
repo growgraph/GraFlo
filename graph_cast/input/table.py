@@ -19,7 +19,6 @@ def table_to_collections(
     defaultdict[str, list[dict[str, Any]]],
     defaultdict[tuple[str, str], list[dict[str, Any]]],
 ]:
-
     vdocs: defaultdict[str, list[list[dict[str, Any]]]] = defaultdict(list)
     edocs: defaultdict[tuple[str, str], list[dict[str, Any]]] = defaultdict(
         list
@@ -49,7 +48,7 @@ def table_to_collections(
     for vcol, local_map in conf.current_collections:
         vdoc_acc = []
 
-        current_fields = set(vertex_conf.index(vcol)) | set(
+        current_fields = set(vertex_conf.index(vcol).fields) | set(
             vertex_conf.fields(vcol)
         )
 
@@ -89,7 +88,7 @@ def table_to_collections(
             u not in vertex_conf.blank_collections
             and v not in vertex_conf.blank_collections
         ):
-            if conf.graph(u, v)["type"] == "direct":
+            if conf.graph(u, v).type == "direct":
                 ziter: product | combinations
                 if u != v:
                     ziter = product(vdocs[u], vdocs[v])
@@ -115,14 +114,14 @@ def table_to_collections(
                         )
                     ]
                     # add weights from available rows
-                    cfields = conf.graph_config.weights(*g)
+                    cfields = conf.graph_config.graph(u, v).weight
                     if cfields:
                         weights = [
                             {f: item[f] for f in cfields}
                             for item in rows_working
                         ]
                         ebatch = [
-                            {**item, **{"attributes": attr}}
+                            {**item, **attr}
                             for item, attr in zip(ebatch, weights)
                         ]
                     edocs[g].extend(ebatch)

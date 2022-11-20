@@ -1,8 +1,10 @@
 publication: 1
 concept: 22
-?   -   concept
-    -   concept
+? !!python/tuple
+- concept
+- concept
 : 21
-?   -   publication
-    -   concept
+? !!python/tuple
+- publication
+- concept
 : 7

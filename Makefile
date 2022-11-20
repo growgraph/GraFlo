@@ -6,7 +6,7 @@ test:
 
 .PHONY: black
 black:
-	black -l 79 .
+	black -l 79 --preview .
 
 .PHONY: mypy
 mypy:

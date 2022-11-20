@@ -2,6 +2,11 @@ import logging
 
 from arango import ArangoClient
 
+from graph_cast.architecture.schema import (
+    CollectionIndex,
+    GraphConfig,
+    VertexConfig,
+)
 from graph_cast.db import ConnectionConfigType
 from graph_cast.db.connection import Connection
 
@@ -27,25 +32,24 @@ class ArangoConnection(Connection):
         if not self.conn.has_database(name):
             self.conn.delete_database(name)
 
-    def define_collections(self, graph_config, vertex_config):
+    def define_collections(self, graph_config, vertex_config: VertexConfig):
         self.define_vertex_collections(graph_config, vertex_config)
         self.define_edge_collections(graph_config)
 
-    def define_indices(self, graph_config, vertex_config):
+    def define_indices(self, graph_config, vertex_config: VertexConfig):
         self.define_vertex_indices(vertex_config)
         self.define_edge_indices(graph_config)
 
-    def define_vertex_collections(self, graph_config, vertex_config):
-        vertex_index = vertex_config.index
-        edges = graph_config.all_edges
-
+    def define_vertex_collections(
+        self, graph_config: GraphConfig, vertex_config: VertexConfig
+    ):
         disconnected_vertex_collections = set(vertex_config.collections) - set(
-            [v for edge in edges for v in edge]
+            [v for edge in graph_config.all_edges for v in edge]
         )
-        for u, v in edges:
+        for u, v in graph_config.all_edges:
             item = graph_config.graph(u, v)
-            gname = item["graph_name"]
-            logger.info(f'{item["source"]}, {item["target"]}, {gname}')
+            gname = item.graph_name
+            logger.info(f"{item.source}, {item.target}, {gname}")
             if self.conn.has_graph(gname):
                 g = self.conn.graph(gname)
             else:
@@ -53,66 +57,62 @@ class ArangoConnection(Connection):
             # TODO create collections without referencing the graph
             ih = self.create_collection_if_absent(
                 g,
-                item["source"],
-                vertex_index(u),
+                vertex_config.vertex_dbname(u),
+                vertex_config.index(u),
             )
 
             ih = self.create_collection_if_absent(
                 g,
-                item["target"],
-                vertex_index(v),
+                vertex_config.vertex_dbname(v),
+                vertex_config.index(v),
             )
         for v in disconnected_vertex_collections:
-            dbc = self.conn.create_collection(vertex_config._vmap[v])
-            # TODO default unique index here
-            ih = dbc.add_hash_index(fields=vertex_config.index(v))
+            dbc = self.conn.create_collection(vertex_config.vertex_dbname(v))
+            ih = dbc.add_hash_index(fields=vertex_config.index(v).fields)
 
-    def define_edge_collections(self, graph_config):
+    def define_edge_collections(self, graph_config: GraphConfig):
         edges = graph_config.all_edges
         for u, v in edges:
             item = graph_config.graph(u, v)
-            gname = item["graph_name"]
+            gname = item.graph_name
             if self.conn.has_graph(gname):
                 g = self.conn.graph(gname)
             else:
                 g = self.conn.create_graph(gname)
-            if not g.has_edge_definition(item["edge_name"]):
+            if not g.has_edge_definition(item.edge_name):
                 _ = g.create_edge_definition(
-                    edge_collection=item["edge_name"],
-                    from_vertex_collections=[item["source"]],
-                    to_vertex_collections=[item["target"]],
+                    edge_collection=item.edge_name,
+                    from_vertex_collections=[item.source],
+                    to_vertex_collections=[item.target],
                 )
 
     def define_vertex_indices(self, vertex_config):
         for c in vertex_config.collections:
-            for index_dict in vertex_config.extra_index_list(c):
+            for index in vertex_config.extra_index_list(c):
                 general_collection = self.conn.collection(
-                    vertex_config.dbname(c)
+                    vertex_config.vertex_dbname(c)
                 )
                 ih = general_collection.add_hash_index(
-                    fields=index_dict["fields"], unique=index_dict["unique"]
+                    fields=index.fields, unique=index.unique
                 )
 
-    def define_edge_indices(self, graph_config):
+    def define_edge_indices(self, graph_config: GraphConfig):
         for u, v in graph_config.all_edges:
             item = graph_config.graph(u, v)
-            if "index" in item:
-                for index_dict in item["index"]:
-                    general_collection = self.conn.collection(
-                        item["edge_name"]
-                    )
-                    ih = general_collection.add_hash_index(
-                        fields=index_dict["fields"],
-                        unique=index_dict["unique"],
-                    )
+            general_collection = self.conn.collection(item.edge_name)
+            for index_dict in item.index:
+                ih = general_collection.add_hash_index(
+                    fields=index_dict.fields,
+                    unique=index_dict.unique,
+                )
 
-    def create_collection_if_absent(self, g, vcol, index, unique=True):
+    def create_collection_if_absent(self, g, vcol, index: CollectionIndex):
         if not self.conn.has_collection(vcol):
             _ = g.create_vertex_collection(vcol)
             general_collection = self.conn.collection(vcol)
-            if index is not None and index != ["_key"]:
+            if index is not None and index.fields != ["_key"]:
                 ih = general_collection.add_hash_index(
-                    fields=index, unique=unique
+                    fields=index.fields, unique=index.unique
                 )
                 return ih
             else:

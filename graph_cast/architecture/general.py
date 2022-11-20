@@ -20,7 +20,7 @@ class Configurator:
         )
         self.graph_config = GraphConfig(
             edge_collections,
-            self.vertex_config.dbname,
+            self.vertex_config,
             config["json"] if "json" in config else None,
         )
         self.current_fname: str | None = None
@@ -76,7 +76,8 @@ def transform_foo(transform, doc):
             # ) as e:
 
             logger.debug(
-                f" application of transform_foo for doc {doc}; and transform {transform}"
+                f" application of transform_foo for doc {doc}; and transform"
+                f" {transform}"
             )
             if transform.output:
                 upd = {

@@ -56,7 +56,8 @@ class Chunker(AbsChunker):
         self.n_lines_max: int | None = n_lines_max
 
         logger.info(
-            f"Chunker init with batch_size : {self.batch_size} n_lines_max {self.n_lines_max}"
+            f"Chunker init with batch_size : {self.batch_size} n_lines_max"
+            f" {self.n_lines_max}"
         )
         if fname is not None:
             if fname[-2:] == "gz":
@@ -103,7 +104,6 @@ class Chunker(AbsChunker):
                 self.file_obj.close()
                 return []
             else:
-
                 return lines2
         else:
             self._done = True
@@ -162,7 +162,8 @@ class ChunkFlusherMono:
 
     def flush_chunk(self):
         logger.info(
-            f" in flush_chunk: len(self.acc) : {len(self.acc)}; self.chunk_count : {self.chunk_count}"
+            f" in flush_chunk: len(self.acc) : {len(self.acc)};"
+            f" self.chunk_count : {self.chunk_count}"
         )
         if len(self.acc) > 0:
             fname = f"{self.target_prefix}#{self.suffix}#{self.chunk_count}.json.gz"

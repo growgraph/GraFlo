@@ -61,7 +61,6 @@ def process_table(
         logger.info(f" processing :{len(lines)}")
 
         if lines:
-
             # file to vcols, ecols
             vdocuments, edocuments = table_to_collections(
                 lines,
@@ -77,14 +76,14 @@ def process_table(
                     # blank nodes: push and get back their keys  {"_key": ...}
                     if vcol in conf.vertex_config.blank_collections:
                         query0 = insert_return_batch(
-                            data, conf.vertex_config.dbname(vcol)
+                            data, conf.vertex_config.vertex_dbname(vcol)
                         )
                         cursor = db_client.execute(query0)
                         vdocuments[vcol] = [item for item in cursor]
                     else:
                         query0 = upsert_docs_batch(
                             data,
-                            conf.vertex_config.dbname(vcol),
+                            conf.vertex_config.vertex_dbname(vcol),
                             conf.vertex_config.index(vcol),
                             "doc",
                             True,
@@ -107,11 +106,11 @@ def process_table(
                 for (vfrom, vto), data in edocuments.items():
                     query0 = insert_edges_batch(
                         data,
-                        conf.vertex_config.dbname(vfrom),
-                        conf.vertex_config.dbname(vto),
-                        conf.graph(vfrom, vto)["edge_name"],
-                        conf.vertex_config.index(vfrom),
-                        conf.vertex_config.index(vto),
+                        conf.vertex_config.vertex_dbname(vfrom),
+                        conf.vertex_config.vertex_dbname(vto),
+                        conf.graph(vfrom, vto).edge_name,
+                        conf.vertex_config.index(vfrom).fields,
+                        conf.vertex_config.index(vto).fields,
                         False,
                     )
                     cursor = db_client.execute(query0)

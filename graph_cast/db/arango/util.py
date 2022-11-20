@@ -3,6 +3,7 @@ import logging
 
 from arango import ArangoClient
 
+from graph_cast.architecture.schema import Edge
 from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,6 @@ def get_arangodb_client(
 
 
 def delete_collections(sys_db, cnames=(), gnames=(), delete_all=False):
-
     logger.info("collections (non system):")
     logger.info([c for c in sys_db.collections() if c["name"][0] != "_"])
 
@@ -105,7 +105,9 @@ def define_edge_collections(sys_db, graph_config):
 def define_vertex_indices(sys_db, vertex_config):
     for c in vertex_config.collections:
         for index_dict in vertex_config.extra_index_list(c):
-            general_collection = sys_db.collection(vertex_config.dbname(c))
+            general_collection = sys_db.collection(
+                vertex_config.vertex_dbname(c)
+            )
             ih = general_collection.add_hash_index(
                 fields=index_dict["fields"], unique=index_dict["unique"]
             )
@@ -196,6 +198,7 @@ def insert_edges_batch(
 
     :return:
     """
+    # TODO possible issue: docs_edges might be empty
     example = docs_edges[0]
     if isinstance(docs_edges, list):
         if filter_uniques:
@@ -231,7 +234,10 @@ def insert_edges_batch(
                                   RETURN v)"""
 
     if "attributes" in example.keys() and example["attributes"]:
-        result = f"MERGE({{_from : {result_from}, _to : {result_to}}}, edge.attributes)"
+        result = (
+            f"MERGE({{_from : {result_from}, _to : {result_to}}},"
+            " edge.attributes)"
+        )
         # result = f"{{_from : {result_from}, _to : {result_to}, attributes: edge.attributes}}"
     else:
         result = f"{{_from : {result_from}, _to : {result_to}}}"
@@ -242,30 +248,22 @@ def insert_edges_batch(
     return q_update
 
 
-def define_extra_edges(g):
+def define_extra_edges(g: Edge):
     """
     g create a query from u to v by w : u -> w -> v and add properties of w as properties of the edge
 
-    {
-        "source": u,
-        "target": v,
-        "by": w,
-        "edge_name": ecollection_name,
-        "weight": item["weight"],
-        "type": "indirect"
-    }
 
     :param g:
     :return:
     """
-    ucol, vcol, wcol = g["source"], g["target"], g["by"]
-    weight = g["weight"]
+    ucol, vcol, wcol = g.source, g.target, g.by
+    weight = g.weight
     s = (
         f"FOR w IN {wcol}"
         f"  LET uset = (FOR u IN 1..1 INBOUND w {ucol}_{wcol}_edges RETURN u)"
         f"  LET vset = (FOR v IN 1..1 INBOUND w {vcol}_{wcol}_edges RETURN v)"
-        f"  FOR u in uset"
-        f"      FOR v in vset"
+        "  FOR u in uset"
+        "      FOR v in vset"
     )
     s_ins_ = ", ".join([f"{v}: w.{k}" for k, v in weight.items()])
     s_ins_ = f"_from: u._id, _to: v._id, {s_ins_}"

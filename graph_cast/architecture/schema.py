@@ -1,26 +1,23 @@
+from __future__ import annotations
+
+import dataclasses
 from collections import defaultdict
-from typing import Any, Dict, Set, Tuple
 
 from graph_cast.architecture.transform import Transform
 
 
+@dataclasses.dataclass
 class CollectionIndex:
-    def __init__(self, *args, **kwargs):
-        self._fields = list()
-        self._unique = None
-        self._type = None
-        if None not in args and args:
-            self._fields = list(args)
-        if kwargs is not None and kwargs:
-            self._fields = list(kwargs["fields"])
-            self._type = kwargs["type"]
-            self._unique = kwargs["unique"]
-        if not self._fields:
-            self._fields = ["_key"]
+    fields: list[str] = dataclasses.field(default_factory=list)
+    unique: bool = True
+    type: str = "hash"
 
-    def check(self, fields):
-        if self._fields not in set(fields + ["_key"]):
-            raise ValueError(f"{self._fields} spill out of {fields}")
+    def __post_init__(self):
+        if not self.fields:
+            self.fields = ["_key"]
+
+    def __iter__(self):
+        return iter(self.fields)
 
 
 class Vertex:
@@ -38,11 +35,12 @@ class Vertex:
         self._name = name
         self._dbname = name if basename is None else basename
         self._fields = list(fields)
-        self._index = CollectionIndex(*index)
-        if extra_index is not None:
-            self._extra_indices = [
-                CollectionIndex(**item) for item in extra_index
-            ]
+        self._index: CollectionIndex = CollectionIndex(fields=index)
+        self._extra_indices: list[CollectionIndex] | None = (
+            None
+            if extra_index is None
+            else [CollectionIndex(**item) for item in extra_index]
+        )
         self._numeric_fields = numeric_fields
         # set of filters
         self._filters = [Filter(**item) for item in filters]
@@ -55,6 +53,10 @@ class Vertex:
         return self._dbname
 
     @property
+    def fields(self):
+        return self._fields
+
+    @property
     def name(self):
         return self._name
 
@@ -63,8 +65,8 @@ class Vertex:
         return self._index
 
     @property
-    def extra_indices(self):
-        return iter(self._extra_indices)
+    def extra_indices(self) -> list[CollectionIndex]:
+        return [] if self._extra_indices is None else self._extra_indices
 
     @property
     def numeric_fields(self):
@@ -73,6 +75,119 @@ class Vertex:
     @property
     def filters(self):
         return self._filters
+
+
+class Edge:
+    def __init__(self, dictlike, vconf: VertexConfig, direct=True):
+        self._source_exclude: list[str] | None = None
+        self._target_exclude: list[str] | None = None
+        self._extra_indices: list[CollectionIndex] | None = None
+        try:
+            if isinstance(dictlike["source"], dict) and isinstance(
+                dictlike["target"], dict
+            ):
+                self._init_local_definition(dictlike)
+            else:
+                self._init_basic(dictlike)
+        except KeyError as e:
+            raise KeyError(
+                f" source of target missing in edge definition :{e}"
+            )
+
+        self._init_indices(dictlike, vconf)
+        self._weight = dictlike["weight"] if "weight" in dictlike else None
+        self._type = "direct" if direct else "indirect"
+        self._by = None
+        if self._type == "indirect" and "by" in dictlike:
+            self._by = vconf.vertex_dbname(dictlike["by"])
+
+    @property
+    def edge_name(self):
+        return f"{self.source}_{self.target}_edges"
+
+    @property
+    def graph_name(self):
+        return f"{self.source}_{self.target}_graph"
+
+    @property
+    def weight(self):
+        return dict() if self._weight is None else self._weight
+
+    @property
+    def type(self):
+        return self._type
+
+    @property
+    def by(self):
+        return self._by
+
+    @property
+    def index(self):
+        return [] if self._extra_indices is None else self._extra_indices
+
+    def _init_basic(self, dictlike):
+        self.source = dictlike["source"]
+        self.target = dictlike["target"]
+
+    def _init_local_definition(self, dictlike):
+        """
+        used for input/json
+        :param dictlike:
+        :return:
+        """
+        self.source = dictlike["source"]["name"]
+        self.target = dictlike["target"]["name"]
+        self._source_exclude = (
+            [dictlike["source"]["field"]]
+            if "field" in dictlike["source"]
+            else None
+        )
+        self._target_exclude = (
+            [dictlike["target"]["field"]]
+            if "field" in dictlike["target"]
+            else None
+        )
+
+    def _init_indices(self, dictlike, vconf):
+        """
+        index should be consistent with weight
+        :param dictlike:
+        :param vconf:
+        :return:
+        """
+        if "index" in dictlike:
+            self._extra_indices = []
+            for item in dictlike["index"]:
+                self._extra_indices += [self._init_index(item, vconf)]
+            self._extra_indices = [
+                x for x in self._extra_indices if x is not None
+            ]
+
+    def _init_index(self, item, vconf: VertexConfig):
+        if "fields" in item:
+            return CollectionIndex(**item)
+        elif "collection" in item:
+            if item["collection"] in vconf.collections:
+                unique = False
+                cfields = vconf.index(item["collection"]).fields
+                local_fields = [f"{item['collection']}.{x}" for x in cfields]
+                return CollectionIndex(
+                    fields=local_fields, unique=unique, type="hash"
+                )
+            else:
+                return None
+
+    @property
+    def source_exclude(self):
+        return [] if self._source_exclude is None else self._source_exclude
+
+    @property
+    def target_exclude(self):
+        return [] if self._target_exclude is None else self._target_exclude
+
+    @property
+    def edge_name_dyad(self):
+        return self.source, self.target
 
 
 class Filter:
@@ -119,28 +234,19 @@ class Condition:
             return True
 
     def __str__(self):
-        return f"{self.__class__} | field: {self.field} value: {self.value} -> foo: {self.foo}"
+        return (
+            f"{self.__class__} | field: {self.field} value: {self.value} ->"
+            f" foo: {self.foo}"
+        )
 
     __repr__ = __str__
 
 
 class VertexConfig:
     def __init__(self, vconfig):
-        self._vcollections_all = []
+        self._vcollections_all: dict[str, Vertex] = {}
 
         self._vcollections = set()
-
-        # vertex_type -> vertex_collection_name
-        self._vmap = {}
-
-        # vertex_collection_name -> indices
-        self._index_fields_dict = {}
-
-        # vertex_collection_name -> extra_index
-        self._extra_indices = {}
-
-        # vertex_collection_name -> fields
-        self._vfields = {}
 
         # vertex_collection_name -> [numeric fields]
         self._vcollection_numeric_fields_map = {}
@@ -153,10 +259,7 @@ class VertexConfig:
 
         self._init_vcollections(config)
         self._init_names(config)
-        self._init_indices(config)
-        self._init_extra_indexes(config)
 
-        self._init_fields(config)
         self._init_numeric_fields(config)
         if "blanks" in vconfig:
             self._init_blank_collections(vconfig["blanks"])
@@ -178,83 +281,33 @@ class VertexConfig:
             }
         except:
             raise KeyError(
-                "vconfig does not have 'basename' for one of the vertex collections!"
+                "vconfig does not have 'basename' for one of the vertex"
+                " collections!"
             )
 
-    def dbname(self, vertex_name):
-        # old vmap
-        if vertex_name in self._vcollections:
-            if vertex_name in self._vmap:
-                return self._vmap[vertex_name]
-            else:
-                return vertex_name
-        else:
-            raise ValueError(
-                f" Accessing vertex collection names: vertex collection {vertex_name} was not defined in config"
-            )
-
-    def _init_indices(self, vconfig):
-        self._index_fields_dict = {
-            k: v["index"] for k, v in vconfig.items() if "index" in v
-        }
+    def vertex_dbname(self, vertex_name):
+        return self._vcollections_all[vertex_name].dbname
 
     def index(self, vertex_name):
-        # old index_fields_dict
-        if vertex_name in self._vcollections:
-            if vertex_name in self._index_fields_dict:
-                return self._index_fields_dict[vertex_name]
-            else:
-                return ["_key"]
-        else:
-            raise ValueError(
-                f" Accessing vertex collection indexes: vertex collection `{vertex_name}` was not defined in config"
-            )
+        return self._vcollections_all[vertex_name].index
 
-    def _init_extra_indexes(self, vconfig):
-        self._extra_indices = {
-            k: v["extra_index"]
-            for k, v in vconfig.items()
-            if "extra_index" in v
-        }
-
-    def extra_index_list(self, vertex_name):
-        # old index_fields_dict
-        if vertex_name in self._vcollections:
-            if vertex_name in self._extra_indices:
-                return self._extra_indices[vertex_name]
-            else:
-                return ()
-        else:
-            raise ValueError(
-                f" Accessing vertex collection indexes: vertex collection {vertex_name} was not defined in config"
-            )
+    def extra_index_list(self, vertex_name) -> list[CollectionIndex]:
+        return self._vcollections_all[vertex_name].extra_indices
 
     def _init_blank_collections(self, vconfig):
         self._blank_collections = set(vconfig)
         if set(self._blank_collections) - set(self._vcollections):
             raise ValueError(
-                f" Blank collections {self.blank_collections} are not defined as vertex collections"
+                f" Blank collections {self.blank_collections} are not defined"
+                " as vertex collections"
             )
 
     @property
     def blank_collections(self):
         return iter(self._blank_collections)
 
-    def _init_fields(self, vconfig):
-        self._vfields = {
-            k: v["fields"] for k, v in vconfig.items() if "fields" in v
-        }
-
     def fields(self, vertex_name):
-        if vertex_name in self._vcollections:
-            if vertex_name in self._vfields:
-                return self._vfields[vertex_name]
-            else:
-                return ()
-        else:
-            raise ValueError(
-                f" Accessing vertex collection fields: vertex collection {vertex_name} was not defined in config"
-            )
+        return self._vcollections_all[vertex_name].fields
 
     def _init_numeric_fields(self, vconfig):
         self._vcollection_numeric_fields_map = {
@@ -271,7 +324,8 @@ class VertexConfig:
                 return ()
         else:
             raise ValueError(
-                f" Accessing vertex collection numeric fields: vertex collection {vertex_name} was not defined in config"
+                " Accessing vertex collection numeric fields: vertex"
+                f" collection {vertex_name} was not defined in config"
             )
 
     def filters(self):
@@ -283,155 +337,96 @@ class VertexConfig:
 
 
 class GraphConfig:
-    def __init__(self, econfig, vmap, jconfig=None):
+    def __init__(self, econfig, vconfig: VertexConfig, jconfig=None):
         """
 
         :param econfig: edges config : direct definitions of edges
-        :param vmap: map of vcollection id to vcollection name in db
+        :param vconfig: specification of vcollections
         :param jconfig: in json config edges might be defined locally,
                             so json schema should be parsed for flat edges list
         """
-        self._edges: Set[Tuple[Any, Any]] = set()
+        self._edges: dict[tuple[str, str], Edge] = dict()
 
-        self._extra_edges: Set[Tuple[Any, Any]] = set()
+        self._exclude_fields: defaultdict[str, list] = defaultdict(list)
 
-        self._graphs: Dict[Tuple[Any, Any], Dict] = dict()
-
-        self._exclude_fields = defaultdict(list)
-
-        self._init_edges(econfig)
+        self._init_edges(econfig, vconfig)
         if jconfig is not None:
-            self._init_jedges(jconfig)
-        self._init_extra_edges(econfig)
-        self._check_edges_extra_edges_consistency()
-        self._define_graphs(econfig, vmap)
+            self._init_jedges(jconfig, vconfig)
+        self._init_extra_edges(econfig, vconfig)
+        self._init_exclude()
 
-    def _init_edges(self, config):
-        # check that the edges are unique
+    def _init_edges(self, config, vconf: VertexConfig):
         if "main" in config:
-            self._edges = {
-                (item["source"], item["target"]) for item in config["main"]
-            }
-            if len(set(self._edges)) < len(self._edges):
-                raise ValueError(
-                    f" Potentially duplicate edges in edges definition"
-                )
-            self._edges = set(self._edges)
+            for e in config["main"]:
+                edge = Edge(e, vconf)
+                self._edges.update({edge.edge_name_dyad: edge})
 
-    def _init_extra_edges(self, config):
+    def _init_extra_edges(self, config, vconf: VertexConfig):
         if "extra" in config:
-            self._extra_edges = {
-                (item["source"], item["target"]) for item in config["extra"]
-            }
-            if len(set(self._extra_edges)) < len(self._extra_edges):
-                raise ValueError(
-                    f" Potentially duplicate edges in extra edges definition"
-                )
-            self._extra_edges = set(self._extra_edges)
+            for e in config["extra"]:
+                edge = Edge(e, vconf, direct=False)
+                self._edges.update({edge.edge_name_dyad: edge})
 
-    def _check_edges_extra_edges_consistency(self):
-        if len(set(list(self._edges) + list(self._extra_edges))) < len(
-            list(self._edges) + list(self._extra_edges)
-        ):
-            raise ValueError(
-                f" Potentially duplicate edges between edges and extra edges definition"
-            )
+    def _init_exclude(self):
+        for (v, w), e in self._edges.items():
+            self._exclude_fields[v] += e.source_exclude
+            self._exclude_fields[w] += e.target_exclude
 
-    def _init_jedges(self, jconfig):
-        acc_edges = set()
-        exclude_fields = defaultdict(list)
+    def _init_jedges(self, jconfig, vconf: VertexConfig):
+        """
+        init edges define locally in json
+        :param jconfig:
+        :return:
+        """
 
-        edges, self._exclude_fields = self._parse_jedges(
-            jconfig, acc_edges, exclude_fields
-        )
+        acc_edges: dict[tuple[str, str], Edge] = dict()
 
-        self._edges |= edges
+        acc_edges = self._parse_jedges(jconfig, acc_edges, vconf)
+
+        self._edges.update(acc_edges)
 
     def _parse_jedges(
-        self, croot, edge_accumulator, exclusion_fields
-    ) -> tuple[set, defaultdict[str, list]]:
-        # TODO push mapping_fields etc to architecture
+        self,
+        croot,
+        edge_accumulator: dict[tuple[str, str], Edge],
+        vconf: VertexConfig,
+    ) -> dict[tuple[str, str], Edge]:
         """
         extract edge definition and edge fields from definition dict
         :param croot:
         :param edge_accumulator:
-        :param exclusion_fields:
         :return:
         """
         if isinstance(croot, dict):
             if "maps" in croot:
                 for m in croot["maps"]:
-                    edge_acc_, exclusion_fields = self._parse_jedges(
-                        m, edge_accumulator, exclusion_fields
+                    edge_accumulator = self._parse_jedges(
+                        m, edge_accumulator, vconf
                     )
-                    edge_accumulator |= edge_acc_
             if "edges" in croot:
-                edge_acc_ = set()
-                for evw in croot["edges"]:
-                    vname, wname = evw["source"]["name"], evw["target"]["name"]
-                    edge_acc_ |= {(vname, wname)}
-                    if "field" in evw["source"]:
-                        exclusion_fields[vname] += [evw["source"]["field"]]
-                    if "field" in evw["target"]:
-                        exclusion_fields[wname] += [evw["target"]["field"]]
-                return edge_acc_ | edge_accumulator, exclusion_fields
-        return set(), defaultdict(list)
+                for edge_dict_like in croot["edges"]:
+                    edge = Edge(edge_dict_like, vconf)
+                    edge_accumulator[edge.edge_name_dyad] = edge
 
-    def _define_graphs(self, config, vmap):
+                return edge_accumulator
+        return edge_accumulator
 
-        aux = []
-        if "main" in config:
-            aux.extend(config["main"])
-        else:
-            aux.extend([{"source": u, "target": v} for u, v in self._edges])
-        if "extra" in config:
-            aux.extend(config["extra"])
-
-        aux_dict = {(item["source"], item["target"]): item for item in aux}
-
-        for (u_, v_), item in aux_dict.items():
-            u, v = vmap(u_), vmap(v_)
-
-            self._graphs[u_, v_] = {
-                "source": u,
-                "target": v,
-                "edge_name": f"{u}_{v}_edges",
-                "graph_name": f"{u}_{v}_graph",
-                "type": "direct" if (u_, v_) in self._edges else "indirect",
-            }
-            if "weight" in item:
-                self._graphs[u_, v_].update({"weight": item["weight"]})
-
-            if (u_, v_) in self._extra_edges:
-                self._graphs[u_, v_].update({"by": vmap(item["by"])})
-            if "index" in item:
-                self._graphs[u_, v_]["index"] = item["index"]
-
-    def graph(self, u, v):
-        try:
-            return self._graphs[u, v]
-        except:
-            raise KeyError(
-                f" Requested graph {u, v} not present in GraphConfig"
-            )
-
-    def weights(self, u, v):
-        if (u, v) in self._graphs and "weight" in self._graphs[u, v]:
-            return self._graphs[u, v]["weight"]
-        else:
-            return []
+    def graph(self, u, v) -> Edge:
+        return self._edges[u, v]
 
     @property
     def edges(self):
-        return list(self._edges)
+        return list([k for k, v in self._edges.items() if v.type == "direct"])
 
     @property
     def extra_edges(self):
-        return list(self._extra_edges)
+        return list(
+            [k for k, v in self._edges.items() if v.type == "indirect"]
+        )
 
     @property
     def all_edges(self):
-        return list(self._edges) + list(self._extra_edges)
+        return list(self._edges)
 
     def exclude_fields(self, k):
         if k in self._exclude_fields:
