@@ -45,7 +45,7 @@ class TestTransformJsonlike(unittest.TestCase):
         jsonlike = ResourceHandler.load(
             f"test.data.json.kg_v1", f"kg_v1.json.gz"
         )
-        config = ResourceHandler.load(f"conf.json", f"kg_v1_weight.yaml")
+        config = ResourceHandler.load(f"conf.json", f"kg_v1.yaml")
         conf_obj = JConfigurator(config)
 
         defdict = jsondoc_to_collections(jsonlike[0], conf_obj)
@@ -71,8 +71,8 @@ class TestTransformJsonlike(unittest.TestCase):
         )
 
     def runTest(self):
-        # for mode in self.modes:
-        #     self._atomic(mode)
+        for mode in self.modes:
+            self._atomic(mode)
         self.test_weights()
 
 

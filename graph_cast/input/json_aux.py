@@ -241,9 +241,11 @@ def add_edges(mapper, agg, vertex_config):
                     )
                 agg[(source, target)] += [
                     {
-                        "source": project_dict(u, source_index),
-                        "target": project_dict(v, target_index),
-                        "attributes": weight,
+                        **{
+                            "__source": project_dict(u, source_index),
+                            "__target": project_dict(v, target_index),
+                        },
+                        **weight,
                     }
                 ]
         if edge_def["how"] == "1-n":
@@ -289,23 +291,21 @@ def add_edges(mapper, agg, vertex_config):
                         if pointer in target_items.keys():
                             agg[(source, target)] += [
                                 {
-                                    "source": up,
-                                    "target": target_items[pointer],
-                                    "attributes": weight,
+                                    **{
+                                        "__source": up,
+                                        "__target": target_items[pointer],
+                                    },
+                                    **weight,
                                 }
                             ]
                         else:
                             agg[(source, target)] += [
-                                {
-                                    "source": up,
-                                    "target": v,
-                                    "attributes": weight,
-                                }
+                                {**{"__source": up, "__target": v}, **weight}
                                 for v in target_items.values()
                             ]
                     else:
                         agg[(source, target)] += [
-                            {"source": up, "target": v, "attributes": weight}
+                            {**{"__source": up, "__target": v}, **weight}
                             for v in target_items.values()
                         ]
     return agg
@@ -488,50 +488,3 @@ def get_json_data(source, pattern=None):
             fps = fp
         data = json.load(fps)
     return data
-
-
-# def foo_parallel(data, kwargs, n=None):
-#     func = partial(process_document_top, **kwargs)
-#     n_proc = 4
-#     if n is not None:
-#         data = data[:n]
-#     with mp.Pool(n_proc) as p:
-#         r = p.map(func, data)
-#     return r
-
-
-# def parse_config(config=None):
-#     """
-#     only parse_edges depends on json
-#
-#     :param config:
-#     :param prefix:
-#     :return:
-#     """
-#
-#     (
-#         vmap,
-#         index_fields_dict,
-#         extra_indices,
-#         vfields,
-#         blank_collections,
-#     ) = parse_vcollection(config)
-#
-#     edge_def, excl_fields = parse_edges(config["json"], [], defaultdict(list))
-#
-#     graphs_definition = define_graphs(edge_def, vmap)
-#     graphs_definition = update_graph_extra_edges(
-#         graphs_definition, vmap, config["extra_edges"]
-#     )
-#
-#     vcollections = list(
-#         set([graphs_definition[g]["source"] for g in graphs_definition])
-#         | set([graphs_definition[g]["target"] for g in graphs_definition])
-#     )
-#     return (
-#         vcollections,
-#         vmap,
-#         graphs_definition,
-#         index_fields_dict,
-#         extra_indices,
-#     )

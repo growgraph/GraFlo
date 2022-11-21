@@ -148,7 +148,7 @@ def upsert_docs_batch(
 ):
     """
 
-    :param docs: list of dictionaries (json-like, ie keys are strings)
+    :param docs: list of dicts (json-like, ie keys are strings)
     :param collection_name: collection where to upsert
     :param match_keys: keys on which to look for document
     :param update_keys: keys which to update if doc in the collection, if update_keys='doc', update all
@@ -188,7 +188,7 @@ def insert_edges_batch(
 ):
     """
 
-    :param docs_edges: in format  [{'source': source_doc, 'target': target_doc}]
+    :param docs_edges: in format  [{'__source': source_doc, '__target': target_doc}]
     :param source_collection_name,
     :param target_collection_name,
     :param edge_col_name:
@@ -198,20 +198,20 @@ def insert_edges_batch(
 
     :return:
     """
-    # TODO possible issue: docs_edges might be empty
-    example = docs_edges[0]
     if isinstance(docs_edges, list):
         if filter_uniques:
             docs_edges = pick_unique_dict(docs_edges)
         docs_edges = json.dumps(docs_edges)
 
     if match_keys_source[0] == "_key":
-        result_from = f'CONCAT("{source_collection_name}/", edge.source._key)'
+        result_from = (
+            f'CONCAT("{source_collection_name}/", edge.__source._key)'
+        )
         source_filter = ""
     else:
         result_from = "sources[0]._id"
         filter_source = " && ".join(
-            [f"v.{k} == edge.source.{k}" for k in match_keys_source]
+            [f"v.{k} == edge.__source.{k}" for k in match_keys_source]
         )
         source_filter = f"""
                             LET sources = (
@@ -220,12 +220,12 @@ def insert_edges_batch(
                                   RETURN v)"""
 
     if match_keys_target[0] == "_key":
-        result_to = f'CONCAT("{target_collection_name}/", edge.target._key)'
+        result_to = f'CONCAT("{target_collection_name}/", edge.__target._key)'
         target_filter = ""
     else:
         result_to = "targets[0]._id"
         filter_target = " && ".join(
-            [f"v.{k} == edge.target.{k}" for k in match_keys_target]
+            [f"v.{k} == edge.__target.{k}" for k in match_keys_target]
         )
         target_filter = f"""
                             LET targets = (
@@ -233,14 +233,10 @@ def insert_edges_batch(
                                   FILTER {filter_target} LIMIT 1
                                   RETURN v)"""
 
-    if "attributes" in example.keys() and example["attributes"]:
-        result = (
-            f"MERGE({{_from : {result_from}, _to : {result_to}}},"
-            " edge.attributes)"
-        )
-        # result = f"{{_from : {result_from}, _to : {result_to}, attributes: edge.attributes}}"
-    else:
-        result = f"{{_from : {result_from}, _to : {result_to}}}"
+    result = (
+        f"MERGE({{_from : {result_from}, _to : {result_to}}},"
+        " UNSET(edge, '__source', '__target'))"
+    )
 
     q_update = f"""
         FOR edge in {docs_edges} {source_filter} {target_filter}

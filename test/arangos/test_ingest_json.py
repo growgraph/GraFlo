@@ -23,7 +23,10 @@ class TestIngestJSON(unittest.TestCase):
         "db_type": "arango",
     }
 
-    modes = ["wos", "freshcaller"]
+    modes = [
+        "wos",
+        "freshcaller",
+    ]
 
     def __init__(self, reset):
         super().__init__()
@@ -36,9 +39,12 @@ class TestIngestJSON(unittest.TestCase):
         db_args = dict(self.db_args)
         db_args["database"] = "testdb"
         conn_conf = ConfigFactory.create_config(args=db_args)
-
         ingest_json_files(path, config, conn_conf=conn_conf, ncores=1)
 
+    def _verify(self, mode):
+        db_args = dict(self.db_args)
+        db_args["database"] = "testdb"
+        conn_conf = ConfigFactory.create_config(args=db_args)
         with ConnectionManager(connection_config=conn_conf) as db_client:
             cols = db_client.get_collections()
             vc = {}
@@ -62,35 +68,28 @@ class TestIngestJSON(unittest.TestCase):
                 vc, join(self.cpath, f"../ref/json/{mode}_sizes.yaml")
             )
 
-    def test_modes(self):
-        for mode in self.modes:
-            self._atomic(mode)
+    def test_weights_ind_db(self):
+        self._atomic("kg_v1")
 
-    # def test_one_json(self):
-    #     import gzip
-    #     import json
-    #     from graph_cast.architecture.json import JConfigurator
-    #     from graph_cast.input.json_flow import process_jsonlike
-    #
-    #     fpath = join(self.cpath, f"../data/wos_unit.json.gz")
-    #
-    #     config_path = join(self.cpath, f"../../conf/wos_json.yaml")
-    #     with open(config_path, "r") as f:
-    #         config = yaml.load(f, Loader=yaml.FullLoader)
-    #     with gzip.GzipFile(fpath, "rb") as fps:
-    #         data = json.load(fps)
-    #
-    #     json_data = data
-    #
-    #     db = f"json_test"
-    #
-    #     conf_obj = JConfigurator(config)
-    #
-    #     r = process_jsonlike(json_data, conf_obj, db_config=None, dry=True)
+        db_args = dict(self.db_args)
+        db_args["database"] = "testdb"
+        conn_conf = ConfigFactory.create_config(args=db_args)
+
+        with ConnectionManager(connection_config=conn_conf) as db_client:
+            cols = db_client.get_collections()
+            ecols = [c for c in cols if "edges" in c["name"]]
+            for c in ecols:
+                cursor = db_client.execute(
+                    f"FOR x in {c['name']} limit 1 return x.publication"
+                )
+                doc = next(cursor)
+                self.assertEqual(doc, {"arxiv": "current.123"})
 
     def runTest(self):
         for mode in self.modes:
             self._atomic(mode)
+            self._verify(mode)
+        self.test_weights_ind_db()
 
 
 if __name__ == "__main__":

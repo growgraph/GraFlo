@@ -96,7 +96,7 @@ def table_to_collections(
                     ziter = combinations(vdocs[u], r=2)
                 for ubatch, vbatch in ziter:
                     ebatch = [
-                        {"source": x, "target": y}
+                        {"__source": x, "__target": y}
                         for x, y in zip(ubatch, vbatch)
                         if not (
                             any(
