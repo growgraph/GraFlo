@@ -101,13 +101,16 @@ class Edge:
         if self._type == "indirect" and "by" in dictlike:
             self._by = vconf.vertex_dbname(dictlike["by"])
 
+        self._edge_name = f"{vconf.vertex_dbname(self.source)}_{vconf.vertex_dbname(self.target)}_edges"
+        self._graph_name = f"{vconf.vertex_dbname(self.source)}_{vconf.vertex_dbname(self.target)}_graph"
+
     @property
     def edge_name(self):
-        return f"{self.source}_{self.target}_edges"
+        return self._edge_name
 
     @property
     def graph_name(self):
-        return f"{self.source}_{self.target}_graph"
+        return self._graph_name
 
     @property
     def weight(self):
