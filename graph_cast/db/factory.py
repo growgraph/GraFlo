@@ -11,7 +11,7 @@ from graph_cast.db.neo4j.config import Neo4jConnectionConfig
 
 
 class ConfigFactory:
-    _supported_dbs = ("arangos", "neo4js", "wsgi")
+    _supported_dbs = ("arango", "neo4j", "wsgi")
 
     @classmethod
     def create_config(cls, secret_path=None, args=None):
@@ -41,9 +41,9 @@ class ConfigFactory:
                 f"Config db_type not supported: should be {cls._supported_dbs}"
             )
 
-        if db_type == "arangos":
+        if db_type == "arango":
             return ArangoConnectionConfig(**config)
-        elif db_type == "neo4js":
+        elif db_type == "neo4j":
             return Neo4jConnectionConfig(**config)
         elif db_type == "wsgi":
             return WSGIConfig(**config)
