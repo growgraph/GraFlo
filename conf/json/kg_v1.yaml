@@ -11,7 +11,7 @@ json:
             anchor: triple_index
         index:
         -   collection: publication
-    weights:
+    weight:
     -   source:
             name: mention
         target:

@@ -1,135 +1,133 @@
 import json
 import logging
 
-from arango import ArangoClient
-
 from graph_cast.architecture.schema import Edge
 from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
 
-
-def create_collection_if_absent(db_client, g, vcol, index, unique=True):
-    if not db_client.has_collection(vcol):
-        _ = g.create_vertex_collection(vcol)
-        general_collection = db_client.collection(vcol)
-        if index is not None and index != ["_key"]:
-            ih = general_collection.add_hash_index(fields=index, unique=unique)
-            return ih
-        else:
-            return None
-
-
-def get_arangodb_client(
-    protocol, ip_addr, port, database, cred_name, cred_pass
-):
-    hosts = f"{protocol}://{ip_addr}:{port}"
-    client = ArangoClient(hosts=hosts)
-
-    sys_db = client.db(database, username=cred_name, password=cred_pass)
-
-    return sys_db
+#
+# def create_collection_if_absent(db_client, g, vcol, index, unique=True):
+#     if not db_client.has_collection(vcol):
+#         _ = g.create_vertex_collection(vcol)
+#         general_collection = db_client.collection(vcol)
+#         if index is not None and index != ["_key"]:
+#             ih = general_collection.add_hash_index(fields=index, unique=unique)
+#             return ih
+#         else:
+#             return None
 
 
-def delete_collections(sys_db, cnames=(), gnames=(), delete_all=False):
-    logger.info("collections (non system):")
-    logger.info([c for c in sys_db.collections() if c["name"][0] != "_"])
-
-    if delete_all:
-        cnames = [
-            c["name"] for c in sys_db.collections() if c["name"][0] != "_"
-        ]
-        gnames = [g["name"] for g in sys_db.graphs()]
-
-    for cn in cnames:
-        if sys_db.has_collection(cn):
-            sys_db.delete_collection(cn)
-
-    logger.info("collections (after delete operation):")
-    logger.info([c for c in sys_db.collections() if c["name"][0] != "_"])
-
-    logger.info("graphs:")
-    logger.info(sys_db.graphs())
-
-    for gn in gnames:
-        if sys_db.has_graph(gn):
-            sys_db.delete_graph(gn)
-
-    logger.info("graphs (after delete operation):")
-    logger.info(sys_db.graphs())
+# def get_arangodb_client(
+#     protocol, ip_addr, port, database, cred_name, cred_pass
+# ):
+#     hosts = f"{protocol}://{ip_addr}:{port}"
+#     client = ArangoClient(hosts=hosts)
+#
+#     sys_db = client.db(database, username=cred_name, password=cred_pass)
+#
+#     return sys_db
 
 
-def define_vertex_collections(sys_db, graph_config, vertex_index):
-    edges = graph_config.all_edges
-    for u, v in edges:
-        item = graph_config.graph(u, v)
-        gname = item["graph_name"]
-        logger.info(f'{item["source"]}, {item["target"]}, {gname}')
-        if sys_db.has_graph(gname):
-            g = sys_db.graph(gname)
-        else:
-            g = sys_db.create_graph(gname)
-        # TODO create collections without referencing the graph
-        ih = create_collection_if_absent(
-            sys_db,
-            g,
-            item["source"],
-            vertex_index(u),
-        )
-
-        ih = create_collection_if_absent(
-            sys_db,
-            g,
-            item["target"],
-            vertex_index(v),
-        )
-
-
-def define_edge_collections(sys_db, graph_config):
-    edges = graph_config.all_edges
-    for u, v in edges:
-        item = graph_config.graph(u, v)
-        gname = item["graph_name"]
-        if sys_db.has_graph(gname):
-            g = sys_db.graph(gname)
-        else:
-            g = sys_db.create_graph(gname)
-        if not g.has_edge_definition(item["edge_name"]):
-            _ = g.create_edge_definition(
-                edge_collection=item["edge_name"],
-                from_vertex_collections=[item["source"]],
-                to_vertex_collections=[item["target"]],
-            )
+# def delete_collections(sys_db, cnames=(), gnames=(), delete_all=False):
+#     logger.info("collections (non system):")
+#     logger.info([c for c in sys_db.collections() if c["name"][0] != "_"])
+#
+#     if delete_all:
+#         cnames = [
+#             c["name"] for c in sys_db.collections() if c["name"][0] != "_"
+#         ]
+#         gnames = [g["name"] for g in sys_db.graphs()]
+#
+#     for cn in cnames:
+#         if sys_db.has_collection(cn):
+#             sys_db.delete_collection(cn)
+#
+#     logger.info("collections (after delete operation):")
+#     logger.info([c for c in sys_db.collections() if c["name"][0] != "_"])
+#
+#     logger.info("graphs:")
+#     logger.info(sys_db.graphs())
+#
+#     for gn in gnames:
+#         if sys_db.has_graph(gn):
+#             sys_db.delete_graph(gn)
+#
+#     logger.info("graphs (after delete operation):")
+#     logger.info(sys_db.graphs())
 
 
-def define_vertex_indices(sys_db, vertex_config):
-    for c in vertex_config.collections:
-        for index_dict in vertex_config.extra_index_list(c):
-            general_collection = sys_db.collection(
-                vertex_config.vertex_dbname(c)
-            )
-            ih = general_collection.add_hash_index(
-                fields=index_dict["fields"], unique=index_dict["unique"]
-            )
+# def define_vertex_collections(sys_db, graph_config, vertex_index):
+#     edges = graph_config.all_edges
+#     for u, v in edges:
+#         item = graph_config.graph(u, v)
+#         gname = item["graph_name"]
+#         logger.info(f'{item["source"]}, {item["target"]}, {gname}')
+#         if sys_db.has_graph(gname):
+#             g = sys_db.graph(gname)
+#         else:
+#             g = sys_db.create_graph(gname)
+#         # TODO create collections without referencing the graph
+#         ih = create_collection_if_absent(
+#             sys_db,
+#             g,
+#             item["source"],
+#             vertex_index(u),
+#         )
+#
+#         ih = create_collection_if_absent(
+#             sys_db,
+#             g,
+#             item["target"],
+#             vertex_index(v),
+#         )
 
 
-def define_edge_indices(sys_db, graph_config):
-    for u, v in graph_config.all_edges:
-        item = graph_config.graph(u, v)
-        if "index" in item:
-            for index_dict in item["index"]:
-                general_collection = sys_db.collection(item["edge_name"])
-                ih = general_collection.add_hash_index(
-                    fields=index_dict["fields"], unique=index_dict["unique"]
-                )
+# def define_edge_collections(sys_db, graph_config):
+#     edges = graph_config.all_edges
+#     for u, v in edges:
+#         item = graph_config.graph(u, v)
+#         gname = item["graph_name"]
+#         if sys_db.has_graph(gname):
+#             g = sys_db.graph(gname)
+#         else:
+#             g = sys_db.create_graph(gname)
+#         if not g.has_edge_definition(item["edge_name"]):
+#             _ = g.create_edge_definition(
+#                 edge_collection=item["edge_name"],
+#                 from_vertex_collections=[item["source"]],
+#                 to_vertex_collections=[item["target"]],
+#             )
 
 
-def define_collections_and_indices(sys_db, graph_config, vertex_config):
-    define_vertex_collections(sys_db, graph_config, vertex_config.index)
-    define_edge_collections(sys_db, graph_config)
-    # TODO add indices if absent
-    define_vertex_indices(sys_db, vertex_config)
-    define_edge_indices(sys_db, graph_config)
+# def define_vertex_indices(sys_db, vertex_config):
+#     for c in vertex_config.collections:
+#         for index_dict in vertex_config.extra_index_list(c):
+#             general_collection = sys_db.collection(
+#                 vertex_config.vertex_dbname(c)
+#             )
+#             ih = general_collection.add_hash_index(
+#                 fields=index_dict["fields"], unique=index_dict["unique"]
+#             )
+
+
+# def define_edge_indices(sys_db, graph_config):
+#     for u, v in graph_config.all_edges:
+#         item = graph_config.graph(u, v)
+#         if "index" in item:
+#             for index_dict in item["index"]:
+#                 general_collection = sys_db.collection(item["edge_name"])
+#                 ih = general_collection.add_hash_index(
+#                     fields=index_dict["fields"], unique=index_dict["unique"]
+#                 )
+
+
+# def define_collections_and_indices(sys_db, graph_config, vertex_config):
+#     define_vertex_collections(sys_db, graph_config, vertex_config.index)
+#     define_edge_collections(sys_db, graph_config)
+#     # TODO add indices if absent
+#     define_vertex_indices(sys_db, vertex_config)
+#     define_edge_indices(sys_db, graph_config)
 
 
 def insert_return_batch(docs, collection_name):
@@ -160,20 +158,21 @@ def upsert_docs_batch(
         if filter_uniques:
             docs = pick_unique_dict(docs)
         docs = json.dumps(docs)
-    upsert_line = ", ".join([f'"{k}": doc.{k}' for k in match_keys])
-    upsert_line = f"{{{upsert_line}}}"
+    upsert_clause = ", ".join([f'"{k}": doc.{k}' for k in match_keys])
+    upsert_clause = f"{{{upsert_clause}}}"
 
     if isinstance(update_keys, list):
-        update_line = ", ".join([f'"{k}": doc.{k}' for k in update_keys])
-        update_line = f"{{{update_line}}}"
+        update_clause = ", ".join([f'"{k}": doc.{k}' for k in update_keys])
+        update_clause = f"{{{update_clause}}}"
     elif update_keys == "doc":
-        update_line = "doc"
+        update_clause = "doc"
     else:
-        update_line = "{}"
+        update_clause = "{}"
     q_update = f"""FOR doc in {docs}
-                        UPSERT {upsert_line}
+                        UPSERT {upsert_clause}
                         INSERT doc
-                        UPDATE {update_line} in {collection_name} OPTIONS {{ exclusive: true }}"""
+                        UPDATE {update_clause} 
+                            IN {collection_name} OPTIONS {{ exclusive: true }}"""
     return q_update
 
 
@@ -185,6 +184,8 @@ def insert_edges_batch(
     match_keys_source=("_key",),
     match_keys_target=("_key",),
     filter_uniques=True,
+    upsert_weight_vertex=None,
+    upsert_weight_fields=None,
 ):
     """
 
@@ -195,6 +196,7 @@ def insert_edges_batch(
     :param match_keys_source:
     :param match_keys_target:
     :param filter_uniques:
+    :param upsert_weight_vertex: upsert based on weight, rather than add new edges connecting the same vertices
 
     :return:
     """
@@ -238,9 +240,25 @@ def insert_edges_batch(
         " UNSET(edge, '__source', '__target'))"
     )
 
+    if upsert_weight_vertex is not None and upsert_weight_vertex:
+        weights = ", " + ", ".join(
+            [f"'{k}': edge.{k}" for k in upsert_weight_vertex]
+        )
+        ups_edge = (
+            f"{{'_from': sources[0]._id, '_to': targets[0]._id{weights}}}"
+        )
+
+        upsert_clause = f"UPSERT {ups_edge}"
+        update_clause = f"UPDATE {{}}"
+    else:
+        upsert_clause = ""
+        update_clause = ""
+
     q_update = f"""
         FOR edge in {docs_edges} {source_filter} {target_filter}
-            INSERT {result} in {edge_col_name} OPTIONS {{ exclusive: true }}"""
+            LET doc = {result}
+            {upsert_clause} INSERT doc {update_clause} 
+                IN {edge_col_name} OPTIONS {{ exclusive: true }}"""
     return q_update
 
 
@@ -253,7 +271,7 @@ def define_extra_edges(g: Edge):
     :return:
     """
     ucol, vcol, wcol = g.source, g.target, g.by
-    weight = g.weight
+    weight = g.weight_dict
     s = (
         f"FOR w IN {wcol}"
         f"  LET uset = (FOR u IN 1..1 INBOUND w {ucol}_{wcol}_edges RETURN u)"

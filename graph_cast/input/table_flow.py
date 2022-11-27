@@ -96,7 +96,7 @@ def process_table(
                         if vcol == vfrom or vcol == vto:
                             edocuments[(vfrom, vto)].extend(
                                 [
-                                    {"source": x, "target": y}
+                                    {"__source": x, "__target": y}
                                     for x, y in zip(
                                         vdocuments[vfrom], vdocuments[vto]
                                     )

@@ -16,9 +16,9 @@ class TestDBAccess(unittest.TestCase):
         "protocol": "bolt",
         "ip_addr": "localhost",
         "port": 7687,
-        "cred_name": "neo4j",
+        "cred_name": "neo4js",
         "cred_pass": "test",
-        "db_type": "neo4j",
+        "db_type": "neo4js",
     }
 
     @unittest.skip("")

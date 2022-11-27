@@ -50,6 +50,7 @@ def process_jsonlike(
                     conf_obj.vertex_config.index(vfrom).fields,
                     conf_obj.vertex_config.index(vto).fields,
                     False,
+                    conf_obj.graph(vfrom, vto).weight_vertices,
                 )
 
                 if not dry:

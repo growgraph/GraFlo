@@ -114,7 +114,7 @@ def table_to_collections(
                         )
                     ]
                     # add weights from available rows
-                    cfields = conf.graph_config.graph(u, v).weight
+                    cfields = conf.graph_config.graph(u, v).weight_fields
                     if cfields:
                         weights = [
                             {f: item[f] for f in cfields}

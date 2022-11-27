@@ -54,6 +54,7 @@ class ArangoConnection(Connection):
                 g = self.conn.graph(gname)
             else:
                 g = self.conn.create_graph(gname)
+
             # TODO create collections without referencing the graph
             ih = self.create_collection_if_absent(
                 g,
@@ -82,8 +83,12 @@ class ArangoConnection(Connection):
             if not g.has_edge_definition(item.edge_name):
                 _ = g.create_edge_definition(
                     edge_collection=item.edge_name,
-                    from_vertex_collections=[item.source],
-                    to_vertex_collections=[item.target],
+                    from_vertex_collections=[
+                        graph_config.graph(u, v).source_collection
+                    ],
+                    to_vertex_collections=[
+                        graph_config.graph(u, v).target_collection
+                    ],
                 )
 
     def define_vertex_indices(self, vertex_config):

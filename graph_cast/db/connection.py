@@ -2,6 +2,7 @@ import abc
 import logging
 from typing import Type, TypeVar
 
+from graph_cast.architecture.general import Configurator
 from graph_cast.db.arango.util import define_extra_edges, update_to_numeric
 
 logger = logging.getLogger(__name__)
@@ -91,14 +92,13 @@ class WSGIConfig(ConnectionConfig):
         self.host = config.get("host", None)
 
 
-def init_db(db_client: ConnectionType, conf_obj, clean_start):
+def init_db(db_client: ConnectionType, conf_obj: Configurator, clean_start):
     if clean_start:
         db_client.delete_collections([], [], delete_all=True)
         #     delete_collections(sys_db, vcollections + ecollections, actual_graphs)
         # elif clean_start == "edges":
         #     delete_collections(sys_db, ecollections, [])
     db_client.define_collections(conf_obj.graph_config, conf_obj.vertex_config)
-
     db_client.define_indices(conf_obj.graph_config, conf_obj.vertex_config)
 
 

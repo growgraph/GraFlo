@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import dataclasses
+import logging
 from collections import defaultdict
 
 from graph_cast.architecture.transform import Transform
+
+logger = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
@@ -82,6 +85,9 @@ class Edge:
         self._source_exclude: list[str] | None = None
         self._target_exclude: list[str] | None = None
         self._extra_indices: list[CollectionIndex] | None = None
+        self._weight = None
+        self._weight_vertices = None
+        self._weight_dict = None
         try:
             if isinstance(dictlike["source"], dict) and isinstance(
                 dictlike["target"], dict
@@ -95,14 +101,41 @@ class Edge:
             )
 
         self._init_indices(dictlike, vconf)
-        self._weight = dictlike["weight"] if "weight" in dictlike else None
+        if "vertex" in dictlike:
+            try:
+                self._weight_vertices = (
+                    [item["name"] for item in dictlike["vertex"]]
+                    if "vertex" in dictlike
+                    else []
+                )
+            except:
+                logger.error(
+                    "_weight_collections init failed for edge"
+                    f" {self.edge_name_dyad}"
+                )
+        elif "weight" in dictlike:
+            self._weight = dictlike["weight"]
+        #     elif isinstance(w, dict):
+        #         self._weight_dict = w
+
         self._type = "direct" if direct else "indirect"
         self._by = None
         if self._type == "indirect" and "by" in dictlike:
             self._by = vconf.vertex_dbname(dictlike["by"])
 
+        self._source_collection = vconf.vertex_dbname(self.source)
+        self._target_collection = vconf.vertex_dbname(self.target)
+
         self._edge_name = f"{vconf.vertex_dbname(self.source)}_{vconf.vertex_dbname(self.target)}_edges"
         self._graph_name = f"{vconf.vertex_dbname(self.source)}_{vconf.vertex_dbname(self.target)}_graph"
+
+    @property
+    def source_collection(self):
+        return self._source_collection
+
+    @property
+    def target_collection(self):
+        return self._target_collection
 
     @property
     def edge_name(self):
@@ -112,9 +145,22 @@ class Edge:
     def graph_name(self):
         return self._graph_name
 
+    def update_weights(self, edge_with_weights):
+        self._weight = edge_with_weights.weight_fields
+        self._weight_dict = edge_with_weights.weight_dict
+        self._weight_vertices = edge_with_weights.weight_vertices
+
     @property
-    def weight(self):
-        return dict() if self._weight is None else self._weight
+    def weight_fields(self):
+        return () if self._weight is None else self._weight
+
+    @property
+    def weight_dict(self):
+        return dict() if self._weight_dict is None else self._weight_dict
+
+    @property
+    def weight_vertices(self):
+        return () if self._weight_vertices is None else self._weight_vertices
 
     @property
     def type(self):
@@ -355,6 +401,7 @@ class GraphConfig:
         self._init_edges(econfig, vconfig)
         if jconfig is not None:
             self._init_jedges(jconfig, vconfig)
+            self._parse_json_weights(jconfig, vconfig)
         self._init_extra_edges(econfig, vconfig)
         self._init_exclude()
 
@@ -384,7 +431,7 @@ class GraphConfig:
 
         acc_edges: dict[tuple[str, str], Edge] = dict()
 
-        acc_edges = self._parse_jedges(jconfig, acc_edges, vconf)
+        self._parse_jedges(jconfig, acc_edges, vconf)
 
         self._edges.update(acc_edges)
 
@@ -393,26 +440,42 @@ class GraphConfig:
         croot,
         edge_accumulator: dict[tuple[str, str], Edge],
         vconf: VertexConfig,
-    ) -> dict[tuple[str, str], Edge]:
+    ):
         """
         extract edge definition and edge fields from definition dict
         :param croot:
         :param edge_accumulator:
+        :param vconf:
         :return:
         """
         if isinstance(croot, dict):
             if "maps" in croot:
                 for m in croot["maps"]:
-                    edge_accumulator = self._parse_jedges(
-                        m, edge_accumulator, vconf
-                    )
+                    self._parse_jedges(m, edge_accumulator, vconf)
             if "edges" in croot:
                 for edge_dict_like in croot["edges"]:
                     edge = Edge(edge_dict_like, vconf)
                     edge_accumulator[edge.edge_name_dyad] = edge
 
-                return edge_accumulator
-        return edge_accumulator
+    def _parse_json_weights(
+        self,
+        croot,
+        vconf: VertexConfig,
+    ):
+        """
+        extract edge definition and edge fields from definition dict
+        :param croot:
+        :param vconf:
+        :return:
+        """
+        if isinstance(croot, dict):
+            if "maps" in croot:
+                for m in croot["maps"]:
+                    self._parse_json_weights(m, vconf)
+            if "weight" in croot:
+                for edge_dict_like in croot["weight"]:
+                    eweight = Edge(edge_dict_like, vconf)
+                    self._edges[eweight.edge_name_dyad].update_weights(eweight)
 
     def graph(self, u, v) -> Edge:
         return self._edges[u, v]

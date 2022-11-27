@@ -21,7 +21,7 @@ class TestIngestCSV(unittest.TestCase):
         "cred_name": "test",
         "cred_pass": "123",
         "database": "testdb",
-        "db_type": "arango",
+        "db_type": "arangos",
     }
 
     modes = [
@@ -35,8 +35,6 @@ class TestIngestCSV(unittest.TestCase):
         self.reset = reset
 
     def _atomic(self, mode):
-        f"{mode}_test"
-
         path = join(self.cpath, f"../data/csv/{mode}")
         schema_config = ResourceHandler.load(f"conf.table", f"{mode}.yaml")
 

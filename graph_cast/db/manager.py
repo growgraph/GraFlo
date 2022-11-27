@@ -19,8 +19,11 @@ class ConnectionManager:
 
     def __enter__(self):
         cls = self.config.connection_class
-        self.conn = cls(self.config)
+        self.conn = cls(config=self.config)
         return self.conn
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def close(self):
         self.conn.close()
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.close()

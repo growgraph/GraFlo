@@ -3,7 +3,7 @@ general:
 json:
     type: item
     descend_key: REC
-    weights:
+    weight:
     -   source:
             name: location
         target:

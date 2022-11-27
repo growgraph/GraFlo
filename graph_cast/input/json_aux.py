@@ -110,7 +110,7 @@ def apply_mapper(mapper: Dict, document, vertex_config: VertexConfig):
             if "edges" in mapper:
                 # check update
                 agg = add_edges(mapper, agg, vertex_config)
-            if "weights" in mapper:
+            if "weight" in mapper:
                 # check update
                 agg = add_weights(mapper, agg, vertex_config)
             if "merge" in mapper:
@@ -131,7 +131,7 @@ def apply_mapper(mapper: Dict, document, vertex_config: VertexConfig):
 
 
 def add_weights(mapper, agg, vertex_config: VertexConfig):
-    for edge_def in mapper["weights"]:
+    for edge_def in mapper["weight"]:
         source, target = (
             edge_def["source"]["name"],
             edge_def["target"]["name"],

@@ -2,7 +2,7 @@ general:
     name: kg_v0
 json:
     type: item
-    weights:
+    weight:
     -   source:
             name: concept
         target:
@@ -21,7 +21,7 @@ json:
             anchor: meta
             fields:
             -   anchor
-#    weights:
+#    weight:
 #        - source:
 #              name: publication
 #          target:
