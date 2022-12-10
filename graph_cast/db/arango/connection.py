@@ -97,14 +97,9 @@ class ArangoConnection(Connection):
     def _add_index(general_collection, index: CollectionIndex):
         data = index.to_dict()
         if index.type == "persistent":
-            data = index.to_dict()
-            ih = general_collection._add_index(data)
             # temp fix : inconsistentcy in python-arango
+            ih = general_collection._add_index(data)
         if index.type == "hash":
-            # ih = general_collection.add_hash_index(
-            #     **data
-            # )
-            data = index.to_dict()
             ih = general_collection._add_index(data)
         elif index.type == "skiplist":
             ih = general_collection.add_skiplist_index(
