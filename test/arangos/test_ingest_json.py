@@ -23,10 +23,7 @@ class TestIngestJSON(unittest.TestCase):
         "db_type": "arango",
     }
 
-    modes = [
-        "wos",
-        "freshcaller",
-    ]
+    modes = ["wos", "freshcaller", "kg_v2"]
 
     def __init__(self, reset):
         super().__init__()

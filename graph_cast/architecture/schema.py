@@ -3,6 +3,9 @@ from __future__ import annotations
 import dataclasses
 import logging
 from collections import defaultdict
+from copy import deepcopy
+
+from dataclass_wizard import JSONWizard
 
 from graph_cast.architecture.transform import Transform
 
@@ -10,10 +13,12 @@ logger = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
-class CollectionIndex:
+class CollectionIndex(JSONWizard):
     fields: list[str] = dataclasses.field(default_factory=list)
     unique: bool = True
-    type: str = "hash"
+    type: str = "persistent"
+    deduplicate: bool = False
+    sparse: bool = True
 
     def __post_init__(self):
         if not self.fields:
@@ -213,18 +218,19 @@ class Edge:
             ]
 
     def _init_index(self, item, vconf: VertexConfig):
-        if "fields" in item:
-            return CollectionIndex(**item)
-        elif "collection" in item:
-            if item["collection"] in vconf.collections:
-                unique = False
-                cfields = vconf.index(item["collection"]).fields
-                local_fields = [f"{item['collection']}.{x}" for x in cfields]
-                return CollectionIndex(
-                    fields=local_fields, unique=unique, type="hash"
-                )
+        item = deepcopy(item)
+        index_on_collection = item.pop("collection", None)
+        uniqueness = item.pop("unique", True)
+        item["unique"] = uniqueness
+        if index_on_collection is None:
+            if "fields" in item:
+                return CollectionIndex(**item)
             else:
                 return None
+        else:
+            cfields = vconf.index(index_on_collection).fields
+            item["fields"] = [f"{index_on_collection}.{x}" for x in cfields]
+            return CollectionIndex(**item)
 
     @property
     def source_exclude(self):

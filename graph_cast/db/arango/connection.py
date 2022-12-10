@@ -91,25 +91,47 @@ class ArangoConnection(Connection):
                     ],
                 )
 
+    from graph_cast.architecture.schema import CollectionIndex
+
+    @staticmethod
+    def _add_index(general_collection, index: CollectionIndex):
+        data = index.to_dict()
+        if index.type == "persistent":
+            data = index.to_dict()
+            ih = general_collection._add_index(data)
+            # temp fix : inconsistentcy in python-arango
+        if index.type == "hash":
+            # ih = general_collection.add_hash_index(
+            #     **data
+            # )
+            data = index.to_dict()
+            ih = general_collection._add_index(data)
+        elif index.type == "skiplist":
+            ih = general_collection.add_skiplist_index(
+                fields=index.fields, unique=index.unique
+            )
+        elif index.type == "fulltext":
+            ih = general_collection.add_fulltext_index(
+                fields=index.fields, unique=index.unique
+            )
+        else:
+            ih = None
+        return ih
+
     def define_vertex_indices(self, vertex_config):
         for c in vertex_config.collections:
             for index in vertex_config.extra_index_list(c):
                 general_collection = self.conn.collection(
                     vertex_config.vertex_dbname(c)
                 )
-                ih = general_collection.add_hash_index(
-                    fields=index.fields, unique=index.unique
-                )
+                self._add_index(general_collection, index)
 
     def define_edge_indices(self, graph_config: GraphConfig):
         for u, v in graph_config.all_edges:
             item = graph_config.graph(u, v)
             general_collection = self.conn.collection(item.edge_name)
             for index_dict in item.index:
-                ih = general_collection.add_hash_index(
-                    fields=index_dict.fields,
-                    unique=index_dict.unique,
-                )
+                self._add_index(general_collection, index_dict)
 
     def create_collection_if_absent(self, g, vcol, index: CollectionIndex):
         if not self.conn.has_collection(vcol):

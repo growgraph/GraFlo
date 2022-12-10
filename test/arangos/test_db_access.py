@@ -108,7 +108,6 @@ class TestDBAccess(unittest.TestCase):
                 edge_col_name=edge_col_name,
                 match_keys_source=match_keys_source,
                 match_keys_target=match_keys_target,
-                upsert_weight_vertex=["publication"],
             )
             db_client.execute(q_edges)
 
@@ -119,7 +118,6 @@ class TestDBAccess(unittest.TestCase):
                 edge_col_name=edge_col_name,
                 match_keys_source=match_keys_source,
                 match_keys_target=match_keys_target,
-                upsert_weight_vertex=["publication"],
             )
             db_client.execute(q_edges2)
 
