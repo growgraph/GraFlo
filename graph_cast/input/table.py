@@ -124,6 +124,23 @@ def table_to_collections(
                             {**item, **attr}
                             for item, attr in zip(ebatch, weights)
                         ]
+                    for vertex_weight in conf.graph_config.graph(
+                        u, v
+                    ).weight_vertices:
+                        if vertex_weight.name == u:
+                            cbatch = ubatch
+                        elif vertex_weight.name == v:
+                            cbatch = vbatch
+                        else:
+                            continue
+                        weights = [
+                            {f: item[f] for f in vertex_weight.fields}
+                            for item in cbatch
+                        ]
+                        ebatch = [
+                            {**item, **attr}
+                            for item, attr in zip(ebatch, weights)
+                        ]
                     edocs[g].extend(ebatch)
 
     vdocs_output: defaultdict[str, list[dict[str, Any]]] = defaultdict(list)

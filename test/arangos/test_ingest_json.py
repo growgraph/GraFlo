@@ -1,5 +1,6 @@
 import argparse
 import logging
+import sys
 import unittest
 from os.path import dirname, join, realpath
 
@@ -8,6 +9,11 @@ from graph_cast.main import ingest_json_files
 from graph_cast.util import ResourceHandler, equals
 
 logger = logging.getLogger(__name__)
+
+logging.basicConfig(
+    level=logging.INFO,
+    stream=sys.stdout,
+)
 
 
 class TestIngestJSON(unittest.TestCase):

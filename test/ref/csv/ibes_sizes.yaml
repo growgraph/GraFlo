@@ -1,6 +1,6 @@
 agencies: 138
 analysts: 476
-analysts_agencies_edges: 1000
+analysts_agencies_edges: 523
 analysts_publications_edges: 1000
 publications: 1000
 publications_recommendations_edges: 1000

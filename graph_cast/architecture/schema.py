@@ -17,8 +17,8 @@ class CollectionIndex(JSONWizard):
     fields: list[str] = dataclasses.field(default_factory=list)
     unique: bool = True
     type: str = "persistent"
-    deduplicate: bool = False
-    sparse: bool = True
+    deduplicate: bool = True
+    sparse: bool = False
 
     def __post_init__(self):
         if not self.fields:
@@ -85,13 +85,21 @@ class Vertex:
         return self._filters
 
 
+@dataclasses.dataclass
+class VertexWeightConfig:
+    name: str
+    mapper: dict | None = None
+    fields: list | None = None
+    condition: dict | None = None
+
+
 class Edge:
     def __init__(self, dictlike, vconf: VertexConfig, direct=True):
         self._source_exclude: list[str] | None = None
         self._target_exclude: list[str] | None = None
         self._extra_indices: list[CollectionIndex] | None = None
         self._weight = None
-        self._weight_vertices = None
+        self._weight_vertices: list[VertexWeightConfig] | None = None
         self._weight_dict = None
         try:
             if isinstance(dictlike["source"], dict) and isinstance(
@@ -107,21 +115,27 @@ class Edge:
 
         self._init_indices(dictlike, vconf)
         if "vertex" in dictlike:
-            try:
-                self._weight_vertices = (
-                    [item["name"] for item in dictlike["vertex"]]
-                    if "vertex" in dictlike
-                    else []
-                )
-            except:
-                logger.error(
-                    "_weight_collections init failed for edge"
-                    f" {self.edge_name_dyad}"
-                )
-        elif "weight" in dictlike:
-            self._weight = dictlike["weight"]
-        #     elif isinstance(w, dict):
-        #         self._weight_dict = w
+            self._weight_vertices = []
+            for item in dictlike["vertex"]:
+                try:
+                    self._weight_vertices += [VertexWeightConfig(**item)]
+                except:
+                    logger.error(
+                        "_weight_collections init failed for edge"
+                        f" {self.edge_name_dyad}"
+                    )
+        if "weight" in dictlike:
+            # legacy hack for when dictlike["weight"] contained only a mapper / dict
+            if isinstance(dictlike["weight"], dict):
+                if "fields" in dictlike["weight"]:
+                    self._weight = dictlike["weight"]["fields"]
+                elif "vertex" not in dictlike["weight"]:
+                    # neither `fields` nor `vertex` is in dictlike["weight"]
+                    self._weight_dict = dictlike["weight"]
+            elif isinstance(dictlike["weight"], list):
+                self._weight = dictlike["weight"]
+            elif isinstance(dictlike["weight"], str):
+                self._weight = [dictlike["weight"]]
 
         self._type = "direct" if direct else "indirect"
         self._by = None
@@ -164,8 +178,8 @@ class Edge:
         return dict() if self._weight_dict is None else self._weight_dict
 
     @property
-    def weight_vertices(self):
-        return () if self._weight_vertices is None else self._weight_vertices
+    def weight_vertices(self) -> list[VertexWeightConfig]:
+        return [] if self._weight_vertices is None else self._weight_vertices
 
     @property
     def type(self):
@@ -218,19 +232,32 @@ class Edge:
             ]
 
     def _init_index(self, item, vconf: VertexConfig):
+        """
+        default behavior for edge indices : add ["_from", "_to"] for uniqueness
+        :param item:
+        :param vconf:
+        :return:
+        """
         item = deepcopy(item)
         index_on_collection = item.pop("collection", None)
-        uniqueness = item.pop("unique", True)
-        item["unique"] = uniqueness
+        fields = item.pop("fields", [])
         if index_on_collection is None:
-            if "fields" in item:
-                return CollectionIndex(**item)
-            else:
-                return None
+            collection_fields = []
         else:
-            cfields = vconf.index(index_on_collection).fields
-            item["fields"] = [f"{index_on_collection}.{x}" for x in cfields]
+            collection_fields = [
+                f"{index_on_collection}.{x}"
+                for x in vconf.index(index_on_collection).fields
+            ]
+
+        uniqueness = item.pop("unique", True)
+
+        item["unique"] = uniqueness
+
+        if fields or collection_fields:
+            item["fields"] = ["_from", "_to"] + fields + collection_fields
             return CollectionIndex(**item)
+        else:
+            return None
 
     @property
     def source_exclude(self):

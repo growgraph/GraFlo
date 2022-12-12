@@ -42,6 +42,7 @@ def process_jsonlike(
         with ConnectionManager(connection_config=db_config) as db_client:
             for (vfrom, vto), batch in edocs.items():
                 cnt += len(batch)
+                logger.info(f" edges : {vfrom} {vto}")
                 query0 = insert_edges_batch(
                     batch,
                     conf_obj.vertex_config.vertex_dbname(vfrom),

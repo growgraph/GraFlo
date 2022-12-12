@@ -90,8 +90,13 @@ edge_collections:
     -   source: ticker
         target: feature
         weight:
-        -   t_obs
+            fields:
+            -   t_obs
+        vertex:
+        -   name: feature
+            fields:
+            -   name
         index:
         -   fields:
             -   t_obs
-            unique: false
+            -   name

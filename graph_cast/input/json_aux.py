@@ -6,7 +6,7 @@ from itertools import product
 from typing import Dict
 
 from graph_cast.architecture.general import transform_foo
-from graph_cast.architecture.schema import VertexConfig
+from graph_cast.architecture.schema import Edge, VertexConfig
 from graph_cast.architecture.transform import Transform
 from graph_cast.util.io import FPSmart
 
@@ -131,62 +131,56 @@ def apply_mapper(mapper: Dict, document, vertex_config: VertexConfig):
 
 
 def add_weights(mapper, agg, vertex_config: VertexConfig):
+    # loop over edges
     for edge_def in mapper["weight"]:
-        source, target = (
-            edge_def["source"]["name"],
-            edge_def["target"]["name"],
-        )
-        edges = agg[(source, target)]
+        edef = Edge(edge_def, vertex_config)
+        edges = agg[(edef.source, edef.target)]
 
-        if "vertex" in edge_def:
-            for item in edge_def["vertex"]:
-                # item
-                # name: publication
-                # condition:
-                #       anchor: main
-                # keys:
-                # mapper:
-                #   k1: q1
+        # loop over weights for an edge
+        for item in edef.weight_vertices:
+            vs = [doc for doc in agg[item.name]]
 
-                # should rather become index for the given vcollection (item["name"])
-                keys_to_add = item["keys"] if "keys" in item else []
-                keys_to_map = item["mapper"] if "mapper" in item else {}
-                keys_to_map.update({k: k for k in keys_to_add})
+            # find all vertices satisfying condition
+            if item.condition is not None:
+                vs = [
+                    doc
+                    for doc in vs
+                    if all(
+                        [doc[q] == v in doc for q, v in item.condition.items()]
+                    )
+                ]
+            try:
+                doc = next(iter(vs))
+                weight: dict = {}
+                if item.fields:
+                    weight = {**weight, **{k: doc[k] for k in item.fields}}
+                if item.mapper:
+                    weight = {
+                        **weight,
+                        **{q: doc[k] for k, q in item.mapper.items()},
+                    }
 
-                # choose vertices from which to generate weights (conceptually there should be only one)
-                vs = [doc for doc in agg[item["name"]]]
-                if "condition" in item.keys():
-                    c = item["condition"]
-                    vs = [
-                        doc
-                        for doc in vs
-                        if all([doc[q] == v in doc for q, v in c.items()])
-                    ]
-                if vs:
-                    # if there are multiple vs, we don't know which one to use to add weights
-                    doc = vs[0]
-                    # updating with raw fields
-                    if keys_to_map:
-                        weight = {q: doc[k] for k, q in keys_to_map.items()}
-                    else:
-                        try:
-                            weight = {
-                                item["name"]: {
-                                    k: doc[k]
-                                    for k in vertex_config.index(item["name"])
-                                    if k in doc
-                                }
+                if item.fields is None and item.mapper is None:
+                    try:
+                        weight = {
+                            item.name: {
+                                k: doc[k]
+                                for k in vertex_config.index(item.name)
+                                if k in doc
                             }
-                        except ValueError:
-                            weight = {}
-                            logger.error(
-                                " weights mapper error : weight definition on"
-                                f" {source} {target} refers to a non existent"
-                                f" vcollection {item['name']}"
-                            )
-                    for edoc in edges:
-                        edoc.update(weight)
-        agg[(source, target)] = edges
+                        }
+                    except ValueError:
+                        weight = {}
+                        logger.error(
+                            " weights mapper error : weight definition on"
+                            f" {edef.source} {edef.target} refers to a non"
+                            f" existent vcollection {item.name}"
+                        )
+            except:
+                weight = {}
+            for edoc in edges:
+                edoc.update(weight)
+        agg[(edef.source, edef.target)] = edges
     return agg
 
 

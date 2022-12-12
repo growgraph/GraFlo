@@ -119,18 +119,12 @@ def insert_edges_batch(
         " edge.publication}"
     )
 
-    # q_update = f"""
-    #     FOR edge in {docs_edges} {source_filter} {target_filter}
-    #         LET doc = {result}
-    #         UPSERT {upsert}
-    #         INSERT doc
-    #         UPDATE {empty_doc}
-    #         in {edge_col_name} OPTIONS {{ exclusive: true }}"""
-
     q_update = f"""
-        FOR edge in {docs_edges} {source_filter} {target_filter} 
+        FOR edge in {docs_edges} {source_filter} {target_filter}
             LET doc = {result}
+            UPSERT {upsert}
             INSERT doc
+            UPDATE {{}}
             in {edge_col_name} OPTIONS {{ exclusive: true }}"""
     return q_update
 

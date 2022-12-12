@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "graph_cast"
-version = "0.9.4"
+version = "0.9.5"
 description = "ETL to cast tabular and json data types into graphs (collections of vertices and edges)"
 authors = ["Alexander Belikov <alexander@growgraph.dev>"]
 

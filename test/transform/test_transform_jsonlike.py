@@ -67,7 +67,7 @@ class TestTransformJsonlike(unittest.TestCase):
             conf_obj.graph_config.graph("publication", "mention")
             .index[0]
             .fields,
-            ["publication.arxiv", "publication.doi"],
+            ["_from", "_to", "publication.arxiv", "publication.doi"],
         )
 
     def runTest(self):
