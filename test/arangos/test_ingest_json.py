@@ -27,6 +27,7 @@ class TestIngestJSON(unittest.TestCase):
         "cred_pass": "123",
         "database": "testdb",
         "db_type": "arango",
+        "request_timeout": 120,
     }
 
     modes = ["wos", "freshcaller", "kg_v2"]

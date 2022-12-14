@@ -82,6 +82,7 @@ class ConnectionConfig(abc.ABC):
         self.database = config.get("database", None)
         self.port = config.get("port", None)
         self.hosts = None
+        self.request_timeout = config.get("request_timeout", 60)
 
 
 class WSGIConfig(ConnectionConfig):

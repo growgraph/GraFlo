@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 class ArangoConnection(Connection):
     def __init__(self, config: ConnectionConfigType):
         super().__init__()
-        client = ArangoClient(hosts=config.hosts)
+        client = ArangoClient(
+            hosts=config.hosts, request_timeout=config.request_timeout
+        )
 
         self.conn = client.db(
             config.database,

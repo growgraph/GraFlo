@@ -42,20 +42,27 @@ def process_jsonlike(
         with ConnectionManager(connection_config=db_config) as db_client:
             for (vfrom, vto), batch in edocs.items():
                 cnt += len(batch)
-                logger.info(f" edges : {vfrom} {vto}")
-                query0 = insert_edges_batch(
-                    batch,
-                    conf_obj.vertex_config.vertex_dbname(vfrom),
-                    conf_obj.vertex_config.vertex_dbname(vto),
-                    conf_obj.graph(vfrom, vto).edge_name,
-                    conf_obj.vertex_config.index(vfrom).fields,
-                    conf_obj.vertex_config.index(vto).fields,
-                    False,
+                with timer.Timer() as t_ingest_edges0:
+                    logger.info(f" edges : {vfrom} {vto}")
+                    query0 = insert_edges_batch(
+                        batch,
+                        conf_obj.vertex_config.vertex_dbname(vfrom),
+                        conf_obj.vertex_config.vertex_dbname(vto),
+                        conf_obj.graph(vfrom, vto).edge_name,
+                        conf_obj.vertex_config.index(vfrom).fields,
+                        conf_obj.vertex_config.index(vto).fields,
+                        False,
+                    )
+                    if not dry:
+                        db_client.execute(query0)
+                logger.info(
+                    f" ingested {cnt} edges {t_ingest_edges0.elapsed:.3f} sec"
                 )
-                if not dry:
-                    db_client.execute(query0)
 
-    logger.info(f" ingested {cnt} edges {t_ingest_edges.elapsed:.2f} sec")
+    logger.info(
+        f" ingestion of {vfrom} {vto} edges took"
+        f" {t_ingest_edges.elapsed:.2f} sec"
+    )
 
     # create edge u -> v from u->w, v->w edges
     # find edge_cols uw and vw

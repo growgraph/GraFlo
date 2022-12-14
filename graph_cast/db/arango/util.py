@@ -71,11 +71,13 @@ def insert_edges_batch(
     :param match_keys_source:
     :param match_keys_target:
     :param filter_uniques:
-    :param upsert_weight_vertex: upsert based on weight, rather than add new edges connecting the same vertices
 
     :return:
     """
+
     if isinstance(docs_edges, list):
+        if docs_edges:
+            logger.info(f" docs_edges[0] = {docs_edges[0]}")
         if filter_uniques:
             docs_edges = pick_unique_dict(docs_edges)
         docs_edges = json.dumps(docs_edges)
@@ -118,7 +120,10 @@ def insert_edges_batch(
         f"{{'_from': {ups_from}, '_to': {ups_to}, 'publication':"
         " edge.publication}"
     )
-
+    logger.info(f" source_filter = {source_filter}")
+    logger.info(f" target_filter = {target_filter}")
+    logger.info(f" doc = {result}")
+    logger.info(f" upsert clause: {upsert}")
     q_update = f"""
         FOR edge in {docs_edges} {source_filter} {target_filter}
             LET doc = {result}
