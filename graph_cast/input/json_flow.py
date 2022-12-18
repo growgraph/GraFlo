@@ -64,11 +64,7 @@ def process_jsonlike(
                     if not dry:
                         db_client.execute(query0)
                 logger.info(
-                    f" ingestion of {vfrom} {vto} edges took"
-                    f" {t_ingest_edges0.elapsed:.2f} sec"
-                )
-                logger.info(
-                    f" ingested {len(batch)} edges"
+                    f" ingested {len(batch)} edges {vfrom}-{vto}"
                     f" {t_ingest_edges0.elapsed:.3f} sec"
                 )
 
