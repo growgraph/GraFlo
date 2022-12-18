@@ -90,10 +90,10 @@ class TestIngestJSON(unittest.TestCase):
                 self.assertEqual(doc, {"arxiv": "current.123"})
 
     def runTest(self):
-        self.test_weights_ind_db()
         for mode in self.modes:
             self._atomic(mode)
             self._verify(mode)
+        self.test_weights_ind_db()
 
 
 if __name__ == "__main__":

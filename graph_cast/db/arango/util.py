@@ -61,6 +61,9 @@ def insert_edges_batch(
     match_keys_source=("_key",),
     match_keys_target=("_key",),
     filter_uniques=True,
+    uniq_weight_fields=None,
+    uniq_weight_collections=None,
+    head=None,
 ):
     """
 
@@ -71,6 +74,9 @@ def insert_edges_batch(
     :param match_keys_source:
     :param match_keys_target:
     :param filter_uniques:
+    :param uniq_weight_fields
+    :param uniq_weight_collections
+    :param head: keep head docs
 
     :return:
     """
@@ -78,9 +84,13 @@ def insert_edges_batch(
     if isinstance(docs_edges, list):
         if docs_edges:
             logger.info(f" docs_edges[0] = {docs_edges[0]}")
+        if head is not None:
+            docs_edges = docs_edges[:head]
         if filter_uniques:
             docs_edges = pick_unique_dict(docs_edges)
-        docs_edges = json.dumps(docs_edges)
+        docs_edges_str = json.dumps(docs_edges)
+    else:
+        return ""
 
     if match_keys_source[0] == "_key":
         result_from = (
@@ -116,16 +126,27 @@ def insert_edges_batch(
     )
     ups_from = result_from if source_filter else "doc._from"
     ups_to = result_to if target_filter else "doc._to"
-    upsert = (
-        f"{{'_from': {ups_from}, '_to': {ups_to}, 'publication':"
-        " edge.publication}"
+
+    weight_fs = []
+    weight_fs += uniq_weight_fields if uniq_weight_fields is not None else []
+    weight_fs += (
+        uniq_weight_collections if uniq_weight_collections is not None else []
     )
+    if weight_fs:
+        weights_clause = ", " + ", ".join(
+            [f"'{x}' : edge.{x}" for x in weight_fs]
+        )
+    else:
+        weights_clause = ""
+
+    upsert = f"{{'_from': {ups_from}, '_to': {ups_to}" + weights_clause + "}"
+
     logger.info(f" source_filter = {source_filter}")
     logger.info(f" target_filter = {target_filter}")
     logger.info(f" doc = {result}")
     logger.info(f" upsert clause: {upsert}")
     q_update = f"""
-        FOR edge in {docs_edges} {source_filter} {target_filter}
+        FOR edge in {docs_edges_str} {source_filter} {target_filter}
             LET doc = {result}
             UPSERT {upsert}
             INSERT doc

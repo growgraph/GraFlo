@@ -44,6 +44,10 @@ def process_jsonlike(
                 cnt += len(batch)
                 with timer.Timer() as t_ingest_edges0:
                     logger.info(f" edges : {vfrom} {vto}")
+                    uniq_weight_collections = [
+                        vc.name
+                        for vc in conf_obj.graph(vfrom, vto).weight_vertices
+                    ]
                     query0 = insert_edges_batch(
                         batch,
                         conf_obj.vertex_config.vertex_dbname(vfrom),
@@ -52,17 +56,23 @@ def process_jsonlike(
                         conf_obj.vertex_config.index(vfrom).fields,
                         conf_obj.vertex_config.index(vto).fields,
                         False,
+                        uniq_weight_collections=uniq_weight_collections,
+                        uniq_weight_fields=conf_obj.graph(
+                            vfrom, vto
+                        ).weight_fields,
                     )
                     if not dry:
                         db_client.execute(query0)
                 logger.info(
-                    f" ingested {cnt} edges {t_ingest_edges0.elapsed:.3f} sec"
+                    f" ingestion of {vfrom} {vto} edges took"
+                    f" {t_ingest_edges0.elapsed:.2f} sec"
+                )
+                logger.info(
+                    f" ingested {len(batch)} edges"
+                    f" {t_ingest_edges0.elapsed:.3f} sec"
                 )
 
-    logger.info(
-        f" ingestion of {vfrom} {vto} edges took"
-        f" {t_ingest_edges.elapsed:.2f} sec"
-    )
+    logger.info(f" ingested {cnt} edges {t_ingest_edges.elapsed:.2f} sec")
 
     # create edge u -> v from u->w, v->w edges
     # find edge_cols uw and vw

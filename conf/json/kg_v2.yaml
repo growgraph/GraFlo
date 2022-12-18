@@ -83,6 +83,8 @@ json:
                         -   _role
                     index:
                     -   collection: publication
+                        fields:
+                        -   _role
                 maps:
                 -   type: item
                     descend_key: triple_index
