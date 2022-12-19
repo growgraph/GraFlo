@@ -17,6 +17,7 @@ def process_jsonlike(
     db_config: ConnectionConfigType,
     ncores=1,
     dry=False,
+    **kwargs,
 ):
     vdocs, edocs = jsonlike_to_collections(json_data, conf_obj, ncores)
     with timer.Timer() as t_ingest:
@@ -60,6 +61,7 @@ def process_jsonlike(
                         uniq_weight_fields=conf_obj.graph(
                             vfrom, vto
                         ).weight_fields,
+                        **kwargs,
                     )
                     if not dry:
                         db_client.execute(query0)

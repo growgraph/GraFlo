@@ -43,7 +43,9 @@ class TestIngestJSON(unittest.TestCase):
         db_args = dict(self.db_args)
         db_args["database"] = "testdb"
         conn_conf = ConfigFactory.create_config(args=db_args)
-        ingest_json_files(path, config, conn_conf=conn_conf, ncores=1)
+        ingest_json_files(
+            path, config, conn_conf=conn_conf, ncores=1, upsert_option=False
+        )
 
     def _verify(self, mode):
         db_args = dict(self.db_args)

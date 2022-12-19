@@ -19,28 +19,6 @@ from graph_cast.util import timer as timer
 logger = logging.getLogger(__name__)
 
 
-# def etl_over_files(
-#     fpath,
-#     db_config,
-#     limit_files=None,
-#     max_lines=None,
-#     batch_size=5000000,
-#     clean_start=False,
-#     config=None,
-# ):
-#
-#     init db: collections, indexes
-#
-#     identify files
-#
-#     loop over files
-#     file to vcols, ecols
-#     transform vcols, ecols
-#     ingest vcols, ecols
-#
-#     extra definitions
-
-
 def ingest_json_files(
     fpath,
     config,
@@ -49,6 +27,7 @@ def ingest_json_files(
     clean_start="all",
     dry=False,
     ncores=1,
+    **kwargs,
 ):
     conf_obj = JConfigurator(config)
 
@@ -69,7 +48,7 @@ def ingest_json_files(
             with timer.Timer() as t_pro:
                 data = json.load(fps)
                 process_jsonlike(
-                    data, conf_obj, conn_conf, ncores=ncores, dry=dry
+                    data, conf_obj, conn_conf, ncores=ncores, dry=dry, **kwargs
                 )
             logger.info(f" processing {filename} took {t_pro.elapsed:.2f} sec")
 
