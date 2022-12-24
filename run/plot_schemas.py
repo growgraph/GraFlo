@@ -2,7 +2,6 @@ import argparse
 import os
 from collections import defaultdict
 from itertools import product
-from os.path import dirname, join, realpath
 
 import networkx as nx
 import yaml
@@ -10,6 +9,7 @@ import yaml
 from graph_cast.architecture.json import JConfigurator
 from graph_cast.architecture.table import TConfigurator
 from graph_cast.input.json_aux import parse_edges
+from graph_cast.util import ResourceHandler
 
 """
 
@@ -105,26 +105,23 @@ def parse_branch(croot, acc, nc):
                 nleft = (croot["descend_key"], "blank")
             else:
                 nleft = nc
-            for m in croot["maps"]:
-                acc, cnode = parse_branch(m, acc, nleft)
-                if nleft != cnode:
+            for item in croot["maps"]:
+                acc, cnode = parse_branch(item, acc, nleft)
+                if nleft != cnode and nleft is not None:
                     acc += [(nleft, cnode)]
             return acc, nleft
         elif "name" in croot:
             nleft = (croot["name"], "vcollection")
             return acc, nleft
-        else:
-            return acc, [(None, "blank")]
+        # else:
+        #     return acc, [(None, "blank")]
 
 
 class SchemaPlotter:
-    def __init__(self, config_filename):
-        cpath = dirname(realpath(__file__))
-        self.figgpath = join(cpath, "../figs/schema")
+    def __init__(self, config_filename, fig_path):
+        self.figgpath = fig_path
 
-        config_filename = join(cpath, "../conf", config_filename)
-        with open(config_filename, "r") as f:
-            self.config = yaml.load(f, Loader=yaml.FullLoader)
+        self.config = ResourceHandler.load(fpath=config_filename)
 
         self.name = self.config["general"]["name"]
 
@@ -484,7 +481,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "-c", "--config", default=None, help="config file name"
+        "-c", "--config-path", default=None, help="path to config file"
+    )
+
+    parser.add_argument(
+        "-f",
+        "--figure-output-path",
+        default=None,
+        help="path to output the figure",
     )
     parser.add_argument(
         "-p",
@@ -495,7 +499,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    plotter = SchemaPlotter(args.config)
+    plotter = SchemaPlotter(args.config_path, args.figure_output_path)
     plotter.plot_vc2fields()
     plotter.plot_source2vc()
     plotter.plot_vc2vc(prune_leaves=args.prune_low_degree_nodes)
