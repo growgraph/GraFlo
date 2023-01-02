@@ -113,6 +113,7 @@ class ResourceHandler:
         :return:
         """
         lemmas = path.split(".")
+        path = expanduser(path)
         if lemmas[-1] == "gz":
             compression = "gz"
             how_ = cls._find_mode(lemmas[-2])

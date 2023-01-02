@@ -43,8 +43,14 @@ def ingest_json_files(
 
     logger.info(f" Processing {len(files)} json files : {files}")
 
+    def openfile(filename):
+        if filename.endswith(".gz"):
+            return gzip.open(filename, "rb")
+        else:
+            return open(filename, "r")
+
     for filename in files:
-        with gzip.GzipFile(join(fpath, filename), "rb") as fps:
+        with openfile(join(fpath, filename)) as fps:
             with timer.Timer() as t_pro:
                 data = json.load(fps)
                 process_jsonlike(

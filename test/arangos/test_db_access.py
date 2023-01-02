@@ -29,7 +29,6 @@ class TestDBAccess(unittest.TestCase):
         "db_type": "arango",
     }
 
-    # @unittest.skip("")
     def test_db_access(self):
         db_args = dict(self.db_args)
         db_args["database"] = "testdb"

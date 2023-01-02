@@ -30,7 +30,7 @@ class TestIngestJSON(unittest.TestCase):
         "request_timeout": 120,
     }
 
-    modes = ["wos", "freshcaller", "kg_v2"]
+    modes = ["wos", "freshcaller", "kg_v2", "lake_odds"]
 
     def __init__(self, reset):
         super().__init__()
