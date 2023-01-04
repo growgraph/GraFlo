@@ -70,8 +70,11 @@ class ArangoConnection(Connection):
                 vertex_config.index(v),
             )
         for v in disconnected_vertex_collections:
-            dbc = self.conn.create_collection(vertex_config.vertex_dbname(v))
-            ih = dbc.add_hash_index(fields=vertex_config.index(v).fields)
+            ih = self.create_collection_if_absent(
+                None,
+                vertex_config.vertex_dbname(v),
+                vertex_config.index(v),
+            )
 
     def define_edge_collections(self, graph_config: GraphConfig):
         edges = graph_config.all_edges
@@ -132,7 +135,10 @@ class ArangoConnection(Connection):
 
     def create_collection_if_absent(self, g, vcol, index: CollectionIndex):
         if not self.conn.has_collection(vcol):
-            _ = g.create_vertex_collection(vcol)
+            if g is not None:
+                _ = g.create_vertex_collection(vcol)
+            else:
+                self.conn.create_collection(vcol)
             general_collection = self.conn.collection(vcol)
             if index is not None and index.fields != ["_key"]:
                 ih = general_collection.add_hash_index(

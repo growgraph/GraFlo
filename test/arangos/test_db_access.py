@@ -33,8 +33,21 @@ class TestDBAccess(unittest.TestCase):
         db_args = dict(self.db_args)
         db_args["database"] = "testdb"
         conn_conf = ConfigFactory.create_config(args=db_args)
+        config = ResourceHandler.load(f"conf.json", f"lake_odds.yaml")
+        conf_obj = JConfigurator(config)
 
         with ConnectionManager(connection_config=conn_conf) as db_client:
+            init_db(db_client, conf_obj, clean_start=True)
+            cnames = [
+                c["name"]
+                for c in db_client.get_collections()
+                if c["name"][0] != "_"
+            ]
+            for c in cnames:
+                logger.info(c)
+
+        with ConnectionManager(connection_config=conn_conf) as db_client:
+            init_db(db_client, conf_obj, clean_start=False)
             cnames = [
                 c["name"]
                 for c in db_client.get_collections()
