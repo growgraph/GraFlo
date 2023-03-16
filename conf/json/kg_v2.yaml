@@ -9,25 +9,11 @@ json:
         target:
             name: mention
             anchor: triple_index
-        index:
-        -   collection: publication
     weight:
     -   source:
             name: mention
         target:
             name: entity
-        vertex:
-        -   name: publication
-    -   source:
-            name: mention
-        target:
-            name: mention
-        vertex:
-        -   name: publication
-    -   source:
-            name: publication
-        target:
-            name: mention
         vertex:
         -   name: publication
     maps:
@@ -82,8 +68,7 @@ json:
                         weight_exclusive:
                         -   _role
                     index:
-                    -   collection: publication
-                        fields:
+                    -   fields:
                         -   _role
                 maps:
                 -   type: item
@@ -113,10 +98,14 @@ vertex_collections:
             -   arxiv
             -   doi
             -   created
+            -   data_source
             index:
             -   arxiv
             -   doi
             extra_index:
+            -   unique: false
+                fields:
+                -   created
             -   unique: false
                 fields:
                 -   created
