@@ -29,7 +29,13 @@ prettyyaml:
 prettyjson:
 	find . -name "*json" -and -not -ipath './.*' -type f | xargs pretty-format-json --autofix --indent 4
 
-all: autoflake black isort mypy prettyyaml prettyjson
+
+.PHONY: prettytoml
+prettytoml:
+	pretty-format-toml --autofix ./*toml
+	toml-sort -ia ./*.toml
+
+all: autoflake black isort mypy prettyyaml prettyjson prettytoml
 
 #.PHONY: pylint
 #pylint:

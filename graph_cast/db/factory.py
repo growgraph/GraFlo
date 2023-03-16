@@ -4,7 +4,6 @@ from copy import deepcopy
 
 import yaml
 
-from graph_cast.db import ConnectionConfigType
 from graph_cast.db.arango.config import ArangoConnectionConfig
 from graph_cast.db.connection import ConnectionConfig, WSGIConfig
 from graph_cast.db.neo4j.config import Neo4jConnectionConfig

@@ -1,0 +1,29 @@
+general:
+    name: sports
+json:
+    type: item
+    maps:
+    -   how: dict
+        name: chunk
+vertex_collections:
+    collections:
+        game:
+            basename: games
+            fields:
+            -   id
+            index:
+            -   id
+        team:
+            basename: teams
+            fields:
+            -   name
+            index:
+            -   name
+        league:
+            basename: leagues
+            fields:
+            -   title
+            -   key
+            index:
+            -   key
+
