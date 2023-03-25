@@ -89,6 +89,7 @@ class WSGIConfig(ConnectionConfig):
     def __init__(self, **config):
         super(WSGIConfig, self).__init__(**config)
         self.path = config.get("path", "/")
+        self.paths = config.get("paths", {})
         self.hosts = f"{self.protocol}://{self.ip_addr}:{self.port}{self.path}"
         self.host = config.get("host", None)
 
