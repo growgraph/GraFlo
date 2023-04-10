@@ -22,6 +22,7 @@ types-PyYAML = "^6.0.11"
 language-formatters-pre-commit-hooks = "^2.4.0"
 pre-commit-hooks = "^4.3.0"
 dataclass-wizard = "^0.22.2"
+suthing = {git = "git@github.com:growgraph/suthing.git"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

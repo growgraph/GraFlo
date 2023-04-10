@@ -52,10 +52,10 @@ class ArangoConnection(Connection):
             item = graph_config.graph(u, v)
             gname = item.graph_name
             logger.info(f"{item.source}, {item.target}, {gname}")
-            if self.conn.has_graph(gname):
-                g = self.conn.graph(gname)
-            else:
-                g = self.conn.create_graph(gname)
+
+            if not self.conn.has_graph(gname):
+                self.conn.create_graph(gname)
+            g = self.conn.graph(gname)
 
             # TODO create collections without referencing the graph
             ih = self.create_collection_if_absent(
@@ -81,10 +81,9 @@ class ArangoConnection(Connection):
         for u, v in edges:
             item = graph_config.graph(u, v)
             gname = item.graph_name
-            if self.conn.has_graph(gname):
-                g = self.conn.graph(gname)
-            else:
-                g = self.conn.create_graph(gname)
+            if not self.conn.has_graph(gname):
+                self.conn.create_graph(gname)
+            g = self.conn.graph(gname)
             if not g.has_edge_definition(item.edge_name):
                 _ = g.create_edge_definition(
                     edge_collection=item.edge_name,

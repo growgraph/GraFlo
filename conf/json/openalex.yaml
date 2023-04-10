@@ -1,0 +1,69 @@
+general:
+    name: openalex
+json:
+-   doctype: author
+    type: item
+
+    edges:
+    -   how: all
+        source:
+            name: publication
+        target:
+            name: concept
+            anchor: meta
+            fields:
+            -   anchor
+    maps:
+    -   how: dict
+        name: publication
+        map:
+            publication_id: id
+
+    -   type: item
+        descend_key: triples
+        maps:
+        -   type: list
+            maps:
+            -   type: item
+                edges:
+                -   how: all
+                    source:
+                        name: concept
+                        anchor: meta
+                    target:
+                        name: concept
+                        anchor: core
+                        weight_exclusive:
+                        -   tritype
+                maps:
+                -   type: item
+                    descend_key: triple_meta
+                    maps:
+                    -   how: dict
+                        __extra:
+                            anchor: meta
+                        name: concept
+                -   type: list
+                    descend_key: triple
+                    maps:
+                    -   how: dict
+                        __extra:
+                            anchor: core
+                        name: concept
+                        map:
+                            type: tritype
+
+vertex_collections:
+    collections:
+        authors:
+            basename: authors
+            fields:
+            -   display_name
+            -   id
+            -   updated_date
+            -   orcid
+            index:
+            -   id
+
+
+#  'ids': {'openalex': 'https://openalex.org/A4201863093'},

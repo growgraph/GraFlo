@@ -43,6 +43,8 @@ repos:
     hooks:
     -   id: pretty-format-json
         args: [--autofix, --indent, '4']
+        exclude_types:
+            - "jsonld"
 
 #  - repo: https://github.com/pre-commit/mirrors-pylint
 #    rev: v2.14.5
