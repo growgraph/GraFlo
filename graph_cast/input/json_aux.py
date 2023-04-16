@@ -3,11 +3,11 @@ import json
 import logging
 from collections import ChainMap, defaultdict
 from itertools import product
-from typing import Dict
 
 from graph_cast.architecture.general import transform_foo
 from graph_cast.architecture.schema import Edge, VertexConfig
 from graph_cast.architecture.transform import Transform
+from graph_cast.architecture.uitl import project_dict, project_dicts
 from graph_cast.util.io import FPSmart
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 xml_dummy = "#text"
 
 
-def apply_mapper(mapper: Dict, document, vertex_config: VertexConfig):
+def apply_mapper(mapper: dict, document, vertex_config: VertexConfig):
     if "how" in mapper:
         mode = mapper["how"]
         vcol = mapper["name"]
@@ -100,7 +100,7 @@ def apply_mapper(mapper: Dict, document, vertex_config: VertexConfig):
                         agg[k] += [x for x in v if x]
                     if "edges" in mapper:
                         # check update
-                        agg = add_edges(mapper, agg, vertex_config)
+                        agg = add_edges_weights(mapper, agg, vertex_config)
             return agg
         elif mapper["type"] == "item":
             for m in mapper["maps"]:
@@ -109,10 +109,7 @@ def apply_mapper(mapper: Dict, document, vertex_config: VertexConfig):
                     agg[k] += [x for x in v if x]
             if "edges" in mapper:
                 # check update
-                agg = add_edges(mapper, agg, vertex_config)
-            if "weight" in mapper:
-                # check update
-                agg = add_weights(mapper, agg, vertex_config)
+                agg = add_edges_weights(mapper, agg, vertex_config)
             if "merge" in mapper:
                 for item in mapper["merge"]:
                     agg = smart_merge(
@@ -138,7 +135,7 @@ def add_weights(mapper, agg, vertex_config: VertexConfig):
 
         # loop over weights for an edge
         for item in edef.weight_vertices:
-            vs = [doc for doc in agg[item.name]]
+            vs = [doc for doc in agg[item.collection_name]]
 
             # find all vertices satisfying condition
             if item.condition is not None:
@@ -163,9 +160,11 @@ def add_weights(mapper, agg, vertex_config: VertexConfig):
                 if item.fields is None and item.mapper is None:
                     try:
                         weight = {
-                            item.name: {
+                            item.collection_name: {
                                 k: doc[k]
-                                for k in vertex_config.index(item.name)
+                                for k in vertex_config.index(
+                                    item.collection_name
+                                )
                                 if k in doc
                             }
                         }
@@ -174,7 +173,7 @@ def add_weights(mapper, agg, vertex_config: VertexConfig):
                         logger.error(
                             " weights mapper error : weight definition on"
                             f" {edef.source} {edef.target} refers to a non"
-                            f" existent vcollection {item.name}"
+                            f" existent vcollection {item.collection_name}"
                         )
             except:
                 weight = {}
@@ -184,124 +183,128 @@ def add_weights(mapper, agg, vertex_config: VertexConfig):
     return agg
 
 
-def add_edges(mapper, agg, vertex_config):
+def add_edges_weights(mapper, agg, vertex_config):
     for edge_def in mapper["edges"]:
-        # get source and target names
-        source, target = (
-            edge_def["source"]["name"],
-            edge_def["target"]["name"],
-        )
-
-        # get source and target edge fields
-        source_index, target_index = (
-            vertex_config.index(source),
-            vertex_config.index(target),
-        )
-
-        # get source and target items
-        source_items, target_items = agg[source], agg[target]
-
-        if edge_def["how"] == "all":
-            source_items = pick_indexed_items_anchor_logic(
-                source_items, source_index, edge_def["source"]
-            )
-            target_items = pick_indexed_items_anchor_logic(
-                target_items, target_index, edge_def["target"]
+        if "how" in edge_def:
+            # get source and target names
+            source, target = (
+                edge_def["source"]["name"],
+                edge_def["target"]["name"],
             )
 
-            for u, v in product(source_items, target_items):
-                weight = dict()
-                if "fields" in edge_def["source"]:
-                    for k in edge_def["source"]["fields"]:
-                        if k in u:
-                            weight[k] = u[k]
-                if "fields" in edge_def["target"]:
-                    for k in edge_def["target"]["fields"]:
-                        if k in v:
-                            weight[k] = v[k]
-                if "weight_exclusive" in edge_def["source"]:
-                    for k in edge_def["source"]["weight_exclusive"]:
-                        if k in u:
-                            weight[k] = u[k]
-                            del u[k]
-                if "weight_exclusive" in edge_def["target"]:
-                    for k in edge_def["target"]["weight_exclusive"]:
-                        if k in v:
-                            weight[k] = v[k]
-                            del v[k]
-                if "values" in edge_def:
-                    weight.update(
-                        {k: v for k, v in edge_def["values"].items()}
-                    )
-                agg[(source, target)] += [
-                    {
-                        **{
-                            "__source": project_dict(u, source_index),
-                            "__target": project_dict(v, target_index),
-                        },
-                        **weight,
-                    }
-                ]
-        if edge_def["how"] == "1-n":
-            source_field, target_field = (
-                edge_def["source"]["field"],
-                edge_def["target"]["field"],
-            )
-            source_items = pick_indexed_items_anchor_logic(
-                source_items, source_index, edge_def["source"]
-            )
-            target_items = pick_indexed_items_anchor_logic(
-                target_items, target_index, edge_def["target"]
+            # get source and target edge fields
+            source_index, target_index = (
+                vertex_config.index(source),
+                vertex_config.index(target),
             )
 
-            target_items = [
-                item for item in target_items if target_field in item
-            ]
+            # get source and target items
+            source_items, target_items = agg[source], agg[target]
 
-            if target_items:
-                target_items = dict(
-                    zip(
-                        [item[target_field] for item in target_items],
-                        project_dicts(target_items, target_index),
-                    )
+            if edge_def["how"] == "all":
+                source_items = pick_indexed_items_anchor_logic(
+                    source_items, source_index, edge_def["source"]
                 )
-                for u in source_items:
+                target_items = pick_indexed_items_anchor_logic(
+                    target_items, target_index, edge_def["target"]
+                )
+
+                for u, v in product(source_items, target_items):
                     weight = dict()
                     if "fields" in edge_def["source"]:
-                        weight.update(
-                            {
-                                k: u[k]
-                                for k in edge_def["source"]["fields"]
-                                if k in u
-                            }
-                        )
+                        for k in edge_def["source"]["fields"]:
+                            if k in u:
+                                weight[k] = u[k]
+                    if "fields" in edge_def["target"]:
+                        for k in edge_def["target"]["fields"]:
+                            if k in v:
+                                weight[k] = v[k]
+                    if "weight_exclusive" in edge_def["source"]:
+                        for k in edge_def["source"]["weight_exclusive"]:
+                            if k in u:
+                                weight[k] = u[k]
+                                del u[k]
+                    if "weight_exclusive" in edge_def["target"]:
+                        for k in edge_def["target"]["weight_exclusive"]:
+                            if k in v:
+                                weight[k] = v[k]
+                                del v[k]
                     if "values" in edge_def:
                         weight.update(
                             {k: v for k, v in edge_def["values"].items()}
                         )
-                    up = project_dict(u, source_index)
-                    if source_field in u:
-                        pointer = u[source_field]
-                        if pointer in target_items.keys():
-                            agg[(source, target)] += [
+                    agg[(source, target)] += [
+                        {
+                            **{
+                                "__source": project_dict(u, source_index),
+                                "__target": project_dict(v, target_index),
+                            },
+                            **weight,
+                        }
+                    ]
+            elif edge_def["how"] == "1-n":
+                source_field, target_field = (
+                    edge_def["source"]["field"],
+                    edge_def["target"]["field"],
+                )
+                source_items = pick_indexed_items_anchor_logic(
+                    source_items, source_index, edge_def["source"]
+                )
+                target_items = pick_indexed_items_anchor_logic(
+                    target_items, target_index, edge_def["target"]
+                )
+
+                target_items = [
+                    item for item in target_items if target_field in item
+                ]
+
+                if target_items:
+                    target_items = dict(
+                        zip(
+                            [item[target_field] for item in target_items],
+                            project_dicts(target_items, target_index),
+                        )
+                    )
+                    for u in source_items:
+                        weight = dict()
+                        if "fields" in edge_def["source"]:
+                            weight.update(
                                 {
-                                    **{
-                                        "__source": up,
-                                        "__target": target_items[pointer],
-                                    },
-                                    **weight,
+                                    k: u[k]
+                                    for k in edge_def["source"]["fields"]
+                                    if k in u
                                 }
-                            ]
+                            )
+                        if "values" in edge_def:
+                            weight.update(
+                                {k: v for k, v in edge_def["values"].items()}
+                            )
+                        up = project_dict(u, source_index)
+                        if source_field in u:
+                            pointer = u[source_field]
+                            if pointer in target_items.keys():
+                                agg[(source, target)] += [
+                                    {
+                                        **{
+                                            "__source": up,
+                                            "__target": target_items[pointer],
+                                        },
+                                        **weight,
+                                    }
+                                ]
+                            else:
+                                agg[(source, target)] += [
+                                    {
+                                        **{"__source": up, "__target": v},
+                                        **weight,
+                                    }
+                                    for v in target_items.values()
+                                ]
                         else:
                             agg[(source, target)] += [
                                 {**{"__source": up, "__target": v}, **weight}
                                 for v in target_items.values()
                             ]
-                    else:
-                        agg[(source, target)] += [
-                            {**{"__source": up, "__target": v}, **weight}
-                            for v in target_items.values()
-                        ]
     return agg
 
 
@@ -328,26 +331,6 @@ def pick_indexed_items_anchor_logic(
             if anchor_key in item and item[anchor_key] == set_spec[anchor_key]
         ]
     return items_
-
-
-def project_dict(item, keys, how="include"):
-    if how == "include":
-        return {k: v for k, v in item.items() if k in keys}
-    elif how == "exclude":
-        return {k: v for k, v in item.items() if k not in keys}
-
-
-def project_dicts(items, keys, how="include"):
-    if how == "include":
-        return [{k: v for k, v in item.items() if k in keys} for item in items]
-    elif how == "exclude":
-        return [
-            {k: v for k, v in item.items() if k not in keys} for item in items
-        ]
-    else:
-        raise ValueError(
-            f" `how` should be exclude or include : instead {how}"
-        )
 
 
 def parse_edges(croot, edge_acc, mapping_fields):
@@ -381,35 +364,6 @@ def parse_edges(croot, edge_acc, mapping_fields):
             return edge_acc_ + edge_acc, mapping_fields
         else:
             return [], defaultdict(list)
-
-
-def merge_documents(
-    docs, main_key="_key", anchor_key="anchor", anchor_value="main"
-):
-    """
-    docs contain documents with main_key and documents without
-    all docs without main_key should be merged with the doc that has doc[anchor_key] == anchor_value
-    :param docs:
-    :param main_key:
-    :param anchor_key:
-    :param anchor_value:
-    :return: list of docs, each of which contains main_key
-    """
-    mains_, mains, auxs, anchors = [], [], [], []
-    # split docs into two groups with and without main_key
-    for item in docs:
-        (mains_ if main_key in item else auxs).append(item)
-
-    for item in mains_:
-        (
-            anchors
-            if anchor_key in item and item[anchor_key] == anchor_value
-            else mains
-        ).append(item)
-
-    auxs += anchors
-    r = [dict(ChainMap(*auxs))] + mains
-    return r
 
 
 def smart_merge(

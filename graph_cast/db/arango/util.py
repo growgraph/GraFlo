@@ -1,7 +1,7 @@
 import json
 import logging
 
-from graph_cast.architecture.schema import Edge
+from graph_cast.architecture.schema import Edge, _source_aux, _target_aux
 from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
@@ -66,9 +66,11 @@ def insert_edges_batch(
     upsert_option=False,
     head=None,
 ):
-    """
+    f"""
+        using ("_key",) for match_keys_source and match_keys_target saves time
+            (no need to look it up from field discriminants)
 
-    :param docs_edges: in format  [{'__source': source_doc, '__target': target_doc}]
+    :param docs_edges: in format  [{{ _source_aux: source_doc, _target_aux: target_doc}}]
     :param source_collection_name,
     :param target_collection_name,
     :param edge_col_name:
@@ -96,13 +98,13 @@ def insert_edges_batch(
 
     if match_keys_source[0] == "_key":
         result_from = (
-            f'CONCAT("{source_collection_name}/", edge.__source._key)'
+            f'CONCAT("{source_collection_name}/", edge.{_source_aux}._key)'
         )
         source_filter = ""
     else:
         result_from = "sources[0]._id"
         filter_source = " && ".join(
-            [f"v.{k} == edge.__source.{k}" for k in match_keys_source]
+            [f"v.{k} == edge.{_source_aux}.{k}" for k in match_keys_source]
         )
         source_filter = (
             f"LET sources = (FOR v IN {source_collection_name} FILTER"
@@ -110,12 +112,14 @@ def insert_edges_batch(
         )
 
     if match_keys_target[0] == "_key":
-        result_to = f'CONCAT("{target_collection_name}/", edge.__target._key)'
+        result_to = (
+            f'CONCAT("{target_collection_name}/", edge.{_target_aux}._key)'
+        )
         target_filter = ""
     else:
         result_to = "targets[0]._id"
         filter_target = " && ".join(
-            [f"v.{k} == edge.__target.{k}" for k in match_keys_target]
+            [f"v.{k} == edge.{_target_aux}.{k}" for k in match_keys_target]
         )
         target_filter = (
             f"LET targets = (FOR v IN {target_collection_name} FILTER"
@@ -124,7 +128,7 @@ def insert_edges_batch(
 
     doc_definition = (
         f"MERGE({{_from : {result_from}, _to : {result_to}}},"
-        " UNSET(edge, '__source', '__target'))"
+        f" UNSET(edge, '{_source_aux}', '{_target_aux}'))"
     )
 
     logger.info(f" source_filter = {source_filter}")
@@ -171,7 +175,8 @@ def insert_edges_batch(
 
 def define_extra_edges(g: Edge):
     """
-    g create a query from u to v by w : u -> w -> v and add properties of w as properties of the edge
+    create a query to generate edges from u to v by w :
+            (u -> w -> v) -> (u -> w) and add properties of w as properties of the edge
 
 
     :param g:
@@ -179,13 +184,12 @@ def define_extra_edges(g: Edge):
     """
     ucol, vcol, wcol = g.source, g.target, g.by
     weight = g.weight_dict
-    s = (
-        f"FOR w IN {wcol}"
-        f"  LET uset = (FOR u IN 1..1 INBOUND w {ucol}_{wcol}_edges RETURN u)"
-        f"  LET vset = (FOR v IN 1..1 INBOUND w {vcol}_{wcol}_edges RETURN v)"
-        "  FOR u in uset"
-        "      FOR v in vset"
-    )
+    s = f"""FOR w IN {wcol}
+        LET uset = (FOR u IN 1..1 INBOUND w {ucol}_{wcol}_edges RETURN u)
+        LET vset = (FOR v IN 1..1 INBOUND w {vcol}_{wcol}_edges RETURN v)
+        FOR u in uset
+        FOR v in vset
+    """
     s_ins_ = ", ".join([f"{v}: w.{k}" for k, v in weight.items()])
     s_ins_ = f"_from: u._id, _to: v._id, {s_ins_}"
     s_ins = f"          INSERT {{{s_ins_}}} "

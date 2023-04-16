@@ -513,8 +513,6 @@ json:
                                 name: contributor
                             target:
                                 name: publication
-                            values:
-                                reference: true
                         -   how: all
                             source:
                                 name: publication

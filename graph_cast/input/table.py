@@ -7,6 +7,7 @@ from typing import Any, Dict, List
 
 from graph_cast.architecture import ConfiguratorType
 from graph_cast.architecture.general import transform_foo
+from graph_cast.architecture.schema import _source_aux, _target_aux
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +97,7 @@ def table_to_collections(
                     ziter = combinations(vdocs[u], r=2)
                 for ubatch, vbatch in ziter:
                     ebatch = [
-                        {"__source": x, "__target": y}
+                        {_source_aux: x, _target_aux: y}
                         for x, y in zip(ubatch, vbatch)
                         if not (
                             any(
@@ -127,9 +128,9 @@ def table_to_collections(
                     for vertex_weight in conf.graph_config.graph(
                         u, v
                     ).weight_vertices:
-                        if vertex_weight.name == u:
+                        if vertex_weight.collection_name == u:
                             cbatch = ubatch
-                        elif vertex_weight.name == v:
+                        elif vertex_weight.collection_name == v:
                             cbatch = vbatch
                         else:
                             continue
