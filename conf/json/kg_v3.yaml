@@ -2,47 +2,47 @@ general:
     name: kg_v3
 json:
     maps:
-    -   type: edge
-        how: all
-        source:
-            name: publication
-        target:
-            name: mention
-            ~anchor: triple_index
-    -   type: descend
-        key: publication
-        maps:
-        -   type: dict
-            name: publication
-    -   type: descend
-        key: map_mention_entity
-        maps:
-        -   type: list
-            edges:
-            -   how: all
-                source:
-                    name: mention
-                target:
-                    name: entity
-                index:
-                -   collection_name: publication
-                    fields:
-                    -   _key
-            maps:
-            -   type: descend
-                key: entity
-                maps:
-                -   type: dict
-                    name: entity
-                    map:
-                        hash: _key
-            -   type: descend
-                key: mention
-                maps:
-                -   type: dict
-                    name: mention
-                    map:
-                        hash: _key
+#    -   type: edge
+#        how: all
+#        source:
+#            name: publication
+#        target:
+#            name: mention
+#            ~anchor: triple_index
+#    -   type: descend
+#        key: publication
+#        maps:
+#        -   type: dict
+#            name: publication
+#    -   type: descend
+#        key: map_mention_entity
+#        maps:
+#        -   type: list
+#            maps:
+#            -   type: edge
+#                how: all
+#                source:
+#                    name: mention
+#                target:
+#                    name: entity
+#                index:
+#                -   collection_name: publication
+#                    fields:
+#                    -   _key
+#            -   type: descend
+#                key: entity
+#                maps:
+#                -   type: dict
+#                    name: entity
+#                    map:
+#                        hash: _key
+#            -   type: descend
+#                key: mention
+#                maps:
+#                -   type: dict
+#                    name: mention
+#                    map:
+#                        hash: _key
     -   type: descend
         key: triples
         maps:
@@ -56,15 +56,17 @@ json:
                     name: mention
                     map:
                         hash: _key
-            -   type: list
-                descend_key: triple
+            -   type: descend
+                key: triple
                 maps:
-                -   type: dict
-                    ~anchor: core
-                    name: mention
-                    map:
-                        role: _role
-                        hash: _key
+                -   type: list
+                    maps:
+                    -   type: dict
+                        ~anchor: core
+                        name: mention
+                        map:
+                            role: _role
+                            hash: _key
             -   type: edge
                 how: all
                 source:
@@ -78,14 +80,15 @@ json:
                 index:
                 -   fields:
                     -   _role
-    -   type: weight
-        source:
-            name: mention
-        target:
-            name: entity
-        collection_name: publication
-        fields:
-        -   _key
+
+#    -   type: weight
+#        source:
+#            name: mention
+#        target:
+#            name: entity
+#        collection_name: publication
+#        fields:
+#        -   _key
 vertex_collections:
     collections:
         publication:

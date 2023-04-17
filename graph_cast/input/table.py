@@ -6,8 +6,8 @@ from itertools import chain, combinations, product
 from typing import Any, Dict, List
 
 from graph_cast.architecture import ConfiguratorType
-from graph_cast.architecture.general import transform_foo
 from graph_cast.architecture.schema import _source_aux, _target_aux
+from graph_cast.architecture.transform import transform_foo
 
 logger = logging.getLogger(__name__)
 

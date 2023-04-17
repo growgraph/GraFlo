@@ -10,7 +10,6 @@ from collections import defaultdict
 from enum import Enum
 from itertools import product
 
-from graph_cast.architecture.general import transform_foo
 from graph_cast.architecture.schema import (
     Edge,
     EdgeMapping,
@@ -19,8 +18,9 @@ from graph_cast.architecture.schema import (
     _anchor_key,
     _source_aux,
     _target_aux,
+    strip_prefix,
 )
-from graph_cast.architecture.transform import Transform
+from graph_cast.architecture.transform import Transform, transform_foo
 from graph_cast.architecture.uitl import project_dict, project_dicts
 
 logger = logging.getLogger(__name__)
@@ -60,6 +60,7 @@ class NodeType(str, Enum):
 
 class MapperNode:
     def __init__(self, **kwargs):
+        kwargs = strip_prefix(kwargs, "~")
         self.type: NodeType = NodeType(kwargs.pop("type", NodeType.TRIVIAL))
         vertex_config = kwargs.pop("vertex_config", None)
 
@@ -132,20 +133,23 @@ class MapperNode:
         acc: defaultdict[TypeVE, list],
     ) -> defaultdict[TypeVE, list]:
         if self.type == NodeType.TRIVIAL:
-            for c in self.children:
-                acc = c.apply(doc, vertex_config, acc)
+            acc = self._loop_over_children(doc, vertex_config, acc)
         elif self.type == NodeType.VALUE:
             acc[self.collection] += [{self.key: doc}]
         elif self.type == NodeType.MAP:
+            if not isinstance(doc, dict):
+                raise TypeError(f"at {self} doc is not dict")
             acc = self._apply_map(doc, vertex_config, acc)
         elif self.type == NodeType.LIST:
+            if not isinstance(doc, list):
+                raise TypeError(f"at {self} doc is not list")
             for item in doc:
-                for c in self.children:
-                    acc = c.apply(item, vertex_config, acc)
+                acc = self._loop_over_children(item, vertex_config, acc)
         elif self.type == NodeType.DESCEND:
+            if not isinstance(doc, dict):
+                raise TypeError(f"at {self} doc is not dict")
             if self.key in doc:
-                for c in self.children:
-                    acc = c.apply(doc[self.key], vertex_config, acc)
+                self._loop_over_children(doc[self.key], vertex_config, acc)
         elif self.type == NodeType.EDGE:
             acc = self._add_edges_weights(vertex_config, acc)
         elif self.type == NodeType.WEIGHT:
@@ -153,6 +157,16 @@ class MapperNode:
         else:
             pass
 
+        return acc
+
+    def _loop_over_children(
+        self, item, vertex_config, acc
+    ) -> defaultdict[TypeVE, list]:
+        acc0: defaultdict[TypeVE, list] = defaultdict(list)
+
+        for c in self.children:
+            acc0 = c.apply(item, vertex_config, acc0)
+        acc = update_defaultdict(acc, acc0)
         return acc
 
     @property
@@ -345,3 +359,9 @@ def pick_indexed_items_anchor_logic(items, indices, anchor):
             if _anchor_key in item and item[_anchor_key] == anchor
         ]
     return items_
+
+
+def update_defaultdict(dd_a: defaultdict, dd_b: defaultdict):
+    for k, v in dd_b.items():
+        dd_a[k] += v
+    return dd_a

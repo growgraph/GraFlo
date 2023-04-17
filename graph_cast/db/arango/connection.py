@@ -2,11 +2,8 @@ import logging
 
 from arango import ArangoClient
 
-from graph_cast.architecture.schema import (
-    CollectionIndex,
-    GraphConfig,
-    VertexConfig,
-)
+from graph_cast.architecture.graph import GraphConfig
+from graph_cast.architecture.schema import CollectionIndex, VertexConfig
 from graph_cast.db import ConnectionConfigType
 from graph_cast.db.connection import Connection
 

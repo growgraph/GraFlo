@@ -15,6 +15,8 @@ class JConfigurator(Configurator):
             config["json"], vertex_config=self.vertex_config
         )
 
+        self.graph_config.parse_edges(self.tree)
+
         self.merge_collections = tuple()
         if "extra" in config:
             cconfig = config["extra"]

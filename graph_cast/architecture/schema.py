@@ -3,7 +3,6 @@ from __future__ import annotations
 import dataclasses
 import logging
 from abc import ABC
-from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
 from typing import Union
@@ -313,12 +312,12 @@ class Edge:
 
     def __iadd__(self, other: Edge):
         if self.edge_name_dyad == other.edge_name_dyad:
-            # self._source_exclude += other._source_exclude
-            # self._target_exclude += other._target_exclude
             self._extra_indices += other._extra_indices
             self._weight += other._weight
             self._weight_vertices += other._weight_vertices
             self._weight_dict.update(other._weight_dict)
+            # self._source_exclude += other._source_exclude
+            # self._target_exclude += other._target_exclude
             # self._how = dictlike.pop("how", None)
             # self._type = "direct" if direct else "indirect"
             # self._by = None
@@ -473,119 +472,6 @@ class VertexConfig:
             for vcol, item in self._vcollections_all.items()
             for f in item.filters
         )
-
-
-class GraphConfig:
-    def __init__(self, econfig, vconfig: VertexConfig, jconfig=None):
-        """
-
-        :param econfig: edges config : direct definitions of edges
-        :param vconfig: specification of vcollections
-        :param jconfig: in json config edges might be defined locally,
-                            so json schema should be parsed for flat edges list
-        """
-        self._edges: dict[tuple[str, str], Edge] = dict()
-
-        self._exclude_fields: defaultdict[str, list] = defaultdict(list)
-
-        self._init_edges(econfig, vconfig)
-        if jconfig is not None:
-            self._init_jedges(jconfig, vconfig)
-        self._init_extra_edges(econfig, vconfig)
-        self._init_exclude()
-
-    def _init_edges(self, config, vconf: VertexConfig):
-        if "main" in config:
-            for e in config["main"]:
-                edge = Edge(e, vconf)
-                self._edges.update({edge.edge_name_dyad: edge})
-
-    def _init_extra_edges(self, config, vconf: VertexConfig):
-        if "extra" in config:
-            for e in config["extra"]:
-                edge = Edge(e, vconf, direct=False)
-                self._edges.update({edge.edge_name_dyad: edge})
-
-    def _init_exclude(self):
-        for (v, w), e in self._edges.items():
-            self._exclude_fields[v] += e.source_exclude
-            self._exclude_fields[w] += e.target_exclude
-
-    def _init_jedges(self, jconfig, vconf: VertexConfig):
-        """
-        init edges define locally in json
-        :param jconfig:
-        :return:
-        """
-
-        norm_edges = self.parse_edges(jconfig, vconf)
-        self._edges.update(norm_edges)
-
-    def _parse_jedges(
-        self,
-        croot,
-        edge_accumulator: defaultdict[tuple[str, str], list[Edge]],
-        vconf: VertexConfig,
-    ):
-        """
-        extract edge definition and edge fields from definition dict
-        :param croot:
-        :param edge_accumulator:
-        :param vconf:
-        :return:
-        """
-        if isinstance(croot, dict):
-            if "maps" in croot:
-                for m in croot["maps"]:
-                    self._parse_jedges(m, edge_accumulator, vconf)
-            if "edges" in croot:
-                for edge_dict_like in croot["edges"]:
-                    edge = Edge(edge_dict_like, vconf)
-                    edge_accumulator[edge.edge_name_dyad] += [edge]
-
-    def parse_edges(
-        self,
-        jconfig,
-        vconf: VertexConfig,
-    ) -> dict[tuple[str, str], Edge]:
-        """
-        extract edge definition and edge fields from definition dict
-        :param jconfig:
-        :param vconf:
-        :return:
-        """
-        acc_edges: defaultdict[tuple[str, str], list[Edge]] = defaultdict(list)
-        normalized_edges: dict[tuple[str, str], Edge] = dict()
-        self._parse_jedges(jconfig, acc_edges, vconf)
-        for k, item in acc_edges.items():
-            if item:
-                normalized_edges[k] = item[0]
-            for edef in item[1:]:
-                normalized_edges[k] += edef
-        return normalized_edges
-
-    def graph(self, u, v) -> Edge:
-        return self._edges[u, v]
-
-    @property
-    def edges(self):
-        return list([k for k, v in self._edges.items() if v.type == "direct"])
-
-    @property
-    def extra_edges(self):
-        return list(
-            [k for k, v in self._edges.items() if v.type == "indirect"]
-        )
-
-    @property
-    def all_edges(self):
-        return list(self._edges)
-
-    def exclude_fields(self, k):
-        if k in self._exclude_fields:
-            return self._exclude_fields[k]
-        else:
-            return ()
 
 
 class EdgeMapping(str, Enum):
