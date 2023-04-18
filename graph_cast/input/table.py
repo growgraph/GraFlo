@@ -128,9 +128,9 @@ def table_to_collections(
                     for vertex_weight in conf.graph_config.graph(
                         u, v
                     ).weight_vertices:
-                        if vertex_weight.collection_name == u:
+                        if vertex_weight.name == u:
                             cbatch = ubatch
-                        elif vertex_weight.collection_name == v:
+                        elif vertex_weight.name == v:
                             cbatch = vbatch
                         else:
                             continue

@@ -1,4 +1,5 @@
 entities: 36
+entities_entities_edges: 0
 mentions: 63
 mentions_entities_edges: 42
 mentions_mentions_edges: 78

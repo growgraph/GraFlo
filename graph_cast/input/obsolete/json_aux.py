@@ -2,10 +2,7 @@ import gzip
 import json
 import logging
 from collections import ChainMap, defaultdict
-from itertools import product
 
-from graph_cast.architecture.schema import Edge, VertexConfig
-from graph_cast.architecture.uitl import project_dict, project_dicts
 from graph_cast.util.io import FPSmart
 
 logger = logging.getLogger(__name__)

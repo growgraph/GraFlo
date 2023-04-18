@@ -22,20 +22,57 @@ _target_aux = "__target"
 TypeVE = Union[str, tuple[str, str]]
 
 
+class EdgeMapping(str, Enum):
+    ALL = "all"
+    ONE_N = "1-n"
+
+
+@dataclasses.dataclass
+class Field:
+    name: str
+    exclusive: bool = True
+
+
 @dataclasses.dataclass
 class ABCFields(ABC):
-    collection_name: str | None = None
-    fields: list[str] = dataclasses.field(default_factory=list)
+    name: str | None = None
+    fields: list[Field] = dataclasses.field(default_factory=list)
+
+    def __post_init__(self):
+        fs = []
+        if self.fields:
+            for item in self.fields:
+                if isinstance(item, str):
+                    fs += [Field(name=item)]
+                elif isinstance(item, dict):
+                    fs += [Field(**item)]
+        self.fields = fs
+
+    def cfield(self, x):
+        return f"{self.name}.{x}"
 
 
 @dataclasses.dataclass
 class WeightConfig(ABCFields, JSONWizard):
-    mapper: dict | None = None
-    condition: dict | None = None
+    mapper: dict = dataclasses.field(default_factory=dict)
+    filter: dict = dataclasses.field(default_factory=dict)
 
 
 @dataclasses.dataclass
-class CollectionIndex(ABCFields, JSONWizard):
+class VertexHelper(ABCFields, JSONWizard):
+    # pre-select only vertices with anchor value
+    # is value
+    anchor: str | bool = False
+
+    # create edges between vertices that have the same value of selector field
+    # is key
+    selector: str | bool = False
+
+
+@dataclasses.dataclass
+class CollectionIndex(JSONWizard):
+    name: str | None = None
+    fields: list[str] = dataclasses.field(default_factory=list)
     unique: bool = True
     type: str = "persistent"
     deduplicate: bool = True
@@ -106,15 +143,6 @@ class Vertex:
         return self._filters
 
 
-@dataclasses.dataclass
-class VertexHelper(JSONWizard):
-    name: str
-    field: str | bool = False
-    anchor: str | bool = False
-    weight_exclusive: list[str] = dataclasses.field(default_factory=lambda: [])
-    fields: list[str] = dataclasses.field(default_factory=lambda: [])
-
-
 class Edge:
     def __init__(self, dictlike, vconf: VertexConfig, direct=True):
         self._source: VertexHelper
@@ -145,7 +173,6 @@ class Edge:
 
         if "weight" in dictlike:
             # legacy hack for when dictlike["weight"] contained only a mapper / dict
-            self._weight_vertices = []
             for item in dictlike["weight"]:
                 try:
                     self._weight_vertices += [WeightConfig(**item)]
@@ -225,7 +252,7 @@ class Edge:
         :return:
         """
         item = deepcopy(item)
-        collection_name = item.get("collection_name", None)
+        collection_name = item.get("name", None)
 
         fields = item.pop("fields", [])
         index_fields = []
@@ -244,7 +271,7 @@ class Edge:
         if index_fields:
             index_fields = ["_from", "_to"] + index_fields
             return CollectionIndex(
-                collection_name=collection_name,
+                name=collection_name,
                 fields=index_fields,
                 unique=unique,
                 type=index_type,
@@ -256,11 +283,11 @@ class Edge:
 
     @property
     def source_exclude(self):
-        return [self._source.field]
+        return [self._source.selector]
 
     @property
     def target_exclude(self):
-        return [self._target.field]
+        return [self._target.selector]
 
     @property
     def edge_name_dyad(self):
@@ -472,11 +499,6 @@ class VertexConfig:
             for vcol, item in self._vcollections_all.items()
             for f in item.filters
         )
-
-
-class EdgeMapping(str, Enum):
-    ALL = "all"
-    ONE_N = "1-n"
 
 
 def strip_prefix(dictlike, prefix="~"):

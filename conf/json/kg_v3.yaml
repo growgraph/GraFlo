@@ -1,94 +1,90 @@
 general:
-    name: kg_v3
+    ~name: kg_v3
 json:
-    maps:
-#    -   type: edge
-#        how: all
-#        source:
-#            name: publication
-#        target:
-#            name: mention
-#            ~anchor: triple_index
-#    -   type: descend
-#        key: publication
-#        maps:
-#        -   type: dict
-#            name: publication
-#    -   type: descend
-#        key: map_mention_entity
-#        maps:
-#        -   type: list
-#            maps:
-#            -   type: edge
-#                how: all
-#                source:
-#                    name: mention
-#                target:
-#                    name: entity
-#                index:
-#                -   collection_name: publication
-#                    fields:
-#                    -   _key
-#            -   type: descend
-#                key: entity
-#                maps:
-#                -   type: dict
-#                    name: entity
-#                    map:
-#                        hash: _key
-#            -   type: descend
-#                key: mention
-#                maps:
-#                -   type: dict
-#                    name: mention
-#                    map:
-#                        hash: _key
-    -   type: descend
-        key: triples
-        maps:
-        -   type: list
-            maps:
-            -   type: descend
-                key: triple_index
-                maps:
-                -   type: dict
-                    ~anchor: triple_index
-                    name: mention
-                    map:
+    ~maps:
+    -   ~type: edge
+        ~how: all
+        source:
+            ~name: publication
+        target:
+            ~name: mention
+            ~anchor: triple_index
+    -   ~type: descend
+        ~key: publication
+        ~maps:
+        -   ~type: dict
+            ~name: publication
+    -   ~type: descend
+        ~key: map_mention_entity
+        ~maps:
+        -   ~type: list
+            ~maps:
+            -   ~type: edge
+                ~how: all
+                source:
+                    ~name: mention
+                target:
+                    ~name: entity
+                index:
+                -   ~name: publication
+            -   ~type: descend
+                ~key: entity
+                ~maps:
+                -   ~type: dict
+                    ~name: entity
+                    ~map:
                         hash: _key
-            -   type: descend
-                key: triple
-                maps:
-                -   type: list
-                    maps:
-                    -   type: dict
+            -   ~type: descend
+                ~key: mention
+                ~maps:
+                -   ~type: dict
+                    ~name: mention
+                    ~map:
+                        hash: _key
+    -   ~type: descend
+        ~key: triples
+        ~maps:
+        -   ~type: list
+            ~maps:
+            -   ~type: descend
+                ~key: triple_index
+                ~maps:
+                -   ~type: dict
+                    ~anchor: triple_index
+                    ~name: mention
+                    ~map:
+                        hash: _key
+            -   ~type: descend
+                ~key: triple
+                ~maps:
+                -   ~type: list
+                    ~maps:
+                    -   ~type: dict
                         ~anchor: core
-                        name: mention
-                        map:
+                        ~name: mention
+                        ~map:
                             role: _role
                             hash: _key
-            -   type: edge
-                how: all
+            -   ~type: edge
+                ~how: all
                 source:
-                    name: mention
+                    ~name: mention
                     ~anchor: triple_index
                 target:
-                    name: mention
+                    ~name: mention
                     ~anchor: core
-                    weight_exclusive:
+                    ~fields:
                     -   _role
                 index:
-                -   fields:
+                -   ~fields:
                     -   _role
-
-#    -   type: weight
-#        source:
-#            name: mention
-#        target:
-#            name: entity
-#        collection_name: publication
-#        fields:
-#        -   _key
+    -   ~type: weight
+        source:
+            ~name: mention
+        target:
+            ~name: entity
+        weight:
+        -   name: publication
 vertex_collections:
     collections:
         publication:
@@ -138,6 +134,6 @@ edge_collections:
     -   source: entity
         target: entity
         index:
-        -   collection_name: publication
+        -   name: publication
             fields:
             -   _key

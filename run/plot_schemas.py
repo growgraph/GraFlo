@@ -4,11 +4,10 @@ from collections import defaultdict
 from itertools import product
 
 import networkx as nx
-import yaml
 
 from graph_cast.architecture.json import JConfigurator
 from graph_cast.architecture.table import TConfigurator
-from graph_cast.input.json_aux import parse_edges
+from graph_cast.input.obsolete.json_aux import parse_edges
 from graph_cast.util import ResourceHandler
 
 """

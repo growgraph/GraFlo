@@ -27,6 +27,16 @@ logger = logging.getLogger(__name__)
 
 xml_dummy = "#text"
 
+# if "merge" in mapper:
+#     for item in mapper["merge"]:
+#         agg = smart_merge(
+#             agg,
+#             item["name"],
+#             item["discriminator_key"],
+#             item["discriminator_value"],
+#         )
+# return agg
+
 
 class NodeType(str, Enum):
     # only refers to other nodes
@@ -66,6 +76,7 @@ class MapperNode:
 
         self.key = kwargs.pop("key", None)
 
+        # validate name wrt vertex_config
         self.collection = kwargs.pop("name", None)
 
         self._filter: dict | None = kwargs.pop("filter", None)
@@ -153,7 +164,7 @@ class MapperNode:
         elif self.type == NodeType.EDGE:
             acc = self._add_edges_weights(vertex_config, acc)
         elif self.type == NodeType.WEIGHT:
-            pass
+            acc = self._add_weights(vertex_config, acc)
         else:
             pass
 
@@ -236,21 +247,16 @@ class MapperNode:
             for u, v in product(source_items, target_items):
                 weight = dict()
                 # add `fields` to weight
-                for k in self.edge._source.fields:
-                    if k in u:
-                        weight[k] = u[k]
-                for k in self.edge._target.fields:
-                    if k in v:
-                        weight[k] = v[k]
-                # move `weight_exclusive` to weight
-                for k in self.edge._source.weight_exclusive:
-                    if k in u:
-                        weight[k] = u[k]
-                        del u[k]
-                for k in self.edge._target.weight_exclusive:
-                    if k in v:
-                        weight[k] = v[k]
-                        del v[k]
+                for field in self.edge._source.fields:
+                    if field.name in u:
+                        weight[field.name] = u[field]
+                        if field.exclusive:
+                            del u[field.name]
+                for field in self.edge._target.fields:
+                    if field.name in v:
+                        weight[field.name] = v[field.name]
+                        if field.exclusive:
+                            del v[field.name]
                 acc[(source, target)] += [
                     {
                         **{
@@ -262,8 +268,8 @@ class MapperNode:
                 ]
         elif self.edge.how == EdgeMapping.ONE_N:
             source_field, target_field = (
-                self.edge._source.field,
-                self.edge._target.field,
+                self.edge._source.selector,
+                self.edge._target.selector,
             )
 
             target_items = [
@@ -280,7 +286,11 @@ class MapperNode:
                 for u in source_items:
                     weight = dict()
                     weight.update(
-                        {k: u[k] for k in self.edge._source.fields if k in u}
+                        {
+                            field.name: u[field.name]
+                            for field in self.edge._source.fields
+                            if field.name in u
+                        }
                     )
                     up = project_dict(u, source_index)
                     if source_field in u:
@@ -309,6 +319,65 @@ class MapperNode:
                             for v in target_items.values()
                         ]
         return acc
+
+    def _add_weights(self, vertex_config: VertexConfig, agg):
+        edef = self.edge
+        edges = agg[(edef.source, edef.target)]
+
+        # loop over weights for an edge
+        for weight_conf in edef.weight_vertices:
+            vertices = [doc for doc in agg[weight_conf.name]]
+
+            # find all vertices satisfying condition
+            if weight_conf.filter:
+                vertices = [
+                    doc
+                    for doc in vertices
+                    if all(
+                        [
+                            doc[q] == v in doc
+                            for q, v in weight_conf.filter.items()
+                        ]
+                    )
+                ]
+            try:
+                doc = next(iter(vertices))
+                weight: dict = {}
+                if weight_conf.fields:
+                    weight = {
+                        **weight,
+                        **{
+                            weight_conf.cfield(field.name): doc[field.name]
+                            for field in weight_conf.fields
+                            if field.name in doc
+                        },
+                    }
+                if weight_conf.mapper:
+                    weight = {
+                        **weight,
+                        **{q: doc[k] for k, q in weight_conf.mapper.items()},
+                    }
+
+                if not weight_conf.fields and not weight_conf.mapper:
+                    try:
+                        weight = {
+                            f"{weight_conf.name}.{k}": doc[k]
+                            for k in vertex_config.index(weight_conf.name)
+                            if k in doc
+                        }
+                    except ValueError:
+                        weight = {}
+                        logger.error(
+                            " weights mapper error : weight definition on"
+                            f" {edef.source} {edef.target} refers to a non"
+                            f" existent vcollection {weight_conf.name}"
+                        )
+            except:
+                weight = {}
+            for edoc in edges:
+                edoc.update(weight)
+        agg[(edef.source, edef.target)] = edges
+        return agg
 
 
 class NodeFactory:
@@ -344,7 +413,7 @@ def pick_indexed_items_anchor_logic(items, indices, anchor):
 
     :param items: list of documents (dict)
     :param indices:
-    :param anchor:
+    :param anchor: anchor value
     :return: items
     """
 

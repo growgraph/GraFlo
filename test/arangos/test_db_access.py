@@ -57,7 +57,7 @@ class TestDBAccess(unittest.TestCase):
                 logger.info(c)
 
     def test_edges_upsert(self):
-        config = ResourceHandler.load(f"conf.json", f"kg_v1.yaml")
+        config = ResourceHandler.load(f"conf.json", f"kg_v3.yaml")
         conf_obj = JConfigurator(config)
 
         db_args = dict(self.db_args)

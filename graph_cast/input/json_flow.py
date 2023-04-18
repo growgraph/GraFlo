@@ -50,7 +50,7 @@ def process_jsonlike(
                 with timer.Timer() as t_ingest_edges0:
                     logger.info(f" edges : {vfrom} {vto}")
                     uniq_weight_collections = [
-                        vc.collection_name
+                        vc.name
                         for vc in conf_obj.graph(vfrom, vto).weight_vertices
                     ]
                     query0 = insert_edges_batch(

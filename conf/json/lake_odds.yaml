@@ -1,10 +1,9 @@
 general:
     name: lake_odds
 json:
-    type: item
-    maps:
-    -   how: dict
-        name: chunk
+    ~maps:
+    -   ~type: dict
+        ~name: chunk
 vertex_collections:
     collections:
         chunk:
