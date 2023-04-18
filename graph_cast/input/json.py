@@ -2,29 +2,27 @@ import logging
 import multiprocessing as mp
 from collections import defaultdict
 from functools import partial
-from typing import DefaultDict, List, Tuple
 
 from graph_cast.architecture import JConfigurator
-from graph_cast.input.json_aux import (
-    apply_mapper,
-    merge_documents,
-    project_dicts,
-)
+from graph_cast.architecture.uitl import merge_documents, project_dicts
 from graph_cast.util import timer as timer
 from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
 
 
-def jsondoc_to_collections(jsondoc, config: JConfigurator) -> DefaultDict:
+def jsondoc_to_collections(jsondoc, config: JConfigurator) -> defaultdict:
     """
-    (jsondoc, config) -> defaultdict
+    parse jsondoc using JConfigurator
+
     :param jsondoc: generic : {}
     :param config: JConfigurator
-    :return: defaultdict with keys being collections
+    :return: defaultdict vertex and edges collections
     """
 
-    acc = apply_mapper(config.json, jsondoc, config.vertex_config)
+    # acc = apply_mapper(config.json, jsondoc, config.vertex_config)
+
+    acc = config.apply(jsondoc)
 
     for k, v in acc.items():
         v = pick_unique_dict(v)
@@ -39,10 +37,10 @@ def jsondoc_to_collections(jsondoc, config: JConfigurator) -> DefaultDict:
 
 
 def jsonlike_to_collections(
-    json_data: List,
+    json_data: list,
     conf_obj: JConfigurator,
     ncores=1,
-) -> Tuple[DefaultDict, DefaultDict]:
+) -> tuple[defaultdict, defaultdict]:
     """
 
     :param json_data:
@@ -80,10 +78,3 @@ def jsonlike_to_collections(
             vdocs[k] = super_dict[k]
 
     return vdocs, edocs
-
-    #     stats = [(k, len(v) / len(default_dicts)) for k, v in super_dict.items()]
-    #     stats = sorted(stats, key=lambda y: y[1])
-    #
-
-    # for x in stats[-5:][::-1]:
-    #     logger.info(f" collection {x[0]} has {x[1]} items per record")

@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-from collections import defaultdict
+from abc import ABC
 from copy import deepcopy
+from enum import Enum
+from typing import Union
 
 from dataclass_wizard import JSONWizard
 
@@ -11,9 +13,65 @@ from graph_cast.architecture.transform import Transform
 
 logger = logging.getLogger(__name__)
 
+_anchor_key = "anchor"
+_source_aux = "__source"
+_target_aux = "__target"
+
+
+# type for vertex or edge name (index)
+TypeVE = Union[str, tuple[str, str]]
+
+
+class EdgeMapping(str, Enum):
+    ALL = "all"
+    ONE_N = "1-n"
+
+
+@dataclasses.dataclass
+class Field:
+    name: str
+    exclusive: bool = True
+
+
+@dataclasses.dataclass
+class ABCFields(ABC):
+    name: str | None = None
+    fields: list[Field] = dataclasses.field(default_factory=list)
+
+    def __post_init__(self):
+        fs = []
+        if self.fields:
+            for item in self.fields:
+                if isinstance(item, str):
+                    fs += [Field(name=item)]
+                elif isinstance(item, dict):
+                    fs += [Field(**item)]
+        self.fields = fs
+
+    def cfield(self, x):
+        return f"{self.name}.{x}"
+
+
+@dataclasses.dataclass
+class WeightConfig(ABCFields, JSONWizard):
+    mapper: dict = dataclasses.field(default_factory=dict)
+    filter: dict = dataclasses.field(default_factory=dict)
+
+
+@dataclasses.dataclass
+class VertexHelper(ABCFields, JSONWizard):
+    # pre-select only vertices with anchor value
+    # is value
+    anchor: str | bool = False
+
+    # create edges between vertices that have the same value of selector field
+    # is key
+    selector: str | bool = False
+
 
 @dataclasses.dataclass
 class CollectionIndex(JSONWizard):
+    name: str | None = None
     fields: list[str] = dataclasses.field(default_factory=list)
     unique: bool = True
     type: str = "persistent"
@@ -85,28 +143,26 @@ class Vertex:
         return self._filters
 
 
-@dataclasses.dataclass
-class VertexWeightConfig:
-    name: str
-    mapper: dict | None = None
-    fields: list | None = None
-    condition: dict | None = None
-
-
 class Edge:
     def __init__(self, dictlike, vconf: VertexConfig, direct=True):
-        self._source_exclude: list[str] | None = None
-        self._target_exclude: list[str] | None = None
-        self._extra_indices: list[CollectionIndex] | None = None
-        self._weight = None
-        self._weight_vertices: list[VertexWeightConfig] | None = None
-        self._weight_dict = None
+        self._source: VertexHelper
+        self._target: VertexHelper
+        self._weight: list[str] = []
+        self._weight_vertices: list[WeightConfig] = []
+        self._weight_dict: dict = dict()
+        self._extra_indices: list[CollectionIndex] = []
+        self._how: EdgeMapping = dictlike.pop("how", EdgeMapping.ALL)
+        self._type = "direct" if direct else "indirect"
+        self._by = None
+
         try:
             if isinstance(dictlike["source"], dict) and isinstance(
                 dictlike["target"], dict
             ):
+                # dictlike["source"] is a dict with a spec of source
                 self._init_local_definition(dictlike)
             else:
+                # dictlike["source"] is a string with the name of the collection
                 self._init_basic(dictlike)
         except KeyError as e:
             raise KeyError(
@@ -114,18 +170,17 @@ class Edge:
             )
 
         self._init_indices(dictlike, vconf)
-        if "vertex" in dictlike:
-            self._weight_vertices = []
-            for item in dictlike["vertex"]:
+
+        if "weight" in dictlike:
+            # legacy hack for when dictlike["weight"] contained only a mapper / dict
+            for item in dictlike["weight"]:
                 try:
-                    self._weight_vertices += [VertexWeightConfig(**item)]
+                    self._weight_vertices += [WeightConfig(**item)]
                 except:
                     logger.error(
                         "_weight_collections init failed for edge"
                         f" {self.edge_name_dyad}"
                     )
-        if "weight" in dictlike:
-            # legacy hack for when dictlike["weight"] contained only a mapper / dict
             if isinstance(dictlike["weight"], dict):
                 if "fields" in dictlike["weight"]:
                     self._weight = dictlike["weight"]["fields"]
@@ -137,8 +192,6 @@ class Edge:
             elif isinstance(dictlike["weight"], str):
                 self._weight = [dictlike["weight"]]
 
-        self._type = "direct" if direct else "indirect"
-        self._by = None
         if self._type == "indirect" and "by" in dictlike:
             self._by = vconf.vertex_dbname(dictlike["by"])
 
@@ -147,6 +200,98 @@ class Edge:
 
         self._edge_name = f"{vconf.vertex_dbname(self.source)}_{vconf.vertex_dbname(self.target)}_edges"
         self._graph_name = f"{vconf.vertex_dbname(self.source)}_{vconf.vertex_dbname(self.target)}_graph"
+
+    @property
+    def source(self):
+        return self._source.name
+
+    @property
+    def target(self):
+        return self._target.name
+
+    def update_weights(self, edge_with_weights):
+        self._weight = edge_with_weights.weight_fields
+        self._weight_dict = edge_with_weights.weight_dict
+        self._weight_vertices = edge_with_weights.weight_vertices
+
+    def _init_basic(self, dictlike):
+        dictlike = strip_prefix(dictlike)
+        self._source = VertexHelper(name=dictlike["source"])
+        self._target = VertexHelper(name=dictlike["target"])
+
+    def _init_local_definition(self, dictlike):
+        """
+        used for input/json
+        :param dictlike:
+        :return:
+        """
+        dictlike = strip_prefix(dictlike)
+
+        self._source = VertexHelper(**dictlike["source"])
+        self._target = VertexHelper(**dictlike["target"])
+
+    def _init_indices(self, dictlike, vconf):
+        """
+        index should be consistent with weight
+        :param dictlike:
+        :param vconf:
+        :return:
+        """
+        if "index" in dictlike:
+            for item in dictlike["index"]:
+                self._extra_indices += [self._init_index(item, vconf)]
+            self._extra_indices = [
+                x for x in self._extra_indices if x is not None
+            ]
+
+    def _init_index(self, item, vconf: VertexConfig) -> CollectionIndex | None:
+        """
+        default behavior for edge indices : add ["_from", "_to"] for uniqueness
+        :param item:
+        :param vconf:
+        :return:
+        """
+        item = deepcopy(item)
+        collection_name = item.get("name", None)
+
+        fields = item.pop("fields", [])
+        index_fields = []
+        if collection_name is not None:
+            if not fields:
+                fields = vconf.index(collection_name).fields
+            index_fields += [f"{collection_name}.{x}" for x in fields]
+        else:
+            index_fields += fields
+
+        unique = item.pop("unique", True)
+        index_type = item.pop("type", "persistent")
+        deduplicate = item.pop("deduplicate", True)
+        sparse = item.pop("sparse", False)
+
+        if index_fields:
+            index_fields = ["_from", "_to"] + index_fields
+            return CollectionIndex(
+                name=collection_name,
+                fields=index_fields,
+                unique=unique,
+                type=index_type,
+                deduplicate=deduplicate,
+                sparse=sparse,
+            )
+        else:
+            return None
+
+    @property
+    def source_exclude(self):
+        return [self._source.selector]
+
+    @property
+    def target_exclude(self):
+        return [self._target.selector]
+
+    @property
+    def edge_name_dyad(self):
+        return self.source, self.target
 
     @property
     def source_collection(self):
@@ -161,13 +306,12 @@ class Edge:
         return self._edge_name
 
     @property
+    def how(self):
+        return self._how
+
+    @property
     def graph_name(self):
         return self._graph_name
-
-    def update_weights(self, edge_with_weights):
-        self._weight = edge_with_weights.weight_fields
-        self._weight_dict = edge_with_weights.weight_dict
-        self._weight_vertices = edge_with_weights.weight_vertices
 
     @property
     def weight_fields(self):
@@ -178,7 +322,7 @@ class Edge:
         return dict() if self._weight_dict is None else self._weight_dict
 
     @property
-    def weight_vertices(self) -> list[VertexWeightConfig]:
+    def weight_vertices(self) -> list[WeightConfig]:
         return [] if self._weight_vertices is None else self._weight_vertices
 
     @property
@@ -191,85 +335,24 @@ class Edge:
 
     @property
     def index(self):
-        return [] if self._extra_indices is None else self._extra_indices
+        return self._extra_indices
 
-    def _init_basic(self, dictlike):
-        self.source = dictlike["source"]
-        self.target = dictlike["target"]
-
-    def _init_local_definition(self, dictlike):
-        """
-        used for input/json
-        :param dictlike:
-        :return:
-        """
-        self.source = dictlike["source"]["name"]
-        self.target = dictlike["target"]["name"]
-        self._source_exclude = (
-            [dictlike["source"]["field"]]
-            if "field" in dictlike["source"]
-            else None
-        )
-        self._target_exclude = (
-            [dictlike["target"]["field"]]
-            if "field" in dictlike["target"]
-            else None
-        )
-
-    def _init_indices(self, dictlike, vconf):
-        """
-        index should be consistent with weight
-        :param dictlike:
-        :param vconf:
-        :return:
-        """
-        if "index" in dictlike:
-            self._extra_indices = []
-            for item in dictlike["index"]:
-                self._extra_indices += [self._init_index(item, vconf)]
-            self._extra_indices = [
-                x for x in self._extra_indices if x is not None
-            ]
-
-    def _init_index(self, item, vconf: VertexConfig):
-        """
-        default behavior for edge indices : add ["_from", "_to"] for uniqueness
-        :param item:
-        :param vconf:
-        :return:
-        """
-        item = deepcopy(item)
-        index_on_collection = item.pop("collection", None)
-        fields = item.pop("fields", [])
-        if index_on_collection is None:
-            collection_fields = []
+    def __iadd__(self, other: Edge):
+        if self.edge_name_dyad == other.edge_name_dyad:
+            self._extra_indices += other._extra_indices
+            self._weight += other._weight
+            self._weight_vertices += other._weight_vertices
+            self._weight_dict.update(other._weight_dict)
+            # self._source_exclude += other._source_exclude
+            # self._target_exclude += other._target_exclude
+            # self._how = dictlike.pop("how", None)
+            # self._type = "direct" if direct else "indirect"
+            # self._by = None
+            return self
         else:
-            collection_fields = [
-                f"{index_on_collection}.{x}"
-                for x in vconf.index(index_on_collection).fields
-            ]
-
-        uniqueness = item.pop("unique", True)
-
-        item["unique"] = uniqueness
-
-        if fields or collection_fields:
-            item["fields"] = ["_from", "_to"] + fields + collection_fields
-            return CollectionIndex(**item)
-        else:
-            return None
-
-    @property
-    def source_exclude(self):
-        return [] if self._source_exclude is None else self._source_exclude
-
-    @property
-    def target_exclude(self):
-        return [] if self._target_exclude is None else self._target_exclude
-
-    @property
-    def edge_name_dyad(self):
-        return self.source, self.target
+            raise ValueError(
+                "can only update Edge definitions of the same type"
+            )
 
 
 class Filter:
@@ -418,117 +501,15 @@ class VertexConfig:
         )
 
 
-class GraphConfig:
-    def __init__(self, econfig, vconfig: VertexConfig, jconfig=None):
-        """
-
-        :param econfig: edges config : direct definitions of edges
-        :param vconfig: specification of vcollections
-        :param jconfig: in json config edges might be defined locally,
-                            so json schema should be parsed for flat edges list
-        """
-        self._edges: dict[tuple[str, str], Edge] = dict()
-
-        self._exclude_fields: defaultdict[str, list] = defaultdict(list)
-
-        self._init_edges(econfig, vconfig)
-        if jconfig is not None:
-            self._init_jedges(jconfig, vconfig)
-            self._parse_json_weights(jconfig, vconfig)
-        self._init_extra_edges(econfig, vconfig)
-        self._init_exclude()
-
-    def _init_edges(self, config, vconf: VertexConfig):
-        if "main" in config:
-            for e in config["main"]:
-                edge = Edge(e, vconf)
-                self._edges.update({edge.edge_name_dyad: edge})
-
-    def _init_extra_edges(self, config, vconf: VertexConfig):
-        if "extra" in config:
-            for e in config["extra"]:
-                edge = Edge(e, vconf, direct=False)
-                self._edges.update({edge.edge_name_dyad: edge})
-
-    def _init_exclude(self):
-        for (v, w), e in self._edges.items():
-            self._exclude_fields[v] += e.source_exclude
-            self._exclude_fields[w] += e.target_exclude
-
-    def _init_jedges(self, jconfig, vconf: VertexConfig):
-        """
-        init edges define locally in json
-        :param jconfig:
-        :return:
-        """
-
-        acc_edges: dict[tuple[str, str], Edge] = dict()
-
-        self._parse_jedges(jconfig, acc_edges, vconf)
-
-        self._edges.update(acc_edges)
-
-    def _parse_jedges(
-        self,
-        croot,
-        edge_accumulator: dict[tuple[str, str], Edge],
-        vconf: VertexConfig,
-    ):
-        """
-        extract edge definition and edge fields from definition dict
-        :param croot:
-        :param edge_accumulator:
-        :param vconf:
-        :return:
-        """
-        if isinstance(croot, dict):
-            if "maps" in croot:
-                for m in croot["maps"]:
-                    self._parse_jedges(m, edge_accumulator, vconf)
-            if "edges" in croot:
-                for edge_dict_like in croot["edges"]:
-                    edge = Edge(edge_dict_like, vconf)
-                    edge_accumulator[edge.edge_name_dyad] = edge
-
-    def _parse_json_weights(
-        self,
-        croot,
-        vconf: VertexConfig,
-    ):
-        """
-        extract edge definition and edge fields from definition dict
-        :param croot:
-        :param vconf:
-        :return:
-        """
-        if isinstance(croot, dict):
-            if "maps" in croot:
-                for m in croot["maps"]:
-                    self._parse_json_weights(m, vconf)
-            if "weight" in croot:
-                for edge_dict_like in croot["weight"]:
-                    eweight = Edge(edge_dict_like, vconf)
-                    self._edges[eweight.edge_name_dyad].update_weights(eweight)
-
-    def graph(self, u, v) -> Edge:
-        return self._edges[u, v]
-
-    @property
-    def edges(self):
-        return list([k for k, v in self._edges.items() if v.type == "direct"])
-
-    @property
-    def extra_edges(self):
-        return list(
-            [k for k, v in self._edges.items() if v.type == "indirect"]
-        )
-
-    @property
-    def all_edges(self):
-        return list(self._edges)
-
-    def exclude_fields(self, k):
-        if k in self._exclude_fields:
-            return self._exclude_fields[k]
-        else:
-            return ()
+def strip_prefix(dictlike, prefix="~"):
+    new_dictlike = {}
+    if isinstance(dictlike, dict):
+        for k, v in dictlike.items():
+            if isinstance(k, str):
+                k = k.lstrip(prefix)
+            new_dictlike[k] = strip_prefix(v, prefix)
+    elif isinstance(dictlike, list):
+        return [strip_prefix(x) for x in dictlike]
+    else:
+        return dictlike
+    return new_dictlike

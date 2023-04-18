@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import abc
 import logging
-from collections import Iterable, defaultdict
+from collections import defaultdict
 from typing import TypeVar
 
-from graph_cast.architecture.schema import GraphConfig, VertexConfig
+from graph_cast.architecture.graph import GraphConfig
+from graph_cast.architecture.schema import VertexConfig
 
 logger = logging.getLogger(__name__)
 
@@ -18,11 +19,7 @@ class Configurator:
         edge_collections = (
             config["edge_collections"] if "edge_collections" in config else ()
         )
-        self.graph_config = GraphConfig(
-            edge_collections,
-            self.vertex_config,
-            config["json"] if "json" in config else None,
-        )
+        self.graph_config = GraphConfig(edge_collections, self.vertex_config)
         self.current_fname: str | None = None
 
     @abc.abstractmethod
@@ -49,52 +46,7 @@ class Configurator:
         return self.graph_config.graph(u, v)
 
 
-class TransformException(BaseException):
-    def __init__(self, *args, **kwargs):
-        super.__init__(*args, **kwargs)
-
-
-def transform_foo(transform, doc):
-    upd = {}
-    if transform.input:
-        try:
-            if transform.output:
-                args = [doc[k] for k in transform.input]
-                transform_result = transform(*args)
-                if isinstance(transform_result, Iterable):
-                    upd = {
-                        k: v
-                        for k, v in zip(transform.output, transform_result)
-                    }
-                else:
-                    upd = {transform.output[0]: transform_result}
-            else:
-                args = [doc[k] for k in transform.input]
-                upd = {k: v for k, v in zip(transform.input, transform(*args))}
-        except:  # ValueError(
-            # f" application of transform_foo for doc {doc}; and transform {transform}"
-            # ) as e:
-
-            logger.debug(
-                f" application of transform_foo for doc {doc}; and transform"
-                f" {transform}"
-            )
-            if transform.output:
-                upd = {
-                    **{f"_status@{k}": False for k in transform.output},
-                    **{k: False for k in transform.output},
-                }
-            else:
-                upd = {
-                    **{f"_status@{k}": False for k in transform.input},
-                    **{k: False for k in transform.input},
-                }
-    # elif "fields" in transform:
-    #     upd = {k: transform.foo(v) for k, v in doc.items() if k in transform.foo["fields"]}
-    return upd
-
-
-class Mapper:
+class TableMapper:
     def __init__(self, **kwargs):
         self._filename = None
         self._filename_field = None
@@ -191,7 +143,7 @@ class LocalVertexCollections:
         for cc in inp:
             # TODO and type is allowed
             if "type" in cc:
-                self._vcollections[cc["type"]] += [Mapper(**cc)]
+                self._vcollections[cc["type"]] += [TableMapper(**cc)]
 
     def __iter__(self):
         return (

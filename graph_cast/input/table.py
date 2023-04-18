@@ -6,7 +6,8 @@ from itertools import chain, combinations, product
 from typing import Any, Dict, List
 
 from graph_cast.architecture import ConfiguratorType
-from graph_cast.architecture.general import transform_foo
+from graph_cast.architecture.schema import _source_aux, _target_aux
+from graph_cast.architecture.transform import transform_foo
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +97,7 @@ def table_to_collections(
                     ziter = combinations(vdocs[u], r=2)
                 for ubatch, vbatch in ziter:
                     ebatch = [
-                        {"__source": x, "__target": y}
+                        {_source_aux: x, _target_aux: y}
                         for x, y in zip(ubatch, vbatch)
                         if not (
                             any(

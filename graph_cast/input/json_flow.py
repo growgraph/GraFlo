@@ -3,7 +3,11 @@ from typing import List
 
 from graph_cast.architecture import JConfigurator
 from graph_cast.db import ConnectionConfigType, ConnectionManager
-from graph_cast.db.arango.util import insert_edges_batch, upsert_docs_batch
+from graph_cast.db.arango.util import (
+    define_extra_edges,
+    insert_edges_batch,
+    upsert_docs_batch,
+)
 from graph_cast.input.json import jsonlike_to_collections
 from graph_cast.util import timer as timer
 from graph_cast.util.transform import merge_doc_basis
@@ -50,13 +54,21 @@ def process_jsonlike(
                         for vc in conf_obj.graph(vfrom, vto).weight_vertices
                     ]
                     query0 = insert_edges_batch(
-                        batch,
-                        conf_obj.vertex_config.vertex_dbname(vfrom),
-                        conf_obj.vertex_config.vertex_dbname(vto),
-                        conf_obj.graph(vfrom, vto).edge_name,
-                        conf_obj.vertex_config.index(vfrom).fields,
-                        conf_obj.vertex_config.index(vto).fields,
-                        False,
+                        docs_edges=batch,
+                        source_collection_name=conf_obj.vertex_config.vertex_dbname(
+                            vfrom
+                        ),
+                        target_collection_name=conf_obj.vertex_config.vertex_dbname(
+                            vto
+                        ),
+                        edge_col_name=conf_obj.graph(vfrom, vto).edge_name,
+                        match_keys_source=conf_obj.vertex_config.index(
+                            vfrom
+                        ).fields,
+                        match_keys_target=conf_obj.vertex_config.index(
+                            vto
+                        ).fields,
+                        filter_uniques=False,
                         uniq_weight_collections=uniq_weight_collections,
                         uniq_weight_fields=conf_obj.graph(
                             vfrom, vto
@@ -74,7 +86,7 @@ def process_jsonlike(
 
     # create edge u -> v from u->w, v->w edges
     # find edge_cols uw and vw
-    # for uv, item in graphs.items():
-    #     if item["type"] == "indirect":
+    # for uv, item in conf_obj.graph_config.extra_edges():
+    #     with ConnectionManager(connection_config=db_config) as db_client:
     #         query0 = define_extra_edges(item)
-    #         cursor = sys_db.aql.execute(query0)
+    #         cursor = db_client.aql.execute(query0)

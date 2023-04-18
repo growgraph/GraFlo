@@ -7,7 +7,7 @@ from os.path import isfile, join
 from graph_cast.architecture.general import (
     Configurator,
     LocalVertexCollections,
-    Mapper,
+    TableMapper,
 )
 from graph_cast.architecture.transform import Transform
 
