@@ -27,16 +27,6 @@ logger = logging.getLogger(__name__)
 
 xml_dummy = "#text"
 
-# if "merge" in mapper:
-#     for item in mapper["merge"]:
-#         agg = smart_merge(
-#             agg,
-#             item["name"],
-#             item["discriminator_key"],
-#             item["discriminator_value"],
-#         )
-# return agg
-
 
 class NodeType(str, Enum):
     # only refers to other nodes
@@ -160,7 +150,9 @@ class MapperNode:
             if not isinstance(doc, dict):
                 raise TypeError(f"at {self} doc is not dict")
             if self.key in doc:
-                self._loop_over_children(doc[self.key], vertex_config, acc)
+                acc = self._loop_over_children(
+                    doc[self.key], vertex_config, acc
+                )
         elif self.type == NodeType.EDGE:
             acc = self._add_edges_weights(vertex_config, acc)
         elif self.type == NodeType.WEIGHT:
@@ -378,12 +370,6 @@ class MapperNode:
                 edoc.update(weight)
         agg[(edef.source, edef.target)] = edges
         return agg
-
-
-class NodeFactory:
-    @staticmethod
-    def render_node(self):
-        pass
 
 
 class ParsingTree:

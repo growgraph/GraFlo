@@ -4,6 +4,7 @@ from collections import defaultdict
 from functools import partial
 
 from graph_cast.architecture import JConfigurator
+from graph_cast.architecture.schema import TypeVE
 from graph_cast.architecture.uitl import merge_documents, project_dicts
 from graph_cast.util import timer as timer
 from graph_cast.util.transform import pick_unique_dict
@@ -19,8 +20,6 @@ def jsondoc_to_collections(jsondoc, config: JConfigurator) -> defaultdict:
     :param config: JConfigurator
     :return: defaultdict vertex and edges collections
     """
-
-    # acc = apply_mapper(config.json, jsondoc, config.vertex_config)
 
     acc = config.apply(jsondoc)
 
@@ -40,7 +39,7 @@ def jsonlike_to_collections(
     json_data: list,
     conf_obj: JConfigurator,
     ncores=1,
-) -> tuple[defaultdict, defaultdict]:
+) -> list[defaultdict[TypeVE, list]]:
     """
 
     :param json_data:
@@ -54,27 +53,13 @@ def jsonlike_to_collections(
         func = partial(jsondoc_to_collections, **kwargs)
         if ncores > 1:
             with mp.Pool(ncores) as p:
-                default_dicts = p.map(func, json_data)
+                list_defaultdicts = p.map(func, json_data)
         else:
-            default_dicts = list(map(func, json_data))
-
-        super_dict = defaultdict(list)
-
-        for d in default_dicts:
-            for k, v in d.items():
-                super_dict[k].extend(v)
+            list_defaultdicts = list(map(func, json_data))
 
     logger.info(
         " converting json to vertices and edges took"
         f" {t_parse.elapsed:.2f} sec"
     )
 
-    vdocs = defaultdict(list)
-    edocs = defaultdict(list)
-    for k in super_dict.keys():
-        if isinstance(k, tuple):
-            edocs[k] = super_dict[k]
-        else:
-            vdocs[k] = super_dict[k]
-
-    return vdocs, edocs
+    return list_defaultdicts

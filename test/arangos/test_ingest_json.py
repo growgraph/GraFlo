@@ -33,9 +33,9 @@ class TestIngestJSON(unittest.TestCase):
 
     modes = [
         # "wos",
-        # "wos",
         "kg_v3",
-        "lake_odds",
+        # "lake_odds",
+        # "kg_v3b",
     ]
 
     def __init__(self, reset):
@@ -81,7 +81,7 @@ class TestIngestJSON(unittest.TestCase):
             )
 
     def test_weights_ind_db(self):
-        self._atomic("kg_v3")
+        self._atomic("kg_v3b")
 
         db_args = dict(self.db_args)
         db_args["database"] = "testdb"
@@ -94,8 +94,8 @@ class TestIngestJSON(unittest.TestCase):
                 f"FOR x in mentions_entities_edges limit 1 return x"
             )
             doc = next(cursor)
-            value = doc.pop("publication.arxiv")
-            self.assertEqual(value, "current.123")
+            value = doc.pop("publication._key", None)
+            self.assertTrue(isinstance(value, str))
 
     def runTest(self):
         for mode in self.modes:

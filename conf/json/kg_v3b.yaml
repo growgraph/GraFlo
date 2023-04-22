@@ -1,0 +1,147 @@
+general:
+    ~name: kg_v3
+json:
+    ~maps:
+    -   ~type: edge
+        ~how: all
+        source:
+            ~name: publication
+        target:
+            ~name: mention
+            ~anchor: triple_index
+    -   ~type: descend
+        ~key: publication
+        ~maps:
+        -   ~type: dict
+            ~name: publication
+    -   ~type: descend
+        ~key: map_mention_entity
+        ~maps:
+        -   ~type: list
+            ~maps:
+            -   ~type: edge
+                ~how: all
+                source:
+                    ~name: mention
+                target:
+                    ~name: entity
+            -   ~type: descend
+                ~key: entity
+                ~maps:
+                -   ~type: dict
+                    ~name: entity
+                    ~map:
+                        hash: _key
+            -   ~type: descend
+                ~key: mention
+                ~maps:
+                -   ~type: dict
+                    ~name: mention
+                    ~map:
+                        hash: _key
+    -   ~type: descend
+        ~key: triples
+        ~maps:
+        -   ~type: list
+            ~maps:
+            -   ~type: descend
+                ~key: triple_index
+                ~maps:
+                -   ~type: dict
+                    ~anchor: triple_index
+                    ~name: mention
+                    ~map:
+                        hash: _key
+            -   ~type: descend
+                ~key: triple
+                ~maps:
+                -   ~type: list
+                    ~maps:
+                    -   ~type: dict
+                        ~anchor: core
+                        ~name: mention
+                        ~map:
+                            role: _role
+                            hash: _key
+            -   ~type: edge
+                ~how: all
+                source:
+                    ~name: mention
+                    ~anchor: triple_index
+                target:
+                    ~name: mention
+                    ~anchor: core
+                    ~fields:
+                    -   _role
+                index:
+                -   ~fields:
+                    -   _role
+extra:
+    weights:
+    -   source:
+            ~name: mention
+        target:
+            ~name: entity
+        weight:
+        -   name: publication
+            fields:
+            -   _key
+
+vertex_collections:
+    collections:
+        publication:
+            basename: publications
+            fields:
+            -   arxiv
+            -   doi
+            -   created
+            -   data_source
+            index:
+            -   arxiv
+            -   doi
+            extra_index:
+            -   unique: false
+                fields:
+                -   created
+            -   unique: false
+                fields:
+                -   created
+        entity:
+            basename: entities
+            fields:
+            -   linker_type
+            -   ent_db_type
+            -   id
+            -   ent_type
+            -   original_form
+            -   description
+            index:
+            -   _key
+            extra_index:
+            -   fields:
+                -   id
+                -   ent_type
+        mention:
+            basename: mentions
+            fields:
+            -   text
+            index:
+            -   _key
+            extra_index:
+            -   unique: false
+                fields:
+                -   text
+edge_collections:
+    main:
+    -   source: entity
+        target: entity
+        index:
+        -   name: publication
+            fields:
+            -   _key
+    -   source: mention
+        target: entity
+        index:
+        -   name: publication
+            fields:
+            -   _key

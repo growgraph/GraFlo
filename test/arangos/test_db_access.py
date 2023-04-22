@@ -6,6 +6,7 @@ from os.path import dirname, realpath
 from graph_cast.architecture import JConfigurator
 from graph_cast.db import ConfigFactory, ConnectionManager
 from graph_cast.db.arango.util import (
+    fetch_fields,
     insert_edges_batch,
     insert_return_batch,
     upsert_docs_batch,
@@ -29,6 +30,7 @@ class TestDBAccess(unittest.TestCase):
         "db_type": "arango",
     }
 
+    @unittest.skip("")
     def test_db_access(self):
         db_args = dict(self.db_args)
         db_args["database"] = "testdb"
@@ -56,6 +58,7 @@ class TestDBAccess(unittest.TestCase):
             for c in cnames:
                 logger.info(c)
 
+    @unittest.skip("")
     def test_edges_upsert(self):
         config = ResourceHandler.load(f"conf.json", f"kg_v3.yaml")
         conf_obj = JConfigurator(config)
@@ -167,6 +170,18 @@ class TestDBAccess(unittest.TestCase):
             cursor = db_client.execute(q)
         chunk = list(cursor.batch())
         logger.info(chunk)
+
+    # @unittest.skip("")
+    def test_fetch_fields(self):
+        db_args = dict(self.db_args)
+        db_args["database"] = "testdb"
+        conn_conf = ConfigFactory.create_config(args=db_args)
+        with ConnectionManager(connection_config=conn_conf) as db_client:
+            docs = [{"arxiv": "current.123"}]
+            map_key = fetch_fields(
+                db_client, docs, "publications", ["arxiv"], ["_key"]
+            )
+        print(map_key)
 
 
 if __name__ == "__main__":

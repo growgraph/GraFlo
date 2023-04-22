@@ -35,7 +35,7 @@ class Field:
 
 @dataclasses.dataclass
 class ABCFields(ABC):
-    name: str | None = None
+    name: str
     fields: list[Field] = dataclasses.field(default_factory=list)
 
     def __post_init__(self):
