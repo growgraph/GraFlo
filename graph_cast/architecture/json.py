@@ -3,6 +3,7 @@ from copy import deepcopy
 from graph_cast.architecture.general import Configurator
 from graph_cast.architecture.ptree import ParsingTree
 from graph_cast.architecture.schema import Edge
+from graph_cast.util.transform import merge_doc_basis
 
 
 class JConfigurator(Configurator):
@@ -10,8 +11,8 @@ class JConfigurator(Configurator):
         super().__init__(config)
 
         self.json = deepcopy(config["json"])
-        # which collections should be merged? (if they are found in different parts of json doc)
 
+        # TODO which collections to mergee in ParsingTree
         self.tree = ParsingTree(
             config["json"], vertex_config=self.vertex_config
         )
@@ -39,4 +40,8 @@ class JConfigurator(Configurator):
         self.current_fname = resource
 
     def apply(self, doc):
-        return self.tree.apply(doc, self.vertex_config)
+        r = self.tree.apply(doc, self.vertex_config)
+        for k, v in r.items():
+            if k in self.vertex_config.collections:
+                r[k] = merge_doc_basis(v, self.vertex_config.index(k))
+        return r

@@ -33,9 +33,9 @@ class TestIngestJSON(unittest.TestCase):
 
     modes = [
         # "wos",
-        "kg_v3",
-        # "lake_odds",
-        # "kg_v3b",
+        # "kg_v3",
+        "lake_odds",
+        "kg_v3b",
     ]
 
     def __init__(self, reset):

@@ -6,9 +6,14 @@ from graph_cast.architecture.schema import TypeVE
 logger = logging.getLogger(__name__)
 
 
-def merge_dicts_to_vertex(
+def list_to_dict_vertex(
     list_default_dicts: list[defaultdict[TypeVE, list]],
 ) -> defaultdict[str, list]:
+    """
+
+    :param list_default_dicts:
+    :return:
+    """
     super_dict = defaultdict(list)
 
     for d in list_default_dicts:
@@ -19,7 +24,7 @@ def merge_dicts_to_vertex(
     return super_dict
 
 
-def merge_dicts_to_edge(
+def list_to_dict_edges(
     list_default_dicts: list[defaultdict[TypeVE, list]],
 ) -> defaultdict[tuple[str, str], list]:
     super_dict = defaultdict(list)

@@ -1,6 +1,6 @@
 publication: 1
 entity: 36
-mention: 102
+mention: 63
 ? !!python/tuple
 - mention
 - entity

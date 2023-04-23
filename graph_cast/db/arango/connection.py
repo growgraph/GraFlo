@@ -117,18 +117,18 @@ class ArangoConnection(Connection):
 
     def define_vertex_indices(self, vertex_config):
         for c in vertex_config.collections:
-            for index in vertex_config.extra_index_list(c):
+            for index_obj in vertex_config.extra_index_list(c):
                 general_collection = self.conn.collection(
                     vertex_config.vertex_dbname(c)
                 )
-                self._add_index(general_collection, index)
+                self._add_index(general_collection, index_obj)
 
     def define_edge_indices(self, graph_config: GraphConfig):
         for u, v in graph_config.all_edges:
             item = graph_config.graph(u, v)
             general_collection = self.conn.collection(item.edge_name)
-            for index_dict in item.index:
-                self._add_index(general_collection, index_dict)
+            for index_obj in item.indices:
+                self._add_index(general_collection, index_obj)
 
     def create_collection_if_absent(self, g, vcol, index: CollectionIndex):
         if not self.conn.has_collection(vcol):

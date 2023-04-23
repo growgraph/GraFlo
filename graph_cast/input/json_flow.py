@@ -10,7 +10,7 @@ from graph_cast.db.arango.util import (
     upsert_docs_batch,
 )
 from graph_cast.input.json import jsonlike_to_collections
-from graph_cast.input.util import merge_dicts_to_edge, merge_dicts_to_vertex
+from graph_cast.input.util import list_to_dict_edges, list_to_dict_vertex
 from graph_cast.util import timer as timer
 from graph_cast.util.transform import merge_doc_basis
 
@@ -27,7 +27,7 @@ def process_jsonlike(
 ):
     list_defaultdicts = jsonlike_to_collections(json_data, conf_obj, ncores)
 
-    vdocs = merge_dicts_to_vertex(list_defaultdicts)
+    vdocs = list_to_dict_vertex(list_defaultdicts)
 
     with timer.Timer() as t_ingest:
         cnt = 0
@@ -75,7 +75,7 @@ def process_jsonlike(
                         }
                         ee.update(weight_collection_attached)
 
-    edocs = merge_dicts_to_edge(list_defaultdicts)
+    edocs = list_to_dict_edges(list_defaultdicts)
 
     with timer.Timer() as t_ingest_edges:
         cnt = 0

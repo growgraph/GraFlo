@@ -25,13 +25,13 @@ class GraphConfig:
         if "main" in config:
             for e in config["main"]:
                 edge = Edge(e, vconf)
-                self._edges.update({edge.edge_name_dyad: edge})
+                self.update_edges(edge)
 
     def _init_extra_edges(self, config, vconf: VertexConfig):
         if "extra" in config:
             for e in config["extra"]:
                 edge = Edge(e, vconf, direct=False)
-                self._edges.update({edge.edge_name_dyad: edge})
+                self.update_edges(edge)
 
     def _init_exclude(self):
         for (v, w), e in self._edges.items():
@@ -64,16 +64,17 @@ class GraphConfig:
         :return:
         """
         acc_edges: defaultdict[tuple[str, str], list[Edge]] = defaultdict(list)
-        normalized_edges: dict[tuple[str, str], Edge] = dict()
         acc_edges = self._parse_tree_edges(pt.root, acc_edges)
 
         for k, item in acc_edges.items():
-            if item:
-                normalized_edges[k] = item[0]
-            for edef in item[1:]:
-                normalized_edges[k] += edef
+            for ee in item:
+                self.update_edges(ee)
 
-        self._edges.update(normalized_edges)
+    def update_edges(self, edef: Edge):
+        if edef.edge_name_dyad in self._edges:
+            self._edges[edef.edge_name_dyad] += edef
+        else:
+            self._edges[edef.edge_name_dyad] = edef
 
     def graph(self, u, v) -> Edge:
         return self._edges[u, v]

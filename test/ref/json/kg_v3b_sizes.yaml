@@ -1,7 +1,7 @@
-entities: 36
+entities: 80
 entities_entities_edges: 0
-mentions: 63
-mentions_entities_edges: 42
-mentions_mentions_edges: 78
+mentions: 124
+mentions_entities_edges: 98
+mentions_mentions_edges: 126
 publications: 1
-publications_mentions_edges: 26
+publications_mentions_edges: 41

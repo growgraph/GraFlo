@@ -18,9 +18,9 @@ json:
             name: publication
         target:
             name: concept
-            anchor: meta
+            _anchor: meta
             fields:
-            -   anchor
+            -   _anchor
 #    weight:
 #        - source:
 #              name: publication
@@ -30,7 +30,7 @@ json:
 #              - name: publication
 #                field: id
 #                condition:
-#                    anchor: main
+#                    _anchor: main
     maps:
     -   how: dict
         name: publication
@@ -47,10 +47,10 @@ json:
                 -   how: all
                     source:
                         name: concept
-                        anchor: meta
+                        _anchor: meta
                     target:
                         name: concept
-                        anchor: core
+                        _anchor: core
                         weight_exclusive:
                         -   tritype
                 maps:
@@ -59,14 +59,14 @@ json:
                     maps:
                     -   how: dict
                         __extra:
-                            anchor: meta
+                            _anchor: meta
                         name: concept
                 -   type: list
                     descend_key: triple
                     maps:
                     -   how: dict
                         __extra:
-                            anchor: core
+                            _anchor: core
                         name: concept
                         map:
                             type: tritype

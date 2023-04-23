@@ -1,5 +1,7 @@
 from collections import ChainMap
 
+from graph_cast.architecture.schema import _anchor_key
+
 
 def project_dict(item, keys, how="include"):
     if how == "include":
@@ -22,7 +24,7 @@ def project_dicts(items, keys, how="include"):
 
 
 def merge_documents(
-    docs, main_key="_key", anchor_key="anchor", anchor_value="main"
+    docs, main_key="_key", anchor_key=_anchor_key, anchor_value="main"
 ):
     """
     docs contain documents with main_key and documents without

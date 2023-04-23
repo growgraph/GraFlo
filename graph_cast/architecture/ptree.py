@@ -229,10 +229,10 @@ class MapperNode:
         source_items, target_items = acc[source], acc[target]
 
         source_items = pick_indexed_items_anchor_logic(
-            source_items, source_index, self.edge._source.anchor
+            source_items, source_index, self.edge._source._anchor
         )
         target_items = pick_indexed_items_anchor_logic(
-            target_items, target_index, self.edge._target.anchor
+            target_items, target_index, self.edge._target._anchor
         )
 
         if self.edge.how == EdgeMapping.ALL:

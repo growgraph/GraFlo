@@ -8,12 +8,22 @@ json:
             ~name: publication
         target:
             ~name: mention
-            ~anchor: triple_index
+            ~_anchor: _top_level
     -   ~type: descend
         ~key: publication
         ~maps:
         -   ~type: dict
             ~name: publication
+    -   ~type: descend
+        ~key: top_level_mention
+        ~maps:
+        -   ~type: list
+            ~maps:
+            -   ~type: dict
+                ~name: mention
+                ~map:
+                    hash: _key
+                ~_anchor: _top_level
     -   ~type: descend
         ~key: map_mention_entity
         ~maps:
@@ -48,7 +58,7 @@ json:
                 ~key: triple_index
                 ~maps:
                 -   ~type: dict
-                    ~anchor: triple_index
+                    ~_anchor: triple_index
                     ~name: mention
                     ~map:
                         hash: _key
@@ -58,7 +68,7 @@ json:
                 -   ~type: list
                     ~maps:
                     -   ~type: dict
-                        ~anchor: core
+                        ~_anchor: core
                         ~name: mention
                         ~map:
                             role: _role
@@ -67,10 +77,10 @@ json:
                 ~how: all
                 source:
                     ~name: mention
-                    ~anchor: triple_index
+                    ~_anchor: triple_index
                 target:
                     ~name: mention
-                    ~anchor: core
+                    ~_anchor: core
                     ~fields:
                     -   _role
                 index:

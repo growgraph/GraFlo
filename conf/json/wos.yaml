@@ -11,7 +11,7 @@ json:
         vertex:
         -   name: publication
             condition:
-                anchor: main
+                _anchor: main
             mapper:
                 _key: publication
     -   source:
@@ -21,7 +21,7 @@ json:
         vertex:
         -   name: publication
             condition:
-                anchor: main
+                _anchor: main
             mapper:
                 _key: publication
     -   source:
@@ -31,73 +31,73 @@ json:
         vertex:
         -   name: publication
             condition:
-                anchor: main
+                _anchor: main
             mapper:
                 _key: publication
     edges:
     -   how: all
         source:
             name: contributor
-            anchor: main
+            _anchor: main
             weight_exclusive:
             -   seq_no
             -   role
         target:
             name: publication
-            anchor: main
+            _anchor: main
             fields:
-            -   anchor
+            -   _anchor
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
         target:
             name: conference
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
             fields:
-            -   anchor
+            -   _anchor
         target:
             name: date
-            anchor: main
+            _anchor: main
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
             fields:
-            -   anchor
+            -   _anchor
         target:
             name: medium_title
-            anchor: main
+            _anchor: main
     -   how: all
         source:
             name: publisher
-            anchor: main
+            _anchor: main
             weight_exclusive:
             -   seq_no
         target:
             name: publication
-            anchor: main
+            _anchor: main
             fields:
-            -   anchor
+            -   _anchor
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
         target:
             name: publication_type
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
         target:
             name: document_type
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
         target:
             name: language
             weight_exclusive:
@@ -105,37 +105,37 @@ json:
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
         target:
             name: bib_id
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
         target:
             name: heading
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
         target:
             name: subheading
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
         target:
             name: subject
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
         target:
             name: some_id
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
         target:
             name: medium
     -   how: all
@@ -143,67 +143,67 @@ json:
             name: medium
         target:
             name: medium_title
-            anchor: main
+            _anchor: main
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
         target:
             name: publication
-            anchor: reference
+            _anchor: reference
     -   how: 1-n
         source:
             name: contributor
             field: addr_no
-            anchor: main
+            _anchor: main
             type: list
             all_value: 0
         target:
             name: location
             field: addr_no
-            anchor: main
+            _anchor: main
             type: value
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
         target:
             name: agency
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
         target:
             name: grant_id
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
         target:
             name: funding_text
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
         target:
             name: keyword
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
         target:
             name: abstract
     -   how: all
         source:
             name: publication
-            anchor: main
+            _anchor: main
         target:
             name: edition
     maps:
     -   how: dict
         name: publication
         __extra:
-            anchor: main
+            _anchor: main
         map:
             UID: _key
     -   type: item
@@ -228,7 +228,7 @@ json:
                 -   how: dict
                     name: publication
                     __extra:
-                        anchor: main
+                        _anchor: main
                     map:
                         '@has_abstract': has_abstract
                         '@vol': volume
@@ -237,7 +237,7 @@ json:
                 -   how: dict
                     name: date
                     __extra:
-                        anchor: main
+                        _anchor: main
                     transforms:
                     -   foo: parse_date_standard
                         module: graph_cast.util.transform
@@ -257,7 +257,7 @@ json:
                     -   how: dict
                         name: publication
                         __extra:
-                            anchor: main
+                            _anchor: main
                         map:
                             '@begin': first_page
                             '@end': last_page
@@ -272,7 +272,7 @@ json:
                     -   how: dict
                         name: publication
                         __extra:
-                            anchor: main
+                            _anchor: main
                         filter:
                             '@type': item
                         map:
@@ -280,7 +280,7 @@ json:
                     -   how: dict
                         name: medium_title
                         __extra:
-                            anchor: main
+                            _anchor: main
                         unfilter:
                             '@type': item
                         map:
@@ -296,7 +296,7 @@ json:
                         -   how: dict
                             name: contributor
                             __extra:
-                                anchor: main
+                                _anchor: main
                             map:
                                 '@seq_no': seq_no
                                 '@addr_no': addr_no
@@ -346,7 +346,7 @@ json:
                                 -   how: dict
                                     name: publisher
                                     __extra:
-                                        anchor: main
+                                        _anchor: main
                                     map:
                                         '@seq_no': seq_no
                                         '@role': role
@@ -435,19 +435,19 @@ json:
                                 target:
                                     name: organization
                                 weight_exclusive:
-                                -   anchor
+                                -   _anchor
                             maps:
                             -   how: dict
                                 name: location
                                 __extra:
-                                    anchor: conference
+                                    _anchor: conference
                                 map:
                                     conf_city: city
                                     conf_state: state
                             -   how: dict
                                 name: organization
                                 __extra:
-                                    anchor: conference
+                                    _anchor: conference
                                 map:
                                     conf_host: name
                     -   type: item
@@ -522,7 +522,7 @@ json:
                         -   how: dict
                             name: publication
                             __extra:
-                                anchor: reference
+                                _anchor: reference
                             map:
                                 uid: _key
                                 xref_doi: doi
@@ -574,7 +574,7 @@ json:
                         -   how: dict
                             name: location
                             __extra:
-                                anchor: main
+                                _anchor: main
                             map:
                                 '@addr_no': addr_no
                         -   type: item
@@ -608,12 +608,12 @@ json:
                         source:
                             name: contributor
                             field: addr_no
-                            anchor: reprint
+                            _anchor: reprint
                             type: list
                             all_value: 0
                         target:
                             name: location
-                            anchor: reprint
+                            _anchor: reprint
                             field: addr_no
                             type: value
                     maps:
@@ -636,7 +636,7 @@ json:
                         -   how: dict
                             name: location
                             __extra:
-                                anchor: reprint
+                                _anchor: reprint
                             map:
                                 '@addr_no': addr_no
                         -   type: item
@@ -671,7 +671,7 @@ json:
                                 -   how: dict
                                     name: contributor
                                     __extra:
-                                        anchor: reprint
+                                        _anchor: reprint
                                     map:
                                         '@seq_no': seq_no
                                         '@addr_no': addr_no
