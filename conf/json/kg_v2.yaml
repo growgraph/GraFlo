@@ -8,7 +8,7 @@ json:
             name: publication
         target:
             name: mention
-            anchor: triple_index
+            _anchor: triple_index
     weight:
     -   source:
             name: mention
@@ -61,10 +61,10 @@ json:
                 -   how: all
                     source:
                         name: mention
-                        anchor: triple_index
+                        _anchor: triple_index
                     target:
                         name: mention
-                        anchor: core
+                        _anchor: core
                         weight_exclusive:
                         -   _role
                     index:
@@ -76,7 +76,7 @@ json:
                     maps:
                     -   how: dict
                         __extra:
-                            anchor: triple_index
+                            _anchor: triple_index
                         name: mention
                         map:
                             hash: _key
@@ -85,7 +85,7 @@ json:
                     maps:
                     -   how: dict
                         __extra:
-                            anchor: core
+                            _anchor: core
                         name: mention
                         map:
                             role: _role

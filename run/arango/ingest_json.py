@@ -16,8 +16,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "-d",
         "--datapath",
-        default=expanduser("../data/wos"),
-        help="path to data files",
+        default=expanduser("../misc/wos"),
+        help="path to misc files",
     )
 
     # parser.add_argument(

@@ -91,7 +91,7 @@ def process_table(
                         )
                         cursor = db_client.execute(query0)
 
-                # update edge data with blank node edges
+                # update edge misc with blank node edges
                 for vcol in conf.vertex_config.blank_collections:
                     for vfrom, vto in conf.current_graphs:
                         if vcol == vfrom or vcol == vto:

@@ -8,12 +8,22 @@ json:
             ~name: publication
         target:
             ~name: mention
-            ~_anchor: triple_index
+            ~_anchor: _top_level
     -   ~type: descend
         ~key: publication
         ~maps:
         -   ~type: dict
             ~name: publication
+    -   ~type: descend
+        ~key: top_level_mention
+        ~maps:
+        -   ~type: list
+            ~maps:
+            -   ~type: dict
+                ~name: mention
+                ~map:
+                    hash: _key
+                ~_anchor: _top_level
     -   ~type: descend
         ~key: map_mention_entity
         ~maps:
@@ -25,8 +35,6 @@ json:
                     ~name: mention
                 target:
                     ~name: entity
-                index:
-                -   ~name: publication
             -   ~type: descend
                 ~key: entity
                 ~maps:
@@ -78,13 +86,17 @@ json:
                 index:
                 -   ~fields:
                     -   _role
-    -   ~type: weight
-        source:
+extra:
+    weights:
+    -   source:
             ~name: mention
         target:
             ~name: entity
         weight:
         -   name: publication
+            fields:
+            -   _key
+
 vertex_collections:
     collections:
         publication:
@@ -132,6 +144,12 @@ vertex_collections:
 edge_collections:
     main:
     -   source: entity
+        target: entity
+        index:
+        -   name: publication
+            fields:
+            -   _key
+    -   source: mention
         target: entity
         index:
         -   name: publication

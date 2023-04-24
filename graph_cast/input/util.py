@@ -1,84 +1,37 @@
 import logging
+from collections import defaultdict
 
-from graph_cast.architecture import ConfiguratorType
+from graph_cast.architecture.schema import TypeVE
 
 logger = logging.getLogger(__name__)
 
 
-# def parse_vcollection(config, conf_obj: ConfiguratorType):
-#
-#     # vertex_type -> vertex_collection_name
-#     conf_obj.dbname = {
-#         k: f'{v["basename"]}' for k, v in config["vertex_collections"].items()
-#     }
-#
-#     # vertex_collection_name -> indices
-#     conf_obj.index = {
-#         k: v["index"] if "index" in v else ["_key"]
-#         for k, v in config["vertex_collections"].items()
-#     }
-#     logger.info("index_fields_dict")
-#     logger.info(f"{conf_obj.index}")
-#
-#     # vertex_collection_name -> extra_index
-#     # in addition to index from field_definition
-#     conf_obj.extra_indices = {
-#         k: v["extra_index"]
-#         for k, v in config["vertex_collections"].items()
-#         if "extra_index" in v
-#     }
-#
-#     # vertex_collection_name -> fields
-#     conf_obj.fields = {
-#         k: (v["fields"] if "fields" in v else [])
-#         for k, v in config["vertex_collections"].items()
-#     }
-#
-#     conf_obj.blank_collections = [
-#         k
-#         for k, v in config["vertex_collections"].items()
-#         if "extra" in v and "blank" in v["extra"]
-#     ]
-#
-#     conf_obj.numeric_fields_list = {
-#         k: v["numeric_fields"]
-#         for k, v in config["vertex_collections"].items()
-#         if "numeric_fields" in v
-#     }
+def list_to_dict_vertex(
+    list_default_dicts: list[defaultdict[TypeVE, list]],
+) -> defaultdict[str, list]:
+    """
+
+    :param list_default_dicts:
+    :return:
+    """
+    super_dict = defaultdict(list)
+
+    for d in list_default_dicts:
+        for k, v in d.items():
+            # choose either vertices or edges, depending on vertices_not_edges
+            if isinstance(k, str):
+                super_dict[k].extend(v)
+    return super_dict
 
 
-def define_graphs(edge_def, vmap):
-    graphs_definition = dict()
-    for item in edge_def:
-        u_, v_ = item["source"], item["target"]
-        u, v = vmap(u_), vmap(v_)
+def list_to_dict_edges(
+    list_default_dicts: list[defaultdict[TypeVE, list]],
+) -> defaultdict[tuple[str, str], list]:
+    super_dict = defaultdict(list)
 
-        graphs_definition[u_, v_] = {
-            "source": u,
-            "target": v,
-            "edge_name": f"{u}_{v}_edges",
-            "graph_name": f"{u}_{v}_graph",
-            "type": "direct",
-        }
-        if "index" in item:
-            graphs_definition[u_, v_]["index"] = item["index"]
-    return graphs_definition
-
-
-def update_graph_extra_edges(graphs_definition, vmap, subconfig):
-    for item in subconfig:
-        u_, v_ = item["source"], item["target"]
-        u, v = vmap(u_), vmap(v_)
-
-        graphs_definition[u_, v_] = {
-            "source": u,
-            "target": v,
-            "edge_name": f"{u}_{v}_edges",
-            "graph_name": f"{u}_{v}_graph",
-            "by": vmap(item["by"]),
-            "weight": item["weight"],
-            "type": "indirect",
-        }
-        if "index" in item:
-            graphs_definition[u_, v_]["index"] = item["index"]
-    return graphs_definition
+    for d in list_default_dicts:
+        for k, v in d.items():
+            # choose either vertices or edges, depending on vertices_not_edges
+            if isinstance(k, tuple):
+                super_dict[k].extend(v)
+    return super_dict

@@ -62,7 +62,7 @@ class TestTransformJsonlike(unittest.TestCase):
         self.assertTrue(flag)
 
         self.assertEqual(
-            conf_obj.graph_config.graph("mention", "entity").index[0].fields,
+            conf_obj.graph_config.graph("mention", "entity").index,
             ["_from", "_to", "publication.arxiv", "publication.doi"],
         )
 

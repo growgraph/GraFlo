@@ -5,10 +5,12 @@ from graph_cast.architecture import JConfigurator
 from graph_cast.db import ConnectionConfigType, ConnectionManager
 from graph_cast.db.arango.util import (
     define_extra_edges,
+    fetch_fields,
     insert_edges_batch,
     upsert_docs_batch,
 )
 from graph_cast.input.json import jsonlike_to_collections
+from graph_cast.input.util import list_to_dict_edges, list_to_dict_vertex
 from graph_cast.util import timer as timer
 from graph_cast.util.transform import merge_doc_basis
 
@@ -23,7 +25,10 @@ def process_jsonlike(
     dry=False,
     **kwargs,
 ):
-    vdocs, edocs = jsonlike_to_collections(json_data, conf_obj, ncores)
+    list_defaultdicts = jsonlike_to_collections(json_data, conf_obj, ncores)
+
+    vdocs = list_to_dict_vertex(list_defaultdicts)
+
     with timer.Timer() as t_ingest:
         cnt = 0
         with ConnectionManager(connection_config=db_config) as db_client:
@@ -41,6 +46,36 @@ def process_jsonlike(
                     db_client.execute(query0)
 
     logger.info(f" ingested {cnt} vertices {t_ingest.elapsed:.2f} sec")
+
+    # currently works only on item level
+    for edge in conf_obj.post_weights:
+        for weight in edge.weight_vertices:
+            vname = weight.name
+            index_fields = conf_obj.vertex_config.index(vname)
+            retrieve_fields = [f.name for f in weight.fields]
+            doc_indices = [item for item in vdocs[vname]]
+
+            if not dry:
+                weights_per_item = fetch_fields(
+                    db_client=db_client,
+                    docs=doc_indices,
+                    collection_name=conf_obj.vertex_config.vertex_dbname(
+                        vname
+                    ),
+                    match_keys=index_fields,
+                    return_keys=retrieve_fields,
+                )
+
+                for j, item in enumerate(list_defaultdicts):
+                    weights = weights_per_item[j]
+
+                    for ee in item[edge.source, edge.target]:
+                        weight_collection_attached = {
+                            f"{vname}.{k}": v for k, v in weights[0].items()
+                        }
+                        ee.update(weight_collection_attached)
+
+    edocs = list_to_dict_edges(list_defaultdicts)
 
     with timer.Timer() as t_ingest_edges:
         cnt = 0

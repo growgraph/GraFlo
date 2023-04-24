@@ -40,7 +40,7 @@ class Chunker(AbsChunker):
         encoding="utf-8",
     ):
         """
-        WARNING : if data sources are gzipped - batch_size does not correspond to lines, instead it's a proxy for bytes
+        WARNING : if misc sources are gzipped - batch_size does not correspond to lines, instead it's a proxy for bytes
 
         :param fname:
         :param batch_size: batch size in bytes : batch_size = 15000 corresponds to 100 lines ~ 100 symbols each

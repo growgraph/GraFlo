@@ -13,7 +13,7 @@ from graph_cast.architecture.transform import Transform
 
 logger = logging.getLogger(__name__)
 
-_anchor_key = "anchor"
+_anchor_key = "_anchor"
 _source_aux = "__source"
 _target_aux = "__target"
 
@@ -35,7 +35,7 @@ class Field:
 
 @dataclasses.dataclass
 class ABCFields(ABC):
-    name: str | None = None
+    name: str
     fields: list[Field] = dataclasses.field(default_factory=list)
 
     def __post_init__(self):
@@ -61,8 +61,8 @@ class WeightConfig(ABCFields, JSONWizard):
 @dataclasses.dataclass
 class VertexHelper(ABCFields, JSONWizard):
     # pre-select only vertices with anchor value
-    # is value
-    anchor: str | bool = False
+    # the value of _anchor_key
+    _anchor: str | bool = False
 
     # create edges between vertices that have the same value of selector field
     # is key
@@ -214,12 +214,12 @@ class Edge:
         self._weight_dict = edge_with_weights.weight_dict
         self._weight_vertices = edge_with_weights.weight_vertices
 
-    def _init_basic(self, dictlike):
+    def _init_basic(self, dictlike: dict):
         dictlike = strip_prefix(dictlike)
         self._source = VertexHelper(name=dictlike["source"])
         self._target = VertexHelper(name=dictlike["target"])
 
-    def _init_local_definition(self, dictlike):
+    def _init_local_definition(self, dictlike: dict):
         """
         used for input/json
         :param dictlike:
@@ -283,11 +283,11 @@ class Edge:
 
     @property
     def source_exclude(self):
-        return [self._source.selector]
+        return [self._source.selector] if self._source.selector else []
 
     @property
     def target_exclude(self):
-        return [self._target.selector]
+        return [self._target.selector] if self._target.selector else []
 
     @property
     def edge_name_dyad(self):
@@ -334,8 +334,12 @@ class Edge:
         return self._by
 
     @property
-    def index(self):
+    def indices(self) -> list[CollectionIndex]:
         return self._extra_indices
+
+    @property
+    def index(self) -> list[str]:
+        return self._extra_indices[0].fields
 
     def __iadd__(self, other: Edge):
         if self.edge_name_dyad == other.edge_name_dyad:

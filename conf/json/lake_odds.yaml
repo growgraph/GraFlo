@@ -10,7 +10,7 @@ vertex_collections:
             basename: chunks
             fields:
             -   kind
-            -   data
+            -   misc
             -   fetched_time
             index:
             -   kind
