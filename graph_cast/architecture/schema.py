@@ -127,7 +127,7 @@ class Vertex:
         return self._name
 
     @property
-    def index(self):
+    def index(self) -> CollectionIndex:
         return self._index
 
     @property
@@ -457,7 +457,7 @@ class VertexConfig:
     def vertex_dbname(self, vertex_name):
         return self._vcollections_all[vertex_name].dbname
 
-    def index(self, vertex_name):
+    def index(self, vertex_name) -> CollectionIndex:
         return self._vcollections_all[vertex_name].index
 
     def extra_index_list(self, vertex_name) -> list[CollectionIndex]:

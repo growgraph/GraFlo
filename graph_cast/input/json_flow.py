@@ -62,7 +62,7 @@ def process_jsonlike(
                     collection_name=conf_obj.vertex_config.vertex_dbname(
                         vname
                     ),
-                    match_keys=index_fields,
+                    match_keys=index_fields.fields,
                     return_keys=retrieve_fields,
                 )
 
