@@ -93,8 +93,6 @@ class ArangoConnection(Connection):
                     ],
                 )
 
-    from graph_cast.architecture.schema import CollectionIndex
-
     @staticmethod
     def _add_index(general_collection, index: CollectionIndex):
         data = index.to_dict()

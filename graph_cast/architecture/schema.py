@@ -267,9 +267,10 @@ class Edge:
         index_type = item.pop("type", "persistent")
         deduplicate = item.pop("deduplicate", True)
         sparse = item.pop("sparse", False)
-
+        fields_only = item.pop("fields_only", False)
         if index_fields:
-            index_fields = ["_from", "_to"] + index_fields
+            if not fields_only:
+                index_fields = ["_from", "_to"] + index_fields
             return CollectionIndex(
                 name=collection_name,
                 fields=index_fields,
