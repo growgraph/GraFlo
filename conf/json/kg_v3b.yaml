@@ -150,8 +150,9 @@ edge_collections:
             fields:
             -   _key
         -   fields_only: true
+            unique: false
             fields:
-            -   publication._key
+            -   publication@_key
     -   source: mention
         target: entity
         index:

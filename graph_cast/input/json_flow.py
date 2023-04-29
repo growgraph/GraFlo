@@ -71,7 +71,7 @@ def process_jsonlike(
 
                     for ee in item[edge.source, edge.target]:
                         weight_collection_attached = {
-                            f"{vname}.{k}": v for k, v in weights[0].items()
+                            weight.cfield(k): v for k, v in weights[0].items()
                         }
                         ee.update(weight_collection_attached)
 

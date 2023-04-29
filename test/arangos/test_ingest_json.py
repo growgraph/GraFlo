@@ -94,7 +94,7 @@ class TestIngestJSON(unittest.TestCase):
                 f"FOR x in mentions_entities_edges limit 1 return x"
             )
             doc = next(cursor)
-            value = doc.pop("publication._key", None)
+            value = doc.pop("publication@_key", None)
             self.assertTrue(isinstance(value, str))
 
     def runTest(self):

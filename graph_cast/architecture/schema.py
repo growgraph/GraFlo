@@ -49,7 +49,7 @@ class ABCFields(ABC):
         self.fields = fs
 
     def cfield(self, x):
-        return f"{self.name}.{x}"
+        return f"{self.name}@{x}"
 
 
 @dataclasses.dataclass
@@ -259,7 +259,7 @@ class Edge:
         if collection_name is not None:
             if not fields:
                 fields = vconf.index(collection_name).fields
-            index_fields += [f"{collection_name}.{x}" for x in fields]
+            index_fields += [f"{collection_name}@{x}" for x in fields]
         else:
             index_fields += fields
 
