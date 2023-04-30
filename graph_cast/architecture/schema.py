@@ -27,6 +27,23 @@ class EdgeMapping(str, Enum):
     ONE_N = "1-n"
 
 
+class IndexType(str, Enum):
+    PERSISTENT = "persistent"
+    HASH = "hash"
+    SKIPLIST = "skiplist"
+    FULLTEXT = "fulltext"
+
+
+class EdgeType(str, Enum):
+    """
+    INDIRECT: defined as a collection, indexes are set up (possibly used after data ingestion)
+    DIRECT : in addition to indexes, these edges are generated during ingestion
+    """
+
+    INDIRECT = "indirect"
+    DIRECT = "direct"
+
+
 @dataclasses.dataclass
 class Field:
     name: str
@@ -74,7 +91,7 @@ class CollectionIndex(JSONWizard):
     name: str | None = None
     fields: list[str] = dataclasses.field(default_factory=list)
     unique: bool = True
-    type: str = "persistent"
+    type: IndexType = IndexType.PERSISTENT
     deduplicate: bool = True
     sparse: bool = False
 
@@ -152,7 +169,7 @@ class Edge:
         self._weight_dict: dict = dict()
         self._extra_indices: list[CollectionIndex] = []
         self._how: EdgeMapping = dictlike.pop("how", EdgeMapping.ALL)
-        self._type = "direct" if direct else "indirect"
+        self._type: EdgeType = EdgeType.DIRECT if direct else EdgeType.INDIRECT
         self._by = None
 
         try:
@@ -192,14 +209,27 @@ class Edge:
             elif isinstance(dictlike["weight"], str):
                 self._weight = [dictlike["weight"]]
 
-        if self._type == "indirect" and "by" in dictlike:
+        if self.type == EdgeType.INDIRECT and "by" in dictlike:
             self._by = vconf.vertex_dbname(dictlike["by"])
 
         self._source_collection = vconf.vertex_dbname(self.source)
         self._target_collection = vconf.vertex_dbname(self.target)
 
-        self._edge_name = f"{vconf.vertex_dbname(self.source)}_{vconf.vertex_dbname(self.target)}_edges"
-        self._graph_name = f"{vconf.vertex_dbname(self.source)}_{vconf.vertex_dbname(self.target)}_graph"
+        self._collection_name_suffix = dictlike.pop(
+            "collection_name_suffix", ""
+        )
+
+        if self._collection_name_suffix:
+            self._collection_name_suffix = f"{self._collection_name_suffix}_"
+
+        self._edge_name = (
+            f"{vconf.vertex_dbname(self.source)}_{vconf.vertex_dbname(self.target)}_"
+            f"{self._collection_name_suffix}edges"
+        )
+        self._graph_name = (
+            f"{vconf.vertex_dbname(self.source)}_{vconf.vertex_dbname(self.target)}_"
+            f"{self._collection_name_suffix}graph"
+        )
 
     @property
     def source(self):
@@ -327,7 +357,7 @@ class Edge:
         return [] if self._weight_vertices is None else self._weight_vertices
 
     @property
-    def type(self):
+    def type(self) -> EdgeType:
         return self._type
 
     @property

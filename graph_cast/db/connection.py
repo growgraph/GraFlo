@@ -115,6 +115,6 @@ def concluding_db_transform(db_client: ConnectionType, conf_obj):
 
     # create edge u -> v from u->w, v->w edges
     # find edge_cols uw and vw
-    for u, v in conf_obj.graph_config.extra_edges:
-        query0 = define_extra_edges(conf_obj.graph(u, v))
+    for ee in conf_obj.graph_config.extra_edges:
+        query0 = define_extra_edges(ee)
         db_client.execute(query0)

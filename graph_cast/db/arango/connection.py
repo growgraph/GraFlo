@@ -3,7 +3,11 @@ import logging
 from arango import ArangoClient
 
 from graph_cast.architecture.graph import GraphConfig
-from graph_cast.architecture.schema import CollectionIndex, VertexConfig
+from graph_cast.architecture.schema import (
+    CollectionIndex,
+    IndexType,
+    VertexConfig,
+)
 from graph_cast.db import ConnectionConfigType
 from graph_cast.db.connection import Connection
 
@@ -45,8 +49,9 @@ class ArangoConnection(Connection):
         disconnected_vertex_collections = set(vertex_config.collections) - set(
             [v for edge in graph_config.all_edges for v in edge]
         )
-        for u, v in graph_config.all_edges:
-            item = graph_config.graph(u, v)
+        es = list(graph_config.all_edge_definitions())
+        for item in es:
+            u, v = item.source, item.target
             gname = item.graph_name
             logger.info(f"{item.source}, {item.target}, {gname}")
             if self.conn.has_graph(gname):
@@ -74,9 +79,8 @@ class ArangoConnection(Connection):
             )
 
     def define_edge_collections(self, graph_config: GraphConfig):
-        edges = graph_config.all_edges
-        for u, v in edges:
-            item = graph_config.graph(u, v)
+        es = list(graph_config.all_edge_definitions())
+        for item in es:
             gname = item.graph_name
             if self.conn.has_graph(gname):
                 g = self.conn.graph(gname)
@@ -85,27 +89,26 @@ class ArangoConnection(Connection):
             if not g.has_edge_definition(item.edge_name):
                 _ = g.create_edge_definition(
                     edge_collection=item.edge_name,
-                    from_vertex_collections=[
-                        graph_config.graph(u, v).source_collection
-                    ],
-                    to_vertex_collections=[
-                        graph_config.graph(u, v).target_collection
-                    ],
+                    from_vertex_collections=[item.source_collection],
+                    to_vertex_collections=[item.target_collection],
                 )
 
     @staticmethod
     def _add_index(general_collection, index: CollectionIndex):
         data = index.to_dict()
-        if index.type == "persistent":
+        # in CollectionIndex "name" is used for vertex collection derived index field
+        # to let arango name her index, we remove "name"
+        data.pop("name")
+        if index.type == IndexType.PERSISTENT:
             # temp fix : inconsistentcy in python-arango
             ih = general_collection._add_index(data)
-        if index.type == "hash":
+        if index.type == IndexType.HASH:
             ih = general_collection._add_index(data)
-        elif index.type == "skiplist":
+        elif index.type == IndexType.SKIPLIST:
             ih = general_collection.add_skiplist_index(
                 fields=index.fields, unique=index.unique
             )
-        elif index.type == "fulltext":
+        elif index.type == IndexType.FULLTEXT:
             ih = general_collection.add_fulltext_index(
                 fields=index.fields, unique=index.unique
             )
@@ -122,8 +125,7 @@ class ArangoConnection(Connection):
                 self._add_index(general_collection, index_obj)
 
     def define_edge_indices(self, graph_config: GraphConfig):
-        for u, v in graph_config.all_edges:
-            item = graph_config.graph(u, v)
+        for item in graph_config.all_edge_definitions():
             general_collection = self.conn.collection(item.edge_name)
             for index_obj in item.indices:
                 self._add_index(general_collection, index_obj)

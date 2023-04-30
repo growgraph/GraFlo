@@ -63,7 +63,7 @@ class TestTransformJsonlike(unittest.TestCase):
 
         self.assertEqual(
             conf_obj.graph_config.graph("mention", "entity").index,
-            ["_from", "_to", "publication.arxiv", "publication.doi"],
+            ["_from", "_to", "publication@arxiv", "publication@doi"],
         )
 
     def runTest(self):

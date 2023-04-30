@@ -6,7 +6,7 @@ from itertools import chain, combinations, product
 from typing import Any, Dict, List
 
 from graph_cast.architecture import ConfiguratorType
-from graph_cast.architecture.schema import _source_aux, _target_aux
+from graph_cast.architecture.schema import EdgeType, _source_aux, _target_aux
 from graph_cast.architecture.transform import transform_foo
 
 logger = logging.getLogger(__name__)
@@ -89,7 +89,7 @@ def table_to_collections(
             u not in vertex_conf.blank_collections
             and v not in vertex_conf.blank_collections
         ):
-            if conf.graph(u, v).type == "direct":
+            if conf.graph(u, v).type == EdgeType.DIRECT:
                 ziter: product | combinations
                 if u != v:
                     ziter = product(vdocs[u], vdocs[v])

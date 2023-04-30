@@ -3,7 +3,12 @@ from __future__ import annotations
 from collections import defaultdict
 
 from graph_cast.architecture.ptree import MapperNode, NodeType, ParsingTree
-from graph_cast.architecture.schema import Edge, VertexConfig
+from graph_cast.architecture.schema import (
+    Edge,
+    EdgeType,
+    VertexConfig,
+    strip_prefix,
+)
 
 
 class GraphConfig:
@@ -13,10 +18,13 @@ class GraphConfig:
         :param econfig: edges config : direct definitions of edges
         :param vconfig: specification of vcollections
         """
-        self._edges: dict[tuple[str, str], Edge] = dict()
+        self._edges: defaultdict[tuple[str, str], list[Edge]] = defaultdict(
+            list
+        )
 
         self._exclude_fields: defaultdict[str, list] = defaultdict(list)
 
+        econfig = strip_prefix(econfig, "~")
         self._init_edges(econfig, vconfig)
         self._init_extra_edges(econfig, vconfig)
         self._init_exclude()
@@ -25,18 +33,19 @@ class GraphConfig:
         if "main" in config:
             for e in config["main"]:
                 edge = Edge(e, vconf)
-                self.update_edges(edge)
+                self.update_edges(edge, update_first=False)
 
     def _init_extra_edges(self, config, vconf: VertexConfig):
         if "extra" in config:
             for e in config["extra"]:
                 edge = Edge(e, vconf, direct=False)
-                self.update_edges(edge)
+                self.update_edges(edge, update_first=False)
 
     def _init_exclude(self):
-        for (v, w), e in self._edges.items():
-            self._exclude_fields[v] += e.source_exclude
-            self._exclude_fields[w] += e.target_exclude
+        for (v, w), edges in self._edges.items():
+            for e in edges:
+                self._exclude_fields[v] += e.source_exclude
+                self._exclude_fields[w] += e.target_exclude
 
     def _parse_tree_edges(
         self,
@@ -70,28 +79,52 @@ class GraphConfig:
             for ee in item:
                 self.update_edges(ee)
 
-    def update_edges(self, edef: Edge):
-        if edef.edge_name_dyad in self._edges:
-            self._edges[edef.edge_name_dyad] += edef
+    def update_edges(self, edef: Edge, update_first=True):
+        if update_first and self._edges[edef.edge_name_dyad]:
+            self._edges[edef.edge_name_dyad][0] += edef
         else:
-            self._edges[edef.edge_name_dyad] = edef
+            self._edges[edef.edge_name_dyad] += [edef]
 
-    def graph(self, u, v) -> Edge:
-        return self._edges[u, v]
+    def graph(self, u, v, ix=0) -> Edge:
+        if len(self._edges[u, v]) == 0:
+            raise ValueError(f"edge {u}, {v} absent in GraphConfig")
+        ix = min([len(self._edges[u, v]) - 1, ix])
+        ix = max([0, ix])
+        return self._edges[u, v][ix]
 
     @property
-    def edges(self):
-        return list([k for k, v in self._edges.items() if v.type == "direct"])
+    def direct_edges(self):
+        edges = []
+        for k, item in self._edges.items():
+            if any([v.type == EdgeType.DIRECT for v in item]):
+                edges += [k]
+        return edges
 
     @property
-    def extra_edges(self):
-        return list(
-            [k for k, v in self._edges.items() if v.type == "indirect"]
-        )
+    def extra_edges(self) -> list[Edge]:
+        edges = []
+        for k, item in self._edges.items():
+            for edge in item:
+                if edge.type == EdgeType.INDIRECT:
+                    edges += [edge]
+        return edges
 
     @property
     def all_edges(self):
-        return list(self._edges)
+        return (e for e in self._edges)
+
+    @property
+    def vertices(self):
+        vs = []
+        for u, v in self._edges:
+            vs += [u, v]
+        vs = list(set(vs))
+        return vs
+
+    def all_edge_definitions(self):
+        for k, item in self._edges.items():
+            for e in item:
+                yield e
 
     def exclude_fields(self, k):
         if k in self._exclude_fields:
