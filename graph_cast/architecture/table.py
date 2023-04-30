@@ -22,7 +22,7 @@ class TConfigurator(Configurator):
         self.modes2graphs = defaultdict(list)
         self.mode2files = defaultdict(list)
         self.table_config = TablesConfig(config["csv"], self.graph_config)
-        self._init_modes2graphs(config["csv"], self.graph_config.edges)
+        self._init_modes2graphs(config["csv"], self.graph_config.direct_edges)
 
     def set_mode(self, mode):
         """
@@ -117,7 +117,7 @@ class TablesConfig:
     _vertices: dict[str, str] = {}
 
     # table_type -> edge_collections
-    _edges: dict[str, str] = {}
+    _edges: defaultdict[str, list[tuple[str, str]]] = defaultdict(list)
 
     # table_type -> transforms
     _transforms: defaultdict[str, list[dict[str, str]]] = defaultdict(list)

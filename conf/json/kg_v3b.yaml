@@ -153,6 +153,9 @@ edge_collections:
             unique: false
             fields:
             -   publication@_key
+    -   ~source: entity
+        ~target: entity
+        ~collection_name_suffix: aux
     -   source: mention
         target: entity
         index:

@@ -16,9 +16,7 @@ ConfiguratorType = TypeVar("ConfiguratorType", bound="Configurator")
 class Configurator:
     def __init__(self, config):
         self.vertex_config = VertexConfig(config["vertex_collections"])
-        edge_collections = (
-            config["edge_collections"] if "edge_collections" in config else ()
-        )
+        edge_collections = config.get("edge_collections", ())
         self.graph_config = GraphConfig(edge_collections, self.vertex_config)
         self.current_fname: str | None = None
 
@@ -42,8 +40,8 @@ class Configurator:
     def current_transformations(self):
         return []
 
-    def graph(self, u, v):
-        return self.graph_config.graph(u, v)
+    def graph(self, u, v, ix=0):
+        return self.graph_config.graph(u, v, ix)
 
 
 class TableMapper:
