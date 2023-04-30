@@ -220,7 +220,7 @@ class Edge:
         )
 
         if self._collection_name_suffix:
-            self._collection_name_suffix = f"_{self._collection_name_suffix}"
+            self._collection_name_suffix = f"{self._collection_name_suffix}_"
 
         self._edge_name = (
             f"{vconf.vertex_dbname(self.source)}_{vconf.vertex_dbname(self.target)}_"

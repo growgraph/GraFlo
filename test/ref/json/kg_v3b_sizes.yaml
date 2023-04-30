@@ -1,5 +1,5 @@
 entities: 80
-entities_entities__auxedges: 0
+entities_entities_aux_edges: 0
 entities_entities_edges: 0
 mentions: 124
 mentions_entities_edges: 98

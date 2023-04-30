@@ -3,7 +3,11 @@ import logging
 from arango import ArangoClient
 
 from graph_cast.architecture.graph import GraphConfig
-from graph_cast.architecture.schema import CollectionIndex, VertexConfig
+from graph_cast.architecture.schema import (
+    CollectionIndex,
+    IndexType,
+    VertexConfig,
+)
 from graph_cast.db import ConnectionConfigType
 from graph_cast.db.connection import Connection
 
@@ -77,7 +81,6 @@ class ArangoConnection(Connection):
     def define_edge_collections(self, graph_config: GraphConfig):
         es = list(graph_config.all_edge_definitions())
         for item in es:
-            u, v = item.source, item.target
             gname = item.graph_name
             if self.conn.has_graph(gname):
                 g = self.conn.graph(gname)
@@ -93,8 +96,9 @@ class ArangoConnection(Connection):
     @staticmethod
     def _add_index(general_collection, index: CollectionIndex):
         data = index.to_dict()
-        from graph_cast.architecture.schema import IndexType
-
+        # in CollectionIndex "name" is used for vertex collection derived index field
+        # to let arango name her index, we remove "name"
+        data.pop("name")
         if index.type == IndexType.PERSISTENT:
             # temp fix : inconsistentcy in python-arango
             ih = general_collection._add_index(data)
@@ -121,8 +125,7 @@ class ArangoConnection(Connection):
                 self._add_index(general_collection, index_obj)
 
     def define_edge_indices(self, graph_config: GraphConfig):
-        for u, v in graph_config.all_edges:
-            item = graph_config.graph(u, v)
+        for item in graph_config.all_edge_definitions():
             general_collection = self.conn.collection(item.edge_name)
             for index_obj in item.indices:
                 self._add_index(general_collection, index_obj)

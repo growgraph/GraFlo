@@ -156,6 +156,12 @@ edge_collections:
     -   ~source: entity
         ~target: entity
         ~collection_name_suffix: aux
+        index:
+        -   fields:
+            -   start_date
+            -   end_date
+        -   fields:
+            -   spec
     -   source: mention
         target: entity
         index:
