@@ -1,0 +1,55 @@
+general:
+    ~name: community
+json:
+    ~maps:
+    -   ~type: descend
+        ~key: entity_community
+        ~maps:
+        -   ~type: list
+            ~maps:
+            -   ~type: edge
+                ~how: all
+                source:
+                    ~name: entity
+                target:
+                    ~name: community_frame
+                    ~fields:
+                    -   comm_id
+            -   ~type: descend
+                ~key: entity
+                ~maps:
+                -   ~type: dict
+                    ~name: entity
+            -   ~type: descend
+                ~key: community_frame
+                ~maps:
+                -   ~type: dict
+                    ~name: community_frame
+                    ~map:
+                        cid: comm_id
+vertex_collections:
+    collections:
+        entity:
+            basename: entities
+            fields:
+            -   linker_type
+            -   ent_db_type
+            -   id
+            -   ent_type
+            -   original_form
+            -   description
+            index:
+            -   _key
+            extra_index:
+            -   fields:
+                -   id
+                -   ent_type
+        community_frame:
+            basename: community_frames
+            index:
+            -   date
+            -   spec
+edge_collections:
+-   source: entity
+    target: community_frame
+

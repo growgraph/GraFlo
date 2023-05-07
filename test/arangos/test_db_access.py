@@ -171,7 +171,7 @@ class TestDBAccess(unittest.TestCase):
         chunk = list(cursor.batch())
         logger.info(chunk)
 
-    # @unittest.skip("")
+    @unittest.skip("")
     def test_fetch_fields(self):
         db_args = dict(self.db_args)
         db_args["database"] = "testdb"

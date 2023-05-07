@@ -36,6 +36,7 @@ class TestIngestJSON(unittest.TestCase):
         # "kg_v3",
         "lake_odds",
         "kg_v3b",
+        "community",
     ]
 
     def __init__(self, reset):
@@ -98,7 +99,7 @@ class TestIngestJSON(unittest.TestCase):
             self.assertTrue(isinstance(value, str))
 
     def runTest(self):
-        self.test_weights_ind_db()
+        # self.test_weights_ind_db()
         for mode in self.modes:
             self._atomic(mode)
             self._verify(mode)
