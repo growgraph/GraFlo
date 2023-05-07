@@ -46,11 +46,14 @@ def upsert_docs_batch(
         update_clause = "doc"
     else:
         update_clause = "{}"
+
+    options = "OPTIONS {exclusive: true, ignoreErrors: true}"
+
     q_update = f"""FOR doc in {docs}
                         UPSERT {upsert_clause}
                         INSERT doc
                         UPDATE {update_clause} 
-                            IN {collection_name} OPTIONS {{ exclusive: true }}"""
+                            IN {collection_name} {options}"""
     return q_update
 
 

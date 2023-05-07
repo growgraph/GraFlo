@@ -117,13 +117,22 @@ class Vertex:
     ):
         self._name = name
         self._dbname = name if basename is None else basename
-        self._fields = list(fields)
-        self._index: CollectionIndex = CollectionIndex(fields=index)
+        if isinstance(index, (list, tuple)):
+            self._index: CollectionIndex = CollectionIndex(fields=index)
+        elif isinstance(index, dict):
+            self._index: CollectionIndex = CollectionIndex(**index)
+        else:
+            raise TypeError(f"index can only be list-like or dict-like")
         self._extra_indices: list[CollectionIndex] | None = (
             None
             if extra_index is None
             else [CollectionIndex(**item) for item in extra_index]
         )
+        union_fields = set(fields) | set(self._index.fields)
+        for ei in self._extra_indices:
+            union_fields |= set(ei.fields)
+        self._fields = list(union_fields)
+
         self._numeric_fields = numeric_fields
         # set of filters
         self._filters = [Filter(**item) for item in filters]
