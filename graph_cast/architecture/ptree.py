@@ -25,7 +25,7 @@ from graph_cast.architecture.uitl import project_dict, project_dicts
 
 logger = logging.getLogger(__name__)
 
-xml_dummy = "#text"
+_dummy_text = "#text"
 
 
 class NodeType(str, Enum):
@@ -200,15 +200,16 @@ class MapperNode:
                 for kk, vv in doc.items():
                     if kk in kkeys:
                         if isinstance(vv, dict):
-                            if xml_dummy in vv:
-                                doc_[kk] = vv[xml_dummy]
+                            if _dummy_text in vv:
+                                # TODO refactor - should be conf specific
+                                # {_dummy_text: value} {kk : value} is added to doc
+                                doc_[kk] = vv[_dummy_text]
                         else:
                             doc_[kk] = vv
             if self._map:
                 doc_ = {
                     self._map[k] if k in self._map else k: v
                     for k, v in doc_.items()
-                    if v
                 }
             if self._anchor is not None:
                 doc_.update({_anchor_key: self._anchor})
