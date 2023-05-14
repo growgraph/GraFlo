@@ -2,8 +2,6 @@ import argparse
 import logging
 from os.path import expanduser
 
-import yaml
-
 from graph_cast.db import ConfigFactory
 from graph_cast.main import ingest_json_files
 from graph_cast.util import ResourceHandler
@@ -100,8 +98,7 @@ if __name__ == "__main__":
     batch_size = args.batch_size
     clean_start = args.clean_start
 
-    with open(args.config_path, "r") as f:
-        config_ = yaml.load(f, Loader=yaml.FullLoader)
+    config_ = ResourceHandler(args.config_path)
 
     logger.info(f"limit_files: {limit_files_}")
     logger.info(f"clean start: {clean_start}")

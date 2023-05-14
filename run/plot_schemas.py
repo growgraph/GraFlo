@@ -148,9 +148,9 @@ class SchemaPlotter:
                 (
                     f"{k}:{item}",
                     {
-                        "type": "def_field"
-                        if item in index_fields
-                        else "field",
+                        "type": (
+                            "def_field" if item in index_fields else "field"
+                        ),
                         "label": item,
                     },
                 )
@@ -402,9 +402,9 @@ class SchemaPlotter:
                     (
                         f"collection:field:{kk}",
                         {
-                            "type": "def_field"
-                            if kk in index_fields
-                            else "field",
+                            "type": (
+                                "def_field" if kk in index_fields else "field"
+                            ),
                             "label": kk,
                         },
                     )

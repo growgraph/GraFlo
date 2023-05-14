@@ -1,31 +1,33 @@
-import json
-import os
 from copy import deepcopy
+from enum import Enum, EnumMeta
 
-import yaml
+from suthing import FileHandle
 
-from graph_cast.db import ConnectionConfigType
 from graph_cast.db.arango.config import ArangoConnectionConfig
 from graph_cast.db.connection import ConnectionConfig, WSGIConfig
 from graph_cast.db.neo4j.config import Neo4jConnectionConfig
 
 
-class ConfigFactory:
-    _supported_dbs = ("arango", "neo4j", "wsgi")
+class MetaEnum(EnumMeta):
+    def __contains__(cls, item):
+        try:
+            cls(item)
+        except ValueError:
+            return False
+        return True
 
+
+class ConnectionType(str, Enum, metaclass=MetaEnum):
+    ARANGO = "arango"
+    NEO4j = "neo4j"
+    WSGI = "wsgi"
+
+
+class ConfigFactory:
     @classmethod
     def create_config(cls, secret_path=None, args=None):
         if secret_path is not None:
-            config_type = secret_path.split(".")[-1]
-            if config_type not in ["json", "yaml"]:
-                raise TypeError(
-                    "Config file type not supported: should be json or yaml"
-                )
-            with open(os.path.expanduser(secret_path), "r") as f:
-                if config_type == "json":
-                    config = json.load(f)
-                else:
-                    config = yaml.load(f, Loader=yaml.FullLoader)
+            config = FileHandle.load(secret_path)
         elif args is not None and isinstance(args, dict):
             config = deepcopy(args)
         else:
@@ -36,16 +38,16 @@ class ConfigFactory:
             raise TypeError("db type not specified in secret")
 
         db_type = config["db_type"]
-        if db_type not in cls._supported_dbs:
+        if db_type not in ConnectionType:
             raise TypeError(
-                f"Config db_type not supported: should be {cls._supported_dbs}"
+                f"Config db_type not supported: should be {ConnectionType}"
             )
 
-        if db_type == "arango":
+        if db_type == ConnectionType.ARANGO:
             return ArangoConnectionConfig(**config)
-        elif db_type == "neo4j":
+        elif db_type == ConnectionType.NEO4j:
             return Neo4jConnectionConfig(**config)
-        elif db_type == "wsgi":
+        elif db_type == ConnectionType.WSGI:
             return WSGIConfig(**config)
         else:
             raise NotImplementedError

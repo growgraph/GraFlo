@@ -2,8 +2,6 @@ import logging
 import unittest
 from os.path import dirname, realpath
 
-import yaml
-
 from graph_cast.architecture.table import TConfigurator
 from graph_cast.architecture.transform import Transform
 from graph_cast.input import table_to_collections
