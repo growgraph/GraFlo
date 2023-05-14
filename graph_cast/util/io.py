@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 class AbsChunker(abc.ABC):
     def __init__(self):
         self.units_processed = 0
+        self._done: bool = False
 
     def pop(self):
         pass
@@ -26,8 +27,9 @@ class AbsChunker(abc.ABC):
     def pop_header(self):
         pass
 
+    @property
     def done(self):
-        pass
+        return self._done
 
 
 class Chunker(AbsChunker):
@@ -110,10 +112,6 @@ class Chunker(AbsChunker):
             self.file_obj.close()
             return []
 
-    @property
-    def done(self):
-        return self._done
-
 
 class ChunkerDataFrame(AbsChunker):
     def __init__(self, df, batch_size, n_lines_max=None):
@@ -144,9 +142,6 @@ class ChunkerDataFrame(AbsChunker):
         else:
             self.done = True
             return False
-
-    def done(self):
-        return self.done
 
 
 class ChunkFlusherMono:
