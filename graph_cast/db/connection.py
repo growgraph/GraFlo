@@ -87,11 +87,30 @@ class ConnectionConfig(abc.ABC):
 
 class WSGIConfig(ConnectionConfig):
     def __init__(self, **config):
-        super(WSGIConfig, self).__init__(**config)
-        self.path = config.get("path", "/")
-        self.paths = config.get("paths", {})
-        self.hosts = f"{self.protocol}://{self.ip_addr}:{self.port}{self.path}"
-        self.host = config.get("host", None)
+        hosts = config.pop("hosts", None)
+        if hosts is None:
+            super(WSGIConfig, self).__init__(**config)
+            self.path = config.get("path", "/")
+            self.paths = config.get("paths", {})
+            self.hosts = (
+                f"{self.protocol}://{self.ip_addr}:{self.port}{self.path}"
+            )
+            self.host = config.get("host", None)
+        else:
+            # validate hosts?
+            self.hosts = hosts
+            self._parse_hosts()
+
+    def _parse_hosts(self):
+        h = self.hosts
+
+        h2 = h.split("://")
+        self.protocol = h2[0]
+        h3 = h2[1].split(":")
+        self.ip_addr = h3[0]
+        h4 = h3[1].split("/")
+        self.port = h4[0]
+        self.path = "/" + "/".join(h4[1:])
 
 
 def init_db(db_client: ConnectionType, conf_obj: Configurator, clean_start):

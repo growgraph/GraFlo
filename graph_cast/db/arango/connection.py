@@ -57,7 +57,7 @@ class ArangoConnection(Connection):
             if self.conn.has_graph(gname):
                 g = self.conn.graph(gname)
             else:
-                g = self.conn.create_graph(gname)
+                g = self.conn.create_graph(gname)  # type: ignore
 
             # TODO create collections without referencing the graph
             ih = self.create_collection_if_absent(
@@ -85,7 +85,7 @@ class ArangoConnection(Connection):
             if self.conn.has_graph(gname):
                 g = self.conn.graph(gname)
             else:
-                g = self.conn.create_graph(gname)
+                g = self.conn.create_graph(gname)  # type: ignore
             if not g.has_edge_definition(item.edge_name):
                 _ = g.create_edge_definition(
                     edge_collection=item.edge_name,

@@ -27,6 +27,13 @@ class FactoryTest(unittest.TestCase):
         }
         ac = ConfigFactory.create_config(args=args)
         self.assertEqual(ac.hosts[-2:], "re")
+        args = {
+            "db_type": "wsgi",
+            "hosts": "http://192.168.0.1:111/lm/re_v3",
+        }
+        ac = ConfigFactory.create_config(args=args)
+        self.assertEqual(ac.path[0], "/")
+        self.assertEqual(int(ac.port), 111)
 
 
 if __name__ == "__main__":
