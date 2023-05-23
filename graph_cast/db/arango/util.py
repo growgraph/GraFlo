@@ -220,8 +220,11 @@ def fetch_fields_query(docs, collection_name, match_keys, return_keys):
     :return:
     """
 
-    collect_clause = ", ".join([f"{k} = cdoc.{k}" for k in return_keys])
-    return_clause = ", ".join(["__i"] + return_keys)
+    return_vars = [x.replace("@", "_") for x in return_keys]
+    collect_clause = ", ".join(
+        [f"{k} = cdoc['{q}']" for k, q in zip(return_vars, return_keys)]
+    )
+    return_clause = ", ".join(["__i"] + return_vars)
     return_clause = f"{{{return_clause}}}"
     for i, doc in enumerate(docs):
         doc.update({"__i": i})
