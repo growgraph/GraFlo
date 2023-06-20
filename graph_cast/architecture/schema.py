@@ -203,7 +203,7 @@ class Edge:
                 try:
                     self._weight_vertices += [WeightConfig(**item)]
                 except:
-                    logger.error(
+                    logger.warning(
                         "_weight_collections init failed for edge"
                         f" {self.edge_name_dyad}"
                     )

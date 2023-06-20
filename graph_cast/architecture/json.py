@@ -12,7 +12,7 @@ class JConfigurator(Configurator):
 
         self.json = deepcopy(config["json"])
 
-        # TODO which collections to mergee in ParsingTree
+        # TODO which collections to merge n ParsingTree
         self.tree = ParsingTree(
             config["json"], vertex_config=self.vertex_config
         )

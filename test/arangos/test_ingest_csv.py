@@ -1,5 +1,6 @@
 import argparse
 import logging
+import sys
 import unittest
 from os.path import dirname, join, realpath
 from pprint import pprint
@@ -84,6 +85,8 @@ class TestIngestCSV(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--reset", action="store_true", help="reset test results"
