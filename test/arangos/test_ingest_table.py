@@ -6,13 +6,13 @@ from os.path import dirname, join, realpath
 from pprint import pprint
 
 from graph_cast.db import ConfigFactory, ConnectionManager
-from graph_cast.main import ingest_csvs
+from graph_cast.main import ingest_tables
 from graph_cast.util import ResourceHandler, equals
 
 logger = logging.getLogger(__name__)
 
 
-class TestIngestCSV(unittest.TestCase):
+class TestIngestTable(unittest.TestCase):
     cpath = dirname(realpath(__file__))
 
     db_args = {
@@ -43,7 +43,7 @@ class TestIngestCSV(unittest.TestCase):
         db_args["database"] = "testdb"
         conn_conf = ConfigFactory.create_config(args=db_args)
 
-        ingest_csvs(
+        ingest_tables(
             path,
             schema_config,
             conn_conf,
@@ -93,5 +93,5 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     suite = unittest.TestSuite()
-    suite.addTest(TestIngestCSV(args.reset))
+    suite.addTest(TestIngestTable(args.reset))
     unittest.TextTestRunner(verbosity=2).run(suite)

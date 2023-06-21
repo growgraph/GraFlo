@@ -10,10 +10,10 @@ To install requirements use
 Remarks
 -------
 
-To test csv schemas 
+To test table schemas 
 
 ```console
-foo@bar:~$ python -m unittest test.arango.test_ingest_csv
+foo@bar:~$ python -m unittest test.arango.test_ingest_table
 ```
 NB: collections `wos_test`, `ibes_test` and `ticker_test` should be created on your instance of ArangoDB.
 E.g.
@@ -35,5 +35,5 @@ Full ingestion
 To do a full ingestion
 
 ```
-python run/arango/ingest_csv.py --config-path ./conf/ibes.yaml --path ibes_path --db ibes --cred-pass db_password --cred-name db_login
+python run/arango/ingest_table.py --config-path ./conf/ibes.yaml --path ibes_path --db ibes --cred-pass db_password --cred-name db_login
 ```

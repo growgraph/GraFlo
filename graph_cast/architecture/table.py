@@ -6,8 +6,8 @@ from os.path import isfile, join
 
 from graph_cast.architecture.general import (
     Configurator,
+    DataSourceType,
     LocalVertexCollections,
-    TableMapper,
 )
 from graph_cast.architecture.transform import Transform
 
@@ -19,10 +19,15 @@ class TConfigurator(Configurator):
         self.modes2collections = defaultdict(LocalVertexCollections)
 
         # table_type -> [{collection: cname, collection_maps: maps}]
+        if DataSourceType.TABLE in config:
+            config_table = deepcopy(config[DataSourceType.TABLE])
+        else:
+            raise KeyError("expected `table` section in config missing")
+
         self.modes2graphs = defaultdict(list)
         self.mode2files = defaultdict(list)
-        self.table_config = TablesConfig(config["csv"], self.graph_config)
-        self._init_modes2graphs(config["csv"], self.graph_config.direct_edges)
+        self.table_config = TablesConfig(config_table, self.graph_config)
+        self._init_modes2graphs(config_table, self.graph_config.direct_edges)
 
     def set_mode(self, mode):
         """

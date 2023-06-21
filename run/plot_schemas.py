@@ -5,8 +5,11 @@ from itertools import product
 
 import networkx as nx
 
-from graph_cast.architecture.json import JConfigurator
-from graph_cast.architecture.table import TConfigurator
+from graph_cast.architecture import (
+    DataSourceType,
+    JConfigurator,
+    TConfigurator,
+)
 from graph_cast.input.obsolete.json_aux import parse_edges
 from graph_cast.util import ResourceHandler
 
@@ -123,12 +126,13 @@ class SchemaPlotter:
         self.config = ResourceHandler.load(fpath=config_filename)
 
         self.name = self.config["general"]["name"]
+        self.type: DataSourceType
 
-        if "json" in self.config:
-            self.type = "json"
+        if DataSourceType.JSON in self.config:
+            self.type = DataSourceType.JSON
             self.conf = JConfigurator(self.config)
-        elif "csv" in self.config:
-            self.type = "csv"
+        elif DataSourceType.TABLE in self.config:
+            self.type = DataSourceType.TABLE
             self.conf = TConfigurator(self.config)
         else:
             raise KeyError(f"Configured to plot json or csv mapper schemas")
@@ -292,7 +296,7 @@ class SchemaPlotter:
         """
         g = nx.DiGraph()
 
-        if self.type == "json":
+        if self.type == DataSourceType.JSON:
             edge_def, excl_fields = parse_edges(
                 self.config[self.type], [], defaultdict(list)
             )
@@ -301,7 +305,7 @@ class SchemaPlotter:
                 (n, {"type": "vcollection"})
                 for n in self.config["vertex_collections"]["collections"]
             ]
-        elif self.type == "csv":
+        elif self.type == DataSourceType.TABLE:
             nodes = []
             edges = []
             for mode, local_vertex_cols in self.conf.modes2collections.items():
@@ -368,7 +372,7 @@ class SchemaPlotter:
         nodes = []
         edges = []
 
-        for n in self.config["csv"]:
+        for n in self.config[DataSourceType.TABLE]:
             k = n["tabletype"]
             nodes_table = [(f"table:{k}", {"type": "table", "label": k})]
             vcols = n["vertex_collections"]
@@ -502,5 +506,5 @@ if __name__ == "__main__":
     plotter.plot_vc2fields()
     plotter.plot_source2vc()
     plotter.plot_vc2vc(prune_leaves=args.prune_low_degree_nodes)
-    # if plotter.type == "csv":
-    #     plotter.plot_source2vc_detailed()
+    if plotter.type == DataSourceType.TABLE:
+        plotter.plot_source2vc_detailed()

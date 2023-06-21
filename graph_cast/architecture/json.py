@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from graph_cast.architecture.general import Configurator
+from graph_cast.architecture.general import Configurator, DataSourceType
 from graph_cast.architecture.ptree import ParsingTree
 from graph_cast.architecture.schema import Edge
 from graph_cast.util.transform import merge_doc_basis
@@ -10,12 +10,13 @@ class JConfigurator(Configurator):
     def __init__(self, config):
         super().__init__(config)
 
-        self.json = deepcopy(config["json"])
+        if DataSourceType.JSON in config:
+            config_json = deepcopy(config[DataSourceType.JSON])
+        else:
+            raise KeyError("expected `json` section in config missing")
 
-        # TODO which collections to merge n ParsingTree
-        self.tree = ParsingTree(
-            config["json"], vertex_config=self.vertex_config
-        )
+        # TODO which collections to merge in ParsingTree
+        self.tree = ParsingTree(config_json, vertex_config=self.vertex_config)
 
         self.graph_config.parse_edges(self.tree)
 

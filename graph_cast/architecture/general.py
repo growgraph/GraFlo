@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from collections import defaultdict
+from enum import Enum
 from typing import TypeVar
 
 from graph_cast.architecture.graph import GraphConfig
@@ -11,6 +12,11 @@ from graph_cast.architecture.schema import VertexConfig
 logger = logging.getLogger(__name__)
 
 ConfiguratorType = TypeVar("ConfiguratorType", bound="Configurator")
+
+
+class DataSourceType(str, Enum):
+    JSON = "json"
+    TABLE = "table"
 
 
 class Configurator:
