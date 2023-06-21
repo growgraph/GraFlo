@@ -163,8 +163,6 @@ class TablesConfig:
                 if u in vertices and v in vertices
             ]
 
-        # run check : wrt to vertex_config
-
     def _init_transformations(self, subconfig):
         for item in subconfig:
             if "transforms" in item:
@@ -202,23 +200,3 @@ class TablesConfig:
             return self._transforms[table_type]
         else:
             return dict()
-
-
-# # TODO move atomic operation from TablesConfig
-# class TableConfig:
-#     logic = {}
-#
-#     def __init__(self):
-#         pass
-#
-#     def vertices(self, table_type):
-#         return self._vertices[table_type]
-#
-#     def edges(self, table_type):
-#         return self._edges[table_type]
-#
-#     def transforms(self, table_type):
-#         if table_type in self._transforms:
-#             return self._transforms[table_type]
-#         else:
-#             return dict()

@@ -143,7 +143,9 @@ class TableMapper:
 
 class LocalVertexCollections:
     def __init__(self, inp):
-        self._vcollections = defaultdict(list)
+        self._vcollections: defaultdict[str, list[TableMapper]] = defaultdict(
+            list
+        )
         for cc in inp:
             # TODO and type is allowed
             if "type" in cc:
