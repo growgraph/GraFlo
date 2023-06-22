@@ -119,7 +119,7 @@ class ChunkerDataFrame(AbsChunker):
         self.batch_size = batch_size
         self.n_lines_max = n_lines_max
         self.file_obj = df
-        self.done = False
+        self._done = False
         self.idx = [
             i for i in range(0, self.file_obj.shape[0], self.batch_size)
         ][::-1]
@@ -135,12 +135,12 @@ class ChunkerDataFrame(AbsChunker):
             ].values.tolist()
             self.units_processed += len(lines)
             if not lines:
-                self.done = True
+                self._done = True
                 return False
             else:
                 return lines
         else:
-            self.done = True
+            self._done = True
             return False
 
 

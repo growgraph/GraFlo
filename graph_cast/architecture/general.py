@@ -7,7 +7,7 @@ from enum import Enum
 from typing import TypeVar
 
 from graph_cast.architecture.graph import GraphConfig
-from graph_cast.architecture.schema import VertexConfig
+from graph_cast.architecture.schema import VertexConfig, strip_prefix
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +21,9 @@ class DataSourceType(str, Enum):
 
 class Configurator:
     def __init__(self, config):
+        config = strip_prefix(config)
+        general = config.get("general", {})
+        self.name = general.get("name", "dummy")
         self.vertex_config = VertexConfig(config["vertex_collections"])
         edge_collections = config.get("edge_collections", ())
         self.graph_config = GraphConfig(edge_collections, self.vertex_config)

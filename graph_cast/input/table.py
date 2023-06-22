@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import ChainMap, defaultdict
 from itertools import chain, combinations, product
-from typing import Any, Dict, List
+from typing import Any
 
 from graph_cast.architecture import ConfiguratorType
 from graph_cast.architecture.schema import EdgeType, _source_aux, _target_aux
@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 
 def table_to_collections(
-    rows: List[List],
-    header_dict: Dict[str, int],
+    rows: list[list],
+    header_dict: dict[str, int],
     conf: ConfiguratorType,
 ) -> tuple[
     defaultdict[str, list[dict[str, Any]]],

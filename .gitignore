@@ -69,3 +69,4 @@ target/
 
 *.log.*
 */**/*png
+*/**/*pdf

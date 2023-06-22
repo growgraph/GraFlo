@@ -1,6 +1,5 @@
 import argparse
 import os
-from collections import defaultdict
 from itertools import product
 
 import networkx as nx
@@ -93,39 +92,12 @@ def knapsack(weights, ks_size=7):
     return acc_ret
 
 
-def parse_branch(croot, acc, nc):
-    """
-    extract edge definition and edge fields from definition dict
-    :param croot:
-    :param acc:
-    :param nc:
-    :return:
-    """
-    if isinstance(croot, dict):
-        if "maps" in croot:
-            if "descend_key" in croot:
-                nleft = (croot["descend_key"], "blank")
-            else:
-                nleft = nc
-            for item in croot["maps"]:
-                acc, cnode = parse_branch(item, acc, nleft)
-                if nleft != cnode and nleft is not None:
-                    acc += [(nleft, cnode)]
-            return acc, nleft
-        elif "name" in croot:
-            nleft = (croot["name"], "vcollection")
-            return acc, nleft
-        # else:
-        #     return acc, [(None, "blank")]
-
-
 class SchemaPlotter:
     def __init__(self, config_filename, fig_path):
         self.fig_path = fig_path
 
         self.config = ResourceHandler.load(fpath=config_filename)
 
-        self.name = self.config["general"]["name"]
         self.type: DataSourceType
 
         if DataSourceType.JSON in self.config:
@@ -137,6 +109,7 @@ class SchemaPlotter:
         else:
             raise KeyError(f"Configured to plot json or csv mapper schemas")
 
+        self.name = self.conf.name
         self.prefix = f"{self.name}_{self.type}"
 
     def plot_vc2fields(self):
@@ -234,12 +207,10 @@ class SchemaPlotter:
         nodes = []
         if self.type == DataSourceType.JSON:
             g = nx.DiGraph()
-            acc = []
-            edges_, _ = parse_branch(self.config[self.type], acc, None)
-            edges = [("_".join(x), "_".join(y)) for x, y in edges_]
-            for ee in edges_:
+            edges = list(self.conf.graph_config.all_edges)
+            for ee in edges:
                 for n in ee:
-                    nodes += [("_".join(n), {"type": n[1], "name": n[0]})]
+                    nodes += [(n, {"type": "vcollection"})]
 
             for nid, weight in nodes:
                 g.add_node(nid, **weight)
@@ -247,8 +218,6 @@ class SchemaPlotter:
             g = nx.MultiDiGraph()
             edges = []
             for k, local_vertex_cols in self.conf.modes2collections.items():
-                # for n in self.config[self.type]:
-                # k = n["tabletype"]
                 nodes_table = [(k, {"type": "table"})]
                 nodes_collection = [
                     (vc, {"type": "vcollection"})
@@ -295,16 +264,15 @@ class SchemaPlotter:
         :return:
         """
         g = nx.DiGraph()
-
+        nodes = []
         if self.type == DataSourceType.JSON:
-            edge_def, excl_fields = parse_edges(
-                self.config[self.type], [], defaultdict(list)
-            )
-            edges = [x[:2] for x in edge_def]
-            nodes = [
-                (n, {"type": "vcollection"})
-                for n in self.config["vertex_collections"]["collections"]
-            ]
+            edges = list(self.conf.graph_config.all_edges)
+            for ee in edges:
+                for n in ee:
+                    nodes += [(n, {"type": "vcollection"})]
+
+            for nid, weight in nodes:
+                g.add_node(nid, **weight)
         elif self.type == DataSourceType.TABLE:
             nodes = []
             edges = []
