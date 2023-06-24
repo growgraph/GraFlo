@@ -203,7 +203,7 @@ class Edge:
                 try:
                     self._weight_vertices += [WeightConfig(**item)]
                 except:
-                    logger.error(
+                    logger.warning(
                         "_weight_collections init failed for edge"
                         f" {self.edge_name_dyad}"
                     )
@@ -254,9 +254,9 @@ class Edge:
         self._weight_vertices = edge_with_weights.weight_vertices
 
     def _init_basic(self, dictlike: dict):
-        dictlike = strip_prefix(dictlike)
-        self._source = VertexHelper(name=dictlike["source"])
-        self._target = VertexHelper(name=dictlike["target"])
+        dictlike_stripped: dict = strip_prefix(dictlike)
+        self._source = VertexHelper(name=dictlike_stripped["source"])
+        self._target = VertexHelper(name=dictlike_stripped["target"])
 
     def _init_local_definition(self, dictlike: dict):
         """
@@ -264,10 +264,10 @@ class Edge:
         :param dictlike:
         :return:
         """
-        dictlike = strip_prefix(dictlike)
+        dictlike_stripped: dict = strip_prefix(dictlike)
 
-        self._source = VertexHelper(**dictlike["source"])
-        self._target = VertexHelper(**dictlike["target"])
+        self._source = VertexHelper(**dictlike_stripped["source"])
+        self._target = VertexHelper(**dictlike_stripped["target"])
 
     def _init_indices(self, dictlike, vconf):
         """

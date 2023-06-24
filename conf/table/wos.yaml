@@ -1,6 +1,6 @@
 general:
     name: wos
-csv:
+table:
 -   tabletype: publications
     vertex_collections:
     -   type: publication

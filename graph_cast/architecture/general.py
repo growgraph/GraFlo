@@ -3,18 +3,27 @@ from __future__ import annotations
 import abc
 import logging
 from collections import defaultdict
+from enum import Enum
 from typing import TypeVar
 
 from graph_cast.architecture.graph import GraphConfig
-from graph_cast.architecture.schema import VertexConfig
+from graph_cast.architecture.schema import VertexConfig, strip_prefix
 
 logger = logging.getLogger(__name__)
 
 ConfiguratorType = TypeVar("ConfiguratorType", bound="Configurator")
 
 
+class DataSourceType(str, Enum):
+    JSON = "json"
+    TABLE = "table"
+
+
 class Configurator:
     def __init__(self, config):
+        config = strip_prefix(config)
+        general = config.get("general", {})
+        self.name = general.get("name", "dummy")
         self.vertex_config = VertexConfig(config["vertex_collections"])
         edge_collections = config.get("edge_collections", ())
         self.graph_config = GraphConfig(edge_collections, self.vertex_config)
@@ -137,7 +146,9 @@ class TableMapper:
 
 class LocalVertexCollections:
     def __init__(self, inp):
-        self._vcollections = defaultdict(list)
+        self._vcollections: defaultdict[str, list[TableMapper]] = defaultdict(
+            list
+        )
         for cc in inp:
             # TODO and type is allowed
             if "type" in cc:

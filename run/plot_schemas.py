@@ -1,12 +1,14 @@
 import argparse
 import os
-from collections import defaultdict
 from itertools import product
 
 import networkx as nx
 
-from graph_cast.architecture.json import JConfigurator
-from graph_cast.architecture.table import TConfigurator
+from graph_cast.architecture import (
+    DataSourceType,
+    JConfigurator,
+    TConfigurator,
+)
 from graph_cast.input.obsolete.json_aux import parse_edges
 from graph_cast.util import ResourceHandler
 
@@ -90,49 +92,24 @@ def knapsack(weights, ks_size=7):
     return acc_ret
 
 
-def parse_branch(croot, acc, nc):
-    """
-    extract edge definition and edge fields from definition dict
-    :param croot:
-    :param acc:
-    :param nc:
-    :return:
-    """
-    if isinstance(croot, dict):
-        if "maps" in croot:
-            if "descend_key" in croot:
-                nleft = (croot["descend_key"], "blank")
-            else:
-                nleft = nc
-            for item in croot["maps"]:
-                acc, cnode = parse_branch(item, acc, nleft)
-                if nleft != cnode and nleft is not None:
-                    acc += [(nleft, cnode)]
-            return acc, nleft
-        elif "name" in croot:
-            nleft = (croot["name"], "vcollection")
-            return acc, nleft
-        # else:
-        #     return acc, [(None, "blank")]
-
-
 class SchemaPlotter:
     def __init__(self, config_filename, fig_path):
-        self.figgpath = fig_path
+        self.fig_path = fig_path
 
         self.config = ResourceHandler.load(fpath=config_filename)
 
-        self.name = self.config["general"]["name"]
+        self.type: DataSourceType
 
-        if "json" in self.config:
-            self.type = "json"
+        if DataSourceType.JSON in self.config:
+            self.type = DataSourceType.JSON
             self.conf = JConfigurator(self.config)
-        elif "csv" in self.config:
-            self.type = "csv"
+        elif DataSourceType.TABLE in self.config:
+            self.type = DataSourceType.TABLE
             self.conf = TConfigurator(self.config)
         else:
             raise KeyError(f"Configured to plot json or csv mapper schemas")
 
+        self.name = self.conf.name
         self.prefix = f"{self.name}_{self.type}"
 
     def plot_vc2fields(self):
@@ -216,7 +193,7 @@ class SchemaPlotter:
 
         ag = ag.unflatten("-l 5 -f -c 3")
         ag.draw(
-            os.path.join(self.figgpath, f"{self.prefix}_vc2fields.pdf"),
+            os.path.join(self.fig_path, f"{self.prefix}_vc2fields.pdf"),
             "pdf",
             prog="dot",
         )
@@ -228,23 +205,19 @@ class SchemaPlotter:
 
         """
         nodes = []
-        if self.type == "json":
+        if self.type == DataSourceType.JSON:
             g = nx.DiGraph()
-            acc = []
-            edges_, _ = parse_branch(self.config[self.type], acc, None)
-            edges = [("_".join(x), "_".join(y)) for x, y in edges_]
-            for ee in edges_:
+            edges = list(self.conf.graph_config.all_edges)
+            for ee in edges:
                 for n in ee:
-                    nodes += [("_".join(n), {"type": n[1], "name": n[0]})]
+                    nodes += [(n, {"type": "vcollection"})]
 
             for nid, weight in nodes:
                 g.add_node(nid, **weight)
-        elif self.type == "csv":
+        elif self.type == DataSourceType.TABLE:
             g = nx.MultiDiGraph()
             edges = []
             for k, local_vertex_cols in self.conf.modes2collections.items():
-                # for n in self.config[self.type]:
-                # k = n["tabletype"]
                 nodes_table = [(k, {"type": "table"})]
                 nodes_collection = [
                     (vc, {"type": "vcollection"})
@@ -259,7 +232,7 @@ class SchemaPlotter:
 
             g.add_nodes_from(nodes)
         else:
-            raise KeyError("Suppoted types : csv / json")
+            raise KeyError(f"Suppoted types : {DataSourceType}")
 
         g.add_edges_from(edges)
 
@@ -280,7 +253,7 @@ class SchemaPlotter:
         ag = nx.nx_agraph.to_agraph(g)
 
         ag.draw(
-            os.path.join(self.figgpath, f"{self.prefix}_source2vc.pdf"),
+            os.path.join(self.fig_path, f"{self.prefix}_source2vc.pdf"),
             "pdf",
             prog="dot",
         )
@@ -291,17 +264,16 @@ class SchemaPlotter:
         :return:
         """
         g = nx.DiGraph()
+        nodes = []
+        if self.type == DataSourceType.JSON:
+            edges = list(self.conf.graph_config.all_edges)
+            for ee in edges:
+                for n in ee:
+                    nodes += [(n, {"type": "vcollection"})]
 
-        if self.type == "json":
-            edge_def, excl_fields = parse_edges(
-                self.config[self.type], [], defaultdict(list)
-            )
-            edges = [x[:2] for x in edge_def]
-            nodes = [
-                (n, {"type": "vcollection"})
-                for n in self.config["vertex_collections"]["collections"]
-            ]
-        elif self.type == "csv":
+            for nid, weight in nodes:
+                g.add_node(nid, **weight)
+        elif self.type == DataSourceType.TABLE:
             nodes = []
             edges = []
             for mode, local_vertex_cols in self.conf.modes2collections.items():
@@ -350,7 +322,7 @@ class SchemaPlotter:
         ag = nx.nx_agraph.to_agraph(g)
         # ['neato' | 'dot' | 'twopi' | 'circo' | 'fdp' | 'nop']
         ag.draw(
-            os.path.join(self.figgpath, f"{self.prefix}_vc2vc.pdf"),
+            os.path.join(self.fig_path, f"{self.prefix}_vc2vc.pdf"),
             "pdf",
             prog="dot",
         )
@@ -368,17 +340,16 @@ class SchemaPlotter:
         nodes = []
         edges = []
 
-        for n in self.config["csv"]:
-            k = n["tabletype"]
-            nodes_table = [(f"table:{k}", {"type": "table", "label": k})]
-            vcols = n["vertex_collections"]
-            for item in vcols:
-                cname = item["type"]
-                ref_fields = self.config["vertex_collections"][cname]["index"]
-                if "map" in item:
-                    cmap = item["map"]
-                else:
-                    cmap = dict()
+        for table_name in self.conf.table_config.tables:
+            nodes_table = [
+                (f"table:{table_name}", {"type": "table", "label": table_name})
+            ]
+            table_maps = self.conf.modes2collections[table_name]
+            for vcol_name in self.conf.table_config.vertices(table_name):
+                index = self.conf.vertex_config.index(vcol_name)
+                ref_fields = index.fields
+                maps = table_maps._vcollections[vcol_name]
+                cmap = maps[0]._raw_map
                 fields_collection_complementary = set(ref_fields) - set(
                     cmap.values()
                 )
@@ -386,13 +357,9 @@ class SchemaPlotter:
                     {qq: qq for qq in list(fields_collection_complementary)}
                 )
 
-                index_fields = self.config["vertex_collections"][cname][
-                    "index"
-                ]
-
                 node_collection = (
-                    f"collection:{cname}",
-                    {"type": "vcollection", "label": cname},
+                    f"collection:{vcol_name}",
+                    {"type": "vcollection", "label": vcol_name},
                 )
                 nodes_fields_table = [
                     (f"table:field:{kk}", {"type": "field", "label": kk})
@@ -403,7 +370,7 @@ class SchemaPlotter:
                         f"collection:field:{kk}",
                         {
                             "type": (
-                                "def_field" if kk in index_fields else "field"
+                                "def_field" if kk in ref_fields else "field"
                             ),
                             "label": kk,
                         },
@@ -415,7 +382,7 @@ class SchemaPlotter:
                     for kk, vv in cmap.items()
                 ]
                 edge_table_fields = [
-                    (f"table:{k}", q) for q, _ in nodes_fields_table
+                    (f"table:{table_name}", q) for q, _ in nodes_fields_table
                 ]
                 edge_collection_fields = [
                     (q, node_collection[0]) for q, _ in nodes_fields_collection
@@ -429,7 +396,6 @@ class SchemaPlotter:
                 edges += (
                     edges_fields + edge_table_fields + edge_collection_fields
                 )
-
         g.add_nodes_from(nodes)
         g.add_edges_from(edges)
 
@@ -457,19 +423,18 @@ class SchemaPlotter:
 
         ag = nx.nx_agraph.to_agraph(g)
 
-        for k, props in self.config["vertex_collections"].items():
-            level_index = [
-                f"collection:field:{item}" for item in props["index"]
-            ]
+        for vcol_name in self.conf.vertex_config.collections:
+            index = self.conf.vertex_config.index(vcol_name).fields
+            level_index = [f"collection:field:{item}" for item in index]
             index_subgraph = ag.add_subgraph(
-                level_index, name=f"cluster_{k[:3]}:def"
+                level_index, name=f"cluster_{vcol_name[:3]}:def"
             )
             index_subgraph.node_attr["style"] = "filled"
             index_subgraph.node_attr["label"] = "definition"
 
         ag.draw(
             os.path.join(
-                self.figgpath, f"{self.prefix}_source2vc_detailed.pdf"
+                self.fig_path, f"{self.prefix}_source2vc_detailed.pdf"
             ),
             "pdf",
             prog="dot",
@@ -502,5 +467,5 @@ if __name__ == "__main__":
     plotter.plot_vc2fields()
     plotter.plot_source2vc()
     plotter.plot_vc2vc(prune_leaves=args.prune_low_degree_nodes)
-    # if plotter.type == "csv":
-    #     plotter.plot_source2vc_detailed()
+    if plotter.type == DataSourceType.TABLE:
+        plotter.plot_source2vc_detailed()

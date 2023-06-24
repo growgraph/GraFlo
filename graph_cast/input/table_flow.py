@@ -59,7 +59,7 @@ def process_table(
 
     while not chk.done:
         lines = chk.pop()
-        logger.info(f" processing :{len(lines)}")
+        # logger.info(f" processing :{len(lines)}")
 
         if lines:
             # file to vcols, ecols

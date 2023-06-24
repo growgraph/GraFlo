@@ -59,7 +59,7 @@ def ingest_json_files(
             logger.info(f" processing {filename} took {t_pro.elapsed:.2f} sec")
 
 
-def ingest_csvs(
+def ingest_tables(
     fpath,
     config,
     conn_config: ConnectionConfigType,
@@ -83,7 +83,7 @@ def ingest_csvs(
 
     """
 
-    logger.info("in ingest_csvs")
+    logger.info("in ingest_tables")
     logger.info(f"limit_files : {limit_files}")
     logger.info(f"max_lines : {max_lines}")
     logger.info(f"batch_size : {batch_size}")

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "graph_cast"
-version = "0.11"
+version = "0.11.2"
 description = "ETL to cast tabular and json data types into graphs (collections of vertices and edges)"
 authors = ["Alexander Belikov <alexander@growgraph.dev>"]
 
@@ -16,7 +16,7 @@ pre-commit = "^2.20.0"
 language-formatters-pre-commit-hooks = "^2.4.0"
 pre-commit-hooks = "^4.3.0"
 dataclass-wizard = "^0.22.2"
-suthing = {git = "ssh://git@github.com/growgraph/suthing.git"}
+suthing = {git = "ssh://git@github.com/growgraph/suthing.git", rev = "0.2.0"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

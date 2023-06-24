@@ -2,7 +2,7 @@ import argparse
 import logging
 
 from graph_cast.db import ConfigFactory
-from graph_cast.main import ingest_csvs
+from graph_cast.main import ingest_tables
 from graph_cast.util import ResourceHandler
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     name = name.split(".")[0]
 
     logging.basicConfig(
-        filename=f"ingest_csv_{name}.log",
+        filename=f"ingest_table_{name}.log",
         format=(
             "%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s:"
             " %(message)s"
@@ -83,7 +83,7 @@ if __name__ == "__main__":
         args=ResourceHandler.load(fpath=args.db_config_path)
     )
 
-    ingest_csvs(
+    ingest_tables(
         args.path,
         schema_config,
         conn_conf,

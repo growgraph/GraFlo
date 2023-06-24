@@ -1,6 +1,6 @@
 general:
     name: ticker_history
-csv:
+table:
 -   tabletype: _all
     transforms:
     -   foo: round_str

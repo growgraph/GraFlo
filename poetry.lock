@@ -903,7 +903,7 @@ pyyaml = ">=3.10"
 [package.source]
 type = "git"
 url = "ssh://git@github.com/growgraph/suthing.git"
-reference = "HEAD"
+reference = "0.2.0"
 resolved_reference = "748cf3d913a78c636fcf2fed424e7ff858264549"
 
 [[package]]
@@ -1011,4 +1011,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "70923c1d579cd28c8ebf66819573b36b9699bb3952611d9f6b67764377ab2324"
+content-hash = "153f45eed42cb5206bffc7d46dbc3f74620dedb518da4209ce69d505d6be79d9"
