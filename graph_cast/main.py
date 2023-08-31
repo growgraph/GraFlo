@@ -62,7 +62,7 @@ def ingest_json_files(
 def ingest_tables(
     fpath,
     config,
-    conn_config: ConnectionConfigType,
+    conn_conf: ConnectionConfigType,
     limit_files=None,
     max_lines=None,
     batch_size=5000000,
@@ -73,7 +73,7 @@ def ingest_tables(
 
     :param fpath:
     :param config:
-    :param conn_config:
+    :param conn_conf:
     :param limit_files:
     :param max_lines:
     :param batch_size:
@@ -91,7 +91,7 @@ def ingest_tables(
 
     conf_obj = TConfigurator(config)
 
-    with ConnectionManager(connection_config=conn_config) as db_client:
+    with ConnectionManager(connection_config=conn_conf) as db_client:
         init_db(db_client, conf_obj, clean_start)
 
     # file discovery
@@ -105,7 +105,7 @@ def ingest_tables(
             "batch_size": batch_size,
             "max_lines": max_lines,
             "conf": conf_obj,
-            "db_config": conn_config,
+            "db_config": conn_conf,
         }
 
         with timer.Timer() as klepsidra:

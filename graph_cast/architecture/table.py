@@ -97,7 +97,7 @@ class TConfigurator(Configurator):
                 ]
             )
 
-        if limit_files:
+        if limit_files is not None:
             self.mode2files = {
                 k: v[:limit_files] for k, v in self.mode2files.items()
             }

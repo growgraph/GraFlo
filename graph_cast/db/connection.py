@@ -2,6 +2,8 @@ import abc
 import logging
 from typing import Type, TypeVar
 
+from dataclass_wizard import JSONWizard
+
 from graph_cast.architecture.general import Configurator
 from graph_cast.db.arango.util import define_extra_edges, update_to_numeric
 

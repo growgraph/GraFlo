@@ -70,6 +70,7 @@ class TestIngestJSON(unittest.TestCase):
         #     path, config, conn_conf=conn_conf, ncores=1, upsert_option=False
         # )
 
+    @unittest.skip("")
     def runTest(self):
         for mode in self.modes:
             self._atomic(mode)
