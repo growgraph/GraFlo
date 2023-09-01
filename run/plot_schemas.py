@@ -107,7 +107,7 @@ class SchemaPlotter:
             self.type = DataSourceType.TABLE
             self.conf = TConfigurator(self.config)
         else:
-            raise KeyError(f"Configured to plot json or csv mapper schemas")
+            raise KeyError(f"Configured to plot json or table mapper schemas")
 
         self.name = self.conf.name
         self.prefix = f"{self.name}_{self.type}"
@@ -200,7 +200,7 @@ class SchemaPlotter:
 
     def plot_source2vc(self):
         """
-        draw map of source vertices (nodes of json or csv files) to vertex collections
+        draw map of source vertices (nodes of json or table files) to vertex collections
 
 
         """

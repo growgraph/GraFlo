@@ -2,6 +2,7 @@ import logging
 
 from arango import ArangoClient
 
+from graph_cast.architecture.general import Configurator
 from graph_cast.architecture.graph import GraphConfig
 from graph_cast.architecture.schema import (
     CollectionIndex,
@@ -35,6 +36,15 @@ class ArangoConnection(Connection):
         if not self.conn.has_database(name):
             self.conn.delete_database(name)
 
+    def init_db(self, conf_obj: Configurator, clean_start):
+        if clean_start:
+            self.delete_collections([], [], delete_all=True)
+            #     delete_collections(sys_db, vcollections + ecollections, actual_graphs)
+            # elif clean_start == "edges":
+            #     delete_collections(sys_db, ecollections, [])
+        self.define_collections(conf_obj.graph_config, conf_obj.vertex_config)
+        self.define_indices(conf_obj.graph_config, conf_obj.vertex_config)
+
     def define_collections(self, graph_config, vertex_config: VertexConfig):
         self.define_vertex_collections(graph_config, vertex_config)
         self.define_edge_collections(graph_config)
@@ -60,22 +70,16 @@ class ArangoConnection(Connection):
                 g = self.conn.create_graph(gname)  # type: ignore
 
             # TODO create collections without referencing the graph
-            ih = self.create_collection_if_absent(
-                g,
-                vertex_config.vertex_dbname(u),
-                vertex_config.index(u),
+            ih = self.create_collection(
+                vertex_config.vertex_dbname(u), vertex_config.index(u), g
             )
 
-            ih = self.create_collection_if_absent(
-                g,
-                vertex_config.vertex_dbname(v),
-                vertex_config.index(v),
+            ih = self.create_collection(
+                vertex_config.vertex_dbname(v), vertex_config.index(v), g
             )
         for v in disconnected_vertex_collections:
-            ih = self.create_collection_if_absent(
-                None,
-                vertex_config.vertex_dbname(v),
-                vertex_config.index(v),
+            ih = self.create_collection(
+                vertex_config.vertex_dbname(v), vertex_config.index(v), None
             )
 
     def define_edge_collections(self, graph_config: GraphConfig):
@@ -130,17 +134,17 @@ class ArangoConnection(Connection):
             for index_obj in item.indices:
                 self._add_index(general_collection, index_obj)
 
-    def create_collection_if_absent(self, g, vcol, index: CollectionIndex):
-        if not self.conn.has_collection(vcol):
+    def create_collection(
+        self, collection_name, index: CollectionIndex | None = None, g=None
+    ):
+        if not self.conn.has_collection(collection_name):
             if g is not None:
-                _ = g.create_vertex_collection(vcol)
+                _ = g.create_vertex_collection(collection_name)
             else:
-                self.conn.create_collection(vcol)
-            general_collection = self.conn.collection(vcol)
+                self.conn.create_collection(collection_name)
+            general_collection = self.conn.collection(collection_name)
             if index is not None and index.fields != ["_key"]:
-                ih = general_collection.add_hash_index(
-                    fields=index.fields, unique=index.unique
-                )
+                ih = self._add_index(general_collection, index)
                 return ih
             else:
                 return None

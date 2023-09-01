@@ -2,6 +2,8 @@ import abc
 import logging
 from typing import Type, TypeVar
 
+from dataclass_wizard import JSONWizard
+
 from graph_cast.architecture.general import Configurator
 from graph_cast.db.arango.util import define_extra_edges, update_to_numeric
 
@@ -44,6 +46,10 @@ class Connection(abc.ABC):
 
     @abc.abstractmethod
     def delete_collections(self, cnames=(), gnames=(), delete_all=False):
+        pass
+
+    @abc.abstractmethod
+    def init_db(self, conf_obj: Configurator, clean_start):
         pass
 
     # @abc.abstractmethod
@@ -114,13 +120,7 @@ class WSGIConfig(ConnectionConfig):
 
 
 def init_db(db_client: ConnectionType, conf_obj: Configurator, clean_start):
-    if clean_start:
-        db_client.delete_collections([], [], delete_all=True)
-        #     delete_collections(sys_db, vcollections + ecollections, actual_graphs)
-        # elif clean_start == "edges":
-        #     delete_collections(sys_db, ecollections, [])
-    db_client.define_collections(conf_obj.graph_config, conf_obj.vertex_config)
-    db_client.define_indices(conf_obj.graph_config, conf_obj.vertex_config)
+    db_client.init_db(conf_obj, clean_start)
 
 
 def concluding_db_transform(db_client: ConnectionType, conf_obj):

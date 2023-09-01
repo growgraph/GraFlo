@@ -1,0 +1,15 @@
+version: "3"
+services:
+    arango:
+        image: ${IMAGE_VERSION}
+        restart: "no"
+        profiles: ["test.arango"]
+        ports:
+        -   ${ARANGO_PORT}:8529
+        container_name: ${CONTAINER_NAME}
+        volumes:
+        -   ${PATH_TO_SECRET}:/tmp/secret
+        -   ${STORE_FOLDER}/arangodb3:/var/lib/arangodb3
+        -   ${STORE_FOLDER}/arangodb3-apps:/var/lib/arangodb3-apps
+        environment:
+        -   ARANGO_ROOT_PASSWORD_FILE=/tmp/secret

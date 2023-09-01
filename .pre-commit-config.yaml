@@ -1,4 +1,4 @@
-fail_fast: true
+fail_fast: false
 
 repos:
 -   repo: https://github.com/myint/autoflake
@@ -14,7 +14,7 @@ repos:
     rev: 23.7.0
     hooks:
     -   id: black
-        args: [--diff, --preview, -l 79]
+        args: [--preview, -l 79]
 
 -   repo: https://github.com/PyCQA/isort
     rev: 5.12.0

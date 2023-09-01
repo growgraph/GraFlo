@@ -69,6 +69,7 @@ def insert_edges_batch(
     uniq_weight_collections=None,
     upsert_option=False,
     head=None,
+    **kwargs,
 ):
     f"""
         using ("_key",) for match_keys_source and match_keys_target saves time
@@ -91,7 +92,7 @@ def insert_edges_batch(
 
     if isinstance(docs_edges, list):
         if docs_edges:
-            logger.info(f" docs_edges[0] = {docs_edges[0]}")
+            logger.debug(f" docs_edges[0] = {docs_edges[0]}")
         if head is not None:
             docs_edges = docs_edges[:head]
         if filter_uniques:
@@ -135,9 +136,9 @@ def insert_edges_batch(
         f" UNSET(edge, '{_source_aux}', '{_target_aux}'))"
     )
 
-    logger.info(f" source_filter = {source_filter}")
-    logger.info(f" target_filter = {target_filter}")
-    logger.info(f" doc = {doc_definition}")
+    logger.debug(f" source_filter = {source_filter}")
+    logger.debug(f" target_filter = {target_filter}")
+    logger.debug(f" doc = {doc_definition}")
 
     if upsert_option:
         ups_from = result_from if source_filter else "doc._from"
@@ -162,7 +163,7 @@ def insert_edges_batch(
         upsert = (
             f"{{'_from': {ups_from}, '_to': {ups_to}" + weights_clause + "}"
         )
-        logger.info(f" upsert clause: {upsert}")
+        logger.debug(f" upsert clause: {upsert}")
         clauses = f"UPSERT {upsert} INSERT doc UPDATE {{}}"
         options = "OPTIONS {exclusive: true}"
     else:
