@@ -10,13 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - not more info level logging, only debug
-- 
 
 ### Changed
 
-- in ingest_json_files(): ncores -> n_threads
-- in ingest_tables(): n_thread -> n_threads
-
+- in `ingest_json_files`: ncores -> n_threads
+- in `ingest_tables`: n_thread -> n_threads
+- added a single entry point for file ingestion : `ingest_files`
+- added docker-compose config for Arango; all tests talk to it automatically
+- `init_db` now is member of `Connection`
+- Introduced `InputType` as `Enum` : {`TABLE`, `JSON`}
 
 
 ## [0.11.3] - 2023-06-24
