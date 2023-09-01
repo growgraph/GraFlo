@@ -69,6 +69,7 @@ def insert_edges_batch(
     uniq_weight_collections=None,
     upsert_option=False,
     head=None,
+    **kwargs,
 ):
     f"""
         using ("_key",) for match_keys_source and match_keys_target saves time

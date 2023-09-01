@@ -67,6 +67,12 @@ target/
 *.log
 *.synctex.gz
 
+# cache
+.pytest_cache
+
+.mypy_cache
+
 *.log.*
 */**/*png
 */**/*pdf
+

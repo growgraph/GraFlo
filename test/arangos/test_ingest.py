@@ -1,31 +1,12 @@
-import logging
-import sys
-from os.path import dirname, join, realpath
+from os.path import join
 from pprint import pprint
+from test.arangos.conftest import ingest_atomic
 
 import pytest
-from suthing import FileHandle
 
-from graph_cast.db import ConfigFactory, ConnectionManager
-from graph_cast.main import ingest_json_files, ingest_tables
+from graph_cast.db import ConnectionManager
+from graph_cast.onto import InputType
 from graph_cast.util import ResourceHandler, equals
-
-logger = logging.getLogger(__name__)
-
-logging.basicConfig(
-    level=logging.INFO,
-    stream=sys.stdout,
-)
-
-
-@pytest.fixture()
-def current_path():
-    return dirname(realpath(__file__))
-
-
-@pytest.fixture(scope="function")
-def test_db_name():
-    return "testdb"
 
 
 @pytest.fixture(scope="function")
@@ -42,47 +23,9 @@ def table_modes():
     return ["ibes", "wos", "ticker"]
 
 
-@pytest.fixture(scope="function")
-def conn_conf():
-    db_args = {
-        "protocol": "http",
-        "ip_addr": "localhost",
-        "port": 8535,
-        "cred_name": "root",
-        "database": "_system",
-        "db_type": "arango",
-    }
-    cred_pass = FileHandle.load("docker.arango", "test.arango.secret")
-    db_args["cred_pass"] = cred_pass
-    conn_conf = ConfigFactory.create_config(args=db_args)
-    return conn_conf
-
-
-def json_atomic(conn_conf, current_path, test_db_name, mode):
-    path = join(current_path, f"../data/json/{mode}")
-    config = ResourceHandler.load(f"conf.json", f"{mode}.yaml")
-
-    conn_conf.database = test_db_name
-    ingest_json_files(
-        path, config, conn_conf=conn_conf, ncores=1, upsert_option=False
-    )
-
-
-def table_atomic(conn_conf, current_path, test_db_name, mode):
-    path = join(current_path, f"../data/table/{mode}")
-    config = ResourceHandler.load(f"conf.table", f"{mode}.yaml")
-
-    conn_conf.database = test_db_name
-    ingest_tables(
-        fpath=path,
-        config=config,
-        conn_conf=conn_conf,
-        limit_files=None,
-        clean_start=True,
-    )
-
-
-def verify(conn_conf, current_path, test_db_name, mode, ftype, reset=False):
+def verify(
+    conn_conf, current_path, test_db_name, mode, input_type: InputType, reset
+):
     conn_conf.database = test_db_name
     with ConnectionManager(connection_config=conn_conf) as db_client:
         cols = db_client.get_collections()
@@ -94,38 +37,50 @@ def verify(conn_conf, current_path, test_db_name, mode, ftype, reset=False):
                 vc[c["name"]] = size
     if reset:
         ResourceHandler.dump(
-            vc, join(current_path, f"../ref/{ftype}/{mode}_sizes.yaml")
+            vc, join(current_path, f"../ref/{input_type}/{mode}_sizes.yaml")
         )
     else:
         ref_vc = ResourceHandler.load(
-            f"test.ref.{ftype}", f"{mode}_sizes.yaml"
+            f"test.ref.{input_type}", f"{mode}_sizes.yaml"
         )
         pprint(vc)
         pprint(ref_vc)
         assert equals(vc, ref_vc)
 
 
-def test_json(modes, conn_conf, current_path, test_db_name, reset=False):
+def test_json(modes, conn_conf, current_path, test_db_name, reset):
     for m in modes:
-        json_atomic(conn_conf, current_path, test_db_name, mode=m)
+        ingest_atomic(
+            conn_conf,
+            current_path,
+            test_db_name,
+            input_type=InputType.JSON,
+            mode=m,
+        )
         verify(
             conn_conf,
             current_path,
             test_db_name,
             mode=m,
             reset=reset,
-            ftype="json",
+            input_type=InputType.JSON,
         )
 
 
-def test_csv(table_modes, conn_conf, current_path, test_db_name, reset=False):
+def test_csv(table_modes, conn_conf, current_path, test_db_name, reset):
     for m in table_modes:
-        table_atomic(conn_conf, current_path, test_db_name, mode=m)
+        ingest_atomic(
+            conn_conf,
+            current_path,
+            test_db_name,
+            input_type=InputType.TABLE,
+            mode=m,
+        )
         verify(
             conn_conf,
             current_path,
             test_db_name,
             mode=m,
             reset=reset,
-            ftype="table",
+            input_type=InputType.TABLE,
         )

@@ -14,9 +14,35 @@ from graph_cast.architecture import JConfigurator, TConfigurator
 from graph_cast.db import ConnectionConfigType, ConnectionManager
 from graph_cast.db.connection import init_db
 from graph_cast.input.json_flow import process_jsonlike
+from graph_cast.onto import InputType
 from graph_cast.util import timer as timer
 
 logger = logging.getLogger(__name__)
+
+
+def ingest_files(
+    fpath,
+    schema,
+    conn_conf: ConnectionConfigType,
+    input_type: InputType,
+    # limit_files=None,
+    # max_lines=None,
+    # batch_size=5000000,
+    # clean_start=False,
+    # keyword: Optional[str] = None,
+    # dry=False,
+    **kwargs,
+):
+    if input_type == InputType.TABLE:
+        ingest_tables(
+            fpath=fpath, config=schema, conn_conf=conn_conf, **kwargs
+        )
+    elif input_type == InputType.JSON:
+        ingest_json_files(
+            fpath=fpath, config=schema, conn_conf=conn_conf, **kwargs
+        )
+
+    logger.warning(f"Unknown InputType provided: {InputType}")
 
 
 def ingest_json_files(
@@ -26,7 +52,7 @@ def ingest_json_files(
     keyword: Optional[str] = None,
     clean_start="all",
     dry=False,
-    ncores=1,
+    n_threads=1,
     **kwargs,
 ):
     conf_obj = JConfigurator(config)
@@ -54,7 +80,12 @@ def ingest_json_files(
             with timer.Timer() as t_pro:
                 data = json.load(fps)
                 process_jsonlike(
-                    data, conf_obj, conn_conf, ncores=ncores, dry=dry, **kwargs
+                    data,
+                    conf_obj,
+                    conn_conf,
+                    ncores=n_threads,
+                    dry=dry,
+                    **kwargs,
                 )
             logger.info(f" processing {filename} took {t_pro.elapsed:.2f} sec")
 
@@ -67,7 +98,8 @@ def ingest_tables(
     max_lines=None,
     batch_size=5000000,
     clean_start=False,
-    n_thread=1,
+    n_threads=1,
+    **kwargs,
 ):
     """
 
@@ -76,9 +108,9 @@ def ingest_tables(
     :param conn_conf:
     :param limit_files:
     :param max_lines:
-    :param batch_size:
+    :param batch_size: in bytes
     :param clean_start:
-    :param n_thread: if there are multiple files per mode, they will be processed using n_core threads
+    :param n_threads: if there are multiple files per mode, they will be processed using n_threads threads
     :return:
 
     """
@@ -109,7 +141,7 @@ def ingest_tables(
         }
 
         with timer.Timer() as klepsidra:
-            if n_thread > 1:
+            if n_threads > 1:
                 func = partial(
                     graph_cast.input.table_flow.process_table_with_queue,
                     **kwargs,
@@ -121,7 +153,7 @@ def ingest_tables(
                 tasks: mp.Queue = mp.Queue()
                 for item in conf_obj.mode2files[mode]:
                     tasks.put(item)
-                for w in range(n_thread):
+                for w in range(n_threads):
                     p = mp.Process(target=func, args=(tasks,), kwargs=kwargs)
                     processes.append(p)
                     p.start()

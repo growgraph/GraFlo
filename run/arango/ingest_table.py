@@ -91,5 +91,5 @@ if __name__ == "__main__":
         limit_files=args.limit_files,
         max_lines=args.max_lines,
         clean_start=args.clean_start,
-        n_thread=args.n_thread,
+        n_threads=args.n_thread,
     )

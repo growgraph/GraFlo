@@ -1,10 +1,11 @@
 import logging
 
 import pytest
-from suthing import FileHandle
 
-from graph_cast.db import ConfigFactory, ConnectionManager
+from graph_cast.db import ConnectionManager
 from graph_cast.db.arango.util import insert_return_batch
+
+from .conftest import conn_conf, test_db_name
 
 logger = logging.getLogger(__name__)
 
@@ -12,27 +13,6 @@ logger = logging.getLogger(__name__)
 @pytest.fixture(scope="function")
 def collection_name():
     return "collection0"
-
-
-@pytest.fixture(scope="function")
-def test_db_name():
-    return "testdb"
-
-
-@pytest.fixture(scope="function")
-def conn_conf():
-    db_args = {
-        "protocol": "http",
-        "ip_addr": "localhost",
-        "port": 8535,
-        "cred_name": "root",
-        "database": "_system",
-        "db_type": "arango",
-    }
-    cred_pass = FileHandle.load("docker.arango", "test.arango.secret")
-    db_args["cred_pass"] = cred_pass
-    conn_conf = ConfigFactory.create_config(args=db_args)
-    return conn_conf
 
 
 @pytest.fixture

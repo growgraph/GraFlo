@@ -2,6 +2,7 @@ import logging
 
 from arango import ArangoClient
 
+from graph_cast.architecture.general import Configurator
 from graph_cast.architecture.graph import GraphConfig
 from graph_cast.architecture.schema import (
     CollectionIndex,
@@ -34,6 +35,15 @@ class ArangoConnection(Connection):
     def delete_database(self, name: str):
         if not self.conn.has_database(name):
             self.conn.delete_database(name)
+
+    def init_db(self, conf_obj: Configurator, clean_start):
+        if clean_start:
+            self.delete_collections([], [], delete_all=True)
+            #     delete_collections(sys_db, vcollections + ecollections, actual_graphs)
+            # elif clean_start == "edges":
+            #     delete_collections(sys_db, ecollections, [])
+        self.define_collections(conf_obj.graph_config, conf_obj.vertex_config)
+        self.define_indices(conf_obj.graph_config, conf_obj.vertex_config)
 
     def define_collections(self, graph_config, vertex_config: VertexConfig):
         self.define_vertex_collections(graph_config, vertex_config)
