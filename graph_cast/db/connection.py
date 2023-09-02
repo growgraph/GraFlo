@@ -1,19 +1,13 @@
 import abc
 import logging
-from typing import Type, TypeVar
-
-from dataclass_wizard import JSONWizard
+from typing import TypeVar
 
 from graph_cast.architecture.general import Configurator
 from graph_cast.db.arango.util import define_extra_edges, update_to_numeric
 
 logger = logging.getLogger(__name__)
 
-
 ConnectionType = TypeVar("ConnectionType", bound="Connection")
-ConnectionConfigType = TypeVar(
-    "ConnectionConfigType", bound="ConnectionConfig"
-)
 
 
 class Connection(abc.ABC):
@@ -75,48 +69,6 @@ class Connection(abc.ABC):
     # @abc.abstractmethod
     # def create_collection_if_absent(self, g, vcol, index, unique=True):
     #     pass
-
-
-class ConnectionConfig(abc.ABC):
-    connection_class: Type[Connection]
-
-    def __init__(self, **config):
-        self.protocol = config.get("protocol", "http")
-        self.ip_addr = config.get("ip_addr", None)
-        self.cred_name = config.get("cred_name", None)
-        self.cred_pass = config.get("cred_pass", None)
-        self.database = config.get("database", None)
-        self.port = config.get("port", None)
-        self.hosts = None
-        self.request_timeout = config.get("request_timeout", 60)
-
-
-class WSGIConfig(ConnectionConfig):
-    def __init__(self, **config):
-        hosts = config.pop("hosts", None)
-        if hosts is None:
-            super(WSGIConfig, self).__init__(**config)
-            self.path = config.get("path", "/")
-            self.paths = config.get("paths", {})
-            self.hosts = (
-                f"{self.protocol}://{self.ip_addr}:{self.port}{self.path}"
-            )
-            self.host = config.get("host", None)
-        else:
-            # validate hosts?
-            self.hosts = hosts
-            self._parse_hosts()
-
-    def _parse_hosts(self):
-        h = self.hosts
-
-        h2 = h.split("://")
-        self.protocol = h2[0]
-        h3 = h2[1].split(":")
-        self.ip_addr = h3[0]
-        h4 = h3[1].split("/")
-        self.port = h4[0]
-        self.path = "/" + "/".join(h4[1:])
 
 
 def init_db(db_client: ConnectionType, conf_obj: Configurator, clean_start):

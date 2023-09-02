@@ -2,13 +2,14 @@ import logging
 from typing import List
 
 from graph_cast.architecture import JConfigurator
-from graph_cast.db import ConnectionConfigType, ConnectionManager
+from graph_cast.db import ConnectionManager
 from graph_cast.db.arango.util import (
     define_extra_edges,
     fetch_fields,
     insert_edges_batch,
     upsert_docs_batch,
 )
+from graph_cast.db.onto import DBConnectionConfig
 from graph_cast.input.json import jsonlike_to_collections
 from graph_cast.input.util import list_to_dict_edges, list_to_dict_vertex
 from graph_cast.util import timer as timer
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 def process_jsonlike(
     json_data: List,
     conf_obj: JConfigurator,
-    db_config: ConnectionConfigType,
+    db_config: DBConnectionConfig,
     ncores=1,
     dry=False,
     **kwargs,

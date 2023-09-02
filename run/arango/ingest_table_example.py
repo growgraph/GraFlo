@@ -38,7 +38,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     db_args["database"] = "testdb"
-    conn_conf = ConfigFactory.create_config(args=db_args)
+    conn_conf = ConfigFactory.create_config(dict_like=db_args)
 
     schema_config = ResourceHandler.load(fpath=args.config_path)
     schema_conf = TConfigurator(schema_config)

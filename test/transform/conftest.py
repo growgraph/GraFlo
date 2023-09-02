@@ -67,13 +67,19 @@ def transform_it(current_path, input_type, mode, reset):
 
 
 def verify(vc, current_path, mode, reset):
+    vc_tranformed = {
+        "->".join(list(k)) if isinstance(k, tuple) else k: v
+        for k, v in vc.items()
+    }
+
     if reset:
         ResourceHandler.dump(
-            vc, join(current_path, f"../ref/transform/{mode}_sizes.yaml")
+            vc_tranformed,
+            join(current_path, f"../ref/transform/{mode}_sizes.yaml"),
         )
 
     else:
         ref_vc = ResourceHandler.load(
             f"test.ref.transform", f"{mode}_sizes.yaml"
         )
-        assert equals(vc, ref_vc)
+        assert equals(vc_tranformed, ref_vc)

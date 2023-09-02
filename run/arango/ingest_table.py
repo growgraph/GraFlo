@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     schema_config = ResourceHandler.load(fpath=args.config_path)
     conn_conf = ConfigFactory.create_config(
-        args=ResourceHandler.load(fpath=args.db_config_path)
+        dict_like=ResourceHandler.load(fpath=args.db_config_path)
     )
 
     ingest_tables(

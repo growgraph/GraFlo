@@ -2,21 +2,22 @@ import logging
 
 from arango import ArangoClient
 
-from graph_cast.architecture.general import Configurator
+from graph_cast.architecture import Configurator
 from graph_cast.architecture.graph import GraphConfig
 from graph_cast.architecture.schema import (
     CollectionIndex,
     IndexType,
     VertexConfig,
 )
-from graph_cast.db import ConnectionConfigType
-from graph_cast.db.connection import Connection
+from graph_cast.db import Connection
+from graph_cast.db.connection import logger
+from graph_cast.db.onto import ArangoConnectionConfig
 
 logger = logging.getLogger(__name__)
 
 
 class ArangoConnection(Connection):
-    def __init__(self, config: ConnectionConfigType):
+    def __init__(self, config: ArangoConnectionConfig):
         super().__init__()
         client = ArangoClient(
             hosts=config.hosts, request_timeout=config.request_timeout

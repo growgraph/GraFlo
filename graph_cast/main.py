@@ -11,8 +11,9 @@ import graph_cast.input.json
 import graph_cast.input.table
 import graph_cast.input.table_flow
 from graph_cast.architecture import JConfigurator, TConfigurator
-from graph_cast.db import ConnectionConfigType, ConnectionManager
+from graph_cast.db import ConnectionManager
 from graph_cast.db.connection import init_db
+from graph_cast.db.onto import DBConnectionConfig
 from graph_cast.input.json_flow import process_jsonlike
 from graph_cast.onto import InputType
 from graph_cast.util import timer as timer
@@ -23,14 +24,8 @@ logger = logging.getLogger(__name__)
 def ingest_files(
     fpath,
     schema,
-    conn_conf: ConnectionConfigType,
+    conn_conf: DBConnectionConfig,
     input_type: InputType,
-    # limit_files=None,
-    # max_lines=None,
-    # batch_size=5000000,
-    # clean_start=False,
-    # keyword: Optional[str] = None,
-    # dry=False,
     **kwargs,
 ):
     if input_type == InputType.TABLE:
@@ -48,7 +43,7 @@ def ingest_files(
 def ingest_json_files(
     fpath,
     config,
-    conn_conf: ConnectionConfigType,
+    conn_conf: DBConnectionConfig,
     keyword: Optional[str] = None,
     clean_start="all",
     dry=False,
@@ -93,7 +88,7 @@ def ingest_json_files(
 def ingest_tables(
     fpath,
     config,
-    conn_conf: ConnectionConfigType,
+    conn_conf: DBConnectionConfig,
     limit_files=None,
     max_lines=None,
     batch_size=5000000,

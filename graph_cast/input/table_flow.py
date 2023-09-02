@@ -6,12 +6,13 @@ import pandas as pd
 
 from graph_cast.architecture import ConfiguratorType
 from graph_cast.architecture.schema import _source_aux, _target_aux
-from graph_cast.db import ConnectionConfigType, ConnectionManager
+from graph_cast.db import ConnectionManager
 from graph_cast.db.arango.util import (
     insert_edges_batch,
     insert_return_batch,
     upsert_docs_batch,
 )
+from graph_cast.db.onto import DBConnectionConfig
 from graph_cast.input import table_to_collections
 from graph_cast.input.table import logger
 from graph_cast.util.io import AbsChunker, Chunker, ChunkerDataFrame
@@ -20,7 +21,7 @@ from graph_cast.util.io import AbsChunker, Chunker, ChunkerDataFrame
 def process_table(
     tabular_resource: Union[str, pd.DataFrame],
     conf: ConfiguratorType,
-    db_config: Optional[ConnectionConfigType] = None,
+    db_config: Optional[DBConnectionConfig] = None,
     batch_size: int = 1000,
     max_lines: int = 10000,
 ):
@@ -59,7 +60,6 @@ def process_table(
 
     while not chk.done:
         lines = chk.pop()
-        # logger.info(f" processing :{len(lines)}")
 
         if lines:
             # file to vcols, ecols

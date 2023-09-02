@@ -24,7 +24,7 @@ class TestDBAccess(unittest.TestCase):
     @unittest.skip("")
     def test_db_access(self):
         db_args = dict(self.db_args)
-        conn_conf = ConfigFactory.create_config(args=db_args)
+        conn_conf = ConfigFactory.create_config(dict_like=db_args)
 
         with ConnectionManager(connection_config=conn_conf) as db_client:
             query = "MATCH(n) RETURN n LIMIT 3"

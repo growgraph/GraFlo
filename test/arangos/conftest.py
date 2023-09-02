@@ -34,7 +34,7 @@ def conn_conf(test_db_port):
     cred_pass = FileHandle.load("docker.arango", "test.arango.secret")
 
     db_args["cred_pass"] = cred_pass
-    conn_conf = ConfigFactory.create_config(args=db_args)
+    conn_conf = ConfigFactory.create_config(dict_like=db_args)
     conn_conf.port = test_db_port
     return conn_conf
 
