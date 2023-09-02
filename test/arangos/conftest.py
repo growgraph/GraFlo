@@ -23,19 +23,19 @@ def test_db_port():
 
 @pytest.fixture(scope="function")
 def conn_conf(test_db_port):
+    cred_pass = FileHandle.load("docker.arango", "test.arango.secret")
+
     db_args = {
         "protocol": "http",
         "ip_addr": "localhost",
-        "port": 8535,
+        "port": test_db_port,
         "cred_name": "root",
+        "cred_pass": cred_pass,
         "database": "_system",
         "db_type": "arango",
     }
-    cred_pass = FileHandle.load("docker.arango", "test.arango.secret")
 
-    db_args["cred_pass"] = cred_pass
     conn_conf = ConfigFactory.create_config(dict_like=db_args)
-    conn_conf.port = test_db_port
     return conn_conf
 
 

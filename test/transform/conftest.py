@@ -1,7 +1,7 @@
 from os.path import dirname, join, realpath
 
 import pytest
-from suthing import FileHandle, equals
+from suthing import equals
 
 from graph_cast.architecture import JConfigurator, TConfigurator
 from graph_cast.input import jsondoc_to_collections, table_to_collections

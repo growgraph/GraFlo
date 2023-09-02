@@ -2,6 +2,12 @@ import logging
 
 from neo4j import GraphDatabase
 
+from graph_cast.architecture import Configurator
+from graph_cast.architecture.schema import (
+    CollectionIndex,
+    IndexType,
+    VertexConfig,
+)
 from graph_cast.db import Connection
 from graph_cast.db.onto import Neo4jConnectionConfig
 
@@ -16,123 +22,75 @@ class Neo4jConnection(Connection):
         )
         self.conn = driver.session()
 
-        # self.conn = client.db(
-        #     config.database, username=config.cred_name, password=config.cred_pass
-        # )
-
-    # def define_collections(self, graph_config, vertex_config):
-    #     self.define_vertex_collections(graph_config, vertex_config)
-    #     self.define_edge_collections(graph_config)
-    #
-    # def define_indices(self, graph_config, vertex_config):
-    #     self.define_vertex_indices(vertex_config)
-    #     self.define_edge_indices(graph_config)
-    #
-    # def define_vertex_collections(self, graph_config, vertex_config):
-    #     vertex_index = vertex_config.index
-    #     edges = graph_config.all_edges
-    #
-    #     disconnected_vertex_collections = set(vertex_config.collections) - set([v for edge in edges for v in edge])
-    #     for u, v in edges:
-    #         item = graph_config.graph(u, v)
-    #         gname = item["graph_name"]
-    #         logger.info(f'{item["source"]}, {item["target"]}, {gname}')
-    #         if self.conn.has_graph(gname):
-    #             g = self.conn.graph(gname)
-    #         else:
-    #             g = self.conn.create_graph(gname)
-    #         # TODO create collections without referencing the graph
-    #         ih = self.create_collection_if_absent(
-    #             g,
-    #             item["source"],
-    #             vertex_index(u),
-    #         )
-    #
-    #         ih = self.create_collection_if_absent(
-    #             g,
-    #             item["target"],
-    #             vertex_index(v),
-    #         )
-    #     for v in disconnected_vertex_collections:
-    #         dbc = self.conn.create_collection(vertex_config._vmap[v])
-    #         # TODO default unique index here
-    #         ih = dbc.add_hash_index(fields=vertex_config.index(v))
-    #
-    # def define_edge_collections(self, graph_config):
-    #     edges = graph_config.all_edges
-    #     for u, v in edges:
-    #         item = graph_config.graph(u, v)
-    #         gname = item["graph_name"]
-    #         if self.conn.has_graph(gname):
-    #             g = self.conn.graph(gname)
-    #         else:
-    #             g = self.conn.create_graph(gname)
-    #         if not g.has_edge_definition(item["edge_name"]):
-    #             _ = g.create_edge_definition(
-    #                 edge_collection=item["edge_name"],
-    #                 from_vertex_collections=[item["source"]],
-    #                 to_vertex_collections=[item["target"]],
-    #             )
-    #
-    # def define_vertex_indices(self, vertex_config):
-    #     for c in vertex_config.collections:
-    #         for index_dict in vertex_config.extra_index_list(c):
-    #             general_collection = self.conn.collection(vertex_config.dbname(c))
-    #             ih = general_collection.add_hash_index(
-    #                 fields=index_dict["fields"], unique=index_dict["unique"]
-    #             )
-    #
-    # def define_edge_indices(self, graph_config):
-    #     for u, v in graph_config.all_edges:
-    #         item = graph_config.graph(u, v)
-    #         if "index" in item:
-    #             for index_dict in item["index"]:
-    #                 general_collection = self.conn.collection(item["edge_name"])
-    #                 ih = general_collection.add_hash_index(
-    #                     fields=index_dict["fields"], unique=index_dict["unique"]
-    #                 )
-    #
-    # def create_collection_if_absent(self, g, vcol, index, unique=True):
-    #     if not self.conn.has_collection(vcol):
-    #         _ = g.create_vertex_collection(vcol)
-    #         general_collection = self.conn.collection(vcol)
-    #         if index is not None and index != ["_key"]:
-    #             ih = general_collection.add_hash_index(fields=index, unique=unique)
-    #             return ih
-    #         else:
-    #             return None
-    #
-    # def delete_collections(self, cnames=(), gnames=(), delete_all=False):
-    #     logger.info("collections (non system):")
-    #     logger.info([c for c in self.conn.collections() if c["name"][0] != "_"])
-    #
-    #     if delete_all:
-    #         cnames = [c["name"] for c in self.conn.collections() if c["name"][0] != "_"]
-    #         gnames = [g["name"] for g in self.conn.graphs()]
-    #
-    #     for cn in cnames:
-    #         if self.conn.has_collection(cn):
-    #             self.conn.delete_collection(cn)
-    #
-    #     logger.info("collections (after delete operation):")
-    #     logger.info([c for c in self.conn.collections() if c["name"][0] != "_"])
-    #
-    #     logger.info("graphs:")
-    #     logger.info(self.conn.graphs())
-    #
-    #     for gn in gnames:
-    #         if self.conn.has_graph(gn):
-    #             self.conn.delete_graph(gn)
-    #
-    #     logger.info("graphs (after delete operation):")
-    #     logger.info(self.conn.graphs())
-    #
-    # def get_collections(self):
-    #     return self.conn.collections()
-
     def execute(self, query, params=None):
         cursor = self.conn.run(query, params)
         return cursor
 
     def close(self):
         self.conn.close()
+
+    def create_database(self, name: str):
+        """
+        supported only in enterprise version
+
+        :param name:
+        :return:
+        """
+        try:
+            self.execute(f"CREATE DATABASE {name}")
+        except Exception as e:
+            logger.error(f"{e}")
+
+    def delete_database(self, name: str):
+        """
+        supported only in enterprise version
+        :param name:
+        :return:
+        """
+        try:
+            self.execute(f"DROP DATABASE {name}")
+        except Exception as e:
+            logger.error(f"{e}")
+
+    def define_vertex_indices(self, vertex_config: VertexConfig):
+        for c in vertex_config.collections:
+            for index_obj in vertex_config.extra_index_list(c):
+                self._add_index(c, index_obj)
+
+    def _add_index(self, vertex_name, index: CollectionIndex):
+        for f in index.fields:
+            q = f"CREATE INDEX ON :{vertex_name}({f})"
+            self.execute(q)
+        if len(index.fields) > 1:
+            fields_str = ", ".join(index.fields)
+            q = f"CREATE INDEX ON :{vertex_name}({fields_str})"
+            self.execute(q)
+
+    def define_collections(self, graph_config, vertex_config: VertexConfig):
+        pass
+        # self.define_vertex_collections(graph_config, vertex_config)
+        # self.define_edge_collections(graph_config)
+
+    def define_indices(self, graph_config, vertex_config: VertexConfig):
+        self.define_vertex_indices(vertex_config)
+        # self.define_edge_indices(graph_config)
+
+    def define_vertex_collections(self, graph_config, vertex_config):
+        pass
+
+    def define_edge_collections(self, graph_config):
+        pass
+
+    def define_edge_indices(self, graph_config):
+        pass
+
+    def delete_collections(self, cnames=(), gnames=(), delete_all=False):
+        # for relation in gnames:
+        #     q = f"match (a) -[r] -> () delete r"
+        #     self.execute(q)
+        for c in cnames:
+            q = f"MATCH (a:{c}) DELETE a"
+            self.execute(q)
+
+    def init_db(self, conf_obj: Configurator, clean_start):
+        self.define_indices(conf_obj.graph_config, conf_obj.vertex_config)

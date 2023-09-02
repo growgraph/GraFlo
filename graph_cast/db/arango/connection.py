@@ -10,7 +10,6 @@ from graph_cast.architecture.schema import (
     VertexConfig,
 )
 from graph_cast.db import Connection
-from graph_cast.db.connection import logger
 from graph_cast.db.onto import ArangoConnectionConfig
 
 logger = logging.getLogger(__name__)
@@ -98,8 +97,7 @@ class ArangoConnection(Connection):
                     to_vertex_collections=[item.target_collection],
                 )
 
-    @staticmethod
-    def _add_index(general_collection, index: CollectionIndex):
+    def _add_index(self, general_collection, index: CollectionIndex):
         data = index.to_dict()
         # in CollectionIndex "name" is used for vertex collection derived index field
         # to let arango name her index, we remove "name"
@@ -121,7 +119,7 @@ class ArangoConnection(Connection):
             ih = None
         return ih
 
-    def define_vertex_indices(self, vertex_config):
+    def define_vertex_indices(self, vertex_config: VertexConfig):
         for c in vertex_config.collections:
             for index_obj in vertex_config.extra_index_list(c):
                 general_collection = self.conn.collection(
