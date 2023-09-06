@@ -4,6 +4,7 @@ from collections import defaultdict
 
 from graph_cast.architecture.ptree import MapperNode, NodeType, ParsingTree
 from graph_cast.architecture.schema import (
+    CollectionIndex,
     Edge,
     EdgeType,
     VertexConfig,

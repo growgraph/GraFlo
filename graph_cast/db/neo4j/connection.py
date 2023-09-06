@@ -11,11 +11,14 @@ from graph_cast.architecture.schema import (
 )
 from graph_cast.db import Connection
 from graph_cast.db.onto import Neo4jConnectionConfig
+from graph_cast.onto import DBFlavor
 
 logger = logging.getLogger(__name__)
 
 
 class Neo4jConnection(Connection):
+    flavor = DBFlavor.NEO4J
+
     def __init__(self, config: Neo4jConnectionConfig):
         super().__init__()
         driver = GraphDatabase.driver(
@@ -55,19 +58,16 @@ class Neo4jConnection(Connection):
 
     def define_vertex_indices(self, vertex_config: VertexConfig):
         for c in vertex_config.collections:
+            self._add_index(c, vertex_config.index(c))
             for index_obj in vertex_config.extra_index_list(c):
                 self._add_index(c, index_obj)
 
     def define_edge_indices(self, graph_config: GraphConfig):
         for item in graph_config.all_edge_definitions():
-            general_collection = self.conn.collection(item.edge_name)
             for index_obj in item.indices:
-                self._add_index(general_collection, index_obj)
-
-        # q = (
-        #     "CREATE INDEX officerRelationshipProperty FOR ()-[r:OFFICER_OF]-()"
-        #     " ON (r.role);"
-        # )
+                self._add_index(
+                    item.edge_name, index_obj, is_vertex_index=False
+                )
 
     def _add_index(
         self, obj_name, index: CollectionIndex, is_vertex_index=True

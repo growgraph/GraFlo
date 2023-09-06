@@ -28,6 +28,4 @@ arangosh --server.endpoint tcp://127.0.0.1:8529 --server.username <name> --serve
 
 ## neo4j shell
 
-```shell
-arangosh --server.endpoint tcp://127.0.0.1:8529 --server.username <name> --server.database <db_name>
-```
+`cypher-shell` is available in docker, but it is easier to work with [http://localhost:7475](http://localhost:7475). NB: standard neo4j port is `7474`.

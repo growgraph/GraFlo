@@ -7,6 +7,11 @@ class InputType(str, Enum):
     TABLE = "table"
 
 
+class DBFlavor(str, Enum):
+    ARANGO = "arango"
+    NEO4J = "neo4j"
+
+
 InputTypeFileExtensions = MappingProxyType(
     {InputType.JSON: (InputType.JSON,), InputType.TABLE: ("csv",)}
 )

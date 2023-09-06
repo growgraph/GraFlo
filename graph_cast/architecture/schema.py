@@ -10,6 +10,7 @@ from typing import Union
 from dataclass_wizard import JSONWizard
 
 from graph_cast.architecture.transform import Transform
+from graph_cast.onto import DBFlavor
 
 logger = logging.getLogger(__name__)
 
@@ -178,8 +179,10 @@ class Edge:
         self._weight_dict: dict = dict()
         self._extra_indices: list[CollectionIndex] = []
         self._how: EdgeMapping = dictlike.pop("how", EdgeMapping.ALL)
+        self._relation: str = dictlike.pop("relation", None)
         self._type: EdgeType = EdgeType.DIRECT if direct else EdgeType.INDIRECT
         self._by = None
+        self._db_flavor = vconf.db_flavor
 
         try:
             if isinstance(dictlike["source"], dict) and isinstance(
@@ -231,10 +234,9 @@ class Edge:
         if self._collection_name_suffix:
             self._collection_name_suffix = f"{self._collection_name_suffix}_"
 
-        self._edge_name = (
-            f"{vconf.vertex_dbname(self.source)}_{vconf.vertex_dbname(self.target)}_"
-            f"{self._collection_name_suffix}edges"
-        )
+        self._source_dbname = vconf.vertex_dbname(self.source)
+        self._target_dbname = vconf.vertex_dbname(self.target)
+
         self._graph_name = (
             f"{vconf.vertex_dbname(self.source)}_{vconf.vertex_dbname(self.target)}_"
             f"{self._collection_name_suffix}graph"
@@ -303,12 +305,12 @@ class Edge:
             index_fields += fields
 
         unique = item.pop("unique", True)
-        index_type = item.pop("type", "persistent")
+        index_type: IndexType = item.pop("type", IndexType.PERSISTENT)
         deduplicate = item.pop("deduplicate", True)
         sparse = item.pop("sparse", False)
         fields_only = item.pop("fields_only", False)
         if index_fields:
-            if not fields_only:
+            if not fields_only and self._db_flavor == DBFlavor.ARANGO:
                 index_fields = ["_from", "_to"] + index_fields
             return CollectionIndex(
                 name=collection_name,
@@ -343,7 +345,16 @@ class Edge:
 
     @property
     def edge_name(self):
-        return self._edge_name
+        if self._relation is None:
+            if self._db_flavor == DBFlavor.ARANGO:
+                x = f"{self._source_dbname}_{self._target_dbname}_{self._collection_name_suffix}edges"
+            elif self._db_flavor == DBFlavor.NEO4J:
+                x = f"{self._source_dbname}{self._target_dbname}"
+            else:
+                raise ValueError(f" Unknown DBFlavor: {self._db_flavor}")
+        else:
+            x = self._relation
+        return x
 
     @property
     def how(self):
@@ -368,6 +379,13 @@ class Edge:
     @property
     def type(self) -> EdgeType:
         return self._type
+
+    @property
+    def relation(self) -> str:
+        if self._relation is None:
+            return self.edge_name
+        else:
+            return self._relation
 
     @property
     def by(self):
@@ -465,6 +483,7 @@ class VertexConfig:
 
         # TODO introduce meaningful error in case `collections` key is absent
         config = vconfig["collections"]
+        self.db_flavor = vconfig.pop("db_flavor", DBFlavor.ARANGO)
 
         self._init_vcollections(config)
         self._init_names(config)

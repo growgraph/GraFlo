@@ -1,5 +1,6 @@
 general:
     name: reviews
+
 table:
 -   tabletype: authors
     vertex_collections:
@@ -12,6 +13,7 @@ table:
         map:
             research_sector: research_sector
 vertex_collections:
+    db_flavor: neo4j
     collections:
         author:
             basename: Author
@@ -34,7 +36,7 @@ edge_collections:
     main:
     -   source: author
         target: research_field
-        name: belongsTo
+        relation: belongsTo
         index:
         -   fields:
             -   t_obs
