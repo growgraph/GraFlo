@@ -1,0 +1,41 @@
+general:
+    name: reviews
+table:
+-   tabletype: authors
+    vertex_collections:
+    -   type: author
+        map:
+            author_id: id
+            FullName: full_name
+            HIndex: hindex
+    -   type: field
+        map:
+            research_sector: research_sector
+vertex_collections:
+    collections:
+        author:
+            basename: Author
+            fields:
+            -   id
+            -   full_name
+            -   hindex
+            index:
+            -   id
+            -   full_name
+        research_field:
+            basename: ResearchField
+            fields:
+            -   id
+            -   name
+            -   level
+            index:
+            -   id
+edge_collections:
+    main:
+    -   source: author
+        target: research_field
+        name: belongsTo
+        index:
+        -   fields:
+            -   t_obs
+

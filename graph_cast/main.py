@@ -12,7 +12,6 @@ import graph_cast.input.table
 import graph_cast.input.table_flow
 from graph_cast.architecture import JConfigurator, TConfigurator
 from graph_cast.db import ConnectionManager
-from graph_cast.db.connection import init_db
 from graph_cast.db.onto import DBConnectionConfig
 from graph_cast.input.json_flow import process_jsonlike
 from graph_cast.onto import InputType
@@ -53,7 +52,7 @@ def ingest_json_files(
     conf_obj = JConfigurator(config)
 
     with ConnectionManager(connection_config=conn_conf) as db_client:
-        init_db(db_client, conf_obj, clean_start)
+        db_client.init_db(conf_obj, clean_start)
 
     # file discovery <- move this foo to JConfigurator
     files = sorted(
@@ -119,7 +118,7 @@ def ingest_tables(
     conf_obj = TConfigurator(config)
 
     with ConnectionManager(connection_config=conn_conf) as db_client:
-        init_db(db_client, conf_obj, clean_start)
+        db_client.init_db(conf_obj, clean_start)
 
     # file discovery
     conf_obj.discover_files(fpath, limit_files=limit_files)

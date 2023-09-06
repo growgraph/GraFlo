@@ -3,6 +3,7 @@ import logging
 from neo4j import GraphDatabase
 
 from graph_cast.architecture import Configurator
+from graph_cast.architecture.graph import GraphConfig
 from graph_cast.architecture.schema import (
     CollectionIndex,
     IndexType,
@@ -57,14 +58,34 @@ class Neo4jConnection(Connection):
             for index_obj in vertex_config.extra_index_list(c):
                 self._add_index(c, index_obj)
 
-    def _add_index(self, vertex_name, index: CollectionIndex):
-        for f in index.fields:
-            q = f"CREATE INDEX ON :{vertex_name}({f})"
-            self.execute(q)
-        if len(index.fields) > 1:
-            fields_str = ", ".join(index.fields)
-            q = f"CREATE INDEX ON :{vertex_name}({fields_str})"
-            self.execute(q)
+    def define_edge_indices(self, graph_config: GraphConfig):
+        for item in graph_config.all_edge_definitions():
+            general_collection = self.conn.collection(item.edge_name)
+            for index_obj in item.indices:
+                self._add_index(general_collection, index_obj)
+
+        # q = (
+        #     "CREATE INDEX officerRelationshipProperty FOR ()-[r:OFFICER_OF]-()"
+        #     " ON (r.role);"
+        # )
+
+    def _add_index(
+        self, obj_name, index: CollectionIndex, is_vertex_index=True
+    ):
+        fields_str = ", ".join([f"x.{f}" for f in index.fields])
+        fields_str2 = "_".join(index.fields)
+        index_name = f"{obj_name}_{fields_str2}"
+        if is_vertex_index:
+            formula = f"(x:{obj_name})"
+        else:
+            formula = f"()-[x:{obj_name}]-()"
+
+        q = (
+            f"CREATE INDEX {index_name} IF NOT EXISTS FOR {formula} ON"
+            f" ({fields_str});"
+        )
+
+        self.execute(q)
 
     def define_collections(self, graph_config, vertex_config: VertexConfig):
         pass
@@ -73,15 +94,12 @@ class Neo4jConnection(Connection):
 
     def define_indices(self, graph_config, vertex_config: VertexConfig):
         self.define_vertex_indices(vertex_config)
-        # self.define_edge_indices(graph_config)
+        self.define_edge_indices(graph_config)
 
     def define_vertex_collections(self, graph_config, vertex_config):
         pass
 
     def define_edge_collections(self, graph_config):
-        pass
-
-    def define_edge_indices(self, graph_config):
         pass
 
     def delete_collections(self, cnames=(), gnames=(), delete_all=False):

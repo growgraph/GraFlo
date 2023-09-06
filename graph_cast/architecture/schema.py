@@ -495,7 +495,16 @@ class VertexConfig:
             )
 
     def vertex_dbname(self, vertex_name):
-        return self._vcollections_all[vertex_name].dbname
+        try:
+            value = self._vcollections_all[vertex_name].dbname
+        except KeyError as e:
+            logger.error(
+                "Available vertex collections :"
+                f" {self._vcollections_all.keys()}; vertex collection"
+                f" requested : {vertex_name}"
+            )
+            raise e
+        return value
 
     def index(self, vertex_name) -> CollectionIndex:
         return self._vcollections_all[vertex_name].index

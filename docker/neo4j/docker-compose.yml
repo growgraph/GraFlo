@@ -5,8 +5,8 @@ services:
         restart: "no"
         profiles: ["test.neo4j"]
         ports:
-        -   ${NEO4J_PORT}:7474
-        -   ${NEO4J_BOLT_PORT}:7687
+        -   "${NEO4J_PORT}:7474"
+        -   "${NEO4J_BOLT_PORT}:7687"
         container_name: ${CONTAINER_NAME}
         volumes:
         -   ${STORE_FOLDER}/data:/data

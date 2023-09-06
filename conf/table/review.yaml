@@ -1,0 +1,76 @@
+general:
+    name: reviewers
+#table2file = {
+#    "author": ["authors.csv.gz"],
+#    "publications": ["publications.csv.gz"],
+#    "field_of_study": ["field_of_study.csv.gz"],
+#}
+table:
+-   tabletype: authors
+    vertex_collections:
+    -   type: author
+        map:
+            author_id: id
+            FullName: full_name
+            HIndex: hindex
+    -   type: field
+        map:
+            research_sector: research_sector
+-   tabletype: publications
+    vertex_collections:
+    -   type: publication
+        map:
+            PublicationId: id
+            Doi: doi
+            HIndex: hindex
+#        -   type: field
+#            "topics": lambda s: parse_row(s, direct=["id"])
+#        -   type: author
+#            "authors": lambda s: parse_row(s, mapper={"name": "full_name"}, direct=["id"])
+-   tabletype: field_of_study
+    vertex_collections:
+    -   type: field
+        map:
+            field_of_study_id: id
+            display_name: name
+            children: id
+vertex_collections:
+    collections:
+        author:
+            basename: Author
+            fields:
+            -   id
+            -   full_name
+            -   hindex
+            index:
+            -   id
+            -   full_name
+        publication:
+            basename: Publication
+            fields:
+            -   id
+            -   doi
+            -   year
+            index:
+            -   id
+            -   doi
+        research_field:
+            basename: ResearchField
+            fields:
+            -   id
+            -   name
+            -   level
+            index:
+            -   id
+edge_collections:
+    main:
+    -   source: author
+        target: publication
+        name: wrote
+    -   source: publication
+        target: field
+        name: belongsTo
+    -   source: field
+        target: field
+        name: childTo
+
