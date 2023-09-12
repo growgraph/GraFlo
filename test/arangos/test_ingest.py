@@ -43,8 +43,10 @@ def verify(
         ref_vc = ResourceHandler.load(
             f"test.ref.{input_type}", f"{mode}_sizes.yaml"
         )
-        pprint(vc)
+        print("expected")
         pprint(ref_vc)
+        print("received")
+        pprint(vc)
         assert equals(vc, ref_vc)
 
 

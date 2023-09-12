@@ -9,7 +9,6 @@ from graph_cast.architecture import (
     JConfigurator,
     TConfigurator,
 )
-from graph_cast.input.obsolete.json_aux import parse_edges
 from graph_cast.util import ResourceHandler
 
 """
@@ -55,7 +54,7 @@ map_type2color = {
     "blank": "white",
 }
 
-edge_status = {"vcollection": "dashed", "table": "solid"}
+edge_status = {"vcollection": "solid", "table": "solid"}
 
 
 def knapsack(weights, ks_size=7):
@@ -232,7 +231,7 @@ class SchemaPlotter:
 
             g.add_nodes_from(nodes)
         else:
-            raise KeyError(f"Suppoted types : {DataSourceType}")
+            raise KeyError(f"Supported types : {DataSourceType}")
 
         g.add_edges_from(edges)
 
@@ -251,7 +250,6 @@ class SchemaPlotter:
                 g.nodes[n][k] = v
 
         ag = nx.nx_agraph.to_agraph(g)
-
         ag.draw(
             os.path.join(self.fig_path, f"{self.prefix}_source2vc.pdf"),
             "pdf",
@@ -263,12 +261,19 @@ class SchemaPlotter:
             vc -> vc
         :return:
         """
-        g = nx.DiGraph()
+        g = nx.MultiDiGraph()
         nodes = []
+        edge_labels = []
         if self.type == DataSourceType.JSON:
-            edges = list(self.conf.graph_config.all_edges)
+            # edges = list(self.conf.graph_config.all_edges)
+
+            edges = [
+                (a, b, {"label": label})
+                for a, b, label in self.conf.graph_config.edges_triples
+            ]
+
             for ee in edges:
-                for n in ee:
+                for n in ee[:2]:
                     nodes += [(n, {"type": "vcollection"})]
 
             for nid, weight in nodes:
@@ -277,7 +282,6 @@ class SchemaPlotter:
             nodes = []
             edges = []
             for mode, local_vertex_cols in self.conf.modes2collections.items():
-                # for n in self.config[self.type]:
                 nodes_collection = [
                     (vcol, {"type": "vcollection"})
                     for vcol in local_vertex_cols.collections
@@ -309,15 +313,15 @@ class SchemaPlotter:
             for k, v in upd_dict.items():
                 g.nodes[n][k] = v
 
-        for e in g.edges(data=True):
-            s, t, _ = e
+        for e in g.edges:
+            s, t, ix = e
             target_props = g.nodes[s]
             upd_dict = {
                 "style": edge_status[target_props["type"]],
                 "arrowhead": "vee",
             }
             for k, v in upd_dict.items():
-                g.edges[s, t][k] = v
+                g.edges[s, t, ix][k] = v
 
         ag = nx.nx_agraph.to_agraph(g)
         # ['neato' | 'dot' | 'twopi' | 'circo' | 'fdp' | 'nop']

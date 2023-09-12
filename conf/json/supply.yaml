@@ -1,0 +1,186 @@
+general:
+    ~name: supply
+json:
+    ~maps:
+    -   ~type: edge
+        ~how: all
+        source:
+            ~name: Supplier
+        target:
+            ~name: Component
+
+#json:
+#    ~maps:
+#    -   ~type: edge
+#        ~how: all
+#        source:
+#            ~name: publication
+#        target:
+#            ~name: mention
+#            ~_anchor: _top_level
+#    -   ~type: descend
+#        ~key: publication
+#        ~maps:
+#        -   ~type: dict
+#            ~name: publication
+#    -   ~type: descend
+#        ~key: top_level_mention
+#        ~maps:
+#        -   ~type: list
+#            ~maps:
+#            -   ~type: dict
+#                ~name: mention
+#                ~map:
+#                    hash: _key
+#                ~_anchor: _top_level
+#    -   ~type: descend
+#        ~key: map_mention_entity
+#        ~maps:
+#        -   ~type: list
+#            ~maps:
+#            -   ~type: edge
+#                ~how: all
+#                source:
+#                    ~name: mention
+#                target:
+#                    ~name: entity
+#            -   ~type: descend
+#                ~key: entity
+#                ~maps:
+#                -   ~type: dict
+#                    ~name: entity
+#                    ~map:
+#                        hash: _key
+#            -   ~type: descend
+#                ~key: mention
+#                ~maps:
+#                -   ~type: dict
+#                    ~name: mention
+#                    ~map:
+#                        hash: _key
+#    -   ~type: descend
+#        ~key: triples
+#        ~maps:
+#        -   ~type: list
+#            ~maps:
+#            -   ~type: descend
+#                ~key: triple_index
+#                ~maps:
+#                -   ~type: dict
+#                    ~_anchor: triple_index
+#                    ~name: mention
+#                    ~map:
+#                        hash: _key
+#            -   ~type: descend
+#                ~key: triple
+#                ~maps:
+#                -   ~type: list
+#                    ~maps:
+#                    -   ~type: dict
+#                        ~_anchor: core
+#                        ~name: mention
+#                        ~map:
+#                            role: _role
+#                            hash: _key
+#            -   ~type: edge
+#                ~how: all
+#                source:
+#                    ~name: mention
+#                    ~_anchor: triple_index
+#                target:
+#                    ~name: mention
+#                    ~_anchor: core
+#                    ~fields:
+#                    -   _role
+#                index:
+#                -   ~fields:
+#                    -   _role
+#extra:
+#    weights:
+#    -   source:
+#            ~name: mention
+#        target:
+#            ~name: entity
+#        weight:
+#        -   name: publication
+#            fields:
+#            -   _key
+#
+vertex_collections:
+    collections:
+        Component:
+            basename: Components
+            fields:
+            -   sku
+            -   cost
+            index:
+            -   sku
+        Product:
+            basename: Products
+            fields:
+            -   sku
+            -   cost
+            index:
+            -   sku
+        Supplier:
+            basename: Suppliers
+            fields:
+            -   id
+            -   name
+            index:
+            -   id
+        Facility:
+            basename: facilities
+            fields:
+            -   id
+            -   name
+        Location:
+            basename: Locations
+            fields:
+            -   coordinates
+            -   state
+            -   city
+        MarketData:
+            basename: MarketData
+            fields:
+            -   value
+        Order:
+            basename: Orders
+            fields:
+            -   value
+        Customer:
+            basename: Customers
+            fields:
+            -   id
+edge_collections:
+    main:
+    -   ~source: Supplier
+        ~target: Component
+        ~relation: supplies
+    -   ~source: Supplier
+        ~target: Location
+        ~relation: located
+    -   ~source: Facility
+        ~target: Location
+        ~relation: located
+    -   ~source: Component
+        ~target: Product
+        ~relation: partOf
+    -   ~source: Component
+        ~target: Component
+        ~relation: partOf
+    -   ~source: MarketData
+        ~target: Product
+        ~relation: about
+    -   ~source: Order
+        ~target: Product
+        ~relation: orders
+    -   ~source: Customer
+        ~target: Product
+        ~relation: buys
+    -   ~source: Customer
+        ~target: Component
+        ~relation: buys
+#    -   ~source: Customer
+#        ~target: Product
+#        ~relation: owns

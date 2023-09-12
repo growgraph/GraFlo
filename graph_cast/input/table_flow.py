@@ -15,6 +15,7 @@ from graph_cast.db.arango.util import (
 from graph_cast.db.onto import DBConnectionConfig
 from graph_cast.input import table_to_collections
 from graph_cast.input.table import logger
+from graph_cast.input.util import list_to_dict_edges, list_to_dict_vertex
 from graph_cast.util.io import AbsChunker, Chunker, ChunkerDataFrame
 
 
@@ -63,11 +64,14 @@ def process_table(
 
         if lines:
             # file to vcols, ecols
-            vdocuments, edocuments = table_to_collections(
+            docs = table_to_collections(
                 lines,
                 header_dict,
                 conf,
             )
+
+            vdocuments = list_to_dict_vertex(docs)
+            edocuments = list_to_dict_edges(docs)
 
             # transform vcols, ecols
             # ingest vcols, ecols

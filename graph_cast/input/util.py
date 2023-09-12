@@ -1,7 +1,10 @@
 import logging
 from collections import defaultdict
 
+from graph_cast.architecture import Configurator
 from graph_cast.architecture.schema import TypeVE
+from graph_cast.architecture.uitl import merge_documents, project_dicts
+from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
 
@@ -35,3 +38,25 @@ def list_to_dict_edges(
             if isinstance(k, tuple):
                 super_dict[k].extend(v)
     return super_dict
+
+
+def normalize_unit(
+    unit_doc: defaultdict[TypeVE, list], config: Configurator
+) -> defaultdict[TypeVE, list]:
+    """
+
+    :param unit_doc: generic : {}
+    :param config: JConfigurator
+    :return: defaultdict vertex and edges collections
+    """
+
+    for k, v in unit_doc.items():
+        v = pick_unique_dict(v)
+        # (k is a vertex col) ~ not isinstance(k, tuple)
+        if not isinstance(k, tuple):
+            if config.exclude_fields(k):
+                v = project_dicts(v, config.exclude_fields(k), how="exclude")
+        if k in config.merge_collections:
+            v = merge_documents(v)
+        unit_doc[k] = v
+    return unit_doc

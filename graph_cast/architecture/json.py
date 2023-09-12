@@ -1,8 +1,9 @@
+from collections import defaultdict
 from copy import deepcopy
 
 from graph_cast.architecture.general import Configurator, DataSourceType
 from graph_cast.architecture.ptree import ParsingTree
-from graph_cast.architecture.schema import Edge
+from graph_cast.architecture.schema import Edge, TypeVE
 from graph_cast.util.transform import merge_doc_basis
 
 
@@ -19,8 +20,6 @@ class JConfigurator(Configurator):
         self.tree = ParsingTree(config_json, vertex_config=self.vertex_config)
 
         self.graph_config.parse_edges(self.tree)
-
-        self.merge_collections = tuple()
 
         self.post_weights: list[Edge] = []
 
@@ -40,7 +39,7 @@ class JConfigurator(Configurator):
     def set_current_resource_name(self, resource):
         self.current_fname = resource
 
-    def apply(self, doc):
+    def apply(self, doc) -> defaultdict[TypeVE, list]:
         r = self.tree.apply(doc, self.vertex_config)
         for k, v in r.items():
             if k in self.vertex_config.collections:

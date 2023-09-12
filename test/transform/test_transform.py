@@ -51,8 +51,8 @@ def test_parse_multi_item(quoted_multi_item):
     r = parse_multi_item(
         quoted_multi_item, mapper={"name": "full_name"}, direct=["id"]
     )
-    assert r[0]["full_name"] == "Luca D'Auria"
-    assert r[-1]["id"] == "360777873683"
+    assert r["full_name"][0] == "Luca D'Auria"
+    assert r["id"][-1] == "360777873683"
 
 
 # def test_transform_problems():

@@ -2,12 +2,19 @@ from __future__ import annotations
 
 import logging
 from collections import ChainMap, defaultdict
+from functools import partial
 from itertools import chain, combinations, product
-from typing import Any
 
 from graph_cast.architecture import ConfiguratorType
-from graph_cast.architecture.schema import EdgeType, _source_aux, _target_aux
-from graph_cast.architecture.transform import transform_foo
+from graph_cast.architecture.schema import (
+    EdgeType,
+    TypeVE,
+    _source_aux,
+    _target_aux,
+)
+from graph_cast.architecture.table import Transform
+from graph_cast.architecture.transform import TableMapper, transform_foo
+from graph_cast.input.util import normalize_unit
 
 logger = logging.getLogger(__name__)
 
@@ -16,14 +23,9 @@ def table_to_collections(
     rows: list[list],
     header_dict: dict[str, int],
     conf: ConfiguratorType,
-) -> tuple[
-    defaultdict[str, list[dict[str, Any]]],
-    defaultdict[tuple[str, str], list[dict[str, Any]]],
-]:
-    vdocs: defaultdict[str, list[list[dict[str, Any]]]] = defaultdict(list)
-    edocs: defaultdict[tuple[str, str], list[dict[str, Any]]] = defaultdict(
-        list
-    )
+) -> list[defaultdict[TypeVE, list]]:
+    docs: list[defaultdict[TypeVE, list]] = []
+
     vertex_conf = conf.vertex_config
 
     rows_raw = [{k: item[v] for k, v in header_dict.items()} for item in rows]
@@ -36,129 +38,156 @@ def table_to_collections(
             for item in transformation.output
         ]
     )
-    rows_working = []
 
-    for doc in rows_raw:
-        transformed = [
-            transform_foo(transformation, doc)
-            for transformation in conf.current_transformations
-        ]
-        doc_upd = {**doc, **dict(ChainMap(*transformed))}
-        rows_working += [doc_upd]
+    vmaps = [local_map for _, local_map in conf.current_collections]
 
-    for vcol, local_map in conf.current_collections:
-        vdoc_acc = []
+    transform_row_partial = partial(
+        transform_row,
+        current_transformations=conf.current_transformations,
+        mapper=vmaps,
+    )
 
-        current_fields = set(vertex_conf.index(vcol).fields) | set(
-            vertex_conf.fields(vcol)
-        )
+    rows_working: list[dict[str | int, list]] = list(
+        map(transform_row_partial, rows_raw)
+    )
 
-        default_input = current_fields & (
-            transformation_outputs | set(header_dict.keys())
-        )
+    for row in rows_working:
+        vdoc_acc: defaultdict[TypeVE, list] = defaultdict(list)
+        for vcol, local_map in conf.current_collections:
+            current_fields = set(vertex_conf.index(vcol).fields) | set(
+                vertex_conf.fields(vcol)
+            )
 
-        if default_input:
-            vdoc_acc += [
-                [{f: item[f] for f in default_input} for item in rows_working]
-            ]
+            default_input = current_fields & (
+                transformation_outputs
+                | set(header_dict.keys())
+                | set(local_map.output)
+            )
 
-        if local_map.active:
-            vdoc_acc += [[local_map(item) for item in rows_working]]
-        vdocs[vcol].append([dict(ChainMap(*auxs)) for auxs in zip(*vdoc_acc)])
+            subrow = [(k, row[k]) for k in default_input]
+            max_len = max(len(y) for _, y in subrow)
+            common_keys = [k for k, y in subrow if 0 < len(y) != max_len]
+            subrow2 = [row for row in subrow if len(row[1]) == max_len]
+            zip2 = zip(*(y for _, y in subrow2))
+            keys = [key for key, _ in subrow2]
+            unit_list = [dict(zip(keys, dds)) for dds in zip2]
+            for dd in unit_list:
+                for c in common_keys:
+                    dd[c] = row[0]
+
+            vdoc_acc[vcol] = unit_list
+        docs += [vdoc_acc]
 
     # if blank collection has no aux fields - inflate it
-    for vcol in vertex_conf.blank_collections:
-        # if blank collection is in vdocs - inflate it, otherwise - create
-        if vcol in vdocs:
-            for j, docs in enumerate(vdocs[vcol]):
-                if not docs:
-                    vdocs[vcol][j] = [{}] * len(rows)
-        else:
-            vdocs[vcol].append([{}] * len(rows))
+    for unit in docs:
+        for vcol in vertex_conf.blank_collections:
+            # if blank collection is in batch - add it
+            if vcol not in unit:
+                unit[vcol] = [{}]
 
     # apply filter : add a flag
-    for vcol, vfilter in conf.vertex_config.filters():
-        for j, clist in enumerate(vdocs[vcol]):
-            for doc in clist:
+    for unit in docs:
+        for vcol, vfilter in conf.vertex_config.filters():
+            for doc in unit[vcol]:
                 if not vfilter(doc):
                     doc.update({f"_status@{vfilter.b.field}": vfilter(doc)})
 
-    for u, v in conf.current_graphs:
-        g = u, v
-        if (
-            u not in vertex_conf.blank_collections
-            and v not in vertex_conf.blank_collections
-        ):
-            if conf.graph(u, v).type == EdgeType.DIRECT:
-                ziter: product | combinations
-                if u != v:
-                    ziter = product(vdocs[u], vdocs[v])
-                else:
-                    ziter = combinations(vdocs[u], r=2)
-                for ubatch, vbatch in ziter:
-                    ebatch = [
-                        {_source_aux: x, _target_aux: y}
-                        for x, y in zip(ubatch, vbatch)
+    # apply filter : add a flag
+    for unit in docs:
+        for u, v in conf.current_graphs:
+            g = u, v
+            if (
+                u not in vertex_conf.blank_collections
+                and v not in vertex_conf.blank_collections
+            ):
+                if conf.graph(u, v).type == EdgeType.DIRECT:
+                    ziter: product | combinations
+                    if u != v:
+                        ziter = product(unit[u], unit[v])
+                    else:
+                        ziter = combinations(unit[u], r=2)
+                    for udoc, vdoc in ziter:
                         if not (
                             any(
                                 [
-                                    f"_status@{xkey}" in x
+                                    f"_status@{xkey}" in udoc
                                     for xkey in vertex_conf.fields(u)
                                 ]
                             )
                             or any(
                                 [
-                                    f"_status@{ykey}" in y
+                                    f"_status@{ykey}" in vdoc
                                     for ykey in vertex_conf.fields(v)
                                 ]
                             )
-                        )
-                    ]
-                    # add weights from available rows
-                    cfields = conf.graph_config.graph(u, v).weight_fields
-                    if cfields:
-                        weights = [
-                            {f: item[f] for f in cfields}
-                            for item in rows_working
-                        ]
-                        ebatch = [
-                            {**item, **attr}
-                            for item, attr in zip(ebatch, weights)
-                        ]
-                    for vertex_weight in conf.graph_config.graph(
-                        u, v
-                    ).weight_vertices:
-                        if vertex_weight.name == u:
-                            cbatch = ubatch
-                        elif vertex_weight.name == v:
-                            cbatch = vbatch
-                        else:
-                            continue
-                        weights = [
-                            {f: item[f] for f in vertex_weight.fields}
-                            for item in cbatch
-                        ]
-                        ebatch = [
-                            {**item, **attr}
-                            for item, attr in zip(ebatch, weights)
-                        ]
-                    edocs[g].extend(ebatch)
+                        ):
+                            edoc = {_source_aux: udoc, _target_aux: vdoc}
+                            # add weights from available row data
+                            cfields = conf.graph_config.graph(
+                                u, v
+                            ).weight_fields
+                            # add weights from available data
+                            # if cfields:
+                            #     weights = [
+                            #         {f: item[f] for f in cfields}
+                            #         for item in rows_working
+                            #     ]
+                            #     ebatch = [
+                            #         {**item, **attr}
+                            #         for item, attr in zip(ebatch, weights)
+                            #     ]
+                            for vertex_weight in conf.graph_config.graph(
+                                u, v
+                            ).weight_vertices:
+                                if vertex_weight.name == u:
+                                    cbatch = udoc
+                                elif vertex_weight.name == v:
+                                    cbatch = vdoc
+                                else:
+                                    continue
+                                weights = {
+                                    f: cbatch[f] for f in vertex_weight.fields
+                                }
+                                edoc = {**edoc, **weights}
+                            unit[g].append(edoc)
 
-    vdocs_output: defaultdict[str, list[dict[str, Any]]] = defaultdict(list)
-    for u, vlists in vdocs.items():
-        stub = [
-            [
-                item
-                for item in vlist
-                if not any(
-                    [
-                        f"_status@{xkey}" in item
-                        for xkey in vertex_conf.fields(u)
-                    ]
-                )
-            ]
-            for vlist in vlists
-        ]
-        vdocs_output[u] = list(chain.from_iterable(stub))
+    # for u, vlists in vdocs.items():
+    #     stub = [
+    #         [
+    #             item
+    #             for item in vlist
+    #             if not any(
+    #                 [
+    #                     f"_status@{xkey}" in item
+    #                     for xkey in vertex_conf.fields(u)
+    #                 ]
+    #             )
+    #         ]
+    #         for vlist in vlists
+    #     ]
+    #     vdocs_output[u] = list(chain.from_iterable(stub))
+    docs = [normalize_unit(unit, conf) for unit in docs]
+    return docs
 
-    return vdocs_output, edocs
+
+def transform_row(
+    doc: dict,
+    current_transformations: list[Transform],
+    mapper: list[TableMapper],
+) -> dict[str | int, list]:
+    transformed = [
+        transform_foo(transformation, doc)
+        for transformation in current_transformations
+    ]
+    mapped = [m(doc) for m in mapper]
+    doc_upd = {k: [v] for k, v in doc.items()}
+
+    for d in transformed:
+        doc_upd.update(
+            {k: v if isinstance(v, list) else [v] for k, v in d.items()}
+        )
+    for d in mapped:
+        doc_upd.update(
+            {k: v if isinstance(v, list) else [v] for k, v in d.items()}
+        )
+    return doc_upd

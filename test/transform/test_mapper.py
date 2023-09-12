@@ -1,7 +1,7 @@
 import logging
 import unittest
 
-from graph_cast.architecture.general import TableMapper
+from graph_cast.architecture.transform import TableMapper
 
 logger = logging.getLogger(__name__)
 

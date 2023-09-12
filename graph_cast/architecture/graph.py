@@ -115,6 +115,14 @@ class GraphConfig:
         return (e for e in self._edges)
 
     @property
+    def edges_triples(self):
+        acc = []
+        for pair, edges in self._edges.items():
+            for e in edges:
+                acc += [(*pair, e.relation)]
+        return acc
+
+    @property
     def vertices(self):
         vs = []
         for u, v in self._edges:

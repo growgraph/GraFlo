@@ -7,6 +7,8 @@ from graph_cast.db.arango.util import get_data_from_cursor
 from graph_cast.onto import InputType
 from graph_cast.util import ResourceHandler
 
+# TODO this should be called directly after kg_v3 ingest_json test
+
 # def test_weights(conn_conf, current_path, test_db_name):
 #     ingest_atomic(
 #         conn_conf,

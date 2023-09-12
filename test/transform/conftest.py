@@ -5,6 +5,7 @@ from suthing import equals
 
 from graph_cast.architecture import JConfigurator, TConfigurator
 from graph_cast.input import jsondoc_to_collections, table_to_collections
+from graph_cast.input.util import list_to_dict_edges, list_to_dict_vertex
 from graph_cast.main import ingest_files
 from graph_cast.onto import InputType, InputTypeFileExtensions
 from graph_cast.util import ResourceHandler
@@ -46,11 +47,14 @@ def transform_it(current_path, input_type, mode, reset):
         lines = list(data_obj.values)
         conf_obj.set_mode(mode)
 
-        vdocuments, edocuments = table_to_collections(
+        docs = table_to_collections(
             lines,
             header_dict,
             conf_obj,
         )
+
+        vdocuments = list_to_dict_vertex(docs)
+        edocuments = list_to_dict_edges(docs)
 
         vc = {k: len(pick_unique_dict(v)) for k, v in vdocuments.items()}
 

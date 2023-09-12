@@ -16,7 +16,9 @@ class TConfigurator(Configurator):
     def __init__(self, config):
         super().__init__(config)
         self.mode = None
-        self.modes2collections = defaultdict(LocalVertexCollections)
+        self.modes2collections: defaultdict[str, LocalVertexCollections] = (
+            defaultdict(LocalVertexCollections)
+        )
 
         # table_type -> [{collection: cname, collection_maps: maps}]
         if DataSourceType.TABLE in config:
@@ -60,7 +62,7 @@ class TConfigurator(Configurator):
             return []
 
     @property
-    def current_transformations(self):
+    def current_transformations(self) -> list[Transform]:
         return self.table_config.transforms(self.mode)
 
     def _init_modes2graphs(self, subconfig, edges):
@@ -107,6 +109,9 @@ class TConfigurator(Configurator):
         for mode, vcol_resource in self.modes2collections.items():
             vcol_resource.update_mappers(filename=self.current_fname)
 
+    def exclude_fields(self, k):
+        return self.graph_config.exclude_fields(k)
+
 
 class TablesConfig:
     _tables: set[str] = set()
@@ -125,7 +130,7 @@ class TablesConfig:
     _edges: defaultdict[str, list[tuple[str, str]]] = defaultdict(list)
 
     # table_type -> transforms
-    _transforms: defaultdict[str, list[dict[str, str]]] = defaultdict(list)
+    _transforms: defaultdict[str, list[Transform]] = defaultdict(list)
 
     def __init__(self, vconfig, graph_config):
         self._init_tables(vconfig)
@@ -195,8 +200,8 @@ class TablesConfig:
     def edges(self, table_type):
         return self._edges[table_type]
 
-    def transforms(self, table_type):
+    def transforms(self, table_type) -> list[Transform]:
         if table_type in self._transforms:
             return self._transforms[table_type]
         else:
-            return dict()
+            return []
