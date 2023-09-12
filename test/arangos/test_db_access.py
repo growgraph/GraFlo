@@ -1,11 +1,10 @@
 import logging
+from test.arangos.conftest import conn_conf, test_db_name
 
 import pytest
 
 from graph_cast.db import ConnectionManager
 from graph_cast.db.arango.util import insert_return_batch
-
-from .conftest import conn_conf, test_db_name
 
 logger = logging.getLogger(__name__)
 

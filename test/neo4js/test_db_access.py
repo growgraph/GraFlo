@@ -8,9 +8,6 @@ from graph_cast.db import ConnectionManager
 
 from .conftest import conn_conf
 
-# from graph_cast.db.util import get_data_from_cursor
-
-
 logger = logging.getLogger(__name__)
 
 

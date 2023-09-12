@@ -1,9 +1,10 @@
 import json
 import logging
+import re
 import time
 from datetime import datetime
 
-day_endings = ["st", "nd", "rd", "th"]
+ORDINAL_SUFFIX = ["st", "nd", "rd", "th"]
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +119,7 @@ def _parse_date_reference(input_str):
     """
     if "," in input_str:
         if len(input_str.split(" ")) == 3:
-            if input_str[-2:] in day_endings:
+            if input_str[-2:] in ORDINAL_SUFFIX:
                 input_str = input_str[:-2]
             try:
                 dt = datetime.strptime(input_str, "%Y, %B %d")
@@ -164,6 +165,31 @@ def clear_first_level_nones(docs, keys_keep_nones=None):
         {k: v for k, v in tdict.items() if v or k in keys_keep_nones}
         for tdict in docs
     ]
+    return docs
+
+
+def parse_multi_item(
+    s, mapper: dict | None = None, direct: list | None = None
+):
+    if "'" in s:
+        items_str = re.findall(r"\"(.*?)\"", s) + re.findall(r"\'(.*?)\'", s)
+    else:
+        # remove brackets
+        items_str = re.findall(r"\[([^]]+)", s)[0].split()
+    docs = []
+    for item in items_str:
+        doc0 = [ss.strip().split(":") for ss in item.split(",")]
+        doc = {}
+        if mapper is not None and all([len(x) == 2 for x in doc0]):
+            doc.update(dict([(mapper[x], y) for x, y in doc0 if x in mapper]))
+        if direct is not None:
+            if all([len(x) == 2 for x in doc0]):
+                doc.update(dict([(x, y) for x, y in doc0 if x in direct]))
+            elif all([len(x) == 1 for x in doc0]) and len(doc0) == len(direct):
+                doc0_ = [x[0] for x in doc0]
+                doc.update(dict([(x, y) for x, y in zip(direct, doc0_)]))
+
+        docs += [doc]
     return docs
 
 

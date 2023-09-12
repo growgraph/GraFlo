@@ -4,11 +4,7 @@ from neo4j import GraphDatabase
 
 from graph_cast.architecture import Configurator
 from graph_cast.architecture.graph import GraphConfig
-from graph_cast.architecture.schema import (
-    CollectionIndex,
-    IndexType,
-    VertexConfig,
-)
+from graph_cast.architecture.schema import CollectionIndex, VertexConfig
 from graph_cast.db import Connection
 from graph_cast.db.onto import Neo4jConnectionConfig
 from graph_cast.onto import DBFlavor
@@ -89,8 +85,6 @@ class Neo4jConnection(Connection):
 
     def define_collections(self, graph_config, vertex_config: VertexConfig):
         pass
-        # self.define_vertex_collections(graph_config, vertex_config)
-        # self.define_edge_collections(graph_config)
 
     def define_indices(self, graph_config, vertex_config: VertexConfig):
         self.define_vertex_indices(vertex_config)
@@ -103,9 +97,6 @@ class Neo4jConnection(Connection):
         pass
 
     def delete_collections(self, cnames=(), gnames=(), delete_all=False):
-        # for relation in gnames:
-        #     q = f"match (a) -[r] -> () delete r"
-        #     self.execute(q)
         for c in cnames:
             q = f"MATCH (a:{c}) DELETE a"
             self.execute(q)

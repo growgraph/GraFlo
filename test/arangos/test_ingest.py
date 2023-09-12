@@ -1,6 +1,6 @@
 from os.path import join
 from pprint import pprint
-from test.arangos.conftest import ingest_atomic
+from test.conftest import current_path, ingest_atomic, reset
 
 import pytest
 
