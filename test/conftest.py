@@ -22,7 +22,7 @@ def current_path():
 
 def ingest_atomic(conn_conf, current_path, test_db_name, input_type, mode):
     path = join(current_path, f"data/{input_type}/{mode}")
-    schema = FileHandle.load(f"conf.{input_type}", f"{mode}.yaml")
+    schema = FileHandle.load(f"test.config.schema", f"{mode}.yaml")
 
     conn_conf.database = test_db_name
     ingest_files(

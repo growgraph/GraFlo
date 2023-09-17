@@ -1,23 +1,24 @@
-import unittest
+import pytest
 
+from graph_cast.util import equals
 from graph_cast.util.transform import cast_ibes_analyst
 
 
-class TestCastAnalyst(unittest.TestCase):
-    examples = ["ADKINS/NARRA", "/ZHANG/LI/YA", "/ZHANG/LI", "ARFSTROM      J"]
-    result = [
+@pytest.fixture()
+def analyst_examples():
+    return ["ADKINS/NARRA", "/ZHANG/LI/YA", "/ZHANG/LI", "ARFSTROM      J"]
+
+
+@pytest.fixture()
+def analyst_ref():
+    return [
         ("ADKINS", "N"),
         ("ZHANG", "L"),
         ("ZHANG", "L"),
         ("ARFSTROM", "J"),
     ]
 
-    def test_a(self):
-        r = [cast_ibes_analyst(e) for e in self.examples]
-        print(r)
-        for x, y in zip(r, self.result):
-            self.assertEqual(x, y)
 
-
-if __name__ == "__main__":
-    unittest.main()
+def test_cast_ibes_analyst(analyst_examples, analyst_ref):
+    r = [cast_ibes_analyst(e) for e in analyst_examples]
+    assert equals(r, analyst_ref)

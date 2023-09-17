@@ -36,24 +36,6 @@ table:
             ETEXT: etext
             IRECCD: irec
             ITEXT: itext
-
-    vertex_collections:
-    -   type: ticker
-        map:
-            CUSIP: cusip
-            CNAME: cname
-            OFTIC: oftic
-    -   type: agency
-        map:
-            ESTIMID: aname
-    -   type: analyst
-    -   type: recommendation
-        map:
-            ERECCD: erec
-            ETEXT: etext
-            IRECCD: irec
-            ITEXT: itext
-    -   type: publication
 vertex_collections:
     blanks:
     -   publication

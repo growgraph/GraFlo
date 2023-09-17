@@ -76,7 +76,6 @@ def test_switch():
     kwargs = {
         "module": "builtins",
         "foo": "round",
-        "input": "Open",
         "switch": {"Open": ["name", "value"]},
         "params": {"ndigits": 3},
     }

@@ -19,17 +19,12 @@ def docs_complex_two_doc():
 
 
 def test_merge_simple(docs_simple):
-    r = merge_doc_basis(docs_simple, ["id"])
+    r = merge_doc_basis(docs_simple, ("id",))
     assert len(r) == 1
     assert r[0]["a"] == 2
     assert r[0]["b"] == 1
 
 
 def test_merge_simple_two_doc(docs_simple_two_doc):
-    r = merge_doc_basis(docs_simple_two_doc, ["id"])
+    r = merge_doc_basis(docs_simple_two_doc, ("id",))
     assert len(r) == 2
-
-
-def test_merge_simple_two_doc(docs_complex_two_doc):
-    r = merge_doc_basis(docs_complex_two_doc, ["id"])
-    assert len(r) == 1

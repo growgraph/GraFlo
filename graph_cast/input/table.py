@@ -41,10 +41,10 @@ def table_to_collections(
 
     transform_row_partial = partial(
         transform_row,
-        current_transformations=conf.current_transform_config,
+        table_config=conf.current_transform_config,
     )
 
-    predocs_transformed = map(transform_row_partial, rows_dressed)
+    predocs_transformed = [transform_row_partial(x) for x in rows_dressed]
 
     docs = [normalize_row(item, vertex_conf) for item in predocs_transformed]
 

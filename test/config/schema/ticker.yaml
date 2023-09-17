@@ -5,40 +5,34 @@ table:
     transforms:
     -   foo: round_str
         module: graph_cast.util.transform
-        maps:
-        -   input:
-            -   Open
-        -   input:
-            -   Close
         params:
             ndigits: 3
+        switch:
+            Open:
+            -   name
+            -   value
+    -   foo: round_str
+        module: graph_cast.util.transform
+        params:
+            ndigits: 3
+        switch:
+            Close:
+            -   name
+            -   value
     -   foo: int
         module: builtins
-        maps:
-        -   input:
-            -   Volume
+        switch:
+            Volumn:
+            -   name
+            -   value
     -   foo: parse_date_yahoo
         module: graph_cast.util.transform
-        input:
-        -   Date
-        output:
-        -   t_obs
-    vertex_collections:
-    -   type: ticker
         map:
-            _filename: oftic
-    -   type: feature
-        map:
-            Open:
-                key: name
-    -   type: feature
-        map:
-            Close:
-                key: name
-    -   type: feature
-        map:
-            Volume:
-                key: name
+            Date: t_obs
+#    vertex_collections:
+#    -   type: ticker
+#        map:
+#            _filename: oftic
 vertex_collections:
     collections:
         ticker:
