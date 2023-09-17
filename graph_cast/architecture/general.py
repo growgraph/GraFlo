@@ -41,7 +41,7 @@ class Configurator:
         return []
 
     @property
-    def current_transformations(self):
+    def current_transform_config(self):
         return []
 
     def graph(self, u, v, ix=0):
@@ -49,3 +49,6 @@ class Configurator:
 
     def exclude_fields(self, k):
         return self.graph_config.exclude_fields(k)
+
+    # def transform_config(self):
+    #     pass

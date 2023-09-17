@@ -179,30 +179,98 @@ def vertex_config_ibes():
 @pytest.fixture()
 def edge_config_ibes():
     vc = yaml.safe_load("""
-        edge_collections:
-            main:
-            -   source: publication
-                target: ticker
-            -   source: analyst
-                target: agency
-                weight:
-                -   datetime_review
-                -   datetime_announce
-            -   source: analyst
-                target: publication
-            -   source: publication
-                target: recommendation
+        main:
+        -   source: publication
+            target: ticker
+        -   source: analyst
+            target: agency
+            weight:
+            -   datetime_review
+            -   datetime_announce
+        -   source: analyst
+            target: publication
+        -   source: publication
+            target: recommendation
     """)
     return vc
 
 
 @pytest.fixture()
+def tconf_ibes(vertex_config_ibes, edge_config_ibes, table_config_ibes):
+    config = {
+        "general": {"name": "ibes"},
+        "table": [table_config_ibes],
+        "vertex_collections": vertex_config_ibes,
+        "edge_collections": edge_config_ibes,
+    }
+    tc = TConfigurator(config)
+    return tc
+
+
+@pytest.fixture()
 def df_ibes() -> pd.DataFrame:
-    df_ibes_str = """TICKER,CUSIP,CNAME,OFTIC,ACTDATS,ESTIMID,ANALYST,ERECCD,ETEXT,IRECCD,ITEXT,EMASKCD,AMASKCD,USFIRM,ACTTIMS,REVDATS,REVTIMS,ANNDATS,ANNTIMS
+    df0_str = """TICKER,CUSIP,CNAME,OFTIC,ACTDATS,ESTIMID,ANALYST,ERECCD,ETEXT,IRECCD,ITEXT,EMASKCD,AMASKCD,USFIRM,ACTTIMS,REVDATS,REVTIMS,ANNDATS,ANNTIMS
 0000,87482X10,TALMER BANCORP,TLMR,20140310,RBCDOMIN,ARFSTROM      J,2,OUTPERFORM,2,BUY,00000659,00071182,1,8:54:03,20160126,9:35:52,20140310,0:20:00
 0000,87482X10,TALMER BANCORP,TLMR,20140311,JPMORGAN,ALEXOPOULOS   S,,OVERWEIGHT,2,BUY,00001243,00079092,1,17:10:47,20160126,10:09:34,20140310,0:25:00"""
     return pd.read_csv(
-        io.StringIO(df_ibes_str),
+        io.StringIO(df0_str),
         sep=",",
         dtype={"TICKER": str, "ANNDATS": str, "REVDATS": str},
     )
+
+
+@pytest.fixture()
+def vertex_config_transform_collision():
+    vc = yaml.safe_load("""
+        collections:
+            person:
+                basename: people
+                fields:
+                -   id
+                -   name
+            pet:
+                basename: pets
+                fields:
+                -   name
+    """)
+    return vc
+
+
+@pytest.fixture()
+def table_config_transform_collision():
+    tc = yaml.safe_load("""
+        tabletype: pets
+        transforms:
+        -   image: pet
+            map:
+                pet_name: name
+    """)
+    return tc
+
+
+@pytest.fixture()
+def df_transform_collision() -> pd.DataFrame:
+    df0_str = """id,name,pet_name
+A0,Joe,Rex"""
+    return pd.read_csv(
+        io.StringIO(df0_str),
+        sep=",",
+    )
+
+
+@pytest.fixture()
+def row_doc_ibes() -> dict[str, list]:
+    return {
+        "agency": [{"aname": "RBCDOMIN"}],
+        "analyst": [{"initial": "J", "last_name": "ARFSTROM"}],
+        "publication": [
+            {"datetime_announce": "2014-03-10T0:20:00Z"},
+            {"datetime_review": "2016-01-26T9:35:52Z"},
+        ],
+        "recommendation": [
+            {"erec": 2.0, "etext": "OUTPERFORM", "irec": 2, "itext": "BUY"}
+        ],
+        "ticker": [
+            {"cname": "TALMER BANCORP", "cusip": "87482X10", "oftic": "TLMR"}
+        ],
+    }

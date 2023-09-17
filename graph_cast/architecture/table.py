@@ -18,6 +18,96 @@ from graph_cast.architecture.transform import Transform
 logger = logging.getLogger(__name__)
 
 
+class TableConfig:
+    def __init__(
+        self,
+        config_table,
+        vertex_config: VertexConfig,
+    ):
+        self.encoding: EncodingType = config_table.get(
+            "encoding", EncodingType.UTF_8
+        )
+        self.table_type = config_table.get("tabletype", None)
+
+        if self.table_type is None:
+            raise ValueError(f"tabletype absent in {config_table}")
+
+        # table_type -> transforms
+        self._transforms: dict[int, Transform] = {}
+
+        # bipartite graph from vertices to transformations
+        self._vertex_tau = nx.DiGraph()
+
+        self._init_transformations(config_table, vertex_config)
+
+    def _init_transformations(self, subconfig, vertex_config: VertexConfig):
+        transforms = subconfig.get("transforms", [])
+        for t in transforms:
+            tau = Transform(**t)
+            self._transforms[id(tau)] = tau
+            related_vertices = [
+                c
+                for c in vertex_config.collections
+                if set(vertex_config.fields(c)) & set(tau.output)
+            ]
+            if len(related_vertices) > 1:
+                if (
+                    tau.image is not None
+                    and tau.image in vertex_config.collections
+                ):
+                    related_vertices = [tau.image]
+                else:
+                    logger.warning(
+                        f"Multiple collections {related_vertices} are"
+                        f" related to transformation {tau}, consider revising"
+                        " your schema"
+                    )
+            self._vertex_tau.add_edges_from(
+                [(c, id(tau)) for c in related_vertices]
+            )
+
+    def add_passthrough_transformations(
+        self, keys: list[str], vertex_config: VertexConfig
+    ):
+        pre_vertex_fields_map = {
+            vertex: set(keys) & set(vertex_config.fields(vertex))
+            for vertex in vertex_config.collections
+        }
+        for vertex, fs in pre_vertex_fields_map.items():
+            tau_fields = self.fields(vertex)
+            fields_passthrough = set(fs) - tau_fields
+            if fields_passthrough:
+                tau = Transform(
+                    map=dict(zip(fields_passthrough, fields_passthrough)),
+                    image=vertex,
+                )
+                self._transforms[id(tau)] = tau
+                self._vertex_tau.add_edges_from([(vertex, id(tau))])
+
+    @property
+    def vertices(self) -> set[str]:
+        return set(v for v, _ in self._vertex_tau.edges)
+
+    def transforms(self, vertex: str | None = None) -> Iterator[Transform]:
+        if vertex is not None:
+            neighbours = self._vertex_tau.neighbors(vertex)
+        else:
+            neighbours = self._transforms.keys()
+        return (self._transforms[k] for k in neighbours)
+
+    def fields(self, vertex: str | None = None) -> set[str]:
+        field_sets: Iterator[set[str]]
+        if vertex is None:
+            field_sets = (self.fields(v) for v in self.vertices)
+        elif vertex in self._vertex_tau.nodes:
+            neighbours = self._vertex_tau.neighbors(vertex)
+            field_sets = (set(self._transforms[k].output) for k in neighbours)
+        else:
+            return set()
+        fields: set[str] = set().union(*field_sets)
+        return fields
+
+
 class TConfigurator(Configurator):
     def __init__(self, config):
         super().__init__(config)
@@ -40,6 +130,9 @@ class TConfigurator(Configurator):
         :return:
         """
         self.active_table_type = mode
+
+    def transform_config(self) -> TableConfig:
+        return self.table_config[self.active_table_type]
 
     def _init_table_configs(self, config_tables):
         for item in config_tables:
@@ -64,8 +157,8 @@ class TConfigurator(Configurator):
         )
 
     @property
-    def current_transformations(self) -> Iterator[Transform]:
-        return self.table_config[self.active_table_type].transforms()
+    def current_transform_config(self) -> TableConfig:
+        return self.table_config[self.active_table_type]
 
     def discover_files(self, fpath, limit_files=None):
         for keyword in self.tables:
@@ -100,70 +193,3 @@ class TConfigurator(Configurator):
             return self.table_config[table_name].vertices
         else:
             return self._all_vertices
-
-
-class TableConfig:
-    def __init__(
-        self,
-        config_table,
-        vertex_config: VertexConfig,
-    ):
-        self.encoding: EncodingType = config_table.get(
-            "encoding", EncodingType.UTF_8
-        )
-        self.table_type = config_table.get("tabletype", None)
-
-        if self.table_type is None:
-            raise ValueError(f"tabletype absent in {config_table}")
-
-        # table_type -> transforms
-        self._transforms: dict[int, Transform] = {}
-
-        # bipartite graph from vertices to transformations
-        self._vertex_tau = nx.DiGraph()
-
-        self._init_transformations(config_table, vertex_config)
-
-    def _init_transformations(self, subconfig, vertex_config: VertexConfig):
-        transforms = subconfig.get("transforms", [])
-        for t in transforms:
-            tau = Transform(**t)
-            self._transforms[id(tau)] = tau
-            related_collections = [
-                c
-                for c in vertex_config.collections
-                if set(vertex_config.fields(c)) & set(tau.output)
-            ]
-            if len(related_collections) > 1:
-                if tau.image is not None:
-                    related_collections = [tau.image]
-                else:
-                    logger.warning(
-                        f"Multiple collections {related_collections} are"
-                        f" related to transformation {tau}, consider revising"
-                        " your schema"
-                    )
-            self._vertex_tau.add_edges_from(
-                [(c, id(tau)) for c in related_collections]
-            )
-
-    @property
-    def vertices(self) -> set[str]:
-        return set(v for v, _ in self._vertex_tau.edges)
-
-    def transforms(self, vertex: str | None = None) -> Iterator[Transform]:
-        if vertex is not None:
-            neighbours = self._vertex_tau.neighbors(vertex)
-        else:
-            neighbours = self._transforms.keys()
-        return (self._transforms[k] for k in neighbours)
-
-    def fields(self, vertex: str | None = None) -> set[str]:
-        field_sets: Iterator[set[str]]
-        if vertex is None:
-            field_sets = (self.fields(v) for v in self.vertices)
-        else:
-            neighbours = self._vertex_tau.neighbors(vertex)
-            field_sets = (set(self._transforms[k].output) for k in neighbours)
-        fields: set[str] = set().union(*field_sets)
-        return fields

@@ -4,7 +4,7 @@ from copy import deepcopy
 from graph_cast.architecture.general import Configurator, DataSourceType
 from graph_cast.architecture.ptree import ParsingTree
 from graph_cast.architecture.schema import Edge, TypeVE
-from graph_cast.util.transform import merge_doc_basis
+from graph_cast.util.merge import merge_doc_basis
 
 
 class JConfigurator(Configurator):

@@ -55,6 +55,10 @@ class Transform:
 
         self._switch: dict[str, tuple[str, str]] = kwargs.pop("switch", {})
 
+        # transform image, i.e. the vertex of interest
+        # it is used to disambiguate the transformation - vertex relation
+        # consider vertices va : {name} and vb: {name}
+        # transformations: t_a: {va_name -> name} and t_b : {vb_name -> name}
         self._image: str | None = kwargs.pop("image", None)
 
     @staticmethod

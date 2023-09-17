@@ -13,7 +13,7 @@ from graph_cast.db.onto import DBConnectionConfig
 from graph_cast.input.json import jsonlike_to_collections
 from graph_cast.input.util import list_to_dict_edges, list_to_dict_vertex
 from graph_cast.util import timer as timer
-from graph_cast.util.transform import merge_doc_basis
+from graph_cast.util.merge import merge_doc_basis
 
 logger = logging.getLogger(__name__)
 

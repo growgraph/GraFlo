@@ -5,7 +5,7 @@ from typing import Optional, Union
 import pandas as pd
 
 from graph_cast.architecture import ConfiguratorType
-from graph_cast.architecture.schema import _source_aux, _target_aux
+from graph_cast.architecture.schema import SOURCE_AUX, TARGET_AUX
 from graph_cast.db import ConnectionManager
 from graph_cast.db.arango.util import (
     insert_edges_batch,
@@ -101,7 +101,7 @@ def process_table(
                         if vcol == vfrom or vcol == vto:
                             edocuments[(vfrom, vto)].extend(
                                 [
-                                    {_source_aux: x, _target_aux: y}
+                                    {SOURCE_AUX: x, TARGET_AUX: y}
                                     for x, y in zip(
                                         vdocuments[vfrom], vdocuments[vto]
                                     )

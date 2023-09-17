@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture
 def schema():
-    schema = FileHandle.load(f"test.schema", f"review.yaml")
+    schema = FileHandle.load(f"test.config.schema", f"review.yaml")
     schema_obj = TConfigurator(schema)
     return schema_obj
 

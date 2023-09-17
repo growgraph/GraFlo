@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def test_table_transform_collection_map():
-    config = FileHandle.load(f"test.schema", "ibes.yaml")
+    config = FileHandle.load(f"test.config.schema", "ibes.yaml")
     conf_obj = TConfigurator(config)
     conf_obj.set_mode("ibes")
     pass

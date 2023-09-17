@@ -2,7 +2,7 @@ import json
 import logging
 from collections import defaultdict
 
-from graph_cast.architecture.schema import Edge, _source_aux, _target_aux
+from graph_cast.architecture.schema import SOURCE_AUX, TARGET_AUX, Edge
 from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
@@ -103,13 +103,13 @@ def insert_edges_batch(
 
     if match_keys_source[0] == "_key":
         result_from = (
-            f'CONCAT("{source_collection_name}/", edge.{_source_aux}._key)'
+            f'CONCAT("{source_collection_name}/", edge.{SOURCE_AUX}._key)'
         )
         source_filter = ""
     else:
         result_from = "sources[0]._id"
         filter_source = " && ".join(
-            [f"v.{k} == edge.{_source_aux}.{k}" for k in match_keys_source]
+            [f"v.{k} == edge.{SOURCE_AUX}.{k}" for k in match_keys_source]
         )
         source_filter = (
             f"LET sources = (FOR v IN {source_collection_name} FILTER"
@@ -118,13 +118,13 @@ def insert_edges_batch(
 
     if match_keys_target[0] == "_key":
         result_to = (
-            f'CONCAT("{target_collection_name}/", edge.{_target_aux}._key)'
+            f'CONCAT("{target_collection_name}/", edge.{TARGET_AUX}._key)'
         )
         target_filter = ""
     else:
         result_to = "targets[0]._id"
         filter_target = " && ".join(
-            [f"v.{k} == edge.{_target_aux}.{k}" for k in match_keys_target]
+            [f"v.{k} == edge.{TARGET_AUX}.{k}" for k in match_keys_target]
         )
         target_filter = (
             f"LET targets = (FOR v IN {target_collection_name} FILTER"
@@ -133,7 +133,7 @@ def insert_edges_batch(
 
     doc_definition = (
         f"MERGE({{_from : {result_from}, _to : {result_to}}},"
-        f" UNSET(edge, '{_source_aux}', '{_target_aux}'))"
+        f" UNSET(edge, '{SOURCE_AUX}', '{TARGET_AUX}'))"
     )
 
     logger.debug(f" source_filter = {source_filter}")

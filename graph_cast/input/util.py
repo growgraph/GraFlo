@@ -3,7 +3,8 @@ from collections import defaultdict
 
 from graph_cast.architecture import Configurator
 from graph_cast.architecture.schema import TypeVE
-from graph_cast.architecture.util import merge_documents, project_dicts
+from graph_cast.architecture.util import project_dicts
+from graph_cast.util.merge import merge_documents
 from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
@@ -50,13 +51,15 @@ def normalize_unit(
     :return: defaultdict vertex and edges collections
     """
 
-    for k, v in unit_doc.items():
+    for vertex, v in unit_doc.items():
         v = pick_unique_dict(v)
-        # (k is a vertex col) ~ not isinstance(k, tuple)
-        if not isinstance(k, tuple):
-            if config.exclude_fields(k):
-                v = project_dicts(v, config.exclude_fields(k), how="exclude")
-        if k in config.merge_collections:
+        # (vertex is a vertex col) ~ not isinstance(k, tuple)
+        if not isinstance(vertex, tuple):
+            if config.exclude_fields(vertex):
+                v = project_dicts(
+                    v, config.exclude_fields(vertex), how="exclude"
+                )
+        if vertex in config.merge_collections:
             v = merge_documents(v)
-        unit_doc[k] = v
+        unit_doc[vertex] = v
     return unit_doc

@@ -14,9 +14,9 @@ from graph_cast.onto import DBFlavor
 
 logger = logging.getLogger(__name__)
 
-_anchor_key = "_anchor"
-_source_aux = "__source"
-_target_aux = "__target"
+ANCHOR_KEY = "_anchor"
+SOURCE_AUX = "__source"
+TARGET_AUX = "__target"
 
 
 # type for vertex or edge name (index)
