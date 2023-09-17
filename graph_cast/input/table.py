@@ -1,19 +1,23 @@
 from __future__ import annotations
 
 import logging
-from collections import ChainMap, defaultdict
+from collections import defaultdict
 from functools import partial
-from itertools import chain, combinations, product
+from itertools import combinations, product
 
 from graph_cast.architecture import ConfiguratorType
+from graph_cast.architecture.general import (
+    Configurator,
+    DataSourceType,
+    VertexConfig,
+)
 from graph_cast.architecture.schema import (
     EdgeType,
     TypeVE,
     _source_aux,
     _target_aux,
 )
-from graph_cast.architecture.table import Transform
-from graph_cast.architecture.transform import TableMapper, transform_foo
+from graph_cast.architecture.table import TableConfig, Transform
 from graph_cast.input.util import normalize_unit
 
 logger = logging.getLogger(__name__)
@@ -24,77 +28,41 @@ def table_to_collections(
     header_dict: dict[str, int],
     conf: ConfiguratorType,
 ) -> list[defaultdict[TypeVE, list]]:
-    docs: list[defaultdict[TypeVE, list]] = []
-
     vertex_conf = conf.vertex_config
 
     rows_raw = [{k: item[v] for k, v in header_dict.items()} for item in rows]
 
-    # perform possible transforms
-    transformation_outputs = set(
-        [
-            item
-            for transformation in conf.current_transformations
-            for item in transformation.output
-        ]
-    )
-
-    vmaps = [local_map for _, local_map in conf.current_collections]
-
     transform_row_partial = partial(
         transform_row,
         current_transformations=conf.current_transformations,
-        mapper=vmaps,
     )
 
-    rows_working: list[dict[str | int, list]] = list(
+    docs: list[defaultdict[TypeVE, list]] = list(
         map(transform_row_partial, rows_raw)
     )
 
-    for row in rows_working:
-        vdoc_acc: defaultdict[TypeVE, list] = defaultdict(list)
-        for vcol, local_map in conf.current_collections:
-            current_fields = set(vertex_conf.index(vcol).fields) | set(
-                vertex_conf.fields(vcol)
-            )
-
-            default_input = current_fields & (
-                transformation_outputs
-                | set(header_dict.keys())
-                | set(local_map.output)
-            )
-
-            subrow = [(k, row[k]) for k in default_input]
-            max_len = max(len(y) for _, y in subrow)
-            common_keys = [k for k, y in subrow if 0 < len(y) != max_len]
-            subrow2 = [row for row in subrow if len(row[1]) == max_len]
-            zip2 = zip(*(y for _, y in subrow2))
-            keys = [key for key, _ in subrow2]
-            unit_list = [dict(zip(keys, dds)) for dds in zip2]
-            for dd in unit_list:
-                for c in common_keys:
-                    dd[c] = row[0]
-
-            vdoc_acc[vcol] = unit_list
-        docs += [vdoc_acc]
-
     # if blank collection has no aux fields - inflate it
     for unit in docs:
-        for vcol in vertex_conf.blank_collections:
+        for vertex in vertex_conf.blank_collections:
             # if blank collection is in batch - add it
-            if vcol not in unit:
-                unit[vcol] = [{}]
+            if vertex not in unit:
+                unit[vertex] = [{}]
 
     # apply filter : add a flag
     for unit in docs:
-        for vcol, vfilter in conf.vertex_config.filters():
-            for doc in unit[vcol]:
-                if not vfilter(doc):
-                    doc.update({f"_status@{vfilter.b.field}": vfilter(doc)})
+        for vertex, doc_list in unit.items():
+            for doc in doc_list:
+                for cfilter in conf.vertex_config.filters(vertex):
+                    if not cfilter(doc):
+                        doc.update(
+                            {f"_status@{cfilter.b.field}": cfilter(doc)}
+                        )
+
+    docs = [normalize_unit(unit, conf) for unit in docs]
 
     # apply filter : add a flag
     for unit in docs:
-        for u, v in conf.current_graphs:
+        for u, v in conf.current_edges:
             g = u, v
             if (
                 u not in vertex_conf.blank_collections
@@ -166,28 +134,43 @@ def table_to_collections(
     #         for vlist in vlists
     #     ]
     #     vdocs_output[u] = list(chain.from_iterable(stub))
-    docs = [normalize_unit(unit, conf) for unit in docs]
     return docs
 
 
 def transform_row(
-    doc: dict,
-    current_transformations: list[Transform],
-    mapper: list[TableMapper],
-) -> dict[str | int, list]:
-    transformed = [
-        transform_foo(transformation, doc)
-        for transformation in current_transformations
-    ]
-    mapped = [m(doc) for m in mapper]
-    doc_upd = {k: [v] for k, v in doc.items()}
+    doc: dict, tc: TableConfig, vc: VertexConfig
+) -> defaultdict[TypeVE, list]:
+    docs: defaultdict[TypeVE, list] = defaultdict(list)
+    # all_fields_to_transform = tc.fields()
+    for vertex in tc.vertices:
+        docs[vertex] += [
+            tau(doc, __return_doc=True) for tau in tc.transforms(vertex)
+        ]
+        addendum = [
+            {k: doc[k] for k in set(docs.keys()) & set(vc.fields(vertex))}
+        ]
+        docs[vertex] += [d for d in addendum if d]
+    return docs
 
-    for d in transformed:
-        doc_upd.update(
-            {k: v if isinstance(v, list) else [v] for k, v in d.items()}
-        )
-    for d in mapped:
-        doc_upd.update(
-            {k: v if isinstance(v, list) else [v] for k, v in d.items()}
-        )
-    return doc_upd
+
+# for vcol, local_map in conf.current_collections:
+#     current_fields = set(vertex_conf.index(vcol).fields) | set(
+#         vertex_conf.fields(vcol)
+#     )
+#
+#     default_input = current_fields & (
+#             transformation_outputs
+#             | set(header_dict.keys())
+#             | set(local_map.output)
+#     )
+#
+#     subrow = [(k, row[k]) for k in default_input]
+#     max_len = max(len(y) for _, y in subrow)
+#     common_keys = [k for k, y in subrow if 0 < len(y) != max_len]
+#     subrow2 = [row for row in subrow if len(row[1]) == max_len]
+#     zip2 = zip(*(y for _, y in subrow2))
+#     keys = [key for key, _ in subrow2]
+#     unit_list = [dict(zip(keys, dds)) for dds in zip2]
+#     for dd in unit_list:
+#         for c in common_keys:
+#             dd[c] = row[0]

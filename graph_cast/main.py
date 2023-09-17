@@ -125,7 +125,7 @@ def ingest_tables(
 
     logger.info(conf_obj.mode2files)
 
-    for mode in conf_obj.modes2collections:
+    for mode in conf_obj.tables:
         conf_obj.set_mode(mode)
         kwargs = {
             "batch_size": batch_size,

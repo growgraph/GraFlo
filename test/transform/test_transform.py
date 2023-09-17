@@ -2,11 +2,7 @@ import logging
 
 import pytest
 
-from graph_cast.architecture.table import TConfigurator
 from graph_cast.architecture.transform import Transform
-from graph_cast.input import table_to_collections
-from graph_cast.util import ResourceHandler, equals
-from graph_cast.util.io import Chunker
 from graph_cast.util.transform import parse_multi_item
 
 logger = logging.getLogger(__name__)
@@ -44,7 +40,28 @@ def test_round():
         "params": {"ndigits": 3},
     }
     t = Transform(**kwargs)
-    assert t(0.1234) == 0.123
+    r = t(0.1234)
+    assert r == 0.123
+
+
+def test_map():
+    kwargs = {"map": {"x": "y"}}
+    t = Transform(**kwargs)
+    r = t(0.1234)
+    assert r["y"] == 0.1234
+
+
+def test_map_doc():
+    kwargs = {"map": {"x": "y"}}
+    t = Transform(**kwargs)
+    r = t({"x": 0.1234})
+    assert r["y"] == 0.1234
+
+
+def test_input_output():
+    kwargs = {"input": ["x"], "output": ["y"]}
+    t = Transform(**kwargs)
+    assert t(0.1)["y"] == 0.1
 
 
 def test_parse_multi_item(quoted_multi_item):
@@ -55,30 +72,14 @@ def test_parse_multi_item(quoted_multi_item):
     assert r["id"][-1] == "360777873683"
 
 
-# def test_transform_problems():
-#     mode = "ticker"
-#     config = ResourceHandler.load(f"conf.table", f"{mode}.yaml")
-#     conf = TConfigurator(config)
-#
-#     conf.set_mode("_all")
-#
-#     chk = Chunker(
-#         fname=None,
-#         pkg_spec=(f"test.data.all", f"{mode}.use_tranform.csv.gz"),
-#         batch_size=10000000,
-#         encoding=conf.encoding,
-#     )
-#     # conf.set_current_resource_name(tabular_resource)
-#     header = chk.pop_header()
-#     header_dict = dict(zip(header, range(len(header))))
-#
-#     while not chk._done:
-#         lines = chk.pop()
-#         if lines:
-#             vdocuments, edocuments = table_to_collections(
-#                 lines,
-#                 header_dict,
-#                 conf,
-#             )
-#
-#
+def test_switch():
+    kwargs = {
+        "module": "builtins",
+        "foo": "round",
+        "input": "Open",
+        "switch": {"Open": ["name", "value"]},
+        "params": {"ndigits": 3},
+    }
+    t = Transform(**kwargs)
+    r = t({"Open": 0.1234}, __return_doc=True)
+    assert r["value"] == 0.123

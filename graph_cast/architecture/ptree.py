@@ -20,8 +20,8 @@ from graph_cast.architecture.schema import (
     _target_aux,
     strip_prefix,
 )
-from graph_cast.architecture.transform import Transform, transform_foo
-from graph_cast.architecture.uitl import project_dict, project_dicts
+from graph_cast.architecture.transform import Transform
+from graph_cast.architecture.util import project_dict, project_dicts
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +192,7 @@ class MapperNode:
             kkeys = vertex_config.fields(self.collection)
             doc_ = dict()
             for t in self.transforms:
-                doc_.update(transform_foo(t, doc))
+                doc_.update(t(doc, __return_doc=True))
 
             kkeys += [k for k in self._map if k not in kkeys]
 

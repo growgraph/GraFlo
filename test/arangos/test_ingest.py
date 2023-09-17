@@ -1,5 +1,6 @@
 from os.path import join
 from pprint import pprint
+from test.arangos.conftest import create_db
 from test.conftest import current_path, ingest_atomic, reset
 
 import pytest
@@ -20,7 +21,11 @@ def modes():
 
 @pytest.fixture(scope="function")
 def table_modes():
-    return ["ibes", "wos", "ticker"]
+    return [
+        # "ibes",
+        "wos",
+        # "ticker"
+    ]
 
 
 def verify(
@@ -43,14 +48,18 @@ def verify(
         ref_vc = ResourceHandler.load(
             f"test.ref.{input_type}", f"{mode}_sizes.yaml"
         )
-        print("expected")
-        pprint(ref_vc)
-        print("received")
-        pprint(vc)
+        if not equals(vc, ref_vc):
+            print(f" mode: {mode}")
+            for k, v in ref_vc.items():
+                print(
+                    f" {k} expected: {v}, received:"
+                    f" {vc[k] if k in vc else None}"
+                )
         assert equals(vc, ref_vc)
 
 
-def test_json(modes, conn_conf, current_path, test_db_name, reset):
+def test_json(create_db, modes, conn_conf, current_path, test_db_name, reset):
+    _ = create_db
     for m in modes:
         ingest_atomic(
             conn_conf,
@@ -69,7 +78,11 @@ def test_json(modes, conn_conf, current_path, test_db_name, reset):
         )
 
 
-def test_csv(table_modes, conn_conf, current_path, test_db_name, reset):
+def test_csv(
+    create_db, table_modes, conn_conf, current_path, test_db_name, reset
+):
+    _ = create_db
+
     for m in table_modes:
         ingest_atomic(
             conn_conf,

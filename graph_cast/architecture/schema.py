@@ -28,6 +28,11 @@ class EdgeMapping(str, Enum):
     ONE_N = "1-n"
 
 
+class EncodingType(str, Enum):
+    ISO_8859 = "ISO-8859-1"
+    UTF_8 = "utf-8"
+
+
 class IndexType(str, Enum):
     PERSISTENT = "persistent"
     HASH = "hash"
@@ -565,12 +570,8 @@ class VertexConfig:
                 f" collection {vertex_name} was not defined in config"
             )
 
-    def filters(self):
-        return (
-            (vcol, f)
-            for vcol, item in self._vcollections_all.items()
-            for f in item.filters
-        )
+    def filters(self, vertex_name) -> list[Filter]:
+        return self._vcollections_all[vertex_name].filters
 
 
 def strip_prefix(dictlike, prefix="~"):

@@ -1,6 +1,9 @@
+import io
 from os.path import dirname, join, realpath
 
+import pandas as pd
 import pytest
+import yaml
 from suthing import equals
 
 from graph_cast.architecture import JConfigurator, TConfigurator
@@ -15,21 +18,6 @@ from graph_cast.util.transform import pick_unique_dict
 @pytest.fixture()
 def current_path():
     return dirname(realpath(__file__))
-
-
-def ingest_atomic(conn_conf, current_path, test_db_name, input_type, mode):
-    path = join(current_path, f"../data/{input_type}/{mode}")
-    schema = ResourceHandler.load(f"conf.{input_type}", f"{mode}.yaml")
-
-    conn_conf.database = test_db_name
-    ingest_files(
-        fpath=path,
-        schema=schema,
-        conn_conf=conn_conf,
-        input_type=input_type,
-        limit_files=None,
-        clean_start=True,
-    )
 
 
 def transform_it(current_path, input_type, mode, reset):
@@ -87,3 +75,134 @@ def verify(vc, current_path, mode, reset):
             f"test.ref.transform", f"{mode}_sizes.yaml"
         )
         assert equals(vc_tranformed, ref_vc)
+
+
+@pytest.fixture()
+def table_config_ibes():
+    tc = yaml.safe_load("""
+        tabletype: ibes
+        encoding: ISO-8859-1
+        transforms:
+        -   foo: parse_date_ibes
+            module: graph_cast.util.transform
+            input:
+            -   ANNDATS
+            -   ANNTIMS
+            output:
+            -   datetime_announce
+        -   foo: parse_date_ibes
+            module: graph_cast.util.transform
+            input:
+            -   REVDATS
+            -   REVTIMS
+            output:
+            -   datetime_review
+        -   foo: cast_ibes_analyst
+            module: graph_cast.util.transform
+            input:
+            -   ANALYST
+            output:
+            -   last_name
+            -   initial
+        -   map:
+                CUSIP: cusip
+                CNAME: cname
+                OFTIC: oftic
+        -   map:
+                ESTIMID: aname
+        -   map:
+                ERECCD: erec
+                ETEXT: etext
+                IRECCD: irec
+                ITEXT: itext
+    """)
+    return tc
+
+
+@pytest.fixture()
+def vertex_config_ibes():
+    vc = yaml.safe_load("""
+        blanks:
+        -   publication
+        collections:
+            publication:
+                basename: publications
+                fields:
+                -   datetime_review
+                -   datetime_announce
+                extra_index:
+                -   type: hash
+                    unique: false
+                    fields:
+                    -   datetime_review
+                -   type: hash
+                    unique: false
+                    fields:
+                    -   datetime_announce
+            ticker:
+                basename: tickers
+                fields:
+                -   cusip
+                -   cname
+                -   oftic
+                index:
+                -   cusip
+                -   cname
+                -   oftic
+            agency:
+                basename: agencies
+                fields:
+                -   aname
+                index:
+                -   aname
+            analyst:
+                basename: analysts
+                fields:
+                -   last_name
+                -   initial
+                index:
+                -   last_name
+                -   initial
+            recommendation:
+                basename: recommendations
+                fields:
+                -   erec
+                -   etext
+                -   irec
+                -   itext
+                index:
+                -   irec
+    """)
+    return vc
+
+
+@pytest.fixture()
+def edge_config_ibes():
+    vc = yaml.safe_load("""
+        edge_collections:
+            main:
+            -   source: publication
+                target: ticker
+            -   source: analyst
+                target: agency
+                weight:
+                -   datetime_review
+                -   datetime_announce
+            -   source: analyst
+                target: publication
+            -   source: publication
+                target: recommendation
+    """)
+    return vc
+
+
+@pytest.fixture()
+def df_ibes() -> pd.DataFrame:
+    df_ibes_str = """TICKER,CUSIP,CNAME,OFTIC,ACTDATS,ESTIMID,ANALYST,ERECCD,ETEXT,IRECCD,ITEXT,EMASKCD,AMASKCD,USFIRM,ACTTIMS,REVDATS,REVTIMS,ANNDATS,ANNTIMS
+0000,87482X10,TALMER BANCORP,TLMR,20140310,RBCDOMIN,ARFSTROM      J,2,OUTPERFORM,2,BUY,00000659,00071182,1,8:54:03,20160126,9:35:52,20140310,0:20:00
+0000,87482X10,TALMER BANCORP,TLMR,20140311,JPMORGAN,ALEXOPOULOS   S,,OVERWEIGHT,2,BUY,00001243,00079092,1,17:10:47,20160126,10:09:34,20140310,0:25:00"""
+    return pd.read_csv(
+        io.StringIO(df_ibes_str),
+        sep=",",
+        dtype={"TICKER": str, "ANNDATS": str, "REVDATS": str},
+    )

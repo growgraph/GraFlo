@@ -3,7 +3,7 @@ import os
 import pytest
 from suthing import FileHandle
 
-from graph_cast.db import ConfigFactory
+from graph_cast.db import ConfigFactory, ConnectionManager
 
 
 @pytest.fixture(scope="function")
@@ -34,3 +34,9 @@ def conn_conf(test_db_port):
 
     conn_conf = ConfigFactory.create_config(dict_like=db_args)
     return conn_conf
+
+
+@pytest.fixture
+def create_db(conn_conf, test_db_name):
+    with ConnectionManager(connection_config=conn_conf) as db_client:
+        db_client.create_database(test_db_name)

@@ -1,5 +1,5 @@
 import logging
-from test.arangos.conftest import conn_conf, test_db_name
+from test.arangos.conftest import conn_conf, create_db, test_db_name
 
 import pytest
 
@@ -12,12 +12,6 @@ logger = logging.getLogger(__name__)
 @pytest.fixture(scope="function")
 def collection_name():
     return "collection0"
-
-
-@pytest.fixture
-def create_db(conn_conf, test_db_name):
-    with ConnectionManager(connection_config=conn_conf) as db_client:
-        db_client.create_database(test_db_name)
 
 
 @pytest.fixture

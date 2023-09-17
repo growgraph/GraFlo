@@ -216,11 +216,11 @@ class SchemaPlotter:
         elif self.type == DataSourceType.TABLE:
             g = nx.MultiDiGraph()
             edges = []
-            for k, local_vertex_cols in self.conf.modes2collections.items():
-                nodes_table = [(k, {"type": "table"})]
+            for table_type in self.conf.tables:
+                vertices = self.conf.vertices(table_type)
+                nodes_table = [(table_type, {"type": "table"})]
                 nodes_collection = [
-                    (vc, {"type": "vcollection"})
-                    for vc in local_vertex_cols.collections
+                    (vc, {"type": "vcollection"}) for vc in vertices
                 ]
                 nodes += nodes_table
                 nodes += nodes_collection
@@ -246,8 +246,8 @@ class SchemaPlotter:
                 upd_dict["forcelabel"] = True
             if "name" in props:
                 upd_dict["label"] = props["name"]
-            for k, v in upd_dict.items():
-                g.nodes[n][k] = v
+            for table_type, v in upd_dict.items():
+                g.nodes[n][table_type] = v
 
         ag = nx.nx_agraph.to_agraph(g)
         ag.draw(
@@ -280,16 +280,16 @@ class SchemaPlotter:
                 g.add_node(nid, **weight)
         elif self.type == DataSourceType.TABLE:
             nodes = []
-            edges = []
-            for mode, local_vertex_cols in self.conf.modes2collections.items():
-                nodes_collection = [
-                    (vcol, {"type": "vcollection"})
-                    for vcol in local_vertex_cols.collections
-                ]
-                nodes += nodes_collection
+            nodes += [
+                (vcol, {"type": "vcollection"})
+                for vcol in self.conf.vertices()
+            ]
 
-            for _, item in self.conf.modes2graphs.items():
-                edges += [(u, v) for u, v in item]
+            edges = self.conf.graph_config.edge_projection(
+                self.conf.vertices()
+            )
+        else:
+            raise ValueError(f"Unknown type {self.type}")
 
         g.add_nodes_from(nodes)
         g.add_edges_from(edges)
@@ -344,15 +344,15 @@ class SchemaPlotter:
         nodes = []
         edges = []
 
-        for table_name in self.conf.table_config.tables:
+        for table_name in self.conf.tables:
             nodes_table = [
                 (f"table:{table_name}", {"type": "table", "label": table_name})
             ]
-            table_maps = self.conf.modes2collections[table_name]
-            for vcol_name in self.conf.table_config.vertices(table_name):
-                index = self.conf.vertex_config.index(vcol_name)
+            transforms = self.conf.table_config[table_name]
+            for vertex in self.conf.vertices(table_name):
+                index = self.conf.vertex_config.index(vertex)
                 ref_fields = index.fields
-                maps = table_maps._vcollections[vcol_name]
+                maps = transforms._vcollections[vertex]
                 cmap = maps[0]._raw_map
                 fields_collection_complementary = set(ref_fields) - set(
                     cmap.values()
@@ -362,8 +362,8 @@ class SchemaPlotter:
                 )
 
                 node_collection = (
-                    f"collection:{vcol_name}",
-                    {"type": "vcollection", "label": vcol_name},
+                    f"collection:{vertex}",
+                    {"type": "vcollection", "label": vertex},
                 )
                 nodes_fields_table = [
                     (f"table:field:{kk}", {"type": "field", "label": kk})
@@ -427,11 +427,11 @@ class SchemaPlotter:
 
         ag = nx.nx_agraph.to_agraph(g)
 
-        for vcol_name in self.conf.vertex_config.collections:
-            index = self.conf.vertex_config.index(vcol_name).fields
+        for vertex in self.conf.vertex_config.collections:
+            index = self.conf.vertex_config.index(vertex).fields
             level_index = [f"collection:field:{item}" for item in index]
             index_subgraph = ag.add_subgraph(
-                level_index, name=f"cluster_{vcol_name[:3]}:def"
+                level_index, name=f"cluster_{vertex[:3]}:def"
             )
             index_subgraph.node_attr["style"] = "filled"
             index_subgraph.node_attr["label"] = "definition"

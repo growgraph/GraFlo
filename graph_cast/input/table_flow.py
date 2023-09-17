@@ -51,7 +51,7 @@ def process_table(
             n_lines_max=max_lines,
             encoding=conf.encoding,
         )
-        conf.set_current_resource_name(tabular_resource)
+        # conf.set_current_resource_name(tabular_resource)
     else:
         raise TypeError(f"tabular_resource type is not str or pd.DataFrame")
     header = chk.pop_header()
@@ -97,7 +97,7 @@ def process_table(
 
                 # update edge misc with blank node edges
                 for vcol in conf.vertex_config.blank_collections:
-                    for vfrom, vto in conf.current_graphs:
+                    for vfrom, vto in conf.current_edges:
                         if vcol == vfrom or vcol == vto:
                             edocuments[(vfrom, vto)].extend(
                                 [

@@ -3,7 +3,7 @@ from collections import defaultdict
 
 from graph_cast.architecture import Configurator
 from graph_cast.architecture.schema import TypeVE
-from graph_cast.architecture.uitl import merge_documents, project_dicts
+from graph_cast.architecture.util import merge_documents, project_dicts
 from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)

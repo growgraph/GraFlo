@@ -1,35 +1,36 @@
+import logging
 from collections import defaultdict
 from copy import deepcopy
-from itertools import permutations
 from os import listdir
 from os.path import isfile, join
+from typing import Iterator
+
+import networkx as nx
 
 from graph_cast.architecture.general import (
     Configurator,
     DataSourceType,
-    LocalVertexCollections,
+    VertexConfig,
 )
+from graph_cast.architecture.schema import EncodingType
 from graph_cast.architecture.transform import Transform
+
+logger = logging.getLogger(__name__)
 
 
 class TConfigurator(Configurator):
     def __init__(self, config):
         super().__init__(config)
-        self.mode = None
-        self.modes2collections: defaultdict[str, LocalVertexCollections] = (
-            defaultdict(LocalVertexCollections)
-        )
+        self.active_table_type = None
 
-        # table_type -> [{collection: cname, collection_maps: maps}]
         if DataSourceType.TABLE in config:
             config_table = deepcopy(config[DataSourceType.TABLE])
         else:
             raise KeyError("expected `table` section in config missing")
 
-        self.modes2graphs = defaultdict(list)
         self.mode2files = defaultdict(list)
-        self.table_config = TablesConfig(config_table, self.graph_config)
-        self._init_modes2graphs(config_table, self.graph_config.direct_edges)
+        self.table_config: dict[str, TableConfig] = dict()
+        self._init_table_configs(config_table)
 
     def set_mode(self, mode):
         """
@@ -38,53 +39,36 @@ class TConfigurator(Configurator):
         :param mode:
         :return:
         """
-        self.mode = mode
+        self.active_table_type = mode
+
+    def _init_table_configs(self, config_tables):
+        for item in config_tables:
+            tc = TableConfig(item, self.vertex_config)
+            self.table_config[tc.table_type] = tc
+
+        self._all_vertices = set()
+        for vs in self.table_config.values():
+            self._all_vertices |= set(vs.vertices)
 
     @property
     def encoding(self):
-        if self.mode in self.table_config.encodings_map:
-            return self.table_config.encodings_map[self.mode]
+        if self.active_table_type in self.table_config:
+            return self.table_config[self.active_table_type].encoding
         else:
             return None
 
     @property
-    def current_graphs(self):
-        if self.mode in self.modes2graphs:
-            return self.modes2graphs[self.mode]
-        else:
-            return []
+    def current_edges(self):
+        return self.graph_config.edge_projection(
+            self.vertices(self.active_table_type)
+        )
 
     @property
-    def current_collections(self):
-        if self.mode in self.modes2collections:
-            return self.modes2collections[self.mode]
-        else:
-            return []
-
-    @property
-    def current_transformations(self) -> list[Transform]:
-        return self.table_config.transforms(self.mode)
-
-    def _init_modes2graphs(self, subconfig, edges):
-        for item in subconfig:
-            table_type = item["tabletype"]
-
-            vcols = [iitem["type"] for iitem in item["vertex_collections"]]
-            # here transform into standard form [{"collection": col_name, "map" map}]
-            # from [{"collection": col_name, "maps" maps}] (where many maps are applied)
-            self.modes2collections[table_type] = LocalVertexCollections(
-                item["vertex_collections"]
-            )
-            for u, v in permutations(vcols, 2):
-                if (u, v) in edges:
-                    self.modes2graphs[table_type] += [(u, v)]
-
-        self.modes2graphs = {
-            k: list(set(v)) for k, v in self.modes2graphs.items()
-        }
+    def current_transformations(self) -> Iterator[Transform]:
+        return self.table_config[self.active_table_type].transforms()
 
     def discover_files(self, fpath, limit_files=None):
-        for keyword in self.modes2graphs:
+        for keyword in self.tables:
             if keyword == "_all":
                 search_pattern = ""
             else:
@@ -104,104 +88,82 @@ class TConfigurator(Configurator):
                 k: v[:limit_files] for k, v in self.mode2files.items()
             }
 
-    def set_current_resource_name(self, tabular_resource):
-        self.current_fname = tabular_resource
-        for mode, vcol_resource in self.modes2collections.items():
-            vcol_resource.update_mappers(filename=self.current_fname)
-
     def exclude_fields(self, k):
         return self.graph_config.exclude_fields(k)
 
-
-class TablesConfig:
-    _tables: set[str] = set()
-
-    # table_type -> [ {vertex_collection :vc, map: (table field -> collection field)} ]
-    # vertex_collection -> (table field -> collection field)
-    table_collection_maps: dict[str, dict[str, str]] = dict()
-
-    # table_type -> encoding
-    encodings_map: dict[str, str] = dict()
-
-    # table_type -> vertex_collections
-    _vertices: dict[str, str] = {}
-
-    # table_type -> edge_collections
-    _edges: defaultdict[str, list[tuple[str, str]]] = defaultdict(list)
-
-    # table_type -> transforms
-    _transforms: defaultdict[str, list[Transform]] = defaultdict(list)
-
-    def __init__(self, vconfig, graph_config):
-        self._init_tables(vconfig)
-        self._init_transformations(vconfig)
-        self._init_encodings(vconfig)
-        self._init_vertices(vconfig)
-        self._init_edges(graph_config)
-
     @property
     def tables(self):
-        return self._tables
+        return list(self.table_config.keys())
 
-    def _init_tables(self, vconfig):
-        self._tables = set(
-            [item["tabletype"] for item in vconfig if "tabletype" in item]
-        )
-
-    def _init_vertices(self, vconfig):
-        self._vertices = {
-            item["tabletype"]: [
-                subitem["type"]
-                for subitem in item["vertex_collections"]
-                if "type" in subitem
-            ]
-            for item in vconfig
-            if "tabletype" in item
-        }
-        # TODO run check : wrt to vertex_config
-
-    def _init_edges(self, graph_config):
-        for table, vertices in self._vertices.items():
-            self._edges[table] = [
-                (u, v)
-                for u, v in graph_config.all_edges
-                if u in vertices and v in vertices
-            ]
-
-    def _init_transformations(self, subconfig):
-        for item in subconfig:
-            if "transforms" in item:
-                for citem in item["transforms"]:
-                    if "maps" in citem:
-                        cmaps = deepcopy(citem["maps"])
-                        for cmap in cmaps:
-                            kwargs = deepcopy(citem)
-                            kwargs["input"] = cmap["input"]
-                            if "output" in cmap:
-                                kwargs["output"] = cmap["output"]
-                            self._transforms[item["tabletype"]] += [
-                                Transform(**kwargs)
-                            ]
-                    else:
-                        self._transforms[item["tabletype"]] += [
-                            Transform(**citem)
-                        ]
-
-    def _init_encodings(self, subconfig):
-        for item in subconfig:
-            if "encoding" in item:
-                self.encodings_map[item["tabletype"]] = item["encoding"]
-            else:
-                self.encodings_map[item["tabletype"]] = None
-
-    def vertices(self, table_type):
-        return self._vertices[table_type]
-
-    def edges(self, table_type):
-        return self._edges[table_type]
-
-    def transforms(self, table_type) -> list[Transform]:
-        if table_type in self._transforms:
-            return self._transforms[table_type]
+    def vertices(self, table_name: str | None = None):
+        if table_name is not None and table_name:
+            return self.table_config[table_name].vertices
         else:
-            return []
+            return self._all_vertices
+
+
+class TableConfig:
+    def __init__(
+        self,
+        config_table,
+        vertex_config: VertexConfig,
+    ):
+        self.encoding: EncodingType = config_table.get(
+            "encoding", EncodingType.UTF_8
+        )
+        self.table_type = config_table.get("tabletype", None)
+
+        if self.table_type is None:
+            raise ValueError(f"tabletype absent in {config_table}")
+
+        # table_type -> transforms
+        self._transforms: dict[int, Transform] = {}
+
+        # bipartite graph from vertices to transformations
+        self._vertex_tau = nx.DiGraph()
+
+        self._init_transformations(config_table, vertex_config)
+
+    def _init_transformations(self, subconfig, vertex_config: VertexConfig):
+        transforms = subconfig.get("transforms", [])
+        for t in transforms:
+            tau = Transform(**t)
+            self._transforms[id(tau)] = tau
+            related_collections = [
+                c
+                for c in vertex_config.collections
+                if set(vertex_config.fields(c)) & set(tau.output)
+            ]
+            if len(related_collections) > 1:
+                if tau.image is not None:
+                    related_collections = [tau.image]
+                else:
+                    logger.warning(
+                        f"Multiple collections {related_collections} are"
+                        f" related to transformation {tau}, consider revising"
+                        " your schema"
+                    )
+            self._vertex_tau.add_edges_from(
+                [(c, id(tau)) for c in related_collections]
+            )
+
+    @property
+    def vertices(self) -> set[str]:
+        return set(v for v, _ in self._vertex_tau.edges)
+
+    def transforms(self, vertex: str | None = None) -> Iterator[Transform]:
+        if vertex is not None:
+            neighbours = self._vertex_tau.neighbors(vertex)
+        else:
+            neighbours = self._transforms.keys()
+        return (self._transforms[k] for k in neighbours)
+
+    def fields(self, vertex: str | None = None) -> set[str]:
+        field_sets: Iterator[set[str]]
+        if vertex is None:
+            field_sets = (self.fields(v) for v in self.vertices)
+        else:
+            neighbours = self._vertex_tau.neighbors(vertex)
+            field_sets = (set(self._transforms[k].output) for k in neighbours)
+        fields: set[str] = set().union(*field_sets)
+        return fields
