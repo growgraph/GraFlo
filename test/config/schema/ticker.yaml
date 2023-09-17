@@ -22,17 +22,15 @@ table:
     -   foo: int
         module: builtins
         switch:
-            Volumn:
+            Volume:
             -   name
             -   value
     -   foo: parse_date_yahoo
         module: graph_cast.util.transform
         map:
             Date: t_obs
-#    vertex_collections:
-#    -   type: ticker
-#        map:
-#            _filename: oftic
+    -   map:
+            __ticker: oftic
 vertex_collections:
     collections:
         ticker:

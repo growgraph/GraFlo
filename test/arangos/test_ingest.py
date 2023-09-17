@@ -22,9 +22,9 @@ def modes():
 @pytest.fixture(scope="function")
 def table_modes():
     return [
-        "ibes",
+        # "ibes",
         # "wos",
-        # "ticker"
+        "ticker"
     ]
 
 

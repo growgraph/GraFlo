@@ -141,14 +141,16 @@ class Transform:
         return r
 
     def _dress_as_dict(self, transform_result):
-        if isinstance(transform_result, Iterable):
+        if isinstance(transform_result, Iterable) and not self._switch:
             upd = {k: v for k, v in zip(self._outputs, transform_result)}
         else:
+            # TODO works only there is one switch clause
             upd = {self._outputs[-1]: transform_result}
         for k0, (q, qq) in self._switch.items():
-            item = upd.pop(k0, None)
-            if item is not None:
-                upd.update({q: k0, qq: item})
+            upd.update({q: k0})
+            # item = upd.pop(k0, None)
+            # if item is not None:
+            #     upd.update({qq: item})
         return upd
 
     @property

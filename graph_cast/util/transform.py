@@ -48,7 +48,7 @@ def parse_date_ibes(date0, time0):
     # dt = datetime.strptime(full_datetime, "%Y-%m-%dT%H:%M:%SZ").timetuple()
     # timestamp = time.mktime(dt)
     # return (timestamp,)
-    return (full_datetime,)
+    return full_datetime
 
 
 def parse_date_yahoo(date0):
@@ -62,17 +62,17 @@ def parse_date_yahoo(date0):
 
     # timestamp = time.mktime(dt)
     # return (timestamp,)
-    return (full_datetime,)
+    return full_datetime
 
 
 def round_str(x, **kwargs):
-    return (round(float(x), **kwargs),)
+    return round(float(x), **kwargs)
 
 
 def parse_date_standard_to_epoch(input_str):
     dt = datetime.strptime(input_str, "%Y-%m-%d").timetuple()
     timestamp = time.mktime(dt)
-    return (timestamp,)
+    return timestamp
 
 
 def cast_ibes_analyst(s):
@@ -101,7 +101,7 @@ def cast_ibes_analyst(s):
 
 
 def parse_date_reference(input_str):
-    return (_parse_date_reference(input_str)["year"],)
+    return _parse_date_reference(input_str)["year"]
 
 
 def _parse_date_reference(input_str):

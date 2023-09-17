@@ -82,3 +82,27 @@ def test_switch():
     t = Transform(**kwargs)
     r = t({"Open": 0.1234}, __return_doc=True)
     assert r["value"] == 0.123
+
+
+def test_switch_complete():
+    doc = {
+        "Date": "2014-04-15",
+        "Open": "17.899999618530273",
+        "High": "17.920000076293945",
+        "Low": "15.149999618530273",
+        "Close": "15.350000381469727",
+        "Volume": "3531700",
+        "Dividends": "0",
+        "Stock Splits": "0",
+        "__ticker": "AAPL",
+    }
+
+    kwargs = {
+        "module": "graph_cast.util.transform",
+        "foo": "round_str",
+        "switch": {"Open": ["name", "value"]},
+        "params": {"ndigits": 3},
+    }
+    t = Transform(**kwargs)
+    r = t(doc, __return_doc=True)
+    assert r["value"] == 17.9
