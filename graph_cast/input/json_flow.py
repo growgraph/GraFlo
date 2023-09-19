@@ -3,12 +3,7 @@ from typing import List
 
 from graph_cast.architecture import JConfigurator
 from graph_cast.db import ConnectionManager
-from graph_cast.db.arango.util import (
-    define_extra_edges,
-    fetch_fields,
-    insert_edges_batch,
-    upsert_docs_batch,
-)
+from graph_cast.db.arango.util import define_extra_edges, fetch_fields
 from graph_cast.db.onto import DBConnectionConfig
 from graph_cast.input.json import jsonlike_to_collections
 from graph_cast.input.util import list_to_dict_edges, list_to_dict_vertex
@@ -36,7 +31,7 @@ def process_jsonlike(
             for k, v in vdocs.items():
                 r = merge_doc_basis(v, conf_obj.vertex_config.index(k))
                 cnt += len(r)
-                query0 = upsert_docs_batch(
+                query0 = db_client.upsert_docs_batch(
                     v,
                     conf_obj.vertex_config.vertex_dbname(k),
                     conf_obj.vertex_config.index(k),
@@ -89,15 +84,13 @@ def process_jsonlike(
                         vc.name
                         for vc in conf_obj.graph(vfrom, vto).weight_vertices
                     ]
-                    query0 = insert_edges_batch(
+                    query0 = db_client.insert_edges_batch(
                         docs_edges=batch,
-                        source_collection_name=conf_obj.vertex_config.vertex_dbname(
+                        source_class=conf_obj.vertex_config.vertex_dbname(
                             vfrom
                         ),
-                        target_collection_name=conf_obj.vertex_config.vertex_dbname(
-                            vto
-                        ),
-                        edge_col_name=conf_obj.graph(vfrom, vto).edge_name,
+                        target_class=conf_obj.vertex_config.vertex_dbname(vto),
+                        relation_name=conf_obj.graph(vfrom, vto).edge_name,
                         match_keys_source=conf_obj.vertex_config.index(
                             vfrom
                         ).fields,

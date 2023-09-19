@@ -103,3 +103,82 @@ class Neo4jConnection(Connection):
 
     def init_db(self, conf_obj: Configurator, clean_start):
         self.define_indices(conf_obj.graph_config, conf_obj.vertex_config)
+
+    def upsert_docs_batch(
+        self,
+        docs,
+        collection_name,
+        match_keys,
+        update_keys=None,
+        filter_uniques=True,
+    ):
+        """
+            batch is sent in context
+            {batch: [
+            {id:"alice@example.com", name:"Alice",age:32},{id:"bob@example.com", name:"Bob",age:42}]}
+            UNWIND $batch as row
+            MERGE (n:Label {id: row.id})
+            (ON CREATE) SET n += row
+
+        :param match_keys: dict of properties
+        :param collection_name:
+
+        :return:
+        """
+
+        index_str = ", ".join([f"{k}: row.{k}" for k in match_keys])
+        q = f"""
+            WITH $batch AS batch 
+            UNWIND batch as row 
+            MERGE (n:{collection_name} {{ {index_str} }}) 
+            ON MATCH set n += row 
+            ON CREATE set n += row
+        """
+
+        return q
+
+    def insert_edges_batch(
+        self,
+        docs_edges,
+        source_class,
+        target_class,
+        relation_name,
+        match_keys_source=("_key",),
+        match_keys_target=("_key",),
+        filter_uniques=True,
+        uniq_weight_fields=None,
+        uniq_weight_collections=None,
+        upsert_option=False,
+        head=None,
+        **kwargs,
+    ):
+        source_match_str = [
+            f"source.{key} = row[1].{key}" for key in match_keys_source
+        ]
+        target_match_str = [
+            f"target.{key} = row[2].{key}" for key in match_keys_target
+        ]
+
+        match_clause = "WHERE " + " AND ".join(
+            source_match_str + target_match_str
+        )
+
+        q = f"""
+            WITH $batch AS batch 
+            UNWIND batch as row 
+            MATCH (source:{source_class}), 
+                  (target:{target_class}) {match_clause} 
+                        MERGE (source)-[r:{relation_name}]->(target)
+        """
+        return q
+
+    def insert_return_batch(self, docs, collection_name):
+        pass
+        # docs = json.dumps(docs)
+        # query0 = f"""FOR doc in {docs}
+        #       INSERT doc
+        #       INTO {collection_name}
+        #       LET inserted = NEW
+        #       RETURN {{_key: inserted._key}}
+        # """
+        return query0

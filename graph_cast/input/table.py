@@ -2,15 +2,10 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from functools import partial
 from itertools import combinations, product
 
 from graph_cast.architecture import ConfiguratorType
-from graph_cast.architecture.general import (
-    Configurator,
-    DataSourceType,
-    VertexConfig,
-)
+from graph_cast.architecture.general import VertexConfig
 from graph_cast.architecture.graph import GraphConfig
 from graph_cast.architecture.schema import (
     SOURCE_AUX,

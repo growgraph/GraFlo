@@ -7,11 +7,6 @@ import pandas as pd
 from graph_cast.architecture import ConfiguratorType
 from graph_cast.architecture.schema import SOURCE_AUX, TARGET_AUX
 from graph_cast.db import ConnectionManager
-from graph_cast.db.arango.util import (
-    insert_edges_batch,
-    insert_return_batch,
-    upsert_docs_batch,
-)
 from graph_cast.db.onto import DBConnectionConfig
 from graph_cast.input import table_to_collections
 from graph_cast.input.table import logger
@@ -80,13 +75,13 @@ def process_table(
                 for vcol, data in vdocuments.items():
                     # blank nodes: push and get back their keys  {"_key": ...}
                     if vcol in conf.vertex_config.blank_collections:
-                        query0 = insert_return_batch(
+                        query0 = db_client.insert_return_batch(
                             data, conf.vertex_config.vertex_dbname(vcol)
                         )
                         cursor = db_client.execute(query0)
                         vdocuments[vcol] = [item for item in cursor]
                     else:
-                        query0 = upsert_docs_batch(
+                        query0 = db_client.upsert_docs_batch(
                             data,
                             conf.vertex_config.vertex_dbname(vcol),
                             conf.vertex_config.index(vcol),
@@ -109,7 +104,7 @@ def process_table(
                             )
 
                 for (vfrom, vto), data in edocuments.items():
-                    query0 = insert_edges_batch(
+                    query0 = db_client.insert_edges_batch(
                         data,
                         conf.vertex_config.vertex_dbname(vfrom),
                         conf.vertex_config.vertex_dbname(vto),

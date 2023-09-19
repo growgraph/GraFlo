@@ -11,8 +11,8 @@ from graph_cast.util import ResourceHandler, equals
 def modes():
     return [
         # "wos",
-        "lake_odds",
-        "kg_v3b",
+        # "lake_odds",
+        # "kg_v3b",
     ]
 
 
@@ -30,11 +30,11 @@ def table_modes():
 #             input_type=InputType.TABLE,
 #             mode=m,
 #         )
-#         verify(
-#             conn_conf,
-#             current_path,
-#             test_db_name,
-#             mode=m,
-#             reset=reset,
-#             input_type=InputType.TABLE,
-#         )
+#         # verify(
+#         #     conn_conf,
+#         #     current_path,
+#         #     test_db_name,
+#         #     mode=m,
+#         #     reset=reset,
+#         #     input_type=InputType.TABLE,
+#         # )

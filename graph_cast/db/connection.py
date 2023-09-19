@@ -46,6 +46,37 @@ class Connection(abc.ABC):
     def init_db(self, conf_obj: Configurator, clean_start):
         pass
 
+    @abc.abstractmethod
+    def upsert_docs_batch(
+        self,
+        docs,
+        collection_name,
+        match_keys,
+        update_keys=None,
+        filter_uniques=True,
+    ):
+        pass
+
+    def insert_edges_batch(
+        self,
+        docs_edges,
+        source_class,
+        target_class,
+        relation_name,
+        match_keys_source,
+        match_keys_target,
+        filter_uniques=True,
+        uniq_weight_fields=None,
+        uniq_weight_collections=None,
+        upsert_option=False,
+        head=None,
+        **kwargs,
+    ):
+        pass
+
+    def insert_return_batch(self, docs, collection_name):
+        pass
+
     # @abc.abstractmethod
     # def get_collections(self):
     #     pass
