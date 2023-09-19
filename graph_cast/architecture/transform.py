@@ -1,6 +1,5 @@
 import importlib
 import logging
-from typing import Iterable
 
 logger = logging.getLogger(__name__)
 

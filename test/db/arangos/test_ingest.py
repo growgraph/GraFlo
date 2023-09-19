@@ -1,6 +1,6 @@
 from os.path import join
-from test.arangos.conftest import create_db
 from test.conftest import current_path, ingest_atomic, reset
+from test.db.arangos.conftest import create_db, test_db_name
 
 import pytest
 

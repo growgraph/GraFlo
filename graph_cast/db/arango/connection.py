@@ -203,8 +203,6 @@ class ArangoConnection(Connection):
         docs,
         class_name,
         match_keys,
-        update_keys=None,
-        filter_uniques=True,
         **kwargs,
     ):
         """
@@ -217,6 +215,9 @@ class ArangoConnection(Connection):
         :return:
         """
         dry = kwargs.pop("dry", False)
+        update_keys = kwargs.pop("update_keys", None)
+        filter_uniques = kwargs.pop("filter_uniques", True)
+
         if isinstance(docs, list):
             if filter_uniques:
                 docs = pick_unique_dict(docs)

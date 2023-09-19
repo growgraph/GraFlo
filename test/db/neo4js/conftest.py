@@ -4,9 +4,7 @@ from os.path import dirname, realpath
 import pytest
 from suthing import FileHandle
 
-from graph_cast.db import ConfigFactory
-from graph_cast.main import ingest_files
-from graph_cast.util import ResourceHandler
+from graph_cast.db import ConfigFactory, ConnectionManager
 
 
 @pytest.fixture(scope="function")
@@ -35,7 +33,7 @@ def conn_conf(test_db_port, creds):
         "cred_pass": cred_pass,
         "port": test_db_port,
         "database": "_system",
-        "db_type": "arango",
+        "db_type": "neo4j",
     }
     conn_conf = ConfigFactory.create_config(dict_like=db_args)
     return conn_conf
@@ -44,6 +42,17 @@ def conn_conf(test_db_port, creds):
 @pytest.fixture()
 def current_path():
     return dirname(realpath(__file__))
+
+
+@pytest.fixture()
+def clean_db(conn_conf):
+    with ConnectionManager(connection_config=conn_conf) as db_client:
+        db_client.delete_collections()
+
+
+@pytest.fixture(scope="function")
+def test_db_name():
+    return "neo4j"
 
 
 # def ingest_atomic(conn_conf, current_path, test_db_name, input_type, mode):

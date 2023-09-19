@@ -1,17 +1,16 @@
 general:
-    name: reviews
-
+    name: review
 table:
 -   tabletype: authors
-    vertex_collections:
-    -   type: author
+    transforms:
+    -   image: author
         map:
             author_id: id
             FullName: full_name
             HIndex: hindex
-    -   type: field
+    -   image: research_field
         map:
-            research_sector: research_sector
+            research_sector: id
 vertex_collections:
     db_flavor: neo4j
     collections:
@@ -37,7 +36,4 @@ edge_collections:
     -   source: author
         target: research_field
         relation: belongsTo
-        index:
-        -   fields:
-            -   t_obs
 

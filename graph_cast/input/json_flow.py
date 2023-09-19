@@ -35,8 +35,8 @@ def process_jsonlike(
                     v,
                     conf_obj.vertex_config.vertex_dbname(k),
                     conf_obj.vertex_config.index(k),
-                    "doc",
-                    True,
+                    update_keys="doc",
+                    filter_uniques=True,
                     dry=dry,
                 )
 

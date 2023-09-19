@@ -1,5 +1,5 @@
 import logging
-from test.arangos.conftest import conn_conf, create_db, test_db_name
+from test.db.arangos.conftest import conn_conf, create_db, test_db_name
 
 import pytest
 

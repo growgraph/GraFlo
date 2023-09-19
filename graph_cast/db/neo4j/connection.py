@@ -97,24 +97,28 @@ class Neo4jConnection(Connection):
         pass
 
     def delete_collections(self, cnames=(), gnames=(), delete_all=False):
-        for c in cnames:
-            q = f"MATCH (a:{c}) DELETE a"
+        if cnames:
+            for c in cnames:
+                q = f"MATCH (n:{c}) DELETE n"
+                self.execute(q)
+        else:
+            q = f"MATCH (n) DELETE n"
             self.execute(q)
 
     def init_db(self, conf_obj: Configurator, clean_start):
         self.define_indices(conf_obj.graph_config, conf_obj.vertex_config)
 
-    def upsert_docs_batch(self, docs, collection_name, match_keys, **kwargs):
+    def upsert_docs_batch(self, docs, class_name, match_keys, **kwargs):
         """
             batch is sent in context
             {batch: [
-            {id:"alice@example.com", name:"Alice",age:32},{id:"bob@example.com", name:"Bob",age:42}]}
+            {id:"alice@example.com", name:"Alice",age:32},{id:"bob@example.com", name:"Bob", age:42}]}
             UNWIND $batch as row
             MERGE (n:Label {id: row.id})
             (ON CREATE) SET n += row
 
         :param docs: list of docs
-        :param collection_name:
+        :param class_name:
         :param match_keys: dict of properties
 
         :return:
@@ -126,7 +130,7 @@ class Neo4jConnection(Connection):
         q = f"""
             WITH $batch AS batch 
             UNWIND batch as row 
-            MERGE (n:{collection_name} {{ {index_str} }}) 
+            MERGE (n:{class_name} {{ {index_str} }}) 
             ON MATCH set n += row 
             ON CREATE set n += row
         """
@@ -148,11 +152,15 @@ class Neo4jConnection(Connection):
         head=None,
         **kwargs,
     ):
+        dry = kwargs.pop("dry", False)
+
         source_match_str = [
-            f"source.{key} = row[1].{key}" for key in match_keys_source
+            f"source.{key} = row['__source'].{key}"
+            for key in match_keys_source
         ]
         target_match_str = [
-            f"target.{key} = row[2].{key}" for key in match_keys_target
+            f"target.{key} = row['__target'].{key}"
+            for key in match_keys_target
         ]
 
         match_clause = "WHERE " + " AND ".join(
@@ -166,7 +174,8 @@ class Neo4jConnection(Connection):
                   (target:{target_class}) {match_clause} 
                         MERGE (source)-[r:{relation_name}]->(target)
         """
-        return q
+        if not dry:
+            self.execute(q, batch=docs_edges)
 
     def insert_return_batch(self, docs, collection_name):
         pass

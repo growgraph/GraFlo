@@ -47,7 +47,7 @@ class Connection(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def upsert_docs_batch(self, docs, collection_name, match_keys, **kwargs):
+    def upsert_docs_batch(self, docs, class_name, match_keys, **kwargs):
         pass
 
     @abc.abstractmethod

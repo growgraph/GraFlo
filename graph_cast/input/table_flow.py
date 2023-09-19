@@ -86,8 +86,8 @@ def process_table(
                             data,
                             conf.vertex_config.vertex_dbname(vcol),
                             conf.vertex_config.index(vcol),
-                            "doc",
-                            True,
+                            update_keys="doc",
+                            filter_uniques=True,
                             dry=dry,
                         )
 
