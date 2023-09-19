@@ -18,9 +18,9 @@ from graph_cast.architecture.schema import (
     EdgeType,
     TypeVE,
 )
-from graph_cast.architecture.table import TableConfig, Transform
+from graph_cast.architecture.table import TableConfig
 from graph_cast.input.util import normalize_unit
-from graph_cast.util.merge import merge_doc_basis, merge_documents
+from graph_cast.util.merge import merge_doc_basis
 
 logger = logging.getLogger(__name__)
 

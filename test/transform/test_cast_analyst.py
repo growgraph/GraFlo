@@ -21,4 +21,4 @@ def analyst_ref():
 
 def test_cast_ibes_analyst(analyst_examples, analyst_ref):
     r = [cast_ibes_analyst(e) for e in analyst_examples]
-    assert equals(r, analyst_ref)
+    assert r == analyst_ref

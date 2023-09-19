@@ -9,7 +9,6 @@ from suthing import equals
 from graph_cast.architecture import JConfigurator, TConfigurator
 from graph_cast.input import jsondoc_to_collections, table_to_collections
 from graph_cast.input.util import list_to_dict_edges, list_to_dict_vertex
-from graph_cast.main import ingest_files
 from graph_cast.onto import InputType, InputTypeFileExtensions
 from graph_cast.util import ResourceHandler
 from graph_cast.util.transform import pick_unique_dict
@@ -25,7 +24,7 @@ def transform_it(current_path, input_type, mode, reset):
         f"test.data.{input_type}.{mode}",
         f"{mode}.{InputTypeFileExtensions[input_type][0]}.gz",
     )
-    config = ResourceHandler.load(f"conf.{input_type}", f"{mode}.yaml")
+    config = ResourceHandler.load(f"test.config.schema", f"{mode}.yaml")
 
     if input_type == InputType.TABLE:
         conf_obj = TConfigurator(config)
@@ -42,7 +41,6 @@ def transform_it(current_path, input_type, mode, reset):
         )
 
         vdocuments = list_to_dict_vertex(docs)
-        edocuments = list_to_dict_edges(docs)
 
         vc = {k: len(pick_unique_dict(v)) for k, v in vdocuments.items()}
 
@@ -74,6 +72,13 @@ def verify(vc, current_path, mode, reset):
         ref_vc = ResourceHandler.load(
             f"test.ref.transform", f"{mode}_sizes.yaml"
         )
+        if not equals(vc, ref_vc):
+            print(f" mode: {mode}")
+            for k, v in ref_vc.items():
+                print(
+                    f" {k} expected: {v}, received:"
+                    f" {vc[k] if k in vc else None}"
+                )
         assert equals(vc_tranformed, ref_vc)
 
 

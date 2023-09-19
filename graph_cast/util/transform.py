@@ -41,13 +41,10 @@ def parse_date_ibes(date0, time0):
     :param time0: as "9:35:52"
     :return: datetime as "2013-01-15T14:19:09.522"
     """
+    date0 = str(date0)
     year, month, day = date0[:4], date0[4:6], date0[6:]
     full_datetime = f"{year}-{month}-{day}T{time0}Z"
 
-    # full_datetime = f"{year}-{month}-{day}T{time0}"
-    # dt = datetime.strptime(full_datetime, "%Y-%m-%dT%H:%M:%SZ").timetuple()
-    # timestamp = time.mktime(dt)
-    # return (timestamp,)
     return full_datetime
 
 

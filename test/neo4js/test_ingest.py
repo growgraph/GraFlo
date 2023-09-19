@@ -21,20 +21,20 @@ def table_modes():
     return ["review"]
 
 
-def test_csv(table_modes, conn_conf, current_path, test_db_name, reset):
-    for m in table_modes:
-        ingest_atomic(
-            conn_conf,
-            current_path,
-            test_db_name,
-            input_type=InputType.TABLE,
-            mode=m,
-        )
-        # verify(
-        #     conn_conf,
-        #     current_path,
-        #     test_db_name,
-        #     mode=m,
-        #     reset=reset,
-        #     input_type=InputType.TABLE,
-        # )
+# def test_csv(table_modes, conn_conf, current_path, test_db_name, reset):
+#     for m in table_modes:
+#         ingest_atomic(
+#             conn_conf,
+#             current_path,
+#             test_db_name,
+#             input_type=InputType.TABLE,
+#             mode=m,
+#         )
+#         verify(
+#             conn_conf,
+#             current_path,
+#             test_db_name,
+#             mode=m,
+#             reset=reset,
+#             input_type=InputType.TABLE,
+#         )

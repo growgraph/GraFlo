@@ -1,5 +1,4 @@
 from os.path import join
-from pprint import pprint
 from test.arangos.conftest import create_db
 from test.conftest import current_path, ingest_atomic, reset
 
