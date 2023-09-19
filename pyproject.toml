@@ -16,6 +16,7 @@ pandas = "^2.0.3"
 pytest = "^7.4.0"
 python = "^3.10"
 python-arango = "^7.5.3"
+strenum = "^0.4.15"
 suthing = {git = "ssh://git@github.com/growgraph/suthing.git", rev = "v0.2.4"}
 xmltodict = "^0.12.0"
 

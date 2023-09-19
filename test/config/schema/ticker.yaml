@@ -61,22 +61,24 @@ vertex_collections:
                 fields:
                 -   name
             filters:
-            -   a:
-                    field: name
-                    foo: __eq__
-                    value: Open
-                b:
-                    field: value
-                    foo: __gt__
-                    value: 0
-            -   a:
-                    field: name
-                    foo: __eq__
-                    value: Close
-                b:
-                    field: value
-                    foo: __gt__
-                    value: 0
+            -   or:
+                -   if_then:
+                    -   field: name
+                        foo: __eq__
+                        value: Open
+                    -   field: value
+                        foo: __gt__
+                        value: 0
+                -   if_then:
+                    -   field: name
+                        foo: __eq__
+                        value: Close
+                    -   field: value
+                        foo: __gt__
+                        value: 0
+            -   field: name
+                foo: __ne__
+                value: Volume
 edge_collections:
     main:
     -   source: ticker

@@ -9,7 +9,9 @@ from typing import Union
 
 from dataclass_wizard import JSONWizard
 
+from graph_cast.architecture.filter import Filter
 from graph_cast.architecture.transform import Transform
+from graph_cast.architecture.util import strip_prefix
 from graph_cast.onto import DBFlavor
 
 logger = logging.getLogger(__name__)
@@ -141,7 +143,7 @@ class Vertex:
 
         self._numeric_fields = numeric_fields
         # set of filters
-        self._filters = [Filter(**item) for item in filters]
+        self._filters = [Filter(item) for item in filters]
 
         # currently not used
         self._transforms = [Transform(**item) for item in transforms]
@@ -422,58 +424,6 @@ class Edge:
             )
 
 
-class Filter:
-    def __init__(self, b, a=None):
-        """
-        for a given doc it's a(doc) => b(doc) implication
-        `a` and `b` are conditions. Return `False` means `doc` should be filtered out.
-        if `doc` satisfies `a` condition then return the result of condition `b`
-        if `doc` satisfies `a` condition then return True (not filtered)
-        `a` is None condition then return the result of condition `b`
-        :param b:
-        :param a:
-        """
-        self.a = Condition(**a)
-        self.b = Condition(**b)
-
-    def __call__(self, doc):
-        if self.a is not None:
-            if self.a(**doc):
-                return self.b(**doc)
-            else:
-                return True
-        else:
-            return self.b(**doc)
-
-    def __str__(self):
-        return f"{self.__class__} | a: {self.a} b: {self.b}"
-
-    __repr__ = __str__
-
-
-class Condition:
-    def __init__(self, field, foo, value=None):
-        self.field = field
-        self.value = value
-        # self.foo = getattr(self.value, foo)
-        self.foo = foo
-
-    def __call__(self, **kwargs):
-        if self.field in kwargs:
-            foo = getattr(kwargs[self.field], self.foo)
-            return foo(self.value)
-        else:
-            return True
-
-    def __str__(self):
-        return (
-            f"{self.__class__} | field: {self.field} value: {self.value} ->"
-            f" foo: {self.foo}"
-        )
-
-    __repr__ = __str__
-
-
 class VertexConfig:
     def __init__(self, vconfig):
         self._vcollections_all: dict[str, Vertex] = {}
@@ -571,18 +521,7 @@ class VertexConfig:
             )
 
     def filters(self, vertex_name) -> list[Filter]:
-        return self._vcollections_all[vertex_name].filters
-
-
-def strip_prefix(dictlike, prefix="~"):
-    new_dictlike = {}
-    if isinstance(dictlike, dict):
-        for k, v in dictlike.items():
-            if isinstance(k, str):
-                k = k.lstrip(prefix)
-            new_dictlike[k] = strip_prefix(v, prefix)
-    elif isinstance(dictlike, list):
-        return [strip_prefix(x) for x in dictlike]
-    else:
-        return dictlike
-    return new_dictlike
+        if vertex_name in self._vcollections_all:
+            return self._vcollections_all[vertex_name].filters
+        else:
+            return []

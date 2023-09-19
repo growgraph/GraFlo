@@ -1,0 +1,17 @@
+general:
+    name: lake_odds
+json:
+    ~maps:
+    -   ~type: dict
+        ~name: chunk
+vertex_collections:
+    collections:
+        chunk:
+            basename: chunks
+            fields:
+            -   kind
+            -   misc
+            -   fetched_time
+            index:
+            -   kind
+            -   fetched_time

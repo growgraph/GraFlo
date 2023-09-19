@@ -13,18 +13,18 @@ from graph_cast.util import ResourceHandler, equals
 @pytest.fixture(scope="function")
 def modes():
     return [
-        # "wos",
-        # "lake_odds",
-        # "kg_v3b",
+        # "wos_json",
+        "lake_odds",
+        "kg_v3b",
     ]
 
 
 @pytest.fixture(scope="function")
 def table_modes():
     return [
-        # "ibes",
+        "ibes",
         # "wos",
-        "ticker"
+        "ticker",
     ]
 
 

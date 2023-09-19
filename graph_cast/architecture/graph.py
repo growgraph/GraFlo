@@ -9,8 +9,8 @@ from graph_cast.architecture.schema import (
     Edge,
     EdgeType,
     VertexConfig,
-    strip_prefix,
 )
+from graph_cast.architecture.util import strip_prefix
 
 EdgeName = tuple[str, str]
 
@@ -148,3 +148,10 @@ class GraphConfig:
             if u in vertices and v in vertices:
                 enames += [(u, v)]
         return enames
+
+    def weight_raw_fields(self) -> set:
+        fields = set()
+        for e, item in self._edges.items():
+            efields = {f for edef in item for f in edef.weight_fields}
+            fields |= efields
+        return fields

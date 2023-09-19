@@ -11,6 +11,7 @@ from graph_cast.architecture.general import (
     DataSourceType,
     VertexConfig,
 )
+from graph_cast.architecture.graph import GraphConfig
 from graph_cast.architecture.schema import (
     SOURCE_AUX,
     TARGET_AUX,
@@ -35,48 +36,43 @@ def table_to_collections(
         {k: item[v] for k, v in header_dict.items()} for item in rows
     ]
 
+    # adding `trivial` transformations : when column is cast directly to a vertex field
     conf.current_transform_config.add_passthrough_transformations(
         header_dict.keys(), vertex_conf
     )
 
-    transform_row_partial = partial(
-        transform_row,
-        table_config=conf.current_transform_config,
-    )
+    predocs_transformed = [
+        transform_row(x, table_config=conf.current_transform_config)
+        for x in rows_dressed
+    ]
 
-    predocs_transformed = [transform_row_partial(x) for x in rows_dressed]
+    pure_weights = [
+        extract_weights(unit, table_config=conf.current_transform_config)
+        for unit in rows_dressed
+    ]
 
     docs = [normalize_row(item, vertex_conf) for item in predocs_transformed]
 
     docs = [add_blank_collections(item, vertex_conf) for item in docs]
 
-    # docs = [update_filter_flags(item, vertex_conf) for item in docs]
-
     docs = [
-        define_edges(
+        apply_filter(
             item,
-            conf.current_edges,
             vertex_conf=vertex_conf,
-            graph_config=conf.graph_config,
         )
         for item in docs
     ]
 
-    # for u, vlists in vdocs.items():
-    #     stub = [
-    #         [
-    #             item
-    #             for item in vlist
-    #             if not any(
-    #                 [
-    #                     f"_status@{xkey}" in item
-    #                     for xkey in vertex_conf.fields(u)
-    #                 ]
-    #             )
-    #         ]
-    #         for vlist in vlists
-    #     ]
-    #     vdocs_output[u] = list(chain.from_iterable(stub))
+    docs = [
+        define_edges(
+            unit,
+            unit_weight,
+            conf.current_edges,
+            vertex_conf=vertex_conf,
+            graph_config=conf.graph_config,
+        )
+        for unit, unit_weight in zip(docs, pure_weights)
+    ]
     return docs
 
 
@@ -101,6 +97,13 @@ def transform_row(
     return docs
 
 
+def extract_weights(doc: dict, table_config: TableConfig) -> dict:
+    doc_upd = {}
+    for tau in table_config.transforms(TableConfig.RESERVED_TAU_WEIGHTS):
+        doc_upd.update(tau(doc, __return_doc=True))
+    return doc_upd
+
+
 def normalize_row(unit, vc: VertexConfig) -> defaultdict[TypeVE, list]:
     doc_upd: defaultdict[TypeVE, list] = defaultdict(list)
     for k, item in unit.items():
@@ -119,22 +122,25 @@ def add_blank_collections(
     return unit
 
 
-def update_filter_flags(
+def apply_filter(
     unit: defaultdict[TypeVE, list[dict]], vertex_conf: VertexConfig
 ) -> defaultdict[TypeVE, list[dict]]:
     for vertex, doc_list in unit.items():
-        for doc in doc_list:
-            for cfilter in vertex_conf.filters(vertex):
-                if not cfilter(doc):
-                    doc.update({f"_status@{cfilter.b.field}": cfilter(doc)})
+        if vertex_conf.filters(vertex):
+            unit[vertex] = [
+                doc
+                for doc in doc_list
+                if all(cfilter(doc) for cfilter in vertex_conf.filters(vertex))
+            ]
     return unit
 
 
 def define_edges(
     unit: defaultdict[TypeVE, list[dict]],
+    unit_weight: dict,
     current_edges,
-    vertex_conf,
-    graph_config,
+    vertex_conf: VertexConfig,
+    graph_config: GraphConfig,
 ) -> defaultdict[TypeVE, list[dict]]:
     for u, v in current_edges:
         g = u, v
@@ -149,46 +155,29 @@ def define_edges(
                     ziter = product(unit[u], unit[v])
                 else:
                     ziter = combinations(unit[u], r=2)
+
                 for udoc, vdoc in ziter:
-                    if not (
-                        any(
-                            [
-                                f"_status@{xkey}" in udoc
-                                for xkey in vertex_conf.fields(u)
-                            ]
-                        )
-                        or any(
-                            [
-                                f"_status@{ykey}" in vdoc
-                                for ykey in vertex_conf.fields(v)
-                            ]
-                        )
-                    ):
-                        edoc = {SOURCE_AUX: udoc, TARGET_AUX: vdoc}
-                        # add weights from available row data
-                        # cfields = graph_config.graph(u, v).weight_fields
-                        # add weights from available data
-                        # if cfields:
-                        #     weights = [
-                        #         {f: item[f] for f in cfields}
-                        #         for item in rows_working
-                        #     ]
-                        #     ebatch = [
-                        #         {**item, **attr}
-                        #         for item, attr in zip(ebatch, weights)
-                        #     ]
-                        for vertex_weight in graph_config.graph(
-                            u, v
-                        ).weight_vertices:
-                            if vertex_weight.name == u:
-                                cbatch = udoc
-                            elif vertex_weight.name == v:
-                                cbatch = vdoc
-                            else:
-                                continue
-                            weights = {
-                                f: cbatch[f] for f in vertex_weight.fields
-                            }
-                            edoc = {**edoc, **weights}
-                        unit[g].append(edoc)
+                    edoc = {SOURCE_AUX: udoc, TARGET_AUX: vdoc}
+                    for vertex_weight in graph_config.graph(
+                        u, v
+                    ).weight_vertices:
+                        if vertex_weight.name == u:
+                            cbatch = udoc
+                        elif vertex_weight.name == v:
+                            cbatch = vdoc
+                        else:
+                            continue
+                        weights = {
+                            f.name: cbatch[f.name]
+                            for f in vertex_weight.fields
+                        }
+                        edoc.update(weights)
+                    edoc.update(
+                        {
+                            q: w
+                            for q, w in unit_weight.items()
+                            if q in graph_config.graph(u, v).weight_fields
+                        }
+                    )
+                    unit[g].append(edoc)
     return unit

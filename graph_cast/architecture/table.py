@@ -12,6 +12,7 @@ from graph_cast.architecture.general import (
     DataSourceType,
     VertexConfig,
 )
+from graph_cast.architecture.graph import GraphConfig
 from graph_cast.architecture.schema import EncodingType
 from graph_cast.architecture.transform import Transform
 
@@ -19,10 +20,13 @@ logger = logging.getLogger(__name__)
 
 
 class TableConfig:
+    RESERVED_TAU_WEIGHTS = "_$row"
+
     def __init__(
         self,
         config_table,
         vertex_config: VertexConfig,
+        graph_config: GraphConfig | None = None,
     ):
         self.encoding: EncodingType = config_table.get(
             "encoding", EncodingType.UTF_8
@@ -35,12 +39,19 @@ class TableConfig:
         # table_type -> transforms
         self._transforms: dict[int, Transform] = {}
 
-        # bipartite graph from vertices to transformations
+        # bipartite graph from vertices ( +TableConfig.RESERVED_TAU_WEIGHTS) to transformations
         self._vertex_tau = nx.DiGraph()
 
-        self._init_transformations(config_table, vertex_config)
+        self._vertices: set = set()
 
-    def _init_transformations(self, subconfig, vertex_config: VertexConfig):
+        self._init_transformations(config_table, vertex_config, graph_config)
+
+    def _init_transformations(
+        self,
+        subconfig,
+        vertex_config: VertexConfig,
+        graph_config: GraphConfig | None,
+    ):
         transforms = subconfig.get("transforms", [])
         for t in transforms:
             tau = Transform(**t)
@@ -50,6 +61,12 @@ class TableConfig:
                 for c in vertex_config.collections
                 if set(vertex_config.fields(c)) & set(tau.output)
             ]
+            self._vertices |= set(related_vertices)
+            if not related_vertices:
+                if graph_config is not None and (
+                    graph_config.weight_raw_fields() & set(tau.output)
+                ):
+                    related_vertices += [TableConfig.RESERVED_TAU_WEIGHTS]
             if len(related_vertices) > 1:
                 if (
                     tau.image is not None
@@ -84,13 +101,21 @@ class TableConfig:
                 self._transforms[id(tau)] = tau
                 self._vertex_tau.add_edges_from([(vertex, id(tau))])
 
+    def add_weight_transformations(
+        self, keys: list[str], graph_config: GraphConfig
+    ):
+        pass
+
     @property
     def vertices(self) -> set[str]:
-        return set(v for v, _ in self._vertex_tau.edges)
+        return self._vertices
 
     def transforms(self, vertex: str | None = None) -> Iterator[Transform]:
         if vertex is not None:
-            neighbours = self._vertex_tau.neighbors(vertex)
+            if vertex in self._vertex_tau.nodes:
+                neighbours = self._vertex_tau.neighbors(vertex)
+            else:
+                return iter(())
         else:
             neighbours = self._transforms.keys()
         return (self._transforms[k] for k in neighbours)
@@ -136,7 +161,11 @@ class TConfigurator(Configurator):
 
     def _init_table_configs(self, config_tables):
         for item in config_tables:
-            tc = TableConfig(item, self.vertex_config)
+            tc = TableConfig(
+                item,
+                vertex_config=self.vertex_config,
+                graph_config=self.graph_config,
+            )
             self.table_config[tc.table_type] = tc
 
         self._all_vertices = set()

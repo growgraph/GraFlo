@@ -5,7 +5,8 @@ from enum import Enum
 from typing import TypeVar
 
 from graph_cast.architecture.graph import GraphConfig
-from graph_cast.architecture.schema import VertexConfig, strip_prefix
+from graph_cast.architecture.schema import VertexConfig
+from graph_cast.architecture.util import strip_prefix
 
 logger = logging.getLogger(__name__)
 

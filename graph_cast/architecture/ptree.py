@@ -18,10 +18,13 @@ from graph_cast.architecture.schema import (
     EdgeMapping,
     TypeVE,
     VertexConfig,
-    strip_prefix,
 )
 from graph_cast.architecture.transform import Transform
-from graph_cast.architecture.util import project_dict, project_dicts
+from graph_cast.architecture.util import (
+    project_dict,
+    project_dicts,
+    strip_prefix,
+)
 
 logger = logging.getLogger(__name__)
 

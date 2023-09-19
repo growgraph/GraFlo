@@ -196,6 +196,27 @@ def edge_config_ibes():
 
 
 @pytest.fixture()
+def edge_config_ticker():
+    ec = yaml.safe_load("""
+        main:
+        -   source: ticker
+            target: feature
+            weight:
+                fields:
+                -   t_obs
+            vertex:
+            -   name: feature
+                fields:
+                -   name
+            index:
+            -   fields:
+                -   t_obs
+                -   name
+    """)
+    return ec
+
+
+@pytest.fixture()
 def tconf_ibes(vertex_config_ibes, edge_config_ibes, table_config_ibes):
     config = {
         "general": {"name": "ibes"},
@@ -216,6 +237,17 @@ def df_ibes() -> pd.DataFrame:
         io.StringIO(df0_str),
         sep=",",
         dtype={"TICKER": str, "ANNDATS": str, "REVDATS": str},
+    )
+
+
+@pytest.fixture()
+def df_ticker() -> pd.DataFrame:
+    df0_str = """Date,Open,High,Low,Close,Volume,Dividends,Stock Splits,__ticker
+2014-04-15,17.899999618530273,17.920000076293945,15.149999618530273,15.350000381469727,3531700,0,0,AAPL
+2014-04-16,15.350000381469727,16.09000015258789,15.210000038146973,15.619999885559082,266500,0,0,AAPL"""
+    return pd.read_csv(
+        io.StringIO(df0_str),
+        sep=",",
     )
 
 
@@ -274,3 +306,95 @@ def row_doc_ibes() -> dict[str, list]:
             {"cname": "TALMER BANCORP", "cusip": "87482X10", "oftic": "TLMR"}
         ],
     }
+
+
+@pytest.fixture()
+def vertex_config_ticker():
+    vc = yaml.safe_load("""
+        collections:
+            ticker:
+                basename: tickers
+                fields:
+                -   cusip
+                -   cname
+                -   oftic
+                index:
+                -   cusip
+                -   cname
+                -   oftic
+            feature:
+                basename: features
+                fields:
+                -   name
+                -   value
+                index:
+                -   name
+                -   value
+                extra_index:
+                -   type: hash
+                    unique: false
+                    fields:
+                    -   value
+                -   type: hash
+                    unique: false
+                    fields:
+                    -   name
+                filters:
+                -   or:
+                    -   if_then:
+                        -   field: name
+                            foo: __eq__
+                            value: Open
+                        -   field: value
+                            foo: __gt__
+                            value: 0
+                    -   if_then:
+                        -   field: name
+                            foo: __eq__
+                            value: Close
+                        -   field: value
+                            foo: __gt__
+                            value: 0
+                -
+                    field: name
+                    foo: __ne__
+                    value: Volume    
+    """)
+    return vc
+
+
+@pytest.fixture()
+def table_config_ticker():
+    tc = yaml.safe_load("""
+        tabletype: _all
+        transforms:
+        -   foo: round_str
+            module: graph_cast.util.transform
+            params:
+                ndigits: 3
+            switch:
+                Open:
+                -   name
+                -   value
+        -   foo: round_str
+            module: graph_cast.util.transform
+            params:
+                ndigits: 3
+            switch:
+                Close:
+                -   name
+                -   value
+        -   foo: int
+            module: builtins
+            switch:
+                Volume:
+                -   name
+                -   value
+        -   foo: parse_date_yahoo
+            module: graph_cast.util.transform
+            map:
+                Date: t_obs
+        -   map:
+                __ticker: oftic
+    """)
+    return tc

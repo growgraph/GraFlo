@@ -2,16 +2,21 @@ import logging
 from functools import partial
 from test.transform.conftest import (
     df_ibes,
+    df_ticker,
     df_transform_collision,
     edge_config_ibes,
+    edge_config_ticker,
     row_doc_ibes,
     table_config_ibes,
+    table_config_ticker,
     table_config_transform_collision,
     tconf_ibes,
     vertex_config_ibes,
+    vertex_config_ticker,
     vertex_config_transform_collision,
 )
 
+from graph_cast.architecture.graph import GraphConfig
 from graph_cast.architecture.schema import (
     SOURCE_AUX,
     TARGET_AUX,
@@ -23,6 +28,7 @@ from graph_cast.architecture.table import TableConfig
 from graph_cast.input.table import (
     add_blank_collections,
     define_edges,
+    extract_weights,
     normalize_row,
     transform_row,
 )
@@ -78,6 +84,7 @@ def test_transform_row(table_config_ibes, vertex_config_ibes, df_ibes):
     conf_obj = TableConfig(table_config_ibes, vc)
     docs = [dict(zip(df_ibes.columns, row)) for _, row in df_ibes.iterrows()]
     tr = transform_row(docs[0], conf_obj)
+
     assert {k: len(v) for k, v in tr.items()} == {
         "recommendation": 1,
         "analyst": 1,
@@ -112,7 +119,7 @@ def test_transform_collision(
         dict(zip(df_transform_collision.columns, row))
         for _, row in df_transform_collision.iterrows()
     ]
-    tc.add_passthrough_transformations(docs[0].keys(), vc)
+    tc.add_passthrough_transformations(list(docs[0].keys()), vc)
     tr = transform_row(docs[0], tc)
     assert {k: len(v) for k, v in tr.items()} == {"pet": 1, "person": 1}
     assert len(tr["person"][0]) == 2
@@ -147,13 +154,15 @@ def test_derive_edges(tconf_ibes, df_ibes):
 
     docs = [
         define_edges(
-            item,
-            conf.current_edges,
+            unit,
+            unit_weight={},
+            current_edges=conf.current_edges,
             vertex_conf=vertex_conf,
             graph_config=conf.graph_config,
         )
-        for item in docs
+        for unit in docs
     ]
+
     assert {k: len(v) for k, v in docs[0].items()} == {
         "recommendation": 1,
         "analyst": 1,
@@ -164,3 +173,18 @@ def test_derive_edges(tconf_ibes, df_ibes):
     }
     assert SOURCE_AUX in docs[0][("analyst", "agency")][0]
     assert TARGET_AUX in docs[0][("analyst", "agency")][0]
+
+
+def test_transform_row_pure_weight(
+    table_config_ticker, vertex_config_ticker, edge_config_ticker, df_ticker
+):
+    vc = VertexConfig(vertex_config_ticker)
+    gc = GraphConfig(edge_config_ticker, vc)
+    tc = TableConfig(table_config_ticker, vc, gc)
+    docs = [
+        dict(zip(df_ticker.columns, row)) for _, row in df_ticker.iterrows()
+    ]
+
+    pure_weights = [extract_weights(unit, table_config=tc) for unit in docs]
+
+    assert pure_weights[0] == {"t_obs": "2014-04-15T12:00:00Z"}
