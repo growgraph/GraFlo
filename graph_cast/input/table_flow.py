@@ -20,6 +20,7 @@ def process_table(
     db_config: Optional[DBConnectionConfig] = None,
     batch_size: int = 1000,
     max_lines: int = 10000,
+    dry=False,
 ):
     """
         given a table, config that specifies table to graph mapping and db_config, transform table and load it into db
@@ -81,14 +82,14 @@ def process_table(
                         cursor = db_client.execute(query0)
                         vdocuments[vcol] = [item for item in cursor]
                     else:
-                        query0 = db_client.upsert_docs_batch(
+                        db_client.upsert_docs_batch(
                             data,
                             conf.vertex_config.vertex_dbname(vcol),
                             conf.vertex_config.index(vcol),
                             "doc",
                             True,
+                            dry=dry,
                         )
-                        cursor = db_client.execute(query0)
 
                 # update edge misc with blank node edges
                 for vcol in conf.vertex_config.blank_collections:
@@ -104,7 +105,7 @@ def process_table(
                             )
 
                 for (vfrom, vto), data in edocuments.items():
-                    query0 = db_client.insert_edges_batch(
+                    db_client.insert_edges_batch(
                         data,
                         conf.vertex_config.vertex_dbname(vfrom),
                         conf.vertex_config.vertex_dbname(vto),
@@ -112,8 +113,8 @@ def process_table(
                         conf.vertex_config.index(vfrom).fields,
                         conf.vertex_config.index(vto).fields,
                         False,
+                        dry=dry,
                     )
-                    cursor = db_client.execute(query0)
 
                 # #create edge u -> v from u->w, v->w edges
                 # # find edge_cols uw and vw

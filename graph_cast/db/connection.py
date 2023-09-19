@@ -23,7 +23,7 @@ class Connection(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def execute(self, query):
+    def execute(self, query, **kwargs):
         pass
 
     @abc.abstractmethod
@@ -47,16 +47,10 @@ class Connection(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def upsert_docs_batch(
-        self,
-        docs,
-        collection_name,
-        match_keys,
-        update_keys=None,
-        filter_uniques=True,
-    ):
+    def upsert_docs_batch(self, docs, collection_name, match_keys, **kwargs):
         pass
 
+    @abc.abstractmethod
     def insert_edges_batch(
         self,
         docs_edges,
@@ -74,6 +68,7 @@ class Connection(abc.ABC):
     ):
         pass
 
+    @abc.abstractmethod
     def insert_return_batch(self, docs, collection_name):
         pass
 
@@ -100,10 +95,6 @@ class Connection(abc.ABC):
     # @abc.abstractmethod
     # def create_collection_if_absent(self, g, vcol, index, unique=True):
     #     pass
-
-
-def init_db(db_client: ConnectionType, conf_obj: Configurator, clean_start):
-    db_client.init_db(conf_obj, clean_start)
 
 
 def concluding_db_transform(db_client: ConnectionType, conf_obj):

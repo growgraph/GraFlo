@@ -22,8 +22,8 @@ class Neo4jConnection(Connection):
         )
         self.conn = driver.session()
 
-    def execute(self, query, params=None):
-        cursor = self.conn.run(query, params)
+    def execute(self, query, **kwargs):
+        cursor = self.conn.run(query, **kwargs)
         return cursor
 
     def close(self):
@@ -104,14 +104,7 @@ class Neo4jConnection(Connection):
     def init_db(self, conf_obj: Configurator, clean_start):
         self.define_indices(conf_obj.graph_config, conf_obj.vertex_config)
 
-    def upsert_docs_batch(
-        self,
-        docs,
-        collection_name,
-        match_keys,
-        update_keys=None,
-        filter_uniques=True,
-    ):
+    def upsert_docs_batch(self, docs, collection_name, match_keys, **kwargs):
         """
             batch is sent in context
             {batch: [
@@ -120,11 +113,14 @@ class Neo4jConnection(Connection):
             MERGE (n:Label {id: row.id})
             (ON CREATE) SET n += row
 
-        :param match_keys: dict of properties
+        :param docs: list of docs
         :param collection_name:
+        :param match_keys: dict of properties
 
         :return:
         """
+
+        dry = kwargs.pop("dry", False)
 
         index_str = ", ".join([f"{k}: row.{k}" for k in match_keys])
         q = f"""
@@ -134,8 +130,8 @@ class Neo4jConnection(Connection):
             ON MATCH set n += row 
             ON CREATE set n += row
         """
-
-        return q
+        if not dry:
+            self.execute(q, batch=docs)
 
     def insert_edges_batch(
         self,
@@ -181,4 +177,4 @@ class Neo4jConnection(Connection):
         #       LET inserted = NEW
         #       RETURN {{_key: inserted._key}}
         # """
-        return query0
+        # return query0

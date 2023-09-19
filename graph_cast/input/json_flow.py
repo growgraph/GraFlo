@@ -31,15 +31,14 @@ def process_jsonlike(
             for k, v in vdocs.items():
                 r = merge_doc_basis(v, conf_obj.vertex_config.index(k))
                 cnt += len(r)
-                query0 = db_client.upsert_docs_batch(
+                db_client.upsert_docs_batch(
                     v,
                     conf_obj.vertex_config.vertex_dbname(k),
                     conf_obj.vertex_config.index(k),
                     "doc",
                     True,
+                    dry=dry,
                 )
-                if not dry:
-                    db_client.execute(query0)
 
     logger.info(f" ingested {cnt} vertices {t_ingest.elapsed:.2f} sec")
 
@@ -84,7 +83,7 @@ def process_jsonlike(
                         vc.name
                         for vc in conf_obj.graph(vfrom, vto).weight_vertices
                     ]
-                    query0 = db_client.insert_edges_batch(
+                    db_client.insert_edges_batch(
                         docs_edges=batch,
                         source_class=conf_obj.vertex_config.vertex_dbname(
                             vfrom
@@ -102,10 +101,10 @@ def process_jsonlike(
                         uniq_weight_fields=conf_obj.graph(
                             vfrom, vto
                         ).weight_fields,
+                        dry=dry,
                         **kwargs,
                     )
-                    if not dry:
-                        db_client.execute(query0)
+
                 logger.info(
                     f" ingested {len(batch)} edges {vfrom}-{vto}"
                     f" {t_ingest_edges0.elapsed:.3f} sec"

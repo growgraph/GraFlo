@@ -190,7 +190,7 @@ class ArangoConnection(Connection):
     def get_collections(self):
         return self.conn.collections()
 
-    def execute(self, query):
+    def execute(self, query, **kwargs):
         cursor = self.conn.aql.execute(query)
         return cursor
 
@@ -201,21 +201,22 @@ class ArangoConnection(Connection):
     def upsert_docs_batch(
         self,
         docs,
-        collection_name,
+        class_name,
         match_keys,
         update_keys=None,
         filter_uniques=True,
+        **kwargs,
     ):
         """
 
         :param docs: list of dicts (json-like, ie keys are strings)
-        :param collection_name: collection where to upsert
+        :param class_name: collection where to upsert
         :param match_keys: keys on which to look for document
         :param update_keys: keys which to update if doc in the collection, if update_keys='doc', update all
         :param filter_uniques:
         :return:
         """
-
+        dry = kwargs.pop("dry", False)
         if isinstance(docs, list):
             if filter_uniques:
                 docs = pick_unique_dict(docs)
@@ -237,8 +238,9 @@ class ArangoConnection(Connection):
                             UPSERT {upsert_clause}
                             INSERT doc
                             UPDATE {update_clause} 
-                                IN {collection_name} {options}"""
-        return q_update
+                                IN {class_name} {options}"""
+        if not dry:
+            self.execute(q_update)
 
     def insert_edges_batch(
         self,
@@ -273,6 +275,8 @@ class ArangoConnection(Connection):
 
         :return:
         """
+
+        dry = kwargs.pop("dry", False)
 
         if isinstance(docs_edges, list):
             if docs_edges:
@@ -357,7 +361,8 @@ class ArangoConnection(Connection):
                 LET doc = {doc_definition}
                 {clauses}
                 in {relation_name} {options}"""
-        return q_update
+        if not dry:
+            self.execute(q_update)
 
     def insert_return_batch(self, docs, collection_name):
         docs = json.dumps(docs)
