@@ -36,4 +36,8 @@ edge_collections:
     -   source: author
         target: research_field
         relation: belongsTo
+        index:
+        -   fields:
+            -   t_obs
+
 

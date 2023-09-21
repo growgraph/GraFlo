@@ -37,4 +37,5 @@ def test_create_edge_index(conn_conf, schema):
         q = "SHOW INDEX;"
         cursor = db_client.execute(q)
         data = cursor.data()
+    print([item["name"] for item in data])
     assert any([item["name"] == "belongsTo_t_obs" for item in data])
