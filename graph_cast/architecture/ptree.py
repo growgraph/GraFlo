@@ -79,6 +79,7 @@ class MapperNode:
         self.__transforms: list = kwargs.pop("transforms", [])
         self._transforms: list[Transform]
 
+        # TODO : map now is obsolete (taken care by Transform)
         self._map: dict = kwargs.pop("map", {})
         self._anchor: dict = kwargs.pop(ANCHOR_KEY, None)
 

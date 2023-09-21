@@ -69,9 +69,6 @@ def process_table(
             vdocuments = list_to_dict_vertex(docs)
             edocuments = list_to_dict_edges(docs)
 
-            # transform vcols, ecols
-            # ingest vcols, ecols
-
             with ConnectionManager(connection_config=db_config) as db_client:
                 for vcol, data in vdocuments.items():
                     # blank nodes: push and get back their keys  {"_key": ...}
