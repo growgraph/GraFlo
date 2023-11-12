@@ -5,7 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.11.6] - 2023-09-xx
+## [0.11.6] - 2023-10
+
+### Added
+
+- `cli/plot_schema.py` became a standalone script available with the package installation
+-  basic `neo4j` ingestion added:
+     - create_database
+     - delete_database
+     - define_vertex_indices
+     - define_edge_indices
+     - delete_collections
+     - init_db
+     - upsert_docs_batch
+     - insert_edges_batch
 
 ### Fixed
 
@@ -13,7 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- in `ingest_json_files`: ncores -> n_threads
+- in `ingest_json_files`: ncores -> n_threads 
+- schema config changes:
+    - `type` specification removed in Transform (field mapping) specification, whenever ambiguous, `image` is used   
+
 
 ## [0.11.5] - 2023-08-30
 
