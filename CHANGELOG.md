@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - in `ingest_json_files`: ncores -> n_threads 
 - schema config changes:
     - `type` specification removed in Transform (field mapping) specification, whenever ambiguous, `image` is used   
-
+- `ConnectionConfigType` -> `DBConnectionConfig`
 
 ## [0.11.5] - 2023-08-30
 

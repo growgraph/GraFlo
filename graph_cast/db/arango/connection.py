@@ -1,6 +1,5 @@
 import json
 import logging
-from collections import defaultdict
 
 from arango import ArangoClient
 
@@ -10,7 +9,6 @@ from graph_cast.architecture.schema import (
     SOURCE_AUX,
     TARGET_AUX,
     CollectionIndex,
-    Edge,
     IndexType,
     VertexConfig,
 )
