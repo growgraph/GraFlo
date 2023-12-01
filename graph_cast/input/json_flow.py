@@ -29,10 +29,12 @@ def process_jsonlike(
         cnt = 0
         with ConnectionManager(connection_config=db_config) as db_client:
             for k, v in vdocs.items():
-                r = merge_doc_basis(v, conf_obj.vertex_config.index(k))
-                cnt += len(r)
+                squished_vertices = merge_doc_basis(
+                    v, conf_obj.vertex_config.index(k)
+                )
+                cnt += len(squished_vertices)
                 db_client.upsert_docs_batch(
-                    v,
+                    squished_vertices,
                     conf_obj.vertex_config.vertex_dbname(k),
                     conf_obj.vertex_config.index(k),
                     update_keys="doc",
@@ -40,7 +42,7 @@ def process_jsonlike(
                     dry=dry,
                 )
 
-    logger.info(f" ingested {cnt} vertices {t_ingest.elapsed:.2f} sec")
+    logger.info(f" ingested {cnt} vertices in {t_ingest.elapsed:.2f} sec")
 
     # currently works only on item level
     for edge in conf_obj.post_weights:
@@ -107,10 +109,10 @@ def process_jsonlike(
 
                 logger.info(
                     f" ingested {len(batch)} edges {vfrom}-{vto}"
-                    f" {t_ingest_edges0.elapsed:.3f} sec"
+                    f" in {t_ingest_edges0.elapsed:.3f} sec"
                 )
 
-    logger.info(f" ingested {cnt} edges {t_ingest_edges.elapsed:.2f} sec")
+    logger.info(f" ingested {cnt} edges in {t_ingest_edges.elapsed:.2f} sec")
 
     # create edge u -> v from u->w, v->w edges
     # find edge_cols uw and vw

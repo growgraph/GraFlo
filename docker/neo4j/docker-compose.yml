@@ -14,4 +14,4 @@ services:
         -   ${STORE_FOLDER}/logs:/logs
         environment:
         -   NEO4J_AUTH=${NEO4J_AUTH}
-        -   NEO4JLABS_PLUGINS=${NEO4JLABS_PLUGINS}
+        -   NEO4J_PLUGINS=${NEO4J_PLUGINS}
