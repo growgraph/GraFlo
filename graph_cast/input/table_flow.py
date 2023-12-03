@@ -5,24 +5,22 @@ from typing import Optional, Union
 import pandas as pd
 
 from graph_cast.architecture import ConfiguratorType
-from graph_cast.architecture.schema import _source_aux, _target_aux
-from graph_cast.db import ConnectionConfigType, ConnectionManager
-from graph_cast.db.arango.util import (
-    insert_edges_batch,
-    insert_return_batch,
-    upsert_docs_batch,
-)
+from graph_cast.architecture.schema import SOURCE_AUX, TARGET_AUX
+from graph_cast.db import ConnectionManager
+from graph_cast.db.onto import DBConnectionConfig
 from graph_cast.input import table_to_collections
 from graph_cast.input.table import logger
+from graph_cast.input.util import list_to_dict_edges, list_to_dict_vertex
 from graph_cast.util.io import AbsChunker, Chunker, ChunkerDataFrame
 
 
 def process_table(
     tabular_resource: Union[str, pd.DataFrame],
     conf: ConfiguratorType,
-    db_config: Optional[ConnectionConfigType] = None,
+    db_config: Optional[DBConnectionConfig] = None,
     batch_size: int = 1000,
     max_lines: int = 10000,
+    dry=False,
 ):
     """
         given a table, config that specifies table to graph mapping and db_config, transform table and load it into db
@@ -49,7 +47,7 @@ def process_table(
             n_lines_max=max_lines,
             encoding=conf.encoding,
         )
-        conf.set_current_resource_name(tabular_resource)
+        # conf.set_current_resource_name(tabular_resource)
     else:
         raise TypeError(f"tabular_resource type is not str or pd.DataFrame")
     header = chk.pop_header()
@@ -59,45 +57,44 @@ def process_table(
 
     while not chk.done:
         lines = chk.pop()
-        # logger.info(f" processing :{len(lines)}")
 
         if lines:
             # file to vcols, ecols
-            vdocuments, edocuments = table_to_collections(
+            docs = table_to_collections(
                 lines,
                 header_dict,
                 conf,
             )
 
-            # transform vcols, ecols
-            # ingest vcols, ecols
+            vdocuments = list_to_dict_vertex(docs)
+            edocuments = list_to_dict_edges(docs)
 
             with ConnectionManager(connection_config=db_config) as db_client:
                 for vcol, data in vdocuments.items():
                     # blank nodes: push and get back their keys  {"_key": ...}
                     if vcol in conf.vertex_config.blank_collections:
-                        query0 = insert_return_batch(
+                        query0 = db_client.insert_return_batch(
                             data, conf.vertex_config.vertex_dbname(vcol)
                         )
                         cursor = db_client.execute(query0)
                         vdocuments[vcol] = [item for item in cursor]
                     else:
-                        query0 = upsert_docs_batch(
+                        db_client.upsert_docs_batch(
                             data,
                             conf.vertex_config.vertex_dbname(vcol),
                             conf.vertex_config.index(vcol),
-                            "doc",
-                            True,
+                            update_keys="doc",
+                            filter_uniques=True,
+                            dry=dry,
                         )
-                        cursor = db_client.execute(query0)
 
                 # update edge misc with blank node edges
                 for vcol in conf.vertex_config.blank_collections:
-                    for vfrom, vto in conf.current_graphs:
+                    for vfrom, vto in conf.current_edges:
                         if vcol == vfrom or vcol == vto:
                             edocuments[(vfrom, vto)].extend(
                                 [
-                                    {_source_aux: x, _target_aux: y}
+                                    {SOURCE_AUX: x, TARGET_AUX: y}
                                     for x, y in zip(
                                         vdocuments[vfrom], vdocuments[vto]
                                     )
@@ -105,7 +102,7 @@ def process_table(
                             )
 
                 for (vfrom, vto), data in edocuments.items():
-                    query0 = insert_edges_batch(
+                    db_client.insert_edges_batch(
                         data,
                         conf.vertex_config.vertex_dbname(vfrom),
                         conf.vertex_config.vertex_dbname(vto),
@@ -113,8 +110,8 @@ def process_table(
                         conf.vertex_config.index(vfrom).fields,
                         conf.vertex_config.index(vto).fields,
                         False,
+                        dry=dry,
                     )
-                    cursor = db_client.execute(query0)
 
                 # #create edge u -> v from u->w, v->w edges
                 # # find edge_cols uw and vw

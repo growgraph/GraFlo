@@ -1,12 +1,6 @@
-publication: 1
-mention: 124
 entity: 80
-?   -   mention
-    -   entity
-: 98
-?   -   mention
-    -   mention
-: 126
-?   -   publication
-    -   mention
-: 41
+mention: 124
+mention->entity: 98
+mention->mention: 126
+publication: 1
+publication->mention: 41

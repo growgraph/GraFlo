@@ -11,6 +11,8 @@ import pkgutil
 import re
 from typing import TypeVar
 
+from graph_cast.architecture.schema import EncodingType
+
 AbsChunkerType = TypeVar("AbsChunkerType", bound="AbsChunker")
 
 logger = logging.getLogger(__name__)
@@ -39,7 +41,7 @@ class Chunker(AbsChunker):
         pkg_spec=None,
         batch_size=10000,
         n_lines_max: int | None = None,
-        encoding="utf-8",
+        encoding=EncodingType.UTF_8,
     ):
         """
         WARNING : if misc sources are gzipped - batch_size does not correspond to lines, instead it's a proxy for bytes

@@ -25,23 +25,17 @@ table:
         output:
         -   last_name
         -   initial
-    vertex_collections:
-    -   type: ticker
-        map:
+    -   map:
             CUSIP: cusip
             CNAME: cname
             OFTIC: oftic
-    -   type: agency
-        map:
+    -   map:
             ESTIMID: aname
-    -   type: analyst
-    -   type: recommendation
-        map:
+    -   map:
             ERECCD: erec
             ETEXT: etext
             IRECCD: irec
             ITEXT: itext
-    -   type: publication
 vertex_collections:
     blanks:
     -   publication

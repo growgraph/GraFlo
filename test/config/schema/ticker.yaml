@@ -5,40 +5,32 @@ table:
     transforms:
     -   foo: round_str
         module: graph_cast.util.transform
-        maps:
-        -   input:
-            -   Open
-        -   input:
-            -   Close
         params:
             ndigits: 3
+        switch:
+            Open:
+            -   name
+            -   value
+    -   foo: round_str
+        module: graph_cast.util.transform
+        params:
+            ndigits: 3
+        switch:
+            Close:
+            -   name
+            -   value
     -   foo: int
         module: builtins
-        maps:
-        -   input:
-            -   Volume
+        switch:
+            Volume:
+            -   name
+            -   value
     -   foo: parse_date_yahoo
         module: graph_cast.util.transform
-        input:
-        -   Date
-        output:
-        -   t_obs
-    vertex_collections:
-    -   type: ticker
         map:
-            _filename: oftic
-    -   type: feature
-        map:
-            Open:
-                key: name
-    -   type: feature
-        map:
-            Close:
-                key: name
-    -   type: feature
-        map:
-            Volume:
-                key: name
+            Date: t_obs
+    -   map:
+            __ticker: oftic
 vertex_collections:
     collections:
         ticker:
@@ -69,22 +61,24 @@ vertex_collections:
                 fields:
                 -   name
             filters:
-            -   a:
-                    field: name
-                    foo: __eq__
-                    value: Open
-                b:
-                    field: value
-                    foo: __gt__
-                    value: 0
-            -   a:
-                    field: name
-                    foo: __eq__
-                    value: Close
-                b:
-                    field: value
-                    foo: __gt__
-                    value: 0
+            -   or:
+                -   if_then:
+                    -   field: name
+                        foo: __eq__
+                        value: Open
+                    -   field: value
+                        foo: __gt__
+                        value: 0
+                -   if_then:
+                    -   field: name
+                        foo: __eq__
+                        value: Close
+                    -   field: value
+                        foo: __gt__
+                        value: 0
+            -   field: name
+                foo: __ne__
+                value: Volume
 edge_collections:
     main:
     -   source: ticker

@@ -5,14 +5,15 @@ from functools import partial
 
 from graph_cast.architecture import JConfigurator
 from graph_cast.architecture.schema import TypeVE
-from graph_cast.architecture.uitl import merge_documents, project_dicts
+from graph_cast.input.util import normalize_unit
 from graph_cast.util import timer as timer
-from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
 
 
-def jsondoc_to_collections(jsondoc, config: JConfigurator) -> defaultdict:
+def jsondoc_to_collections(
+    jsondoc, config: JConfigurator
+) -> defaultdict[TypeVE, list]:
     """
     parse jsondoc using JConfigurator
 
@@ -22,16 +23,7 @@ def jsondoc_to_collections(jsondoc, config: JConfigurator) -> defaultdict:
     """
 
     acc = config.apply(jsondoc)
-
-    for k, v in acc.items():
-        v = pick_unique_dict(v)
-        # (k is a vertex col) ~ not isinstance(k, tuple)
-        if not isinstance(k, tuple):
-            if config.exclude_fields(k):
-                v = project_dicts(v, config.exclude_fields(k), how="exclude")
-        if k in config.merge_collections:
-            v = merge_documents(v)
-        acc[k] = v
+    acc = normalize_unit(acc, config)
     return acc
 
 

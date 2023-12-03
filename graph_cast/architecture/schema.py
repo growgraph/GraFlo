@@ -9,13 +9,16 @@ from typing import Union
 
 from dataclass_wizard import JSONWizard
 
+from graph_cast.architecture.filter import Filter
 from graph_cast.architecture.transform import Transform
+from graph_cast.architecture.util import strip_prefix
+from graph_cast.onto import DBFlavor
 
 logger = logging.getLogger(__name__)
 
-_anchor_key = "_anchor"
-_source_aux = "__source"
-_target_aux = "__target"
+ANCHOR_KEY = "_anchor"
+SOURCE_AUX = "__source"
+TARGET_AUX = "__target"
 
 
 # type for vertex or edge name (index)
@@ -25,6 +28,11 @@ TypeVE = Union[str, tuple[str, str]]
 class EdgeMapping(str, Enum):
     ALL = "all"
     ONE_N = "1-n"
+
+
+class EncodingType(str, Enum):
+    ISO_8859 = "ISO-8859-1"
+    UTF_8 = "utf-8"
 
 
 class IndexType(str, Enum):
@@ -135,7 +143,7 @@ class Vertex:
 
         self._numeric_fields = numeric_fields
         # set of filters
-        self._filters = [Filter(**item) for item in filters]
+        self._filters = [Filter(item) for item in filters]
 
         # currently not used
         self._transforms = [Transform(**item) for item in transforms]
@@ -178,8 +186,10 @@ class Edge:
         self._weight_dict: dict = dict()
         self._extra_indices: list[CollectionIndex] = []
         self._how: EdgeMapping = dictlike.pop("how", EdgeMapping.ALL)
+        self._relation: str = dictlike.pop("relation", None)
         self._type: EdgeType = EdgeType.DIRECT if direct else EdgeType.INDIRECT
         self._by = None
+        self._db_flavor = vconf.db_flavor
 
         try:
             if isinstance(dictlike["source"], dict) and isinstance(
@@ -231,10 +241,9 @@ class Edge:
         if self._collection_name_suffix:
             self._collection_name_suffix = f"{self._collection_name_suffix}_"
 
-        self._edge_name = (
-            f"{vconf.vertex_dbname(self.source)}_{vconf.vertex_dbname(self.target)}_"
-            f"{self._collection_name_suffix}edges"
-        )
+        self._source_dbname = vconf.vertex_dbname(self.source)
+        self._target_dbname = vconf.vertex_dbname(self.target)
+
         self._graph_name = (
             f"{vconf.vertex_dbname(self.source)}_{vconf.vertex_dbname(self.target)}_"
             f"{self._collection_name_suffix}graph"
@@ -303,12 +312,12 @@ class Edge:
             index_fields += fields
 
         unique = item.pop("unique", True)
-        index_type = item.pop("type", "persistent")
+        index_type: IndexType = item.pop("type", IndexType.PERSISTENT)
         deduplicate = item.pop("deduplicate", True)
         sparse = item.pop("sparse", False)
         fields_only = item.pop("fields_only", False)
         if index_fields:
-            if not fields_only:
+            if not fields_only and self._db_flavor == DBFlavor.ARANGO:
                 index_fields = ["_from", "_to"] + index_fields
             return CollectionIndex(
                 name=collection_name,
@@ -343,7 +352,16 @@ class Edge:
 
     @property
     def edge_name(self):
-        return self._edge_name
+        if self._relation is None:
+            if self._db_flavor == DBFlavor.ARANGO:
+                x = f"{self._source_dbname}_{self._target_dbname}_{self._collection_name_suffix}edges"
+            elif self._db_flavor == DBFlavor.NEO4J:
+                x = f"{self._source_dbname}{self._target_dbname}"
+            else:
+                raise ValueError(f" Unknown DBFlavor: {self._db_flavor}")
+        else:
+            x = self._relation
+        return x
 
     @property
     def how(self):
@@ -368,6 +386,13 @@ class Edge:
     @property
     def type(self) -> EdgeType:
         return self._type
+
+    @property
+    def relation(self) -> str:
+        if self._relation is None:
+            return self.edge_name
+        else:
+            return self._relation
 
     @property
     def by(self):
@@ -399,58 +424,6 @@ class Edge:
             )
 
 
-class Filter:
-    def __init__(self, b, a=None):
-        """
-        for a given doc it's a(doc) => b(doc) implication
-        `a` and `b` are conditions. Return `False` means `doc` should be filtered out.
-        if `doc` satisfies `a` condition then return the result of condition `b`
-        if `doc` satisfies `a` condition then return True (not filtered)
-        `a` is None condition then return the result of condition `b`
-        :param b:
-        :param a:
-        """
-        self.a = Condition(**a)
-        self.b = Condition(**b)
-
-    def __call__(self, doc):
-        if self.a is not None:
-            if self.a(**doc):
-                return self.b(**doc)
-            else:
-                return True
-        else:
-            return self.b(**doc)
-
-    def __str__(self):
-        return f"{self.__class__} | a: {self.a} b: {self.b}"
-
-    __repr__ = __str__
-
-
-class Condition:
-    def __init__(self, field, foo, value=None):
-        self.field = field
-        self.value = value
-        # self.foo = getattr(self.value, foo)
-        self.foo = foo
-
-    def __call__(self, **kwargs):
-        if self.field in kwargs:
-            foo = getattr(kwargs[self.field], self.foo)
-            return foo(self.value)
-        else:
-            return True
-
-    def __str__(self):
-        return (
-            f"{self.__class__} | field: {self.field} value: {self.value} ->"
-            f" foo: {self.foo}"
-        )
-
-    __repr__ = __str__
-
-
 class VertexConfig:
     def __init__(self, vconfig):
         self._vcollections_all: dict[str, Vertex] = {}
@@ -465,6 +438,7 @@ class VertexConfig:
 
         # TODO introduce meaningful error in case `collections` key is absent
         config = vconfig["collections"]
+        self.db_flavor = vconfig.pop("db_flavor", DBFlavor.ARANGO)
 
         self._init_vcollections(config)
         self._init_names(config)
@@ -495,7 +469,16 @@ class VertexConfig:
             )
 
     def vertex_dbname(self, vertex_name):
-        return self._vcollections_all[vertex_name].dbname
+        try:
+            value = self._vcollections_all[vertex_name].dbname
+        except KeyError as e:
+            logger.error(
+                "Available vertex collections :"
+                f" {self._vcollections_all.keys()}; vertex collection"
+                f" requested : {vertex_name}"
+            )
+            raise e
+        return value
 
     def index(self, vertex_name) -> CollectionIndex:
         return self._vcollections_all[vertex_name].index
@@ -537,23 +520,8 @@ class VertexConfig:
                 f" collection {vertex_name} was not defined in config"
             )
 
-    def filters(self):
-        return (
-            (vcol, f)
-            for vcol, item in self._vcollections_all.items()
-            for f in item.filters
-        )
-
-
-def strip_prefix(dictlike, prefix="~"):
-    new_dictlike = {}
-    if isinstance(dictlike, dict):
-        for k, v in dictlike.items():
-            if isinstance(k, str):
-                k = k.lstrip(prefix)
-            new_dictlike[k] = strip_prefix(v, prefix)
-    elif isinstance(dictlike, list):
-        return [strip_prefix(x) for x in dictlike]
-    else:
-        return dictlike
-    return new_dictlike
+    def filters(self, vertex_name) -> list[Filter]:
+        if vertex_name in self._vcollections_all:
+            return self._vcollections_all[vertex_name].filters
+        else:
+            return []

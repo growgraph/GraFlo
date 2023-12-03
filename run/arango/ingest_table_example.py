@@ -5,7 +5,6 @@ import pandas as pd
 
 from graph_cast.architecture import TConfigurator
 from graph_cast.db import ConfigFactory, ConnectionManager
-from graph_cast.db.connection import init_db
 from graph_cast.input.table_flow import process_table
 from graph_cast.util import ResourceHandler
 
@@ -38,7 +37,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     db_args["database"] = "testdb"
-    conn_conf = ConfigFactory.create_config(args=db_args)
+    conn_conf = ConfigFactory.create_config(dict_like=db_args)
 
     schema_config = ResourceHandler.load(fpath=args.config_path)
     schema_conf = TConfigurator(schema_config)
@@ -133,5 +132,5 @@ if __name__ == "__main__":
 
     schema_conf.set_mode("ibes")
     with ConnectionManager(connection_config=conn_conf) as db_client:
-        init_db(db_client, schema_conf, clean_start=True)
+        db_client.init_db(schema_conf, clean_start=True)
     process_table(tabular_resource=df, conf=schema_conf, db_config=conn_conf)

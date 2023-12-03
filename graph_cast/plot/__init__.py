@@ -1,102 +1,21 @@
-import argparse
 import os
 from itertools import product
 
 import networkx as nx
+from suthing import FileHandle
 
 from graph_cast.architecture import (
     DataSourceType,
     JConfigurator,
     TConfigurator,
 )
-from graph_cast.input.obsolete.json_aux import parse_edges
-from graph_cast.util import ResourceHandler
-
-"""
-
-graphviz attributes 
-
-https://renenyffenegger.ch/notes/tools/Graphviz/attributes/index
-https://rsms.me/graphviz/
-https://graphviz.readthedocs.io/en/stable/examples.html
-https://graphviz.org/doc/info/attrs.html
-
-usage: 
-    color='red',style='filled', fillcolor='blue',shape='square'
-
-to keep 
-level_one = [node1, node2]
-sg_one = ag.add_subgraph(level_one, rank='same')
-
-"""
-
-fillcolor_palette = {
-    "violet": "#DDD0E5",
-    "green": "#BEDFC8",
-    "blue": "#B7D1DF",
-    "red": "#EBA59E",
-}
-
-map_type2shape = {
-    "table": "box",
-    "vcollection": "ellipse",
-    "index": "polygon",
-    "field": "octagon",
-    "blank": "box",
-    "def_field": "trapezium",
-}
-
-map_type2color = {
-    "table": fillcolor_palette["blue"],
-    "vcollection": fillcolor_palette["green"],
-    "index": "orange",
-    "def_field": fillcolor_palette["red"],
-    "field": fillcolor_palette["violet"],
-    "blank": "white",
-}
-
-edge_status = {"vcollection": "dashed", "table": "solid"}
-
-
-def knapsack(weights, ks_size=7):
-    """
-    split a set of weights into bag (groups) of total weight of at most threshold weight
-    :param weights:
-    :param ks_size:
-    :return:
-    """
-    pp = sorted(list(zip(range(len(weights)), weights)), key=lambda x: x[1])
-    print(pp)
-    acc = []
-    if pp[-1][1] > ks_size:
-        raise ValueError("One of the items is larger than the knapsack")
-
-    while pp:
-        w_item = []
-        w_item += [pp.pop()]
-        ww_item = sum([l for _, l in w_item])
-        while ww_item < ks_size:
-            cnt = 0
-            for j, item in enumerate(pp[::-1]):
-                diff = ks_size - item[1] - ww_item
-                if diff >= 0:
-                    cnt += 1
-                    w_item += [pp.pop(len(pp) - j - 1)]
-                    ww_item += w_item[-1][1]
-                else:
-                    break
-            if ww_item >= ks_size or cnt == 0:
-                acc += [w_item]
-                break
-    acc_ret = [[y for y, _ in subitem] for subitem in acc]
-    return acc_ret
 
 
 class SchemaPlotter:
     def __init__(self, config_filename, fig_path):
         self.fig_path = fig_path
 
-        self.config = ResourceHandler.load(fpath=config_filename)
+        self.config = FileHandle.load(fpath=config_filename)
 
         self.type: DataSourceType
 
@@ -217,11 +136,11 @@ class SchemaPlotter:
         elif self.type == DataSourceType.TABLE:
             g = nx.MultiDiGraph()
             edges = []
-            for k, local_vertex_cols in self.conf.modes2collections.items():
-                nodes_table = [(k, {"type": "table"})]
+            for table_type in self.conf.tables:
+                vertices = self.conf.vertices(table_type)
+                nodes_table = [(table_type, {"type": "table"})]
                 nodes_collection = [
-                    (vc, {"type": "vcollection"})
-                    for vc in local_vertex_cols.collections
+                    (vc, {"type": "vcollection"}) for vc in vertices
                 ]
                 nodes += nodes_table
                 nodes += nodes_collection
@@ -232,7 +151,7 @@ class SchemaPlotter:
 
             g.add_nodes_from(nodes)
         else:
-            raise KeyError(f"Suppoted types : {DataSourceType}")
+            raise KeyError(f"Supported types : {DataSourceType}")
 
         g.add_edges_from(edges)
 
@@ -247,11 +166,10 @@ class SchemaPlotter:
                 upd_dict["forcelabel"] = True
             if "name" in props:
                 upd_dict["label"] = props["name"]
-            for k, v in upd_dict.items():
-                g.nodes[n][k] = v
+            for table_type, v in upd_dict.items():
+                g.nodes[n][table_type] = v
 
         ag = nx.nx_agraph.to_agraph(g)
-
         ag.draw(
             os.path.join(self.fig_path, f"{self.prefix}_source2vc.pdf"),
             "pdf",
@@ -263,29 +181,35 @@ class SchemaPlotter:
             vc -> vc
         :return:
         """
-        g = nx.DiGraph()
+        g = nx.MultiDiGraph()
         nodes = []
+        edge_labels = []
         if self.type == DataSourceType.JSON:
-            edges = list(self.conf.graph_config.all_edges)
+            # edges = list(self.conf.graph_config.all_edges)
+
+            edges = [
+                (a, b, {"label": label})
+                for a, b, label in self.conf.graph_config.edges_triples
+            ]
+
             for ee in edges:
-                for n in ee:
+                for n in ee[:2]:
                     nodes += [(n, {"type": "vcollection"})]
 
             for nid, weight in nodes:
                 g.add_node(nid, **weight)
         elif self.type == DataSourceType.TABLE:
             nodes = []
-            edges = []
-            for mode, local_vertex_cols in self.conf.modes2collections.items():
-                # for n in self.config[self.type]:
-                nodes_collection = [
-                    (vcol, {"type": "vcollection"})
-                    for vcol in local_vertex_cols.collections
-                ]
-                nodes += nodes_collection
+            nodes += [
+                (vcol, {"type": "vcollection"})
+                for vcol in self.conf.vertices()
+            ]
 
-            for _, item in self.conf.modes2graphs.items():
-                edges += [(u, v) for u, v in item]
+            edges = self.conf.graph_config.edge_projection(
+                self.conf.vertices()
+            )
+        else:
+            raise ValueError(f"Unknown type {self.type}")
 
         g.add_nodes_from(nodes)
         g.add_edges_from(edges)
@@ -309,15 +233,15 @@ class SchemaPlotter:
             for k, v in upd_dict.items():
                 g.nodes[n][k] = v
 
-        for e in g.edges(data=True):
-            s, t, _ = e
+        for e in g.edges:
+            s, t, ix = e
             target_props = g.nodes[s]
             upd_dict = {
                 "style": edge_status[target_props["type"]],
                 "arrowhead": "vee",
             }
             for k, v in upd_dict.items():
-                g.edges[s, t][k] = v
+                g.edges[s, t, ix][k] = v
 
         ag = nx.nx_agraph.to_agraph(g)
         # ['neato' | 'dot' | 'twopi' | 'circo' | 'fdp' | 'nop']
@@ -340,15 +264,15 @@ class SchemaPlotter:
         nodes = []
         edges = []
 
-        for table_name in self.conf.table_config.tables:
+        for table_name in self.conf.tables:
             nodes_table = [
                 (f"table:{table_name}", {"type": "table", "label": table_name})
             ]
-            table_maps = self.conf.modes2collections[table_name]
-            for vcol_name in self.conf.table_config.vertices(table_name):
-                index = self.conf.vertex_config.index(vcol_name)
+            transforms = self.conf.table_config[table_name]
+            for vertex in self.conf.vertices(table_name):
+                index = self.conf.vertex_config.index(vertex)
                 ref_fields = index.fields
-                maps = table_maps._vcollections[vcol_name]
+                maps = transforms._vcollections[vertex]
                 cmap = maps[0]._raw_map
                 fields_collection_complementary = set(ref_fields) - set(
                     cmap.values()
@@ -358,8 +282,8 @@ class SchemaPlotter:
                 )
 
                 node_collection = (
-                    f"collection:{vcol_name}",
-                    {"type": "vcollection", "label": vcol_name},
+                    f"collection:{vertex}",
+                    {"type": "vcollection", "label": vertex},
                 )
                 nodes_fields_table = [
                     (f"table:field:{kk}", {"type": "field", "label": kk})
@@ -423,11 +347,11 @@ class SchemaPlotter:
 
         ag = nx.nx_agraph.to_agraph(g)
 
-        for vcol_name in self.conf.vertex_config.collections:
-            index = self.conf.vertex_config.index(vcol_name).fields
+        for vertex in self.conf.vertex_config.collections:
+            index = self.conf.vertex_config.index(vertex).fields
             level_index = [f"collection:field:{item}" for item in index]
             index_subgraph = ag.add_subgraph(
-                level_index, name=f"cluster_{vcol_name[:3]}:def"
+                level_index, name=f"cluster_{vertex[:3]}:def"
             )
             index_subgraph.node_attr["style"] = "filled"
             index_subgraph.node_attr["label"] = "definition"
@@ -441,31 +365,26 @@ class SchemaPlotter:
         )
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        "-c", "--config-path", default=None, help="path to config file"
-    )
-
-    parser.add_argument(
-        "-f",
-        "--figure-output-path",
-        default=None,
-        help="path to output the figure",
-    )
-    parser.add_argument(
-        "-p",
-        "--prune-low-degree-nodes",
-        action="store_true",
-        help="prune low degree nodes for vc2vc",
-    )
-
-    args = parser.parse_args()
-
-    plotter = SchemaPlotter(args.config_path, args.figure_output_path)
-    plotter.plot_vc2fields()
-    plotter.plot_source2vc()
-    plotter.plot_vc2vc(prune_leaves=args.prune_low_degree_nodes)
-    if plotter.type == DataSourceType.TABLE:
-        plotter.plot_source2vc_detailed()
+fillcolor_palette = {
+    "violet": "#DDD0E5",
+    "green": "#BEDFC8",
+    "blue": "#B7D1DF",
+    "red": "#EBA59E",
+}
+map_type2shape = {
+    "table": "box",
+    "vcollection": "ellipse",
+    "index": "polygon",
+    "field": "octagon",
+    "blank": "box",
+    "def_field": "trapezium",
+}
+map_type2color = {
+    "table": fillcolor_palette["blue"],
+    "vcollection": fillcolor_palette["green"],
+    "index": "orange",
+    "def_field": fillcolor_palette["red"],
+    "field": fillcolor_palette["violet"],
+    "blank": "white",
+}
+edge_status = {"vcollection": "solid", "table": "solid"}

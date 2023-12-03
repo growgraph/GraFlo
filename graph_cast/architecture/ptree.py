@@ -11,17 +11,20 @@ from enum import Enum
 from itertools import product
 
 from graph_cast.architecture.schema import (
+    ANCHOR_KEY,
+    SOURCE_AUX,
+    TARGET_AUX,
     Edge,
     EdgeMapping,
     TypeVE,
     VertexConfig,
-    _anchor_key,
-    _source_aux,
-    _target_aux,
+)
+from graph_cast.architecture.transform import Transform
+from graph_cast.architecture.util import (
+    project_dict,
+    project_dicts,
     strip_prefix,
 )
-from graph_cast.architecture.transform import Transform, transform_foo
-from graph_cast.architecture.uitl import project_dict, project_dicts
 
 logger = logging.getLogger(__name__)
 
@@ -76,8 +79,9 @@ class MapperNode:
         self.__transforms: list = kwargs.pop("transforms", [])
         self._transforms: list[Transform]
 
+        # TODO : map now is obsolete (taken care by Transform)
         self._map: dict = kwargs.pop("map", {})
-        self._anchor: dict = kwargs.pop(_anchor_key, None)
+        self._anchor: dict = kwargs.pop(ANCHOR_KEY, None)
 
         self._init_transforms()
 
@@ -192,7 +196,7 @@ class MapperNode:
             kkeys = vertex_config.fields(self.collection)
             doc_ = dict()
             for t in self.transforms:
-                doc_.update(transform_foo(t, doc))
+                doc_.update(t(doc, __return_doc=True))
 
             kkeys += [k for k in self._map if k not in kkeys]
 
@@ -212,7 +216,7 @@ class MapperNode:
                     for k, v in doc_.items()
                 }
             if self._anchor is not None:
-                doc_.update({_anchor_key: self._anchor})
+                doc_.update({ANCHOR_KEY: self._anchor})
             acc[self.collection] += [doc_]
         return acc
 
@@ -253,8 +257,8 @@ class MapperNode:
                 acc[(source, target)] += [
                     {
                         **{
-                            _source_aux: project_dict(u, source_index),
-                            _target_aux: project_dict(v, target_index),
+                            SOURCE_AUX: project_dict(u, source_index),
+                            TARGET_AUX: project_dict(v, target_index),
                         },
                         **weight,
                     }
@@ -292,8 +296,8 @@ class MapperNode:
                             acc[(source, target)] += [
                                 {
                                     **{
-                                        _source_aux: up,
-                                        _target_aux: target_items[pointer],
+                                        SOURCE_AUX: up,
+                                        TARGET_AUX: target_items[pointer],
                                     },
                                     **weight,
                                 }
@@ -301,14 +305,14 @@ class MapperNode:
                         else:
                             acc[(source, target)] += [
                                 {
-                                    **{_source_aux: up, _target_aux: v},
+                                    **{SOURCE_AUX: up, TARGET_AUX: v},
                                     **weight,
                                 }
                                 for v in target_items.values()
                             ]
                     else:
                         acc[(source, target)] += [
-                            {**{_source_aux: up, _target_aux: v}, **weight}
+                            {**{SOURCE_AUX: up, TARGET_AUX: v}, **weight}
                             for v in target_items.values()
                         ]
         return acc
@@ -412,7 +416,7 @@ def pick_indexed_items_anchor_logic(items, indices, anchor):
         items_ = [
             item
             for item in items_
-            if _anchor_key in item and item[_anchor_key] == anchor
+            if ANCHOR_KEY in item and item[ANCHOR_KEY] == anchor
         ]
     return items_
 

@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from typing import Iterator
 
 from graph_cast.architecture.ptree import MapperNode, NodeType, ParsingTree
 from graph_cast.architecture.schema import (
+    CollectionIndex,
     Edge,
     EdgeType,
     VertexConfig,
-    strip_prefix,
 )
+from graph_cast.architecture.util import strip_prefix
+
+EdgeName = tuple[str, str]
 
 
 class GraphConfig:
@@ -18,9 +22,7 @@ class GraphConfig:
         :param econfig: edges config : direct definitions of edges
         :param vconfig: specification of vcollections
         """
-        self._edges: defaultdict[tuple[str, str], list[Edge]] = defaultdict(
-            list
-        )
+        self._edges: defaultdict[EdgeName, list[Edge]] = defaultdict(list)
 
         self._exclude_fields: defaultdict[str, list] = defaultdict(list)
 
@@ -93,7 +95,7 @@ class GraphConfig:
         return self._edges[u, v][ix]
 
     @property
-    def direct_edges(self):
+    def direct_edges(self) -> list[EdgeName]:
         edges = []
         for k, item in self._edges.items():
             if any([v.type == EdgeType.DIRECT for v in item]):
@@ -110,11 +112,19 @@ class GraphConfig:
         return edges
 
     @property
-    def all_edges(self):
+    def all_edges(self) -> Iterator[EdgeName]:
         return (e for e in self._edges)
 
     @property
-    def vertices(self):
+    def edges_triples(self):
+        acc = []
+        for pair, edges in self._edges.items():
+            for e in edges:
+                acc += [(*pair, e.relation)]
+        return acc
+
+    @property
+    def vertices(self) -> list[str]:
         vs = []
         for u, v in self._edges:
             vs += [u, v]
@@ -131,3 +141,17 @@ class GraphConfig:
             return self._exclude_fields[k]
         else:
             return ()
+
+    def edge_projection(self, vertices) -> list[EdgeName]:
+        enames = []
+        for u, v in self._edges:
+            if u in vertices and v in vertices:
+                enames += [(u, v)]
+        return enames
+
+    def weight_raw_fields(self) -> set:
+        fields = set()
+        for e, item in self._edges.items():
+            efields = {f for edef in item for f in edef.weight_fields}
+            fields |= efields
+        return fields
