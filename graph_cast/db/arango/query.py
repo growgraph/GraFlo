@@ -1,9 +1,12 @@
 import gzip
 import json
 import logging
+from collections import defaultdict
 from os.path import join
 
 from arango import ArangoClient
+
+from graph_cast.db.util import get_data_from_cursor
 
 logger = logging.getLogger(__name__)
 
@@ -68,3 +71,35 @@ def profile_query(query, nq, profile_times, fpath, limit=None, **kwargs):
         ) as fp:
             chunk = list(cursor.fetch()["batch"])
             json.dump(chunk, fp, indent=4)
+
+
+def fetch_fields_query(collection_name, docs, match_keys, return_keys):
+    """
+
+    :param collection_name: collection to look up docs
+    :param docs: list of dicts (json-like, ie keys are strings)
+    :param match_keys: keys on which to look for document
+    :param return_keys: keys which to return
+    :return:
+    """
+
+    return_vars = [x.replace("@", "_") for x in return_keys]
+    collect_clause = ", ".join(
+        [f"{k} = cdoc['{q}']" for k, q in zip(return_vars, return_keys)]
+    )
+    return_clause = ", ".join(["__i"] + return_vars)
+    return_clause = f"{{{return_clause}}}"
+    for i, doc in enumerate(docs):
+        doc.update({"__i": i})
+    if isinstance(docs, list):
+        docs = json.dumps(docs)
+
+    match_str = ", ".join(f'"{item}"' for item in match_keys)
+    q_update = f"""
+        FOR cdoc in {collection_name}
+            FOR doc in {docs}
+                FILTER MATCHES(cdoc, KEEP(doc, {match_str}))                                             
+                    COLLECT __i = doc.__i, {collect_clause}
+                    RETURN {return_clause}"""
+
+    return q_update

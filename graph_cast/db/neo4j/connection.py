@@ -179,11 +179,11 @@ class Neo4jConnection(Connection):
 
     def insert_return_batch(self, docs, collection_name):
         pass
-        # docs = json.dumps(docs)
-        # query0 = f"""FOR doc in {docs}
-        #       INSERT doc
-        #       INTO {collection_name}
-        #       LET inserted = NEW
-        #       RETURN {{_key: inserted._key}}
-        # """
-        # return query0
+
+    # def fetch_fields_by_index(
+    #     self, collection_name, docs, match_keys, return_keys
+    # ):
+    #     pass
+    #
+    # def fetch_docs(self, collection_name, filters, return_keys):
+    #     pass

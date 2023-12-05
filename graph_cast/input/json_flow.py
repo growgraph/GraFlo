@@ -3,7 +3,6 @@ from typing import List
 
 from graph_cast.architecture import JConfigurator
 from graph_cast.db import ConnectionManager
-from graph_cast.db.arango.util import define_extra_edges, fetch_fields
 from graph_cast.db.onto import DBConnectionConfig
 from graph_cast.input.json import jsonlike_to_collections
 from graph_cast.input.util import list_to_dict_edges, list_to_dict_vertex
@@ -50,15 +49,13 @@ def process_jsonlike(
             vname = weight.name
             index_fields = conf_obj.vertex_config.index(vname)
             retrieve_fields = [f.name for f in weight.fields]
-            doc_indices = [item for item in vdocs[vname]]
 
             if not dry:
-                weights_per_item = fetch_fields(
-                    db_client=db_client,
-                    docs=doc_indices,
+                weights_per_item = db_client.fetch_fields_by_index(
                     collection_name=conf_obj.vertex_config.vertex_dbname(
                         vname
                     ),
+                    docs=vdocs[vname],
                     match_keys=index_fields.fields,
                     return_keys=retrieve_fields,
                 )

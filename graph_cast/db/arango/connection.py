@@ -1,5 +1,6 @@
 import json
 import logging
+from collections import defaultdict
 
 from arango import ArangoClient
 
@@ -13,10 +14,21 @@ from graph_cast.architecture.schema import (
     VertexConfig,
 )
 from graph_cast.db import Connection
+from graph_cast.db.arango.query import fetch_fields_query
 from graph_cast.db.onto import ArangoConnectionConfig
+from graph_cast.db.util import get_data_from_cursor
+from graph_cast.onto import DBFlavor, init_filter
 from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
+
+
+def cast_filterlike(obj_dict, docname="doc"):
+    r_str = " && ".join(
+        f"{docname}['{k}'] == '{v}'" for k, v in obj_dict.items()
+    )
+    r_str = f"FILTER {r_str}"
+    return r_str
 
 
 class ArangoConnection(Connection):
@@ -39,6 +51,14 @@ class ArangoConnection(Connection):
     def delete_database(self, name: str):
         if not self.conn.has_database(name):
             self.conn.delete_database(name)
+
+    def execute(self, query, **kwargs):
+        cursor = self.conn.aql.execute(query)
+        return cursor
+
+    def close(self):
+        # self.conn.close()
+        pass
 
     def init_db(self, conf_obj: Configurator, clean_start):
         if clean_start:
@@ -187,14 +207,6 @@ class ArangoConnection(Connection):
 
     def get_collections(self):
         return self.conn.collections()
-
-    def execute(self, query, **kwargs):
-        cursor = self.conn.aql.execute(query)
-        return cursor
-
-    def close(self):
-        # self.conn.close()
-        pass
 
     def upsert_docs_batch(
         self,
@@ -372,3 +384,52 @@ class ArangoConnection(Connection):
               RETURN {{_key: inserted._key}}
         """
         return query0
+
+    def fetch_fields_by_index(
+        self, collection_name, docs, match_keys, return_keys
+    ):
+        q0 = fetch_fields_query(
+            collection_name=collection_name,
+            docs=docs,
+            match_keys=match_keys,
+            return_keys=return_keys,
+        )
+        cursor = self.execute(q0)
+        map_key: defaultdict[int, list] = defaultdict(list)
+        for item in get_data_from_cursor(cursor):
+            __i = item.pop("__i")
+            map_key[__i] += [item]
+
+        return map_key
+
+    def fetch_docs(
+        self,
+        collection_name,
+        filters: list | dict,
+        limit: int | None = None,
+        return_keys: list | None = None,
+    ):
+        """
+
+        :param collection_name:
+        :param filters:
+        :param limit:
+            {"AND": [["==", "1", "x"], ["==", "2", "y", "% 2"]]}
+        :param return_keys:
+        :return:
+        """
+        ff = init_filter(filters)
+        if return_keys is not None:
+            keep_clause = ", ".join(return_keys)
+            keep = f"KEEP(d, {keep_clause})"
+        else:
+            keep = "d"
+
+        q = (
+            f"FOR d in {collection_name} FILTER"
+            f"  {ff.cast_filter(doc_name='d', kind=DBFlavor.ARANGO)}"
+            f"  {limit}"
+            f"  RETURN {keep}"
+        )
+        cursor = self.execute(q)
+        return get_data_from_cursor(cursor)
