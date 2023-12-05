@@ -5,14 +5,7 @@ from test.db.arangos.conftest import create_db, test_db_name
 import pytest
 
 from graph_cast.db import ConnectionManager
-from graph_cast.onto import (
-    Clause,
-    ComparisonOperator,
-    InputType,
-    LeafClause,
-    LogicalOperator,
-    init_filter,
-)
+from graph_cast.onto import InputType
 from graph_cast.util import ResourceHandler, equals
 
 

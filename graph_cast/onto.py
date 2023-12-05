@@ -71,32 +71,55 @@ class AbsClause(BaseDataclass, metaclass=ABCMeta):
 @dataclasses.dataclass
 class LeafClause(AbsClause):
     cmp_operator: ComparisonOperator
-    const: list[str]
+    const: list
     field: str | None = None
     operator: str | None = None
 
     def __post_init__(self):
-        if isinstance(self.const, str):
+        if not isinstance(self.const, list):
             self.const = [self.const]
 
     def cast_filter(self, doc_name="doc", kind: DBFlavor = DBFlavor.ARANGO):
         if kind == DBFlavor.ARANGO:
             return self._cast_arango(doc_name)
+        elif kind == DBFlavor.NEO4J:
+            return self._cast_cypher(doc_name)
         else:
             raise ValueError(f"kind {kind} not implemented")
 
-    def _cast_arango(self, doc_name):
+    def _cast_const(self):
         const = f"{self.const[0]}" if len(self.const) == 1 else f"{self.const}"
         if len(self.const) == 1:
             if isinstance(self.const[0], str):
                 const = f'"{self.const[0]}"'
             else:
                 const = f"{self.const[0]}"
+
+        return const
+
+    def _cast_arango(self, doc_name):
+        const = self._cast_const()
+
         lemma = f"{self.cmp_operator} {const}"
         if self.operator is not None:
             lemma = f"{self.operator} {lemma}"
+
         if self.field is not None:
             lemma = f'{doc_name}["{self.field}"] {lemma}'
+        return lemma
+
+    def _cast_cypher(self, doc_name):
+        const = self._cast_const()
+        if self.cmp_operator == ComparisonOperator.EQ:
+            cmp_operator = "="
+        else:
+            cmp_operator = self.cmp_operator
+        lemma = f"{cmp_operator} {const}"
+        if self.operator is not None:
+            lemma = f"{self.operator} {lemma}"
+
+        if self.field is not None:
+            lemma = f"{doc_name}.{self.field} {lemma}"
         return lemma
 
 
@@ -106,10 +129,10 @@ class Clause(AbsClause):
     deps: list[AbsClause]
 
     def cast_filter(self, doc_name="doc", kind: DBFlavor = DBFlavor.ARANGO):
-        if kind == DBFlavor.ARANGO:
-            return self._cast_arango(doc_name)
+        if kind == DBFlavor.ARANGO or kind == DBFlavor.ARANGO:
+            return self._cast_generic(doc_name)
 
-    def _cast_arango(self, doc_name):
+    def _cast_generic(self, doc_name):
         if len(self.deps) == 1:
             if self.operator == LogicalOperator.NOT:
                 return f"{self.operator} {self.deps[0].cast_filter(doc_name)}"

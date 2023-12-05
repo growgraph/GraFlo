@@ -72,9 +72,9 @@ class Connection(abc.ABC):
     def insert_return_batch(self, docs, collection_name):
         pass
 
-    # @abc.abstractmethod
-    # def fetch_docs(self, collection_name, filters, return_keys):
-    #     pass
+    @abc.abstractmethod
+    def fetch_docs(self, collection_name, filters, limit, return_keys):
+        pass
 
     # @abc.abstractmethod
     # def fetch_fields_by_index(

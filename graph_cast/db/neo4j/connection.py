@@ -7,7 +7,8 @@ from graph_cast.architecture.graph import GraphConfig
 from graph_cast.architecture.schema import CollectionIndex, VertexConfig
 from graph_cast.db import Connection
 from graph_cast.db.onto import Neo4jConnectionConfig
-from graph_cast.onto import DBFlavor
+from graph_cast.db.util import get_data_from_cursor
+from graph_cast.onto import AggregationType, DBFlavor, init_filter
 
 logger = logging.getLogger(__name__)
 
@@ -179,6 +180,44 @@ class Neo4jConnection(Connection):
 
     def insert_return_batch(self, docs, collection_name):
         pass
+
+    def fetch_docs(
+        self,
+        collection_name,
+        filters: list | dict | None = None,
+        limit: int | None = None,
+        return_keys: list | None = None,
+    ):
+        # "MATCH (d:chunks) WHERE d.t > 15 RETURN d { .kind, .t }"
+
+        if filters is not None:
+            ff = init_filter(filters)
+            filter_clause = (
+                f"WHERE {ff.cast_filter(doc_name='n', kind=DBFlavor.NEO4J)}"
+            )
+        else:
+            filter_clause = ""
+
+        if return_keys is not None:
+            keep_clause_ = ", ".join([f".{item}" for item in return_keys])
+            keep_clause = f"{{ {keep_clause_} }}"
+        else:
+            keep_clause = ""
+
+        if limit is not None and isinstance(limit, int):
+            limit_clause = f"LIMIT {limit}"
+        else:
+            limit_clause = ""
+
+        q = (
+            f"MATCH (n:{collection_name})"
+            f"  {filter_clause}"
+            f"  RETURN n {keep_clause}"
+            f"  {limit_clause}"
+        )
+        cursor = self.execute(q)
+        r = [item["n"] for item in cursor.data()]
+        return r
 
     # def fetch_fields_by_index(
     #     self, collection_name, docs, match_keys, return_keys
