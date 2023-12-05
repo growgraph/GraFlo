@@ -405,7 +405,7 @@ class ArangoConnection(Connection):
     def fetch_docs(
         self,
         collection_name,
-        filters: list | dict,
+        filters: list | dict | None = None,
         limit: int | None = None,
         return_keys: list | None = None,
     ):
@@ -418,18 +418,30 @@ class ArangoConnection(Connection):
         :param return_keys:
         :return:
         """
-        ff = init_filter(filters)
-        if return_keys is not None:
-            keep_clause = ", ".join(return_keys)
-            keep = f"KEEP(d, {keep_clause})"
+        if filters is not None:
+            ff = init_filter(filters)
+            filter_clause = (
+                f"FILTER {ff.cast_filter(doc_name='d', kind=DBFlavor.ARANGO)}"
+            )
         else:
-            keep = "d"
+            filter_clause = ""
+
+        if return_keys is not None:
+            keep_clause_ = ", ".join([f'"{item}"' for item in return_keys])
+            keep_clause = f"KEEP(d, {keep_clause_})"
+        else:
+            keep_clause = "d"
+
+        if limit is not None and isinstance(limit, int):
+            limit_clause = f"LIMIT {limit}"
+        else:
+            limit_clause = ""
 
         q = (
-            f"FOR d in {collection_name} FILTER"
-            f"  {ff.cast_filter(doc_name='d', kind=DBFlavor.ARANGO)}"
-            f"  {limit}"
-            f"  RETURN {keep}"
+            f"FOR d in {collection_name}"
+            f"  {filter_clause}"
+            f"  {limit_clause}"
+            f"  RETURN {keep_clause}"
         )
         cursor = self.execute(q)
         return get_data_from_cursor(cursor)

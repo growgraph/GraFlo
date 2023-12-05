@@ -80,6 +80,11 @@ class LeafClause(AbsClause):
 
     def _cast_arango(self, doc_name):
         const = f"{self.const[0]}" if len(self.const) == 1 else f"{self.const}"
+        if len(self.const) == 1:
+            if isinstance(self.const[0], str):
+                const = f'"{self.const[0]}"'
+            else:
+                const = f"{self.const[0]}"
         lemma = f"{self.cmp_operator} {const}"
         if self.operator is not None:
             lemma = f"{self.operator} {lemma}"

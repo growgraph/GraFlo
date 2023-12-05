@@ -5,7 +5,14 @@ from test.db.arangos.conftest import create_db, test_db_name
 import pytest
 
 from graph_cast.db import ConnectionManager
-from graph_cast.onto import InputType
+from graph_cast.onto import (
+    Clause,
+    ComparisonOperator,
+    InputType,
+    LeafClause,
+    LogicalOperator,
+    init_filter,
+)
 from graph_cast.util import ResourceHandler, equals
 
 
@@ -34,11 +41,11 @@ def verify(
     with ConnectionManager(connection_config=conn_conf) as db_client:
         cols = db_client.get_collections()
         vc = {}
-        for c in cols:
-            if not c["system"]:
-                cursor = db_client.execute(f"return LENGTH({c['name']})")
-                size = next(cursor)
-                vc[c["name"]] = size
+        collections = [c["name"] for c in cols if not c["system"]]
+        for c in collections:
+            cursor = db_client.execute(f"return LENGTH({c})")
+            size = next(cursor)
+            vc[c] = size
     if reset:
         ResourceHandler.dump(
             vc, join(current_path, f"../ref/{input_type}/{mode}_sizes.yaml")
@@ -75,6 +82,23 @@ def test_json(create_db, modes, conn_conf, current_path, test_db_name, reset):
             reset=reset,
             input_type=InputType.JSON,
         )
+        if m == "lake_odds":
+            conn_conf.database = test_db_name
+            with ConnectionManager(connection_config=conn_conf) as db_client:
+                r = db_client.fetch_docs("chunks")
+                assert len(r) == 2
+                r = db_client.fetch_docs(
+                    "chunks", filters=["==", "odds", "kind"]
+                )
+                assert len(r) == 1
+                r = db_client.fetch_docs("chunks", limit=1)
+                assert len(r) == 1
+                r = db_client.fetch_docs(
+                    "chunks",
+                    filters=["==", "odds", "kind"],
+                    return_keys=["kind"],
+                )
+                assert len(r[0]) == 1
 
 
 def test_csv(
