@@ -30,6 +30,13 @@ class DBFlavor(str, BaseEnum):
     NEO4J = "neo4j"
 
 
+class AggregationType(str, BaseEnum):
+    COUNT = "COUNT"
+    MAX = "MAX"
+    MIN = "MIN"
+    SORTED_UNIQUE = "SORTED_UNIQUE"
+
+
 class ComparisonOperator(str, BaseEnum):
     NEQ = "!="
     EQ = "=="

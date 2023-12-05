@@ -17,18 +17,10 @@ from graph_cast.db import Connection
 from graph_cast.db.arango.query import fetch_fields_query
 from graph_cast.db.onto import ArangoConnectionConfig
 from graph_cast.db.util import get_data_from_cursor
-from graph_cast.onto import DBFlavor, init_filter
+from graph_cast.onto import AggregationType, DBFlavor, init_filter
 from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
-
-
-def cast_filterlike(obj_dict, docname="doc"):
-    r_str = " && ".join(
-        f"{docname}['{k}'] == '{v}'" for k, v in obj_dict.items()
-    )
-    r_str = f"FILTER {r_str}"
-    return r_str
 
 
 class ArangoConnection(Connection):
@@ -445,3 +437,58 @@ class ArangoConnection(Connection):
         )
         cursor = self.execute(q)
         return get_data_from_cursor(cursor)
+
+    def aggregate(
+        self,
+        collection,
+        aggregation_function: AggregationType,
+        discriminant: str | None = None,
+        aggregated_field: str | None = None,
+        filter_dict: dict | None = None,
+    ):
+        """
+
+        :param collection:
+        :param aggregation_function:
+        :param discriminant:
+        :param aggregated_field:
+        :param filter_dict:
+        :return:
+        """
+
+        if (
+            aggregated_field is not None
+            and aggregation_function != AggregationType.COUNT
+        ):
+            group_unit = f"g[*].doc.{aggregated_field}"
+        else:
+            group_unit = "g"
+
+        if filter_dict is None or not filter_dict:
+            filter_condition = ""
+        else:
+            filter_condition = "FILTER" + "AND".join(
+                f" doc['{k}'] == '{v}' " for k, v in filter_dict.items()
+            )
+
+        if discriminant is not None:
+            collect_clause = f"COLLECT value = doc['{discriminant}'] INTO g"
+            return_clause = f"""{{ '{discriminant}' : value, '_value' :{aggregation_function}({group_unit})}}"""
+        else:
+            collect_clause = (
+                "COLLECT AGGREGATE value ="
+                f" {aggregation_function}(doc['{aggregated_field}'])"
+            )
+            return_clause = "value"
+
+        q = f"""FOR doc IN {collection} {filter_condition}
+                    {collect_clause}
+                    RETURN {return_clause}"""
+
+        cursor = self.execute(q)
+        if discriminant is not None:
+            data = get_data_from_cursor(cursor)
+            return data
+        else:
+            answer = cursor.batch().pop()
+            return answer
