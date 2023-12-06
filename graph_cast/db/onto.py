@@ -35,6 +35,7 @@ class ProtoConnectionConfig(JSONWizard, JSONWizard.Meta):
     hosts: str | None = None
     protocol: str = "http"
     request_timeout: float = 60
+    comment: str | None = None
 
     def __post_init__(self):
         if self.hosts is None:
