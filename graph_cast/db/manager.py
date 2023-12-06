@@ -1,9 +1,9 @@
 from typing import Optional
 
-from graph_cast.db import ConfigFactory
+from suthing import ConfigFactory, ConnectionKind, ProtoConnectionConfig
+
 from graph_cast.db.arango.connection import ArangoConnection
 from graph_cast.db.neo4j.connection import Neo4jConnection
-from graph_cast.db.onto import ConnectionKind, ProtoConnectionConfig
 
 
 class ConnectionManager:

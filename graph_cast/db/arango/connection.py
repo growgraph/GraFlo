@@ -2,6 +2,7 @@ import json
 import logging
 
 from arango import ArangoClient
+from suthing import ArangoConnectionConfig
 
 from graph_cast.architecture import Configurator
 from graph_cast.architecture.graph import GraphConfig
@@ -13,7 +14,6 @@ from graph_cast.architecture.schema import (
     VertexConfig,
 )
 from graph_cast.db import Connection
-from graph_cast.db.onto import ArangoConnectionConfig
 from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
