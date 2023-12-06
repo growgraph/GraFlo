@@ -7,12 +7,13 @@ from os import listdir
 from os.path import isfile, join
 from typing import Optional
 
+from suthing import DBConnectionConfig
+
 import graph_cast.input.json
 import graph_cast.input.table
 import graph_cast.input.table_flow
 from graph_cast.architecture import JConfigurator, TConfigurator
 from graph_cast.db import ConnectionManager
-from graph_cast.db.onto import DBConnectionConfig
 from graph_cast.input.json_flow import process_jsonlike
 from graph_cast.onto import InputType
 from graph_cast.util import timer as timer

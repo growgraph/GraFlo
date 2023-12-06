@@ -3,11 +3,11 @@ import queue
 from typing import Optional, Union
 
 import pandas as pd
+from suthing import DBConnectionConfig
 
 from graph_cast.architecture import ConfiguratorType
 from graph_cast.architecture.schema import SOURCE_AUX, TARGET_AUX
 from graph_cast.db import ConnectionManager
-from graph_cast.db.onto import DBConnectionConfig
 from graph_cast.input import table_to_collections
 from graph_cast.input.table import logger
 from graph_cast.input.util import list_to_dict_edges, list_to_dict_vertex

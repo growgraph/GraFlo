@@ -1,10 +1,11 @@
 import logging
 from typing import List
 
+from suthing import DBConnectionConfig
+
 from graph_cast.architecture import JConfigurator
 from graph_cast.db import ConnectionManager
 from graph_cast.db.arango.util import define_extra_edges, fetch_fields
-from graph_cast.db.onto import DBConnectionConfig
 from graph_cast.input.json import jsonlike_to_collections
 from graph_cast.input.util import list_to_dict_edges, list_to_dict_vertex
 from graph_cast.util import timer as timer
