@@ -35,3 +35,21 @@ def test_wsgi_hosts():
     ac = ConfigFactory.create_config(dict_like=args)
     assert ac.path[0] == "/"
     assert int(ac.port) == 111
+
+
+def test_wsgi_hosts2():
+    args = {
+        "comment": "config for gg demo; parse text; retrieve graph from db",
+        "protocol": "https",
+        "ip_addr": "something.io",
+        "port": 443,
+        "db_type": "wsgi",
+        "paths": {
+            "navigation": "navigation",
+            "trends": "trends",
+            "fetch_community_frames": "community/frames",
+        },
+    }
+    ac = ConfigFactory.create_config(dict_like=args)
+    assert ac.path[0] == "/"
+    assert int(ac.port) == 443
