@@ -16,6 +16,12 @@ def eq_clause():
 
 
 @pytest.fixture()
+def none_clause():
+    # doc.x == null
+    return ["==", None, "x"]
+
+
+@pytest.fixture()
 def cong_clause():
     # doc.x % 3 == 2
     return ["==", 2, "y", "% 2"]
@@ -29,6 +35,11 @@ def in_clause():
 @pytest.fixture()
 def and_clause(eq_clause, cong_clause):
     return {"AND": [eq_clause, cong_clause]}
+
+
+def test_none_leaf(none_clause):
+    lc = LeafClause(*none_clause)
+    assert "null" in lc.cast_filter()
 
 
 def test_leaf_clause_construct(eq_clause):
