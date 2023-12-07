@@ -34,6 +34,7 @@ class AggregationType(str, BaseEnum):
     COUNT = "COUNT"
     MAX = "MAX"
     MIN = "MIN"
+    AVERAGE = "AVERAGE"
     SORTED_UNIQUE = "SORTED_UNIQUE"
 
 

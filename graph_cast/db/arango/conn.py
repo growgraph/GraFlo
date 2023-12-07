@@ -204,7 +204,7 @@ class ArangoConnection(Connection):
         self,
         docs,
         class_name,
-        match_keys,
+        match_keys: list[str] | None = None,
         **kwargs,
     ):
         """
@@ -224,23 +224,30 @@ class ArangoConnection(Connection):
             if filter_uniques:
                 docs = pick_unique_dict(docs)
             docs = json.dumps(docs)
-        upsert_clause = ", ".join([f'"{k}": doc.{k}' for k in match_keys])
-        upsert_clause = f"{{{upsert_clause}}}"
-
-        if isinstance(update_keys, list):
-            update_clause = ", ".join([f'"{k}": doc.{k}' for k in update_keys])
-            update_clause = f"{{{update_clause}}}"
-        elif update_keys == "doc":
-            update_clause = "doc"
+        if match_keys is None:
+            upsert_clause = ""
+            update_clause = ""
         else:
-            update_clause = "{}"
+            upsert_clause = ", ".join([f'"{k}": doc.{k}' for k in match_keys])
+            upsert_clause = f"UPSERT {{{upsert_clause}}}"
+
+            if isinstance(update_keys, list):
+                update_clause = ", ".join(
+                    [f'"{k}": doc.{k}' for k in update_keys]
+                )
+                update_clause = f"{{{update_clause}}}"
+            elif update_keys == "doc":
+                update_clause = "doc"
+            else:
+                update_clause = "{}"
+            update_clause = f"UPDATE {update_clause}"
 
         options = "OPTIONS {exclusive: true, ignoreErrors: true}"
 
         q_update = f"""FOR doc in {docs}
-                            UPSERT {upsert_clause}
+                            {upsert_clause}
                             INSERT doc
-                            UPDATE {update_clause} 
+                            {update_clause} 
                                 IN {class_name} {options}"""
         if not dry:
             self.execute(q_update)
