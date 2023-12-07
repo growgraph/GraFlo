@@ -2,11 +2,11 @@ import argparse
 import logging
 
 import pandas as pd
+from suthing import ConfigFactory, FileHandle
 
 from graph_cast.architecture import TConfigurator
-from graph_cast.db import ConfigFactory, ConnectionManager
+from graph_cast.db import ConnectionManager
 from graph_cast.input.table_flow import process_table
-from graph_cast.util import ResourceHandler
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     db_args["database"] = "testdb"
     conn_conf = ConfigFactory.create_config(dict_like=db_args)
 
-    schema_config = ResourceHandler.load(fpath=args.config_path)
+    schema_config = FileHandle.load(fpath=args.config_path)
     schema_conf = TConfigurator(schema_config)
     df = pd.DataFrame(
         [

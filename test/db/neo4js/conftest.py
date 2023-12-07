@@ -2,9 +2,9 @@ import os
 from os.path import dirname, realpath
 
 import pytest
-from suthing import FileHandle
+from suthing import ConfigFactory, FileHandle
 
-from graph_cast.db import ConfigFactory, ConnectionManager
+from graph_cast.db import ConnectionManager
 
 
 @pytest.fixture(scope="function")

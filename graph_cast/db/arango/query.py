@@ -1,12 +1,9 @@
 import gzip
 import json
 import logging
-from collections import defaultdict
 from os.path import join
 
 from arango import ArangoClient
-
-from graph_cast.db.util import get_data_from_cursor
 
 logger = logging.getLogger(__name__)
 

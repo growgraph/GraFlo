@@ -4,9 +4,10 @@ import sys
 import unittest
 from os.path import dirname, join, realpath
 
-from graph_cast.db import ConfigFactory, ConnectionManager
+from suthing import ConfigFactory, FileHandle
+
+from graph_cast.db import ConnectionManager
 from graph_cast.main import ingest_json_files
-from graph_cast.util import ResourceHandler, equals
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ class TestIngestJSON(unittest.TestCase):
 
     def _atomic(self, mode):
         path = join(self.cpath, f"../../test/data/json/{mode}")
-        config = ResourceHandler.load(f"conf.json", f"{mode}.yaml")
+        config = FileHandle.load(f"conf.json", f"{mode}.yaml")
 
         db_args = dict(self.db_args)
         db_args["database"] = "testdb"
@@ -62,7 +63,7 @@ class TestIngestJSON(unittest.TestCase):
                     size = next(cursor)
                     vc[c["name"]] = size
         # if not self.reset:
-        #     ref_vc = ResourceHandler.load(
+        #     ref_vc = FileHandle.load(
         #         f"test.ref.json", f"{mode}_sizes.yaml"
         #     )
         #     flag = equals(vc, ref_vc)
@@ -72,7 +73,7 @@ class TestIngestJSON(unittest.TestCase):
         #     self.assertTrue(flag)
         #
         # else:
-        #     ResourceHandler.dump(
+        #     FileHandle.dump(
         #         vc, join(self.cpath, f"../ref/json/{mode}_sizes.yaml")
         #     )
 

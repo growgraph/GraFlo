@@ -2,9 +2,9 @@ import argparse
 import logging
 from os.path import expanduser
 
-from graph_cast.db import ConfigFactory
+from suthing import ConfigFactory, FileHandle
+
 from graph_cast.main import ingest_json_files
-from graph_cast.util import ResourceHandler
 
 logger = logging.getLogger(__name__)
 
@@ -98,16 +98,16 @@ if __name__ == "__main__":
     batch_size = args.batch_size
     clean_start = args.clean_start
 
-    config_ = ResourceHandler(args.config_path)
+    config_ = FileHandle(args.config_path)
 
     logger.info(f"limit_files: {limit_files_}")
     logger.info(f"clean start: {clean_start}")
 
     logging.basicConfig(filename="ingest_json.log", level=logging.INFO)
 
-    schema_config = ResourceHandler.load(fpath=args.config_path)
+    schema_config = FileHandle.load(fpath=args.config_path)
     conn_conf = ConfigFactory.create_config(
-        dict_like=ResourceHandler.load(fpath=args.db_config_path)
+        dict_like=FileHandle.load(fpath=args.db_config_path)
     )
 
     ingest_json_files(

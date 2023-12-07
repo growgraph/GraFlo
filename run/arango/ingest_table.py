@@ -1,9 +1,9 @@
 import argparse
 import logging
 
-from graph_cast.db import ConfigFactory
+from suthing import ConfigFactory, FileHandle
+
 from graph_cast.main import ingest_tables
-from graph_cast.util import ResourceHandler
 
 logger = logging.getLogger(__name__)
 
@@ -78,9 +78,9 @@ if __name__ == "__main__":
         filemode="w",
     )
 
-    schema_config = ResourceHandler.load(fpath=args.config_path)
+    schema_config = FileHandle.load(fpath=args.config_path)
     conn_conf = ConfigFactory.create_config(
-        dict_like=ResourceHandler.load(fpath=args.db_config_path)
+        dict_like=FileHandle.load(fpath=args.db_config_path)
     )
 
     ingest_tables(

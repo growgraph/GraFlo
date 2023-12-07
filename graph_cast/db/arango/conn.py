@@ -3,6 +3,7 @@ import logging
 from collections import defaultdict
 
 from arango import ArangoClient
+from suthing import ArangoConnectionConfig
 
 from graph_cast.architecture import Configurator
 from graph_cast.architecture.graph import GraphConfig
@@ -13,9 +14,8 @@ from graph_cast.architecture.schema import (
     IndexType,
     VertexConfig,
 )
-from graph_cast.db import Connection
 from graph_cast.db.arango.query import fetch_fields_query
-from graph_cast.db.onto import ArangoConnectionConfig
+from graph_cast.db.connection import Connection
 from graph_cast.db.util import get_data_from_cursor
 from graph_cast.onto import AggregationType, DBFlavor, init_filter
 from graph_cast.util.transform import pick_unique_dict

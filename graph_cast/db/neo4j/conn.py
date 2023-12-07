@@ -1,13 +1,12 @@
 import logging
 
 from neo4j import GraphDatabase
+from suthing import Neo4jConnectionConfig
 
 from graph_cast.architecture import Configurator
 from graph_cast.architecture.graph import GraphConfig
 from graph_cast.architecture.schema import CollectionIndex, VertexConfig
-from graph_cast.db import Connection
-from graph_cast.db.onto import Neo4jConnectionConfig
-from graph_cast.db.util import get_data_from_cursor
+from graph_cast.db.connection import Connection
 from graph_cast.onto import AggregationType, DBFlavor, init_filter
 
 logger = logging.getLogger(__name__)

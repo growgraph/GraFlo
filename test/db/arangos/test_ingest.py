@@ -3,10 +3,10 @@ from test.conftest import current_path, ingest_atomic, reset
 from test.db.arangos.conftest import create_db, test_db_name
 
 import pytest
+from suthing import FileHandle, equals
 
 from graph_cast.db import ConnectionManager
 from graph_cast.onto import InputType
-from graph_cast.util import ResourceHandler, equals
 
 
 @pytest.fixture(scope="function")
@@ -40,11 +40,11 @@ def verify(
             size = next(cursor)
             vc[c] = size
     if reset:
-        ResourceHandler.dump(
+        FileHandle.dump(
             vc, join(current_path, f"../ref/{input_type}/{mode}_sizes.yaml")
         )
     else:
-        ref_vc = ResourceHandler.load(
+        ref_vc = FileHandle.load(
             f"test.ref.{input_type}", f"{mode}_sizes.yaml"
         )
         if not equals(vc, ref_vc):

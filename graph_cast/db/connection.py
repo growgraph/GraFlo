@@ -6,7 +6,6 @@ from graph_cast.architecture.general import Configurator
 from graph_cast.db.arango.util import define_extra_edges, update_to_numeric
 
 logger = logging.getLogger(__name__)
-
 ConnectionType = TypeVar("ConnectionType", bound="Connection")
 
 
