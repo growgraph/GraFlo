@@ -80,6 +80,7 @@ def test_json(create_db, modes, conn_conf, current_path, test_db_name, reset):
             with ConnectionManager(connection_config=conn_conf) as db_client:
                 r = db_client.fetch_docs("chunks")
                 assert len(r) == 2
+                assert r[0]["data"]
                 r = db_client.fetch_docs(
                     "chunks", filters=["==", "odds", "kind"]
                 )

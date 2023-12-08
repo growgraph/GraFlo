@@ -28,8 +28,6 @@ from graph_cast.architecture.util import (
 
 logger = logging.getLogger(__name__)
 
-_dummy_text = "#text"
-
 
 class NodeType(str, Enum):
     # only refers to other nodes
@@ -201,15 +199,7 @@ class MapperNode:
             kkeys += [k for k in self._map if k not in kkeys]
 
             if isinstance(doc, dict):
-                for kk, vv in doc.items():
-                    if kk in kkeys:
-                        if isinstance(vv, dict):
-                            if _dummy_text in vv:
-                                # TODO refactor - should be conf specific
-                                # {_dummy_text: value} {kk : value} is added to doc
-                                doc_[kk] = vv[_dummy_text]
-                        else:
-                            doc_[kk] = vv
+                doc_.update({kk: doc[kk] for kk in kkeys if kk in doc})
             if self._map:
                 doc_ = {
                     self._map[k] if k in self._map else k: v
