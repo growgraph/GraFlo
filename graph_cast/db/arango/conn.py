@@ -508,3 +508,35 @@ class ArangoConnection(Connection):
         else:
             answer = cursor.batch().pop()
             return answer
+
+    def fetch_present_documents(
+        self,
+        batch,
+        collection,
+        match_keys,
+        keep_keys,
+        flatten=True,
+    ):
+        """
+
+        :param batch:
+        :param collection:
+        :param match_keys:
+        :param keep_keys:
+        :param flatten:
+        :return:
+        """
+        data = self.fetch_fields_by_index(
+            collection_name=collection,
+            docs=batch,
+            match_keys=match_keys,
+            return_keys=keep_keys,
+        )
+
+        if flatten:
+            data2 = []
+            for k, vlist in data.items():
+                data2 += [{"__i": k, **sub_item} for sub_item in vlist]
+        else:
+            data2 = data
+        return data2

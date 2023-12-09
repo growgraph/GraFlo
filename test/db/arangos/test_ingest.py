@@ -93,6 +93,16 @@ def test_json(create_db, modes, conn_conf, current_path, test_db_name, reset):
                     return_keys=["kind"],
                 )
                 assert len(r[0]) == 1
+            batch = [{"kind": "odds"}, {"kind": "strange"}]
+            with ConnectionManager(connection_config=conn_conf) as db_client:
+                r = db_client.fetch_present_documents(
+                    batch,
+                    "chunks",
+                    match_keys=("kind",),
+                    keep_keys=("_key",),
+                    flatten=False,
+                )
+                assert len(r) == 1
 
 
 def test_csv(
