@@ -93,11 +93,14 @@ def fetch_fields_query(collection_name, docs, match_keys, return_keys):
 
     docs_str = json.dumps(docs_)
 
-    match_str = ", ".join(f'"{item}"' for item in match_keys)
+    match_str = " &&".join(
+        [f" cdoc['{key}'] == doc['{key}']" for key in match_keys]
+    )
+
     q_update = f"""
         FOR cdoc in {collection_name}
             FOR doc in {docs_str}
-                FILTER MATCHES(cdoc, KEEP(doc, {match_str}))                                             
+                FILTER {match_str}                                         
                     COLLECT __i = doc.__i, {collect_clause}
                     RETURN {return_clause}"""
 
