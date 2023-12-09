@@ -540,3 +540,34 @@ class ArangoConnection(Connection):
         else:
             data2 = data
         return data2
+
+    def keep_absent_documents(self, batch, collection, match_keys, keep_keys):
+        """
+            from `batch` return docs that are not present in `collection` according to `match_keys`
+        :param batch:
+        :param collection:
+        :param match_keys:
+        :param keep_keys:
+        :return:
+        """
+
+        present_docs_keys = self.fetch_present_documents(
+            batch=batch,
+            collection=collection,
+            match_keys=match_keys,
+            keep_keys=keep_keys,
+            flatten=False,
+        )
+
+        # there were multiple docs return for the same pair of filtering condition
+        if any([len(v) for v in present_docs_keys.values()]):
+            logger.warning(
+                f"filter_out_present_docs returned multiple docs per filtering"
+                f" condition"
+            )
+
+        absent_indices = sorted(
+            set(range(len(batch))) - set(present_docs_keys.keys())
+        )
+        batch_absent = [batch[j] for j in absent_indices]
+        return batch_absent

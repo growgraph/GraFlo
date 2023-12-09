@@ -104,6 +104,16 @@ def test_json(create_db, modes, conn_conf, current_path, test_db_name, reset):
                 )
                 assert len(r) == 1
 
+            with ConnectionManager(connection_config=conn_conf) as db_client:
+                r = db_client.keep_absent_documents(
+                    batch,
+                    "chunks",
+                    match_keys=("kind",),
+                    keep_keys=("_key",),
+                )
+                assert len(r) == 1
+                assert r[0]["kind"] == "strange"
+
 
 def test_csv(
     create_db, table_modes, conn_conf, current_path, test_db_name, reset
