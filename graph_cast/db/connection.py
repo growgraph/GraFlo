@@ -75,12 +75,11 @@ class Connection(abc.ABC):
     def fetch_docs(self, collection_name, filters, limit, return_keys):
         pass
 
-    # @abc.abstractmethod
-    # def fetch_fields_by_index(
-    #     self, collection_name, docs, match_keys, return_keys
-    # ):
-    #     pass
-    #
+    @abc.abstractmethod
+    def fetch_fields_by_index(
+        self, collection_name, docs, match_keys, return_keys
+    ):
+        pass
 
     # @abc.abstractmethod
     # def define_vertex_collections(self, graph_config, vertex_config):

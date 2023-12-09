@@ -387,6 +387,15 @@ class ArangoConnection(Connection):
     def fetch_fields_by_index(
         self, collection_name, docs, match_keys, return_keys
     ):
+        """
+            for each jth doc from `docs` matching to docs in `collection_name` by `match_keys`
+                return the list of `return_keys`
+        :param collection_name:
+        :param docs:
+        :param match_keys:
+        :param return_keys:
+        :return:
+        """
         q0 = fetch_fields_query(
             collection_name=collection_name,
             docs=docs,

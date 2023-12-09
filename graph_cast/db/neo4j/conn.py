@@ -178,7 +178,7 @@ class Neo4jConnection(Connection):
             self.execute(q, batch=docs_edges)
 
     def insert_return_batch(self, docs, collection_name):
-        pass
+        raise NotImplemented()
 
     def fetch_docs(
         self,
@@ -218,10 +218,7 @@ class Neo4jConnection(Connection):
         r = [item["n"] for item in cursor.data()]
         return r
 
-    # def fetch_fields_by_index(
-    #     self, collection_name, docs, match_keys, return_keys
-    # ):
-    #     pass
-    #
-    # def fetch_docs(self, collection_name, filters, return_keys):
-    #     pass
+    def fetch_fields_by_index(
+        self, collection_name, docs, match_keys, return_keys
+    ):
+        raise NotImplemented()
