@@ -105,13 +105,11 @@ def process_jsonlike(
             retrieve_fields = [f.name for f in weight.fields]
 
             if not dry:
-                weights_per_item = db_client.fetch_fields_by_index(
-                    collection_name=conf_obj.vertex_config.vertex_dbname(
-                        vname
-                    ),
-                    docs=vdocs[vname],
+                weights_per_item = db_client.fetch_present_documents(
+                    collection=conf_obj.vertex_config.vertex_dbname(vname),
+                    batch=vdocs[vname],
                     match_keys=index_fields.fields,
-                    return_keys=retrieve_fields,
+                    keep_keys=retrieve_fields,
                 )
 
                 for j, item in enumerate(list_defaultdicts):

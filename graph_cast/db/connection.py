@@ -76,8 +76,8 @@ class Connection(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def fetch_fields_by_index(
-        self, collection_name, docs, match_keys, return_keys
+    def fetch_present_documents(
+        self, batch, collection, match_keys, keep_keys, flatten=False
     ):
         pass
 

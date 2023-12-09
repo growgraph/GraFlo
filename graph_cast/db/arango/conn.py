@@ -384,31 +384,41 @@ class ArangoConnection(Connection):
         """
         return query0
 
-    def fetch_fields_by_index(
-        self, collection_name, docs, match_keys, return_keys
+    def fetch_present_documents(
+        self, batch, collection, match_keys, keep_keys, flatten=False
     ):
         """
             for each jth doc from `docs` matching to docs in `collection_name` by `match_keys`
                 return the list of `return_keys`
-        :param collection_name:
-        :param docs:
+        :param batch:
+        :param collection:
         :param match_keys:
-        :param return_keys:
+        :param keep_keys:
+        :param flatten:
         :return:
         """
         q0 = fetch_fields_query(
-            collection_name=collection_name,
-            docs=docs,
+            collection_name=collection,
+            docs=batch,
             match_keys=match_keys,
-            return_keys=return_keys,
+            return_keys=keep_keys,
         )
         cursor = self.execute(q0)
-        map_key: defaultdict[int, list] = defaultdict(list)
-        for item in get_data_from_cursor(cursor):
-            __i = item.pop("__i")
-            map_key[__i] += [item]
 
-        return map_key
+        # {"__i": i, "_group": [doc]}
+        data = [item for item in get_data_from_cursor(cursor)]
+        if flatten:
+            rdata = []
+            for item in data:
+                group = item.pop("_group", [])
+                rdata += [sub_item for sub_item in group]
+        else:
+            rdata = {}
+            for item in data:
+                __i = item.pop("__i")
+                group = item.pop("_group")
+                rdata[__i] = group
+        return rdata
 
     def fetch_docs(
         self,
@@ -508,38 +518,6 @@ class ArangoConnection(Connection):
         else:
             answer = cursor.batch().pop()
             return answer
-
-    def fetch_present_documents(
-        self,
-        batch,
-        collection,
-        match_keys,
-        keep_keys,
-        flatten=True,
-    ):
-        """
-
-        :param batch:
-        :param collection:
-        :param match_keys:
-        :param keep_keys:
-        :param flatten:
-        :return:
-        """
-        data = self.fetch_fields_by_index(
-            collection_name=collection,
-            docs=batch,
-            match_keys=match_keys,
-            return_keys=keep_keys,
-        )
-
-        if flatten:
-            data2 = []
-            for k, vlist in data.items():
-                data2 += [{"__i": k, **sub_item} for sub_item in vlist]
-        else:
-            data2 = data
-        return data2
 
     def keep_absent_documents(self, batch, collection, match_keys, keep_keys):
         """

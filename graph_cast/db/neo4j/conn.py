@@ -218,7 +218,7 @@ class Neo4jConnection(Connection):
         r = [item["n"] for item in cursor.data()]
         return r
 
-    def fetch_fields_by_index(
-        self, collection_name, docs, match_keys, return_keys
+    def fetch_present_documents(
+        self, batch, collection, match_keys, keep_keys, flatten=False
     ):
         raise NotImplemented()

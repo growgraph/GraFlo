@@ -80,13 +80,6 @@ def fetch_fields_query(collection_name, docs, match_keys, return_keys):
     :return:
     """
 
-    return_vars = [x.replace("@", "_") for x in return_keys]
-    collect_clause = ", ".join(
-        [f"{k} = cdoc['{q}']" for k, q in zip(return_vars, return_keys)]
-    )
-    return_clause = ", ".join(["__i"] + return_vars)
-    return_clause = f"{{{return_clause}}}"
-
     docs_ = [{k: doc[k] for k in match_keys if k in doc} for doc in docs]
     for i, doc in enumerate(docs_):
         doc.update({"__i": i})
@@ -94,14 +87,24 @@ def fetch_fields_query(collection_name, docs, match_keys, return_keys):
     docs_str = json.dumps(docs_)
 
     match_str = " &&".join(
-        [f" cdoc['{key}'] == doc['{key}']" for key in match_keys]
+        [f" _cdoc['{key}'] == _doc['{key}']" for key in match_keys]
     )
 
-    q_update = f"""
-        FOR cdoc in {collection_name}
-            FOR doc in {docs_str}
-                FILTER {match_str}                                         
-                    COLLECT __i = doc.__i, {collect_clause}
-                    RETURN {return_clause}"""
+    return_vars = [x.replace("@", "_") for x in return_keys]
 
-    return q_update
+    keep_clause = (
+        f"KEEP(_x, {list(return_vars)})" if return_vars is not None else "_x"
+    )
+
+    # filter_clause = (
+    #     filter_clause.format(doc="_doc") if filter_clause is not None else ""
+    # )
+
+    q0 = f"""
+        FOR _cdoc in {collection_name}
+            FOR _doc in {docs_str}
+                FILTER {match_str}             
+                COLLECT i = _doc['__i'] into _group = _cdoc 
+                LET gp = (for _x in _group return {keep_clause})                                
+                    RETURN {{'__i' : i, '_group': gp}}"""
+    return q0
