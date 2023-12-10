@@ -1,6 +1,5 @@
 import json
 import logging
-from collections import defaultdict
 
 from arango import ArangoClient
 from suthing import ArangoConnectionConfig
@@ -374,47 +373,46 @@ class ArangoConnection(Connection):
         if not dry:
             self.execute(q_update)
 
-    def insert_return_batch(self, docs, collection_name):
+    def insert_return_batch(self, docs, class_name):
         docs = json.dumps(docs)
         query0 = f"""FOR doc in {docs}
               INSERT doc
-              INTO {collection_name}
+              INTO {class_name}
               LET inserted = NEW
               RETURN {{_key: inserted._key}}
         """
         return query0
 
     def fetch_present_documents(
-        self, batch, collection, match_keys, keep_keys, flatten=False
+        self, batch, class_name, match_keys, keep_keys, flatten=False
     ):
         """
             for each jth doc from `docs` matching to docs in `collection_name` by `match_keys`
                 return the list of `return_keys`
         :param batch:
-        :param collection:
+        :param class_name:
         :param match_keys:
         :param keep_keys:
         :param flatten:
         :return:
         """
         q0 = fetch_fields_query(
-            collection_name=collection,
+            collection_name=class_name,
             docs=batch,
             match_keys=match_keys,
             return_keys=keep_keys,
         )
+        # {"__i": i, "_group": [doc]}
         cursor = self.execute(q0)
 
-        # {"__i": i, "_group": [doc]}
-        data = [item for item in get_data_from_cursor(cursor)]
         if flatten:
             rdata = []
-            for item in data:
+            for item in get_data_from_cursor(cursor):
                 group = item.pop("_group", [])
                 rdata += [sub_item for sub_item in group]
         else:
             rdata = {}
-            for item in data:
+            for item in get_data_from_cursor(cursor):
                 __i = item.pop("__i")
                 group = item.pop("_group")
                 rdata[__i] = group
@@ -422,14 +420,14 @@ class ArangoConnection(Connection):
 
     def fetch_docs(
         self,
-        collection_name,
+        class_name,
         filters: list | dict | None = None,
         limit: int | None = None,
         return_keys: list | None = None,
     ):
         """
 
-        :param collection_name:
+        :param class_name:
         :param filters:
         :param limit:
             {"AND": [["==", "1", "x"], ["==", "2", "y", "% 2"]]}
@@ -456,7 +454,7 @@ class ArangoConnection(Connection):
             limit_clause = ""
 
         q = (
-            f"FOR d in {collection_name}"
+            f"FOR d in {class_name}"
             f"  {filter_clause}"
             f"  {limit_clause}"
             f"  RETURN {keep_clause}"
@@ -466,7 +464,7 @@ class ArangoConnection(Connection):
 
     def aggregate(
         self,
-        collection,
+        class_name,
         aggregation_function: AggregationType,
         discriminant: str | None = None,
         aggregated_field: str | None = None,
@@ -474,7 +472,7 @@ class ArangoConnection(Connection):
     ):
         """
 
-        :param collection:
+        :param class_name:
         :param aggregation_function:
         :param discriminant:
         :param aggregated_field:
@@ -507,7 +505,7 @@ class ArangoConnection(Connection):
             )
             return_clause = "value"
 
-        q = f"""FOR doc IN {collection} {filter_condition}
+        q = f"""FOR doc IN {class_name} {filter_condition}
                     {collect_clause}
                     RETURN {return_clause}"""
 
@@ -519,11 +517,11 @@ class ArangoConnection(Connection):
             answer = cursor.batch().pop()
             return answer
 
-    def keep_absent_documents(self, batch, collection, match_keys, keep_keys):
+    def keep_absent_documents(self, batch, class_name, match_keys, keep_keys):
         """
             from `batch` return docs that are not present in `collection` according to `match_keys`
         :param batch:
-        :param collection:
+        :param class_name:
         :param match_keys:
         :param keep_keys:
         :return:
@@ -531,16 +529,16 @@ class ArangoConnection(Connection):
 
         present_docs_keys = self.fetch_present_documents(
             batch=batch,
-            collection=collection,
+            class_name=class_name,
             match_keys=match_keys,
             keep_keys=keep_keys,
             flatten=False,
         )
 
         # there were multiple docs return for the same pair of filtering condition
-        if any([len(v) for v in present_docs_keys.values()]):
+        if any([len(v) > 1 for v in present_docs_keys.values()]):
             logger.warning(
-                f"filter_out_present_docs returned multiple docs per filtering"
+                f"fetch_present_documents returned multiple docs per filtering"
                 f" condition"
             )
 

@@ -4,6 +4,7 @@ from typing import TypeVar
 
 from graph_cast.architecture.general import Configurator
 from graph_cast.db.arango.util import define_extra_edges, update_to_numeric
+from graph_cast.onto import AggregationType
 
 logger = logging.getLogger(__name__)
 ConnectionType = TypeVar("ConnectionType", bound="Connection")
@@ -68,17 +69,32 @@ class Connection(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def insert_return_batch(self, docs, collection_name):
+    def insert_return_batch(self, docs, class_name):
         pass
 
     @abc.abstractmethod
-    def fetch_docs(self, collection_name, filters, limit, return_keys):
+    def fetch_docs(self, class_name, filters, limit, return_keys):
         pass
 
     @abc.abstractmethod
     def fetch_present_documents(
-        self, batch, collection, match_keys, keep_keys, flatten=False
+        self, batch, class_name, match_keys, keep_keys, flatten=False
     ):
+        pass
+
+    @abc.abstractmethod
+    def aggregate(
+        self,
+        class_name,
+        aggregation_function: AggregationType,
+        discriminant: str | None = None,
+        aggregated_field: str | None = None,
+        filter_dict: dict | None = None,
+    ):
+        pass
+
+    @abc.abstractmethod
+    def keep_absent_documents(self, batch, class_name, match_keys, keep_keys):
         pass
 
     # @abc.abstractmethod

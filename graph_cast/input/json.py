@@ -106,7 +106,7 @@ def process_jsonlike(
 
             if not dry:
                 weights_per_item = db_client.fetch_present_documents(
-                    collection=conf_obj.vertex_config.vertex_dbname(vname),
+                    class_name=conf_obj.vertex_config.vertex_dbname(vname),
                     batch=vdocs[vname],
                     match_keys=index_fields.fields,
                     keep_keys=retrieve_fields,

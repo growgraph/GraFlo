@@ -177,12 +177,12 @@ class Neo4jConnection(Connection):
         if not dry:
             self.execute(q, batch=docs_edges)
 
-    def insert_return_batch(self, docs, collection_name):
+    def insert_return_batch(self, docs, class_name):
         raise NotImplemented()
 
     def fetch_docs(
         self,
-        collection_name,
+        class_name,
         filters: list | dict | None = None,
         limit: int | None = None,
         return_keys: list | None = None,
@@ -209,7 +209,7 @@ class Neo4jConnection(Connection):
             limit_clause = ""
 
         q = (
-            f"MATCH (n:{collection_name})"
+            f"MATCH (n:{class_name})"
             f"  {filter_clause}"
             f"  RETURN n {keep_clause}"
             f"  {limit_clause}"
@@ -219,6 +219,19 @@ class Neo4jConnection(Connection):
         return r
 
     def fetch_present_documents(
-        self, batch, collection, match_keys, keep_keys, flatten=False
+        self, batch, class_name, match_keys, keep_keys, flatten=False
     ):
-        raise NotImplemented()
+        raise NotImplemented
+
+    def aggregate(
+        self,
+        class_name,
+        aggregation_function: AggregationType,
+        discriminant: str | None = None,
+        aggregated_field: str | None = None,
+        filter_dict: dict | None = None,
+    ):
+        raise NotImplemented
+
+    def keep_absent_documents(self, batch, class_name, match_keys, keep_keys):
+        raise NotImplemented
