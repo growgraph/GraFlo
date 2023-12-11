@@ -468,7 +468,7 @@ class ArangoConnection(Connection):
         aggregation_function: AggregationType,
         discriminant: str | None = None,
         aggregated_field: str | None = None,
-        filter_dict: dict | None = None,
+        filters: list | dict | None = None,
     ):
         """
 
@@ -476,9 +476,18 @@ class ArangoConnection(Connection):
         :param aggregation_function:
         :param discriminant:
         :param aggregated_field:
-        :param filter_dict:
+        :param filters:
         :return:
         """
+
+        if filters is not None:
+            ff = init_filter(filters)
+            filter_clause = (
+                "FILTER"
+                f" {ff.cast_filter(doc_name='doc', kind=DBFlavor.ARANGO)}"
+            )
+        else:
+            filter_clause = ""
 
         if (
             aggregated_field is not None
@@ -487,13 +496,6 @@ class ArangoConnection(Connection):
             group_unit = f"g[*].doc.{aggregated_field}"
         else:
             group_unit = "g"
-
-        if filter_dict is None or not filter_dict:
-            filter_condition = ""
-        else:
-            filter_condition = "FILTER" + "AND".join(
-                f" doc['{k}'] == '{v}' " for k, v in filter_dict.items()
-            )
 
         if discriminant is not None:
             collect_clause = f"COLLECT value = doc['{discriminant}'] INTO g"
@@ -505,7 +507,8 @@ class ArangoConnection(Connection):
             )
             return_clause = "value"
 
-        q = f"""FOR doc IN {class_name} {filter_condition}
+        q = f"""FOR doc IN {class_name} 
+                    {filter_clause}
                     {collect_clause}
                     RETURN {return_clause}"""
 

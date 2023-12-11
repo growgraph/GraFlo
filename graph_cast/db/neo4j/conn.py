@@ -229,7 +229,7 @@ class Neo4jConnection(Connection):
         aggregation_function: AggregationType,
         discriminant: str | None = None,
         aggregated_field: str | None = None,
-        filter_dict: dict | None = None,
+        filters: list | dict | None = None,
     ):
         raise NotImplemented
 

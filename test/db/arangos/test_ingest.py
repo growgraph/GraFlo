@@ -6,7 +6,7 @@ import pytest
 from suthing import FileHandle, equals
 
 from graph_cast.db import ConnectionManager
-from graph_cast.onto import InputType
+from graph_cast.onto import AggregationType, InputType
 
 
 @pytest.fixture(scope="function")
@@ -105,14 +105,25 @@ def test_json(create_db, modes, conn_conf, current_path, test_db_name, reset):
                 assert len(r) == 1
 
             with ConnectionManager(connection_config=conn_conf) as db_client:
-                r = db_client.keep_absent_documents(
-                    batch,
+                r = db_client.aggregate(
                     "chunks",
-                    match_keys=("kind",),
-                    keep_keys=("_key",),
+                    aggregation_function=AggregationType.COUNT,
+                    discriminant="kind",
+                )
+                assert len(r) == 2
+                assert r == [
+                    {"kind": "odds", "_value": 1},
+                    {"kind": "scores", "_value": 1},
+                ]
+
+            with ConnectionManager(connection_config=conn_conf) as db_client:
+                r = db_client.aggregate(
+                    "chunks",
+                    aggregation_function=AggregationType.COUNT,
+                    discriminant="kind",
+                    filters=["!=", "odds", "kind"],
                 )
                 assert len(r) == 1
-                assert r[0]["kind"] == "strange"
 
 
 def test_csv(
