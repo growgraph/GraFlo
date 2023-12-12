@@ -6,7 +6,7 @@ import pytest
 from suthing import FileHandle, equals
 
 from graph_cast.db import ConnectionManager
-from graph_cast.onto import AggregationType, InputType
+from graph_cast.onto import AggregationType, ComparisonOperator, InputType
 
 
 @pytest.fixture(scope="function")
@@ -121,7 +121,7 @@ def test_json(create_db, modes, conn_conf, current_path, test_db_name, reset):
                     "chunks",
                     aggregation_function=AggregationType.COUNT,
                     discriminant="kind",
-                    filters=["!=", "odds", "kind"],
+                    filters=[ComparisonOperator.NEQ, "odds", "kind"],
                 )
                 assert len(r) == 1
 
