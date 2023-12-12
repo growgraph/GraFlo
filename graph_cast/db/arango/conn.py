@@ -13,7 +13,10 @@ from graph_cast.architecture.schema import (
     IndexType,
     VertexConfig,
 )
-from graph_cast.db import Connection
+from graph_cast.db.arango.query import fetch_fields_query
+from graph_cast.db.connection import Connection
+from graph_cast.db.util import get_data_from_cursor
+from graph_cast.onto import AggregationType, DBFlavor, init_filter
 from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
@@ -39,6 +42,14 @@ class ArangoConnection(Connection):
     def delete_database(self, name: str):
         if not self.conn.has_database(name):
             self.conn.delete_database(name)
+
+    def execute(self, query, **kwargs):
+        cursor = self.conn.aql.execute(query)
+        return cursor
+
+    def close(self):
+        # self.conn.close()
+        pass
 
     def init_db(self, conf_obj: Configurator, clean_start):
         if clean_start:
@@ -188,19 +199,11 @@ class ArangoConnection(Connection):
     def get_collections(self):
         return self.conn.collections()
 
-    def execute(self, query, **kwargs):
-        cursor = self.conn.aql.execute(query)
-        return cursor
-
-    def close(self):
-        # self.conn.close()
-        pass
-
     def upsert_docs_batch(
         self,
         docs,
         class_name,
-        match_keys,
+        match_keys: list[str] | None = None,
         **kwargs,
     ):
         """
@@ -220,23 +223,30 @@ class ArangoConnection(Connection):
             if filter_uniques:
                 docs = pick_unique_dict(docs)
             docs = json.dumps(docs)
-        upsert_clause = ", ".join([f'"{k}": doc.{k}' for k in match_keys])
-        upsert_clause = f"{{{upsert_clause}}}"
-
-        if isinstance(update_keys, list):
-            update_clause = ", ".join([f'"{k}": doc.{k}' for k in update_keys])
-            update_clause = f"{{{update_clause}}}"
-        elif update_keys == "doc":
-            update_clause = "doc"
+        if match_keys is None:
+            upsert_clause = ""
+            update_clause = ""
         else:
-            update_clause = "{}"
+            upsert_clause = ", ".join([f'"{k}": doc.{k}' for k in match_keys])
+            upsert_clause = f"UPSERT {{{upsert_clause}}}"
+
+            if isinstance(update_keys, list):
+                update_clause = ", ".join(
+                    [f'"{k}": doc.{k}' for k in update_keys]
+                )
+                update_clause = f"{{{update_clause}}}"
+            elif update_keys == "doc":
+                update_clause = "doc"
+            else:
+                update_clause = "{}"
+            update_clause = f"UPDATE {update_clause}"
 
         options = "OPTIONS {exclusive: true, ignoreErrors: true}"
 
         q_update = f"""FOR doc in {docs}
-                            UPSERT {upsert_clause}
+                            {upsert_clause}
                             INSERT doc
-                            UPDATE {update_clause} 
+                            {update_clause} 
                                 IN {class_name} {options}"""
         if not dry:
             self.execute(q_update)
@@ -363,12 +373,180 @@ class ArangoConnection(Connection):
         if not dry:
             self.execute(q_update)
 
-    def insert_return_batch(self, docs, collection_name):
+    def insert_return_batch(self, docs, class_name):
         docs = json.dumps(docs)
         query0 = f"""FOR doc in {docs}
               INSERT doc
-              INTO {collection_name}
+              INTO {class_name}
               LET inserted = NEW
               RETURN {{_key: inserted._key}}
         """
         return query0
+
+    def fetch_present_documents(
+        self, batch, class_name, match_keys, keep_keys, flatten=False
+    ):
+        """
+            for each jth doc from `docs` matching to docs in `collection_name` by `match_keys`
+                return the list of `return_keys`
+        :param batch:
+        :param class_name:
+        :param match_keys:
+        :param keep_keys:
+        :param flatten:
+        :return:
+        """
+        q0 = fetch_fields_query(
+            collection_name=class_name,
+            docs=batch,
+            match_keys=match_keys,
+            return_keys=keep_keys,
+        )
+        # {"__i": i, "_group": [doc]}
+        cursor = self.execute(q0)
+
+        if flatten:
+            rdata = []
+            for item in get_data_from_cursor(cursor):
+                group = item.pop("_group", [])
+                rdata += [sub_item for sub_item in group]
+        else:
+            rdata = {}
+            for item in get_data_from_cursor(cursor):
+                __i = item.pop("__i")
+                group = item.pop("_group")
+                rdata[__i] = group
+        return rdata
+
+    def fetch_docs(
+        self,
+        class_name,
+        filters: list | dict | None = None,
+        limit: int | None = None,
+        return_keys: list | None = None,
+    ):
+        """
+
+        :param class_name:
+        :param filters:
+        :param limit:
+            {"AND": [["==", "1", "x"], ["==", "2", "y", "% 2"]]}
+        :param return_keys:
+        :return:
+        """
+        if filters is not None:
+            ff = init_filter(filters)
+            filter_clause = (
+                f"FILTER {ff.cast_filter(doc_name='d', kind=DBFlavor.ARANGO)}"
+            )
+        else:
+            filter_clause = ""
+
+        if return_keys is not None:
+            keep_clause_ = ", ".join([f'"{item}"' for item in return_keys])
+            keep_clause = f"KEEP(d, {keep_clause_})"
+        else:
+            keep_clause = "d"
+
+        if limit is not None and isinstance(limit, int):
+            limit_clause = f"LIMIT {limit}"
+        else:
+            limit_clause = ""
+
+        q = (
+            f"FOR d in {class_name}"
+            f"  {filter_clause}"
+            f"  {limit_clause}"
+            f"  RETURN {keep_clause}"
+        )
+        cursor = self.execute(q)
+        return get_data_from_cursor(cursor)
+
+    def aggregate(
+        self,
+        class_name,
+        aggregation_function: AggregationType,
+        discriminant: str | None = None,
+        aggregated_field: str | None = None,
+        filters: list | dict | None = None,
+    ):
+        """
+
+        :param class_name:
+        :param aggregation_function:
+        :param discriminant:
+        :param aggregated_field:
+        :param filters:
+        :return:
+        """
+
+        if filters is not None:
+            ff = init_filter(filters)
+            filter_clause = (
+                "FILTER"
+                f" {ff.cast_filter(doc_name='doc', kind=DBFlavor.ARANGO)}"
+            )
+        else:
+            filter_clause = ""
+
+        if (
+            aggregated_field is not None
+            and aggregation_function != AggregationType.COUNT
+        ):
+            group_unit = f"g[*].doc.{aggregated_field}"
+        else:
+            group_unit = "g"
+
+        if discriminant is not None:
+            collect_clause = f"COLLECT value = doc['{discriminant}'] INTO g"
+            return_clause = f"""{{ '{discriminant}' : value, '_value' :{aggregation_function}({group_unit})}}"""
+        else:
+            collect_clause = (
+                "COLLECT AGGREGATE value ="
+                f" {aggregation_function}(doc['{aggregated_field}'])"
+            )
+            return_clause = "value"
+
+        q = f"""FOR doc IN {class_name} 
+                    {filter_clause}
+                    {collect_clause}
+                    RETURN {return_clause}"""
+
+        cursor = self.execute(q)
+        if discriminant is not None:
+            data = get_data_from_cursor(cursor)
+            return data
+        else:
+            answer = cursor.batch().pop()
+            return answer
+
+    def keep_absent_documents(self, batch, class_name, match_keys, keep_keys):
+        """
+            from `batch` return docs that are not present in `collection` according to `match_keys`
+        :param batch:
+        :param class_name:
+        :param match_keys:
+        :param keep_keys:
+        :return:
+        """
+
+        present_docs_keys = self.fetch_present_documents(
+            batch=batch,
+            class_name=class_name,
+            match_keys=match_keys,
+            keep_keys=keep_keys,
+            flatten=False,
+        )
+
+        # there were multiple docs return for the same pair of filtering condition
+        if any([len(v) > 1 for v in present_docs_keys.values()]):
+            logger.warning(
+                f"fetch_present_documents returned multiple docs per filtering"
+                f" condition"
+            )
+
+        absent_indices = sorted(
+            set(range(len(batch))) - set(present_docs_keys.keys())
+        )
+        batch_absent = [batch[j] for j in absent_indices]
+        return batch_absent

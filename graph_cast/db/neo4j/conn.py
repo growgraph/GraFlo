@@ -6,8 +6,8 @@ from suthing import Neo4jConnectionConfig
 from graph_cast.architecture import Configurator
 from graph_cast.architecture.graph import GraphConfig
 from graph_cast.architecture.schema import CollectionIndex, VertexConfig
-from graph_cast.db import Connection
-from graph_cast.onto import DBFlavor
+from graph_cast.db.connection import Connection
+from graph_cast.onto import AggregationType, DBFlavor, init_filter
 
 logger = logging.getLogger(__name__)
 
@@ -177,13 +177,61 @@ class Neo4jConnection(Connection):
         if not dry:
             self.execute(q, batch=docs_edges)
 
-    def insert_return_batch(self, docs, collection_name):
-        pass
-        # docs = json.dumps(docs)
-        # query0 = f"""FOR doc in {docs}
-        #       INSERT doc
-        #       INTO {collection_name}
-        #       LET inserted = NEW
-        #       RETURN {{_key: inserted._key}}
-        # """
-        # return query0
+    def insert_return_batch(self, docs, class_name):
+        raise NotImplemented()
+
+    def fetch_docs(
+        self,
+        class_name,
+        filters: list | dict | None = None,
+        limit: int | None = None,
+        return_keys: list | None = None,
+    ):
+        # "MATCH (d:chunks) WHERE d.t > 15 RETURN d { .kind, .t }"
+
+        if filters is not None:
+            ff = init_filter(filters)
+            filter_clause = (
+                f"WHERE {ff.cast_filter(doc_name='n', kind=DBFlavor.NEO4J)}"
+            )
+        else:
+            filter_clause = ""
+
+        if return_keys is not None:
+            keep_clause_ = ", ".join([f".{item}" for item in return_keys])
+            keep_clause = f"{{ {keep_clause_} }}"
+        else:
+            keep_clause = ""
+
+        if limit is not None and isinstance(limit, int):
+            limit_clause = f"LIMIT {limit}"
+        else:
+            limit_clause = ""
+
+        q = (
+            f"MATCH (n:{class_name})"
+            f"  {filter_clause}"
+            f"  RETURN n {keep_clause}"
+            f"  {limit_clause}"
+        )
+        cursor = self.execute(q)
+        r = [item["n"] for item in cursor.data()]
+        return r
+
+    def fetch_present_documents(
+        self, batch, class_name, match_keys, keep_keys, flatten=False
+    ):
+        raise NotImplemented
+
+    def aggregate(
+        self,
+        class_name,
+        aggregation_function: AggregationType,
+        discriminant: str | None = None,
+        aggregated_field: str | None = None,
+        filters: list | dict | None = None,
+    ):
+        raise NotImplemented
+
+    def keep_absent_documents(self, batch, class_name, match_keys, keep_keys):
+        raise NotImplemented

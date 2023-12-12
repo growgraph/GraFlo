@@ -1,9 +1,9 @@
 import os
 
 import pytest
-from suthing import FileHandle
+from suthing import ConfigFactory, FileHandle
 
-from graph_cast.db import ConfigFactory, ConnectionManager
+from graph_cast.db import ConnectionManager
 
 
 @pytest.fixture(scope="function")

@@ -1,6 +1,6 @@
 import pytest
+from suthing import equals
 
-from graph_cast.util import equals
 from graph_cast.util.transform import cast_ibes_analyst
 
 

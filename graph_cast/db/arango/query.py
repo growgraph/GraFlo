@@ -68,3 +68,43 @@ def profile_query(query, nq, profile_times, fpath, limit=None, **kwargs):
         ) as fp:
             chunk = list(cursor.fetch()["batch"])
             json.dump(chunk, fp, indent=4)
+
+
+def fetch_fields_query(collection_name, docs, match_keys, return_keys):
+    """
+
+    :param collection_name: collection to look up docs
+    :param docs: list of dicts (json-like, ie keys are strings)
+    :param match_keys: keys on which to look for document
+    :param return_keys: keys which to return
+    :return:
+    """
+
+    docs_ = [{k: doc[k] for k in match_keys if k in doc} for doc in docs]
+    for i, doc in enumerate(docs_):
+        doc.update({"__i": i})
+
+    docs_str = json.dumps(docs_)
+
+    match_str = " &&".join(
+        [f" _cdoc['{key}'] == _doc['{key}']" for key in match_keys]
+    )
+
+    return_vars = [x.replace("@", "_") for x in return_keys]
+
+    keep_clause = (
+        f"KEEP(_x, {list(return_vars)})" if return_vars is not None else "_x"
+    )
+
+    # filter_clause = (
+    #     filter_clause.format(doc="_doc") if filter_clause is not None else ""
+    # )
+
+    q0 = f"""
+        FOR _cdoc in {collection_name}
+            FOR _doc in {docs_str}
+                FILTER {match_str}             
+                COLLECT i = _doc['__i'] into _group = _cdoc 
+                LET gp = (for _x in _group return {keep_clause})                                
+                    RETURN {{'__i' : i, '_group': gp}}"""
+    return q0

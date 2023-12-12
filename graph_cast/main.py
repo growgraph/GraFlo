@@ -14,7 +14,7 @@ import graph_cast.input.table
 import graph_cast.input.table_flow
 from graph_cast.architecture import JConfigurator, TConfigurator
 from graph_cast.db import ConnectionManager
-from graph_cast.input.json_flow import process_jsonlike
+from graph_cast.input.json import process_jsonlike
 from graph_cast.onto import InputType
 from graph_cast.util import timer as timer
 

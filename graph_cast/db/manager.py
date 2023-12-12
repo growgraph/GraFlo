@@ -2,8 +2,8 @@ from typing import Optional
 
 from suthing import ConfigFactory, ConnectionKind, ProtoConnectionConfig
 
-from graph_cast.db.arango.connection import ArangoConnection
-from graph_cast.db.neo4j.connection import Neo4jConnection
+from graph_cast.db.arango.conn import ArangoConnection
+from graph_cast.db.neo4j.conn import Neo4jConnection
 
 
 class ConnectionManager:

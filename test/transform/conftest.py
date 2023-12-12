@@ -4,13 +4,12 @@ from os.path import dirname, join, realpath
 import pandas as pd
 import pytest
 import yaml
-from suthing import equals
+from suthing import FileHandle, equals
 
 from graph_cast.architecture import JConfigurator, TConfigurator
 from graph_cast.input import jsondoc_to_collections, table_to_collections
 from graph_cast.input.util import list_to_dict_edges, list_to_dict_vertex
 from graph_cast.onto import InputType, InputTypeFileExtensions
-from graph_cast.util import ResourceHandler
 from graph_cast.util.transform import pick_unique_dict
 
 
@@ -20,11 +19,11 @@ def current_path():
 
 
 def transform_it(current_path, input_type, mode, reset):
-    data_obj = ResourceHandler.load(
+    data_obj = FileHandle.load(
         f"test.data.{input_type}.{mode}",
         f"{mode}.{InputTypeFileExtensions[input_type][0]}.gz",
     )
-    config = ResourceHandler.load(f"test.config.schema", f"{mode}.yaml")
+    config = FileHandle.load(f"test.config.schema", f"{mode}.yaml")
 
     if input_type == InputType.TABLE:
         conf_obj = TConfigurator(config)
@@ -63,15 +62,13 @@ def verify(vc, current_path, mode, reset):
     }
 
     if reset:
-        ResourceHandler.dump(
+        FileHandle.dump(
             vc_tranformed,
             join(current_path, f"../ref/transform/{mode}_sizes.yaml"),
         )
 
     else:
-        ref_vc = ResourceHandler.load(
-            f"test.ref.transform", f"{mode}_sizes.yaml"
-        )
+        ref_vc = FileHandle.load(f"test.ref.transform", f"{mode}_sizes.yaml")
         if not equals(vc, ref_vc):
             print(f" mode: {mode}")
             for k, v in ref_vc.items():
