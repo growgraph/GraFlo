@@ -6,7 +6,12 @@ import pytest
 from suthing import FileHandle, equals
 
 from graph_cast.db import ConnectionManager
-from graph_cast.onto import AggregationType, ComparisonOperator, InputType
+from graph_cast.onto import (
+    AggregationType,
+    ComparisonOperator,
+    InputType,
+    LogicalOperator,
+)
 
 
 @pytest.fixture(scope="function")
@@ -103,6 +108,28 @@ def test_json(create_db, modes, conn_conf, current_path, test_db_name, reset):
                     flatten=False,
                 )
                 assert len(r) == 1
+
+            batch = [{"kind": "odds"}, {"kind": "scores"}, {"kind": "strange"}]
+            with ConnectionManager(connection_config=conn_conf) as db_client:
+                r = db_client.fetch_present_documents(
+                    batch,
+                    "chunks",
+                    match_keys=("kind",),
+                    keep_keys=("_key",),
+                    flatten=False,
+                    filters=[ComparisonOperator.NEQ, "odds", "kind"],
+                )
+                assert len(r) == 1
+
+            with ConnectionManager(connection_config=conn_conf) as db_client:
+                r = db_client.keep_absent_documents(
+                    batch,
+                    "chunks",
+                    match_keys=("kind",),
+                    keep_keys=("_key",),
+                    filters=[ComparisonOperator.EQ, None, "data"],
+                )
+                assert len(r) == 3
 
             with ConnectionManager(connection_config=conn_conf) as db_client:
                 r = db_client.aggregate(

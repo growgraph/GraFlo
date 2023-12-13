@@ -384,8 +384,14 @@ class ArangoConnection(Connection):
         return query0
 
     def fetch_present_documents(
-        self, batch, class_name, match_keys, keep_keys, flatten=False
-    ):
+        self,
+        batch,
+        class_name,
+        match_keys,
+        keep_keys,
+        flatten=False,
+        filters: list | dict | None = None,
+    ) -> list | dict:
         """
             for each jth doc from `docs` matching to docs in `collection_name` by `match_keys`
                 return the list of `return_keys`
@@ -394,6 +400,7 @@ class ArangoConnection(Connection):
         :param match_keys:
         :param keep_keys:
         :param flatten:
+        :param filters: return docs from db satisfying condition
         :return:
         """
         q0 = fetch_fields_query(
@@ -401,6 +408,7 @@ class ArangoConnection(Connection):
             docs=batch,
             match_keys=match_keys,
             return_keys=keep_keys,
+            filters=filters,
         )
         # {"__i": i, "_group": [doc]}
         cursor = self.execute(q0)
@@ -410,13 +418,14 @@ class ArangoConnection(Connection):
             for item in get_data_from_cursor(cursor):
                 group = item.pop("_group", [])
                 rdata += [sub_item for sub_item in group]
+            return rdata
         else:
-            rdata = {}
+            rdata_dict = {}
             for item in get_data_from_cursor(cursor):
                 __i = item.pop("__i")
                 group = item.pop("_group")
-                rdata[__i] = group
-        return rdata
+                rdata_dict[__i] = group
+            return rdata_dict
 
     def fetch_docs(
         self,
@@ -520,13 +529,22 @@ class ArangoConnection(Connection):
             answer = cursor.batch().pop()
             return answer
 
-    def keep_absent_documents(self, batch, class_name, match_keys, keep_keys):
+    def keep_absent_documents(
+        self,
+        batch,
+        class_name,
+        match_keys,
+        keep_keys,
+        filters: list | dict | None = None,
+    ):
         """
             from `batch` return docs that are not present in `collection` according to `match_keys`
         :param batch:
         :param class_name:
         :param match_keys:
         :param keep_keys:
+        :param filters: filter selects documents, so docs with filter applied will be returned
+                            and not returned as negative docs
         :return:
         """
 
@@ -536,7 +554,10 @@ class ArangoConnection(Connection):
             match_keys=match_keys,
             keep_keys=keep_keys,
             flatten=False,
+            filters=filters,
         )
+
+        assert isinstance(present_docs_keys, dict)
 
         # there were multiple docs return for the same pair of filtering condition
         if any([len(v) > 1 for v in present_docs_keys.values()]):

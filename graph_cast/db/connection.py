@@ -78,7 +78,13 @@ class Connection(abc.ABC):
 
     @abc.abstractmethod
     def fetch_present_documents(
-        self, batch, class_name, match_keys, keep_keys, flatten=False
+        self,
+        batch,
+        class_name,
+        match_keys,
+        keep_keys,
+        flatten=False,
+        filters: list | dict | None = None,
     ):
         pass
 
@@ -94,7 +100,14 @@ class Connection(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def keep_absent_documents(self, batch, class_name, match_keys, keep_keys):
+    def keep_absent_documents(
+        self,
+        batch,
+        class_name,
+        match_keys,
+        keep_keys,
+        filters: list | dict | None = None,
+    ):
         pass
 
     # @abc.abstractmethod

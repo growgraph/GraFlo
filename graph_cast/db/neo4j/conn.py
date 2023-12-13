@@ -219,7 +219,13 @@ class Neo4jConnection(Connection):
         return r
 
     def fetch_present_documents(
-        self, batch, class_name, match_keys, keep_keys, flatten=False
+        self,
+        batch,
+        class_name,
+        match_keys,
+        keep_keys,
+        flatten=False,
+        filters: list | dict | None = None,
     ):
         raise NotImplemented
 
@@ -233,5 +239,12 @@ class Neo4jConnection(Connection):
     ):
         raise NotImplemented
 
-    def keep_absent_documents(self, batch, class_name, match_keys, keep_keys):
+    def keep_absent_documents(
+        self,
+        batch,
+        class_name,
+        match_keys,
+        keep_keys,
+        filters: list | dict | None = None,
+    ):
         raise NotImplemented

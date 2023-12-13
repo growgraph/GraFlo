@@ -5,6 +5,8 @@ from os.path import join
 
 from arango import ArangoClient
 
+from graph_cast.onto import DBFlavor, init_filter
+
 logger = logging.getLogger(__name__)
 
 
@@ -70,7 +72,13 @@ def profile_query(query, nq, profile_times, fpath, limit=None, **kwargs):
             json.dump(chunk, fp, indent=4)
 
 
-def fetch_fields_query(collection_name, docs, match_keys, return_keys):
+def fetch_fields_query(
+    collection_name,
+    docs,
+    match_keys,
+    return_keys,
+    filters: list | dict | None = None,
+):
     """
 
     :param collection_name: collection to look up docs
@@ -96,14 +104,18 @@ def fetch_fields_query(collection_name, docs, match_keys, return_keys):
         f"KEEP(_x, {list(return_vars)})" if return_vars is not None else "_x"
     )
 
-    # filter_clause = (
-    #     filter_clause.format(doc="_doc") if filter_clause is not None else ""
-    # )
+    if filters is not None:
+        ff = init_filter(filters)
+        extrac_filter_clause = (
+            f" && {ff.cast_filter(doc_name='_cdoc', kind=DBFlavor.ARANGO)}"
+        )
+    else:
+        extrac_filter_clause = ""
 
     q0 = f"""
         FOR _cdoc in {collection_name}
             FOR _doc in {docs_str}
-                FILTER {match_str}             
+                FILTER {match_str} {extrac_filter_clause}      
                 COLLECT i = _doc['__i'] into _group = _cdoc 
                 LET gp = (for _x in _group return {keep_clause})                                
                     RETURN {{'__i' : i, '_group': gp}}"""
