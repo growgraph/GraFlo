@@ -6,17 +6,17 @@ from suthing import ArangoConnectionConfig
 
 from graph_cast.architecture import Configurator
 from graph_cast.architecture.graph import GraphConfig
-from graph_cast.architecture.schema import (
+from graph_cast.architecture.onto import (
     SOURCE_AUX,
     TARGET_AUX,
     CollectionIndex,
     IndexType,
-    VertexConfig,
 )
+from graph_cast.architecture.schema import VertexConfig
 from graph_cast.db.arango.query import fetch_fields_query
 from graph_cast.db.connection import Connection
 from graph_cast.db.util import get_data_from_cursor
-from graph_cast.onto import AggregationType, DBFlavor, init_filter
+from graph_cast.onto import AggregationType, DBFlavor, Expression
 from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
@@ -71,9 +71,9 @@ class ArangoConnection(Connection):
     def define_vertex_collections(
         self, graph_config: GraphConfig, vertex_config: VertexConfig
     ):
-        disconnected_vertex_collections = set(vertex_config.collections) - set(
-            [v for edge in graph_config.all_edges for v in edge]
-        )
+        disconnected_vertex_collections = set(
+            vertex_config.collections_set
+        ) - set([v for edge in graph_config.all_edges for v in edge])
         es = list(graph_config.all_edge_definitions())
         for item in es:
             u, v = item.source, item.target
@@ -135,8 +135,8 @@ class ArangoConnection(Connection):
         return ih
 
     def define_vertex_indices(self, vertex_config: VertexConfig):
-        for c in vertex_config.collections:
-            for index_obj in vertex_config.extra_index_list(c):
+        for c in vertex_config.collections_set:
+            for index_obj in vertex_config.indexes(c):
                 general_collection = self.conn.collection(
                     vertex_config.vertex_dbname(c)
                 )
@@ -149,7 +149,7 @@ class ArangoConnection(Connection):
                 self._add_index(general_collection, index_obj)
 
     def create_collection(
-        self, collection_name, index: CollectionIndex | None = None, g=None
+        self, collection_name, index: None | CollectionIndex = None, g=None
     ):
         if not self.conn.has_collection(collection_name):
             if g is not None:
@@ -444,7 +444,7 @@ class ArangoConnection(Connection):
         :return:
         """
         if filters is not None:
-            ff = init_filter(filters)
+            ff = Expression.from_dict(filters)
             filter_clause = (
                 f"FILTER {ff.cast_filter(doc_name='d', kind=DBFlavor.ARANGO)}"
             )
@@ -490,7 +490,7 @@ class ArangoConnection(Connection):
         """
 
         if filters is not None:
-            ff = init_filter(filters)
+            ff = Expression.from_dict(filters)
             filter_clause = (
                 "FILTER"
                 f" {ff.cast_filter(doc_name='doc', kind=DBFlavor.ARANGO)}"

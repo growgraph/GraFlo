@@ -826,7 +826,7 @@ json:
 vertex_collections:
     collections:
         publication:
-            basename: publications
+            dbname: publications
             fields:
             -   _key
             -   volume
@@ -849,7 +849,7 @@ vertex_collections:
                 fields:
                 -   title
         medium:
-            basename: media
+            dbname: media
             fields:
             -   issn
             -   isbn
@@ -867,7 +867,7 @@ vertex_collections:
                 fields:
                 -   issn
         medium_title:
-            basename: media_title
+            dbname: media_title
             fields:
             -   title
             index:
@@ -878,7 +878,7 @@ vertex_collections:
                 fields:
                 -   title
         language:
-            basename: languages
+            dbname: languages
             fields:
             -   name
             index:
@@ -889,7 +889,7 @@ vertex_collections:
                 fields:
                 -   name
         contributor:
-            basename: contributors
+            dbname: contributors
             fields:
             -   first_name
             -   last_name
@@ -920,7 +920,7 @@ vertex_collections:
                 fields:
                 -   wos_standard
         location:
-            basename: locations
+            dbname: locations
             fields:
             -   country
             -   state
@@ -946,7 +946,7 @@ vertex_collections:
                 -   street
                 -   full_address
         organization:
-            basename: organizations
+            dbname: organizations
             fields:
             -   name
             index:
@@ -957,7 +957,7 @@ vertex_collections:
                 fields:
                 -   name
         suborganization:
-            basename: suborganizations
+            dbname: suborganizations
             fields:
             -   name
             index:
@@ -968,19 +968,19 @@ vertex_collections:
                 fields:
                 -   name
         publication_type:
-            basename: publication_types
+            dbname: publication_types
             fields:
             -   type
             index:
             -   type
         document_type:
-            basename: document_types
+            dbname: document_types
             fields:
             -   name
             index:
             -   name
         subject:
-            basename: subjects
+            dbname: subjects
             fields:
             -   name
             index:
@@ -991,7 +991,7 @@ vertex_collections:
                 fields:
                 -   name
         keyword:
-            basename: keywords
+            dbname: keywords
             fields:
             -   name
             index:
@@ -1002,19 +1002,19 @@ vertex_collections:
                 fields:
                 -   name
         edition:
-            basename: editions
+            dbname: editions
             fields:
             -   name
             index:
             -   name
         abstract:
-            basename: abstracts
+            dbname: abstracts
             fields:
             -   text
             index:
             -   text
         agency:
-            basename: agencies
+            dbname: agencies
             fields:
             -   name
             index:
@@ -1025,13 +1025,13 @@ vertex_collections:
                 fields:
                 -   name
         grant_id:
-            basename: grant_ids
+            dbname: grant_ids
             fields:
             -   id
             index:
             -   id
         heading:
-            basename: headings
+            dbname: headings
             fields:
             -   name
             index:
@@ -1042,7 +1042,7 @@ vertex_collections:
                 fields:
                 -   name
         subheading:
-            basename: subheadings
+            dbname: subheadings
             fields:
             -   name
             index:
@@ -1053,13 +1053,13 @@ vertex_collections:
                 fields:
                 -   name
         funding_text:
-            basename: funding_texts
+            dbname: funding_texts
             fields:
             -   text
             index:
             -   text
         date:
-            basename: dates
+            dbname: dates
             fields:
             -   year
             -   month
@@ -1076,7 +1076,7 @@ vertex_collections:
                 -   month
                 -   day
         publisher:
-            basename: publishers
+            dbname: publishers
             fields:
             -   display_name
             -   full_name
@@ -1088,13 +1088,13 @@ vertex_collections:
                 fields:
                 -   display_name
         conference:
-            basename: conferences
+            dbname: conferences
             fields:
             -   id
             index:
             -   id
         conference_title:
-            basename: conference_titles
+            dbname: conference_titles
             fields:
             -   title
             index:
@@ -1105,13 +1105,13 @@ vertex_collections:
                 fields:
                 -   title
         conference_info:
-            basename: conference_infos
+            dbname: conference_infos
             fields:
             -   text
             index:
             -   text
         conference_sponsor:
-            basename: conference_sponsors
+            dbname: conference_sponsors
             fields:
             -   name
             index:
@@ -1122,13 +1122,13 @@ vertex_collections:
                 fields:
                 -   name
         some_id:
-            basename: some_ids
+            dbname: some_ids
             fields:
             -   id
             index:
             -   id
         bib_id:
-            basename: bib_ids
+            dbname: bib_ids
             fields:
             -   id
             index:

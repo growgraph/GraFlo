@@ -1,6 +1,6 @@
 from collections import ChainMap
 
-from graph_cast.architecture.schema import ANCHOR_KEY
+from graph_cast.architecture.onto import ANCHOR_KEY
 
 
 def merge_doc_basis(docs: list[dict], index_keys: tuple) -> list[dict]:

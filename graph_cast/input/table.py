@@ -5,16 +5,15 @@ from collections import defaultdict
 from itertools import combinations, product
 
 from graph_cast.architecture import ConfiguratorType
-from graph_cast.architecture.general import VertexConfig
 from graph_cast.architecture.graph import GraphConfig
-from graph_cast.architecture.schema import (
+from graph_cast.architecture.onto import (
     SOURCE_AUX,
     TARGET_AUX,
     EdgeType,
     TypeVE,
 )
+from graph_cast.architecture.schema import VertexConfig
 from graph_cast.architecture.table import TableConfig
-from graph_cast.input.util import normalize_unit
 from graph_cast.util.merge import merge_doc_basis
 
 logger = logging.getLogger(__name__)

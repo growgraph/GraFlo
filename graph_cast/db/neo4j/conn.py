@@ -5,9 +5,10 @@ from suthing import Neo4jConnectionConfig
 
 from graph_cast.architecture import Configurator
 from graph_cast.architecture.graph import GraphConfig
-from graph_cast.architecture.schema import CollectionIndex, VertexConfig
+from graph_cast.architecture.onto import CollectionIndex
+from graph_cast.architecture.schema import VertexConfig
 from graph_cast.db.connection import Connection
-from graph_cast.onto import AggregationType, DBFlavor, init_filter
+from graph_cast.onto import AggregationType, DBFlavor, Expression
 
 logger = logging.getLogger(__name__)
 
@@ -53,9 +54,8 @@ class Neo4jConnection(Connection):
             logger.error(f"{e}")
 
     def define_vertex_indices(self, vertex_config: VertexConfig):
-        for c in vertex_config.collections:
-            self._add_index(c, vertex_config.index(c))
-            for index_obj in vertex_config.extra_index_list(c):
+        for c in vertex_config.collections_set:
+            for index_obj in vertex_config.indexes(c):
                 self._add_index(c, index_obj)
 
     def define_edge_indices(self, graph_config: GraphConfig):
@@ -190,7 +190,7 @@ class Neo4jConnection(Connection):
         # "MATCH (d:chunks) WHERE d.t > 15 RETURN d { .kind, .t }"
 
         if filters is not None:
-            ff = init_filter(filters)
+            ff = Expression.from_dict(filters)
             filter_clause = (
                 f"WHERE {ff.cast_filter(doc_name='n', kind=DBFlavor.NEO4J)}"
             )

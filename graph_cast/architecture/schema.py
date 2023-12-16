@@ -2,179 +2,39 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-from abc import ABC
 from copy import deepcopy
-from enum import Enum
-from typing import Union
 
-from dataclass_wizard import JSONWizard
-
-from graph_cast.architecture.filter import Filter
+from graph_cast.architecture.onto import (
+    CollectionIndex,
+    EdgeMapping,
+    EdgeType,
+    IndexType,
+    VertexHelper,
+    WeightConfig,
+)
 from graph_cast.architecture.transform import Transform
 from graph_cast.architecture.util import strip_prefix
-from graph_cast.onto import DBFlavor
+from graph_cast.onto import BaseDataclass, DBFlavor, Expression
 
 logger = logging.getLogger(__name__)
 
-ANCHOR_KEY = "_anchor"
-SOURCE_AUX = "__source"
-TARGET_AUX = "__target"
-
-
-# type for vertex or edge name (index)
-TypeVE = Union[str, tuple[str, str]]
-
-
-class EdgeMapping(str, Enum):
-    ALL = "all"
-    ONE_N = "1-n"
-
-
-class EncodingType(str, Enum):
-    ISO_8859 = "ISO-8859-1"
-    UTF_8 = "utf-8"
-
-
-class IndexType(str, Enum):
-    PERSISTENT = "persistent"
-    HASH = "hash"
-    SKIPLIST = "skiplist"
-    FULLTEXT = "fulltext"
-
-
-class EdgeType(str, Enum):
-    """
-    INDIRECT: defined as a collection, indexes are set up (possibly used after data ingestion)
-    DIRECT : in addition to indexes, these edges are generated during ingestion
-    """
-
-    INDIRECT = "indirect"
-    DIRECT = "direct"
-
 
 @dataclasses.dataclass
-class Field:
+class Vertex(BaseDataclass):
     name: str
-    exclusive: bool = True
-
-
-@dataclasses.dataclass
-class ABCFields(ABC):
-    name: str
-    fields: list[Field] = dataclasses.field(default_factory=list)
+    fields: list[str]
+    indexes: list[CollectionIndex] = dataclasses.field(default_factory=list)
+    filters: list[Expression] = dataclasses.field(default_factory=list)
+    transforms: list[Transform] = dataclasses.field(default_factory=list)
+    dbname: str | None = None
 
     def __post_init__(self):
-        fs = []
-        if self.fields:
-            for item in self.fields:
-                if isinstance(item, str):
-                    fs += [Field(name=item)]
-                elif isinstance(item, dict):
-                    fs += [Field(**item)]
-        self.fields = fs
-
-    def cfield(self, x):
-        return f"{self.name}@{x}"
-
-
-@dataclasses.dataclass
-class WeightConfig(ABCFields, JSONWizard):
-    mapper: dict = dataclasses.field(default_factory=dict)
-    filter: dict = dataclasses.field(default_factory=dict)
-
-
-@dataclasses.dataclass
-class VertexHelper(ABCFields, JSONWizard):
-    # pre-select only vertices with anchor value
-    # the value of _anchor_key
-    _anchor: str | bool = False
-
-    # create edges between vertices that have the same value of selector field
-    # is key
-    selector: str | bool = False
-
-
-@dataclasses.dataclass
-class CollectionIndex(JSONWizard):
-    name: str | None = None
-    fields: list[str] = dataclasses.field(default_factory=list)
-    unique: bool = True
-    type: IndexType = IndexType.PERSISTENT
-    deduplicate: bool = True
-    sparse: bool = False
-
-    def __post_init__(self):
-        if not self.fields:
-            self.fields = ["_key"]
-
-    def __iter__(self):
-        return iter(self.fields)
-
-
-class Vertex:
-    def __init__(
-        self,
-        name,
-        basename=None,
-        index=(),
-        fields=(),
-        extra_index=(),
-        numeric_fields=(),
-        filters=(),
-        transforms=(),
-    ):
-        self._name = name
-        self._dbname = name if basename is None else basename
-        if isinstance(index, (list, tuple)):
-            self._index: CollectionIndex = CollectionIndex(fields=index)
-        elif isinstance(index, dict):
-            self._index: CollectionIndex = CollectionIndex(**index)
-        else:
-            raise TypeError(f"index can only be list-like or dict-like")
-        self._extra_indices: list[CollectionIndex] | None = (
-            None
-            if extra_index is None
-            else [CollectionIndex(**item) for item in extra_index]
-        )
-        union_fields = set(fields) | set(self._index.fields)
-        for ei in self._extra_indices:
+        if self.dbname is None:
+            self.dbname = self.name
+        union_fields = set(self.fields)
+        for ei in self.indexes:
             union_fields |= set(ei.fields)
-        self._fields = list(union_fields)
-
-        self._numeric_fields = numeric_fields
-        # set of filters
-        self._filters = [Filter(item) for item in filters]
-
-        # currently not used
-        self._transforms = [Transform(**item) for item in transforms]
-
-    @property
-    def dbname(self):
-        return self._dbname
-
-    @property
-    def fields(self):
-        return self._fields
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def index(self) -> CollectionIndex:
-        return self._index
-
-    @property
-    def extra_indices(self) -> list[CollectionIndex]:
-        return [] if self._extra_indices is None else self._extra_indices
-
-    @property
-    def numeric_fields(self):
-        return self._numeric_fields
-
-    @property
-    def filters(self):
-        return self._filters
+        self.fields = list(union_fields)
 
 
 class Edge:
@@ -424,48 +284,26 @@ class Edge:
             )
 
 
-class VertexConfig:
-    def __init__(self, vconfig):
-        self._vcollections_all: dict[str, Vertex] = {}
+@dataclasses.dataclass
+class VertexConfig(BaseDataclass):
+    collections: list[Vertex]
+    blank_collections: list[str] = dataclasses.field(default_factory=list)
+    db_flavor: DBFlavor = DBFlavor.ARANGO
 
-        self._vcollections = set()
+    def __post_init__(self):
+        self._vcollections_all: dict[str, Vertex] = {
+            item.name: item for item in self.collections
+        }
+        self.collections_set = set(self._vcollections_all.keys())
 
+        # TODO replace by types
         # vertex_collection_name -> [numeric fields]
         self._vcollection_numeric_fields_map = {}
 
-        # list of blank collections
-        self._blank_collections = set()
-
-        # TODO introduce meaningful error in case `collections` key is absent
-        config = vconfig["collections"]
-        self.db_flavor = vconfig.pop("db_flavor", DBFlavor.ARANGO)
-
-        self._init_vcollections(config)
-        self._init_names(config)
-
-        self._init_numeric_fields(config)
-        if "blanks" in vconfig:
-            self._init_blank_collections(vconfig["blanks"])
-
-    @property
-    def collections(self):
-        return self._vcollections
-
-    def _init_vcollections(self, vconfig):
-        self._vcollections = set(vconfig.keys())
-        self._vcollections_all = {
-            k: Vertex(name=k, **v) for k, v in vconfig.items()
-        }
-
-    def _init_names(self, vconfig):
-        try:
-            self._vmap = {
-                k: v["basename"] for k, v in vconfig.items() if "basename" in v
-            }
-        except:
-            raise KeyError(
-                "vconfig does not have 'basename' for one of the vertex"
-                " collections!"
+        if set(self.blank_collections) - set(self.collections_set):
+            raise ValueError(
+                f" Blank collections {self.blank_collections} are not defined"
+                " as vertex collections"
             )
 
     def vertex_dbname(self, vertex_name):
@@ -481,35 +319,23 @@ class VertexConfig:
         return value
 
     def index(self, vertex_name) -> CollectionIndex:
-        return self._vcollections_all[vertex_name].index
+        return self._vcollections_all[vertex_name].indexes[0]
 
-    def extra_index_list(self, vertex_name) -> list[CollectionIndex]:
-        return self._vcollections_all[vertex_name].extra_indices
+    def indexes(self, vertex_name) -> list[CollectionIndex]:
+        return self._vcollections_all[vertex_name].indexes
 
-    def _init_blank_collections(self, vconfig):
-        self._blank_collections = set(vconfig)
-        if set(self._blank_collections) - set(self._vcollections):
-            raise ValueError(
-                f" Blank collections {self.blank_collections} are not defined"
-                " as vertex collections"
-            )
-
-    @property
-    def blank_collections(self):
-        return iter(self._blank_collections)
-
-    def fields(self, vertex_name):
+    def fields(self, vertex_name: str):
         return self._vcollections_all[vertex_name].fields
 
-    def _init_numeric_fields(self, vconfig):
-        self._vcollection_numeric_fields_map = {
-            k: v["numeric_fields"]
-            for k, v in vconfig.items()
-            if "numeric_fields" in v
-        }
+    # def _init_numeric_fields(self, vconfig):
+    #     self._vcollection_numeric_fields_map = {
+    #         k: v["numeric_fields"]
+    #         for k, v in vconfig.items()
+    #         if "numeric_fields" in v
+    #     }
 
     def numeric_fields_list(self, vertex_name):
-        if vertex_name in self._vcollections:
+        if vertex_name in self.collections_set:
             if vertex_name in self._vcollection_numeric_fields_map:
                 return self._vcollection_numeric_fields_map[vertex_name]
             else:
@@ -520,7 +346,7 @@ class VertexConfig:
                 f" collection {vertex_name} was not defined in config"
             )
 
-    def filters(self, vertex_name) -> list[Filter]:
+    def filters(self, vertex_name) -> list[Expression]:
         if vertex_name in self._vcollections_all:
             return self._vcollections_all[vertex_name].filters
         else:

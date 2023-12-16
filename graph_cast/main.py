@@ -30,7 +30,7 @@ def ingest_files(
 ):
     if input_type == InputType.TABLE:
         ingest_tables(
-            fpath=fpath, config=schema, conn_conf=conn_conf, **kwargs
+            fpath=fpath, schema=schema, conn_conf=conn_conf, **kwargs
         )
     elif input_type == InputType.JSON:
         ingest_json_files(
@@ -87,7 +87,7 @@ def ingest_json_files(
 
 def ingest_tables(
     fpath,
-    config,
+    schema,
     conn_conf: DBConnectionConfig,
     limit_files=None,
     max_lines=None,
@@ -99,7 +99,7 @@ def ingest_tables(
     """
 
     :param fpath:
-    :param config:
+    :param schema:
     :param conn_conf:
     :param limit_files:
     :param max_lines:
@@ -116,7 +116,7 @@ def ingest_tables(
     logger.info(f"batch_size : {batch_size}")
     logger.info(f"clean_start : {clean_start}")
 
-    conf_obj = TConfigurator(config)
+    conf_obj = TConfigurator(schema)
 
     with ConnectionManager(connection_config=conn_conf) as db_client:
         db_client.init_db(conf_obj, clean_start)

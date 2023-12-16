@@ -3,13 +3,9 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Iterator
 
+from graph_cast.architecture.onto import EdgeType
 from graph_cast.architecture.ptree import MapperNode, NodeType, ParsingTree
-from graph_cast.architecture.schema import (
-    CollectionIndex,
-    Edge,
-    EdgeType,
-    VertexConfig,
-)
+from graph_cast.architecture.schema import Edge, VertexConfig
 from graph_cast.architecture.util import strip_prefix
 
 EdgeName = tuple[str, str]

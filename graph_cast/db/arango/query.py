@@ -5,7 +5,7 @@ from os.path import join
 
 from arango import ArangoClient
 
-from graph_cast.onto import DBFlavor, init_filter
+from graph_cast.onto import DBFlavor, Expression
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +85,7 @@ def fetch_fields_query(
     :param docs: list of dicts (json-like, ie keys are strings)
     :param match_keys: keys on which to look for document
     :param return_keys: keys which to return
+    :param filters:
     :return:
     """
 
@@ -105,7 +106,7 @@ def fetch_fields_query(
     )
 
     if filters is not None:
-        ff = init_filter(filters)
+        ff = Expression.from_dict(filters)
         extrac_filter_clause = (
             f" && {ff.cast_filter(doc_name='_cdoc', kind=DBFlavor.ARANGO)}"
         )

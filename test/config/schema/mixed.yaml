@@ -1,39 +1,31 @@
-general:
-    name: wos
-table:
--   tabletype: publications
-    vertex_collections:
-    -   type: publication
-        map:
-            wos_id: _key
-            pubyear: year
-            pubmonth: month
-            pubday: day
-    -   type: medium
-        map:
-            source: title
-    -   type: language
--   tabletype: contributors
-    vertex_collections:
-    -   type: contributor
-    -   type: publication
-        map:
-            wos_id: _key
--   tabletype: institutions
-    vertex_collections:
-    -   type: organization
-    -   type: publication
-        map:
-            wos_id: _key
--   tabletype: refs
-    vertex_collections:
-    -   type: publication
-        map:
-            wos_id: _key
-    -   type: publication
-        map:
-            uid: _key
-vertex_collections:
+~schema:
+    ~name: "mixed example"
+~sources:
+-   ~type: table
+    ~name: publications
+    ~root:
+        vertex_collections:
+        -   type: publication
+            map:
+                wos_id: _key
+                pubyear: year
+                pubmonth: month
+                pubday: day
+        -   type: medium
+            map:
+                source: title
+        -   type: language
+-   ~type: json
+    ~root:
+    -   ~type: dict
+        ~name: chunk
+
+#        vertex_collections:
+#        -   type: contributor
+#        -   type: publication
+#            map:
+#                wos_id: _key
+~vertex_collections:
     collections:
         publication:
             dbname: publications
@@ -48,7 +40,9 @@ vertex_collections:
             -   year
             -   month
             -   day
-            indexes:
+            index:
+            -   _key
+            extra_index:
             -   type: hash
                 unique: false
                 fields:
@@ -69,7 +63,7 @@ vertex_collections:
             -   issn
             -   isbn
             -   title
-            indexes:
+            extra_index:
             -   type: hash
                 unique: false
                 fields:
@@ -78,34 +72,32 @@ vertex_collections:
             dbname: languages
             fields:
             -   language
-            indexes:
-            -   fields:
-                -   language
+            index:
+            -   language
         contributor:
             dbname: contributors
             fields:
             -   first_name
             -   last_name
-            indexes:
-            -   fields:
-                -   first_name
-                -   last_name
+            index:
+            -   first_name
+            -   last_name
         organization:
             dbname: organizations
             fields:
             -   organization
             -   country
             -   city
-            indexes:
-            -   fields:
-                -   organization
-                -   country
-                -   city
+            index:
+            -   organization
+            -   country
+            -   city
+            extra_index:
             -   type: hash
                 unique: false
                 fields:
                 -   country
-edge_collections:
+~edge_collections:
     main:
     -   source: publication
         target: medium

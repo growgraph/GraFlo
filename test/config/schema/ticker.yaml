@@ -34,24 +34,25 @@ table:
 vertex_collections:
     collections:
         ticker:
-            basename: tickers
+            dbname: tickers
             fields:
             -   cusip
             -   cname
             -   oftic
-            index:
-            -   cusip
-            -   cname
-            -   oftic
+            indexes:
+            -   fields:
+                -   cusip
+                -   cname
+                -   oftic
         feature:
-            basename: features
+            dbname: features
             fields:
             -   name
             -   value
-            index:
-            -   name
-            -   value
-            extra_index:
+            indexes:
+            -   fields:
+                -   name
+                -   value
             -   type: hash
                 unique: false
                 fields:

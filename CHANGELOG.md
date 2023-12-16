@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2023-12
+
+### Changed
+- In Vertex
+  - `index` and `extra_index` are joined into `indexes`
+- In VertexConfig
+  - `blanks` became `blank_collections`
+  - it now contains `list[Vertex]` not `dict`
+  - each `Vertex` contains field `name` that was previously the key
+
+
+### Added
+
+- `cli/plot_schema.py` became a standalone script available with the package installation
+-  basic `neo4j` ingestion added:
+     - create_database
+     - delete_database
+     - define_vertex_indices
+     - define_edge_indices
+     - delete_collections
+     - init_db
+     - upsert_docs_batch
+     - insert_edges_batch
+
+### Fixed
+
+- ***
+
+
+
 ## [0.12.0] - 2023-10
 
 ### Added

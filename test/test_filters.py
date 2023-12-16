@@ -1,11 +1,10 @@
 import pytest
 
 from graph_cast.onto import (
-    Clause,
     ComparisonOperator,
+    Expression,
     LeafClause,
     LogicalOperator,
-    init_filter,
 )
 
 
@@ -23,42 +22,48 @@ def none_clause():
 
 @pytest.fixture()
 def cong_clause():
-    # doc.x % 3 == 2
+    # doc.x % 2 == 2
     return ["==", 2, "y", "% 2"]
 
 
 @pytest.fixture()
 def in_clause():
-    return ["IN", [1, 2]]
+    return [ComparisonOperator.IN, [1, 2]]
 
 
 @pytest.fixture()
 def and_clause(eq_clause, cong_clause):
-    return {"AND": [eq_clause, cong_clause]}
+    return {LogicalOperator.AND: [eq_clause, cong_clause]}
 
 
 def test_none_leaf(none_clause):
     lc = LeafClause(*none_clause)
-    assert "null" in lc.cast_filter()
+    assert "null" in lc()
 
 
 def test_leaf_clause_construct(eq_clause):
     lc = LeafClause(*eq_clause)
     assert lc.cmp_operator == ComparisonOperator.EQ
-    assert lc.cast_filter() == 'doc["x"] == "1"'
+    assert lc() == 'doc["x"] == "1"'
+
+
+def test_leaf_clause_construct_(eq_clause):
+    lc = Expression.from_dict(eq_clause)
+    assert lc.cmp_operator == ComparisonOperator.EQ
+    assert lc() == 'doc["x"] == "1"'
 
 
 def test_init_filter_and(and_clause):
-    c = init_filter(and_clause)
+    c = Expression.from_dict(and_clause)
     assert c.operator == LogicalOperator.AND
-    assert c.cast_filter() == 'doc["x"] == "1" AND doc["y"] % 2 == 2'
+    assert c() == 'doc["x"] == "1" AND doc["y"] % 2 == 2'
 
 
 def test_init_filter_eq(eq_clause):
-    c = init_filter(eq_clause)
-    assert c.cast_filter() == 'doc["x"] == "1"'
+    c = Expression.from_dict(eq_clause)
+    assert c() == 'doc["x"] == "1"'
 
 
 def test_init_filter_in(in_clause):
-    c = init_filter(in_clause)
-    assert c.cast_filter() == "IN [1, 2]"
+    c = Expression.from_dict(in_clause)
+    assert c() == "IN [1, 2]"

@@ -17,13 +17,13 @@ from test.transform.conftest import (
 )
 
 from graph_cast.architecture.graph import GraphConfig
-from graph_cast.architecture.schema import (
+from graph_cast.architecture.onto import (
     SOURCE_AUX,
     TARGET_AUX,
     EdgeType,
     TypeVE,
-    VertexConfig,
 )
+from graph_cast.architecture.schema import VertexConfig
 from graph_cast.architecture.table import TableConfig
 from graph_cast.input.table import (
     add_blank_collections,

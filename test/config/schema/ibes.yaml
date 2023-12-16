@@ -40,52 +40,56 @@ vertex_collections:
     blanks:
     -   publication
     collections:
-        publication:
-            basename: publications
+    -   name: publication
+        dbname: publications
+        fields:
+        -   datetime_review
+        -   datetime_announce
+        indexes:
+        -   type: hash
+            unique: false
             fields:
             -   datetime_review
+        -   type: hash
+            unique: false
+            fields:
             -   datetime_announce
-            extra_index:
-            -   type: hash
-                unique: false
-                fields:
-                -   datetime_review
-            -   type: hash
-                unique: false
-                fields:
-                -   datetime_announce
-        ticker:
-            basename: tickers
-            fields:
+    -   name: ticker
+        dbname: tickers
+        fields:
+        -   cusip
+        -   cname
+        -   oftic
+        indexes:
+        -   fields:
             -   cusip
             -   cname
             -   oftic
-            index:
-            -   cusip
-            -   cname
-            -   oftic
-        agency:
-            basename: agencies
-            fields:
+    -   name: agency
+        dbname: agencies
+        fields:
+        -   aname
+        indexes:
+        -   fields:
             -   aname
-            index:
-            -   aname
-        analyst:
-            basename: analysts
-            fields:
+    -   name: analyst
+        dbname: analysts
+        fields:
+        -   last_name
+        -   initial
+        indexes:
+        -   fields:
             -   last_name
             -   initial
-            index:
-            -   last_name
-            -   initial
-        recommendation:
-            basename: recommendations
-            fields:
-            -   erec
-            -   etext
-            -   irec
-            -   itext
-            index:
+    -   name: recommendation
+        dbname: recommendations
+        fields:
+        -   erec
+        -   etext
+        -   irec
+        -   itext
+        indexes:
+        -   fields:
             -   irec
 edge_collections:
     main:

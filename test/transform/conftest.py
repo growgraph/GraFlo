@@ -128,7 +128,7 @@ def vertex_config_ibes():
         -   publication
         collections:
             publication:
-                basename: publications
+                dbname: publications
                 fields:
                 -   datetime_review
                 -   datetime_announce
@@ -142,7 +142,7 @@ def vertex_config_ibes():
                     fields:
                     -   datetime_announce
             ticker:
-                basename: tickers
+                dbname: tickers
                 fields:
                 -   cusip
                 -   cname
@@ -152,13 +152,13 @@ def vertex_config_ibes():
                 -   cname
                 -   oftic
             agency:
-                basename: agencies
+                dbname: agencies
                 fields:
                 -   aname
                 index:
                 -   aname
             analyst:
-                basename: analysts
+                dbname: analysts
                 fields:
                 -   last_name
                 -   initial
@@ -166,7 +166,7 @@ def vertex_config_ibes():
                 -   last_name
                 -   initial
             recommendation:
-                basename: recommendations
+                dbname: recommendations
                 fields:
                 -   erec
                 -   etext
@@ -258,12 +258,12 @@ def vertex_config_transform_collision():
     vc = yaml.safe_load("""
         collections:
             person:
-                basename: people
+                dbname: people
                 fields:
                 -   id
                 -   name
             pet:
-                basename: pets
+                dbname: pets
                 fields:
                 -   name
     """)
@@ -315,7 +315,7 @@ def vertex_config_ticker():
     vc = yaml.safe_load("""
         collections:
             ticker:
-                basename: tickers
+                dbname: tickers
                 fields:
                 -   cusip
                 -   cname
@@ -325,7 +325,7 @@ def vertex_config_ticker():
                 -   cname
                 -   oftic
             feature:
-                basename: features
+                dbname: features
                 fields:
                 -   name
                 -   value

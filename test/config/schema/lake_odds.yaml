@@ -7,11 +7,12 @@ json:
 vertex_collections:
     collections:
         chunk:
-            basename: chunks
+            dbname: chunks
             fields:
             -   kind
             -   data
             -   fetched_time
-            index:
-            -   kind
-            -   fetched_time
+            indexes:
+            -   fields:
+                -   kind
+                -   fetched_time

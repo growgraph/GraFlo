@@ -10,7 +10,9 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture
 def quoted_multi_row():
-    return """1486058874058,"['id:206158957580, name:Marcello Martini'\n'id:360777873683, name:F. Giudicepietro'\n"id:489626818966, name:Luca D'Auria"]",[127313418 165205528],2015,10.1038/SREP13100"""
+    return """1486058874058,"['id:206158957580, name:Marcello Martini'
+    'id:360777873683, name:F. Giudicepietro'
+    "id:489626818966, name:Luca D'Auria"]",[127313418 165205528],2015,10.1038/SREP13100"""
 
 
 @pytest.fixture

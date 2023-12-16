@@ -15,22 +15,24 @@ vertex_collections:
     db_flavor: neo4j
     collections:
         author:
-            basename: Author
+            dbname: Author
             fields:
             -   id
             -   full_name
             -   hindex
-            index:
-            -   id
-            -   full_name
+            indexes:
+            -   fields:
+                -   id
+                -   full_name
         research_field:
-            basename: ResearchField
+            dbname: ResearchField
             fields:
             -   id
             -   name
             -   level
-            index:
-            -   id
+            indexes:
+            -   fields:
+                -   id
 edge_collections:
     main:
     -   source: author

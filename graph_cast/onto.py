@@ -30,6 +30,12 @@ class DBFlavor(str, BaseEnum):
     NEO4J = "neo4j"
 
 
+class ExpressionFlavor(str, BaseEnum):
+    ARANGO = "arango"
+    NEO4J = "neo4j"
+    PYTHON = "python"
+
+
 class AggregationType(str, BaseEnum):
     COUNT = "COUNT"
     MAX = "MAX"
@@ -52,6 +58,21 @@ class LogicalOperator(str, BaseEnum):
     AND = "AND"
     OR = "OR"
     NOT = "NOT"
+    IMPLICATION = "IF_THEN"
+
+
+def implication(ops):
+    a, b = ops
+    return b if a else True
+
+
+OperatorMapping = MappingProxyType(
+    {
+        LogicalOperator.AND: all,
+        LogicalOperator.OR: any,
+        LogicalOperator.IMPLICATION: implication,
+    }
+)
 
 
 class BaseDataclass(JSONWizard, JSONWizard.Meta):
@@ -65,42 +86,70 @@ class AbsClause(BaseDataclass, metaclass=ABCMeta):
     pass
 
     @abstractmethod
-    def cast_filter(self, doc_name):
+    def __call__(
+        self,
+        doc_name,
+        kind: ExpressionFlavor = ExpressionFlavor.ARANGO,
+        **kwargs,
+    ):
         pass
 
 
 @dataclasses.dataclass
 class LeafClause(AbsClause):
-    cmp_operator: ComparisonOperator
-    const: list
+    """
+    doc_name["field"] operator cmp_op value
+
+    e.g. for arango:  `doc_name["year"] % 2 == 0`
+
+    e.g. for python:
+
+    operator(doc) cmp_op value
+
+
+
+    """
+
+    cmp_operator: ComparisonOperator | None = None
+    value: list = dataclasses.field(default_factory=list)
     field: str | None = None
     operator: str | None = None
 
     def __post_init__(self):
-        if not isinstance(self.const, list):
-            self.const = [self.const]
+        if not isinstance(self.value, list):
+            self.value = [self.value]
 
-    def cast_filter(self, doc_name="doc", kind: DBFlavor = DBFlavor.ARANGO):
-        if kind == DBFlavor.ARANGO:
+    def __call__(
+        self,
+        doc_name="doc",
+        kind: ExpressionFlavor = ExpressionFlavor.ARANGO,
+        **kwargs,
+    ):
+        assert self.value
+        if kind == ExpressionFlavor.ARANGO:
+            assert self.cmp_operator is not None
             return self._cast_arango(doc_name)
-        elif kind == DBFlavor.NEO4J:
+        elif kind == ExpressionFlavor.NEO4J:
+            assert self.cmp_operator is not None
             return self._cast_cypher(doc_name)
+        elif kind == ExpressionFlavor.PYTHON:
+            return self._cast_python(**kwargs)
         else:
             raise ValueError(f"kind {kind} not implemented")
 
-    def _cast_const(self):
-        const = f"{self.const[0]}" if len(self.const) == 1 else f"{self.const}"
-        if len(self.const) == 1:
-            if isinstance(self.const[0], str):
-                const = f'"{self.const[0]}"'
-            elif self.const[0] is None:
-                const = "null"
+    def _cast_value(self):
+        value = f"{self.value[0]}" if len(self.value) == 1 else f"{self.value}"
+        if len(self.value) == 1:
+            if isinstance(self.value[0], str):
+                value = f'"{self.value[0]}"'
+            elif self.value[0] is None:
+                value = "null"
             else:
-                const = f"{self.const[0]}"
-        return const
+                value = f"{self.value[0]}"
+        return value
 
     def _cast_arango(self, doc_name):
-        const = self._cast_const()
+        const = self._cast_value()
 
         lemma = f"{self.cmp_operator} {const}"
         if self.operator is not None:
@@ -111,7 +160,7 @@ class LeafClause(AbsClause):
         return lemma
 
     def _cast_cypher(self, doc_name):
-        const = self._cast_const()
+        const = self._cast_value()
         if self.cmp_operator == ComparisonOperator.EQ:
             cmp_operator = "="
         else:
@@ -124,41 +173,86 @@ class LeafClause(AbsClause):
             lemma = f"{doc_name}.{self.field} {lemma}"
         return lemma
 
+    def _cast_python(self, **kwargs):
+        field = kwargs.pop(self.field, None)
+        if field is not None:
+            foo = getattr(field, self.operator)
+            return foo(self.value[0])
+        else:
+            return False
+
 
 @dataclasses.dataclass
 class Clause(AbsClause):
     operator: LogicalOperator
     deps: list[AbsClause]
 
-    def cast_filter(self, doc_name="doc", kind: DBFlavor = DBFlavor.ARANGO):
-        if kind == DBFlavor.ARANGO or kind == DBFlavor.ARANGO:
-            return self._cast_generic(doc_name)
+    def __call__(
+        self,
+        doc_name="doc",
+        kind: ExpressionFlavor = ExpressionFlavor.ARANGO,
+        **kwargs,
+    ):
+        if kind == ExpressionFlavor.ARANGO or kind == ExpressionFlavor.ARANGO:
+            return self._cast_generic(doc_name=doc_name, kind=kind)
+        elif kind == ExpressionFlavor.PYTHON:
+            return self._cast_python(kind=kind, **kwargs)
 
-    def _cast_generic(self, doc_name):
+    def _cast_generic(self, doc_name, kind):
         if len(self.deps) == 1:
             if self.operator == LogicalOperator.NOT:
-                return f"{self.operator} {self.deps[0].cast_filter(doc_name)}"
+                return (
+                    f"{self.operator} {self.deps[0](kind=kind, doc_name=doc_name)}"
+                )
             else:
                 raise ValueError(
-                    f" length if deps {len(self.deps)} is but operator is not"
+                    f" length of deps = {len(self.deps)} but operator is not"
                     f" {LogicalOperator.NOT}"
                 )
         else:
             return f" {self.operator} ".join(
-                [item.cast_filter(doc_name) for item in self.deps]
+                [item(kind=kind, doc_name=doc_name) for item in self.deps]
+            )
+
+    def _cast_python(self, kind, **kwargs):
+        if len(self.deps) == 1:
+            if self.operator == LogicalOperator.NOT:
+                return not self.deps[0](kind=kind, **kwargs)
+            else:
+                raise ValueError(
+                    f" length of deps = {len(self.deps)} but operator is not"
+                    f" {LogicalOperator.NOT}"
+                )
+        else:
+            return OperatorMapping[self.operator](
+                [item(kind=kind, **kwargs) for item in self.deps]
             )
 
 
-def init_filter(current: list | dict):
-    if isinstance(current, list):
-        if current[0] in ComparisonOperator:
-            return LeafClause(*current)
-        elif current[0] in LogicalOperator:
-            return Clause(*current)
-    elif isinstance(current, dict):
-        k = list(current.keys())[0]
-        clauses = [init_filter(v) for v in current[k]]
-        return Clause(operator=k, deps=clauses)
+@dataclasses.dataclass
+class Expression(AbsClause):
+    @classmethod
+    def from_dict(cls, current):
+        if isinstance(current, list):
+            if current[0] in ComparisonOperator:
+                return LeafClause(*current)
+            elif current[0] in LogicalOperator:
+                return Clause(*current)
+        elif isinstance(current, dict):
+            k = list(current.keys())[0]
+            if k in LogicalOperator:
+                clauses = [cls.from_dict(v) for v in current[k]]
+                return Clause(operator=k, deps=clauses)
+            else:
+                return LeafClause(**current)
+
+    def __call__(
+        self,
+        doc_name="doc",
+        kind: ExpressionFlavor = ExpressionFlavor.ARANGO,
+        **kwargs,
+    ):
+        pass
 
 
 InputTypeFileExtensions = MappingProxyType(

@@ -11,7 +11,7 @@ import pkgutil
 import re
 from typing import TypeVar
 
-from graph_cast.architecture.schema import EncodingType
+from graph_cast.architecture.onto import EncodingType
 
 AbsChunkerType = TypeVar("AbsChunkerType", bound="AbsChunker")
 

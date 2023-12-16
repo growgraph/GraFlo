@@ -6,7 +6,7 @@ import pandas as pd
 from suthing import DBConnectionConfig
 
 from graph_cast.architecture import ConfiguratorType
-from graph_cast.architecture.schema import SOURCE_AUX, TARGET_AUX
+from graph_cast.architecture.onto import SOURCE_AUX, TARGET_AUX
 from graph_cast.db import ConnectionManager
 from graph_cast.input import table_to_collections
 from graph_cast.input.table import logger

@@ -7,7 +7,7 @@ from typing import List
 from suthing import DBConnectionConfig, Timer
 
 from graph_cast.architecture import JConfigurator
-from graph_cast.architecture.schema import TypeVE
+from graph_cast.architecture.onto import TypeVE
 from graph_cast.db import ConnectionManager
 from graph_cast.input.util import (
     list_to_dict_edges,

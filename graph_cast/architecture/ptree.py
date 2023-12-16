@@ -10,15 +10,14 @@ from collections import defaultdict
 from enum import Enum
 from itertools import product
 
-from graph_cast.architecture.schema import (
+from graph_cast.architecture.onto import (
     ANCHOR_KEY,
     SOURCE_AUX,
     TARGET_AUX,
-    Edge,
     EdgeMapping,
     TypeVE,
-    VertexConfig,
 )
+from graph_cast.architecture.schema import Edge, VertexConfig
 from graph_cast.architecture.transform import Transform
 from graph_cast.architecture.util import (
     project_dict,

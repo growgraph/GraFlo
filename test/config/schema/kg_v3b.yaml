@@ -99,48 +99,44 @@ extra:
 
 vertex_collections:
     collections:
-        publication:
-            basename: publications
-            fields:
+    -   name: publication
+        dbname: publications
+        fields:
+        -   arxiv
+        -   doi
+        -   created
+        -   data_source
+        indexes:
+        -   fields:
             -   arxiv
             -   doi
+        -   unique: false
+            fields:
             -   created
-            -   data_source
-            index:
-            -   arxiv
-            -   doi
-            extra_index:
-            -   unique: false
-                fields:
-                -   created
-            -   unique: false
-                fields:
-                -   created
-        entity:
-            basename: entities
+        -   unique: false
             fields:
-            -   linker_type
-            -   ent_db_type
+            -   created
+    -   name: entity
+        dbname: entities
+        fields:
+        -   linker_type
+        -   ent_db_type
+        -   id
+        -   ent_type
+        -   original_form
+        -   description
+        indexes:
+        -   fields:
             -   id
             -   ent_type
-            -   original_form
-            -   description
-            index:
-            -   _key
-            extra_index:
-            -   fields:
-                -   id
-                -   ent_type
-        mention:
-            basename: mentions
+    -   name: mention
+        dbname: mentions
+        fields:
+        -   text
+        indexes:
+        -   unique: false
             fields:
             -   text
-            index:
-            -   _key
-            extra_index:
-            -   unique: false
-                fields:
-                -   text
 edge_collections:
     main:
     -   source: entity
