@@ -2,352 +2,485 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+from collections import defaultdict
 from copy import deepcopy
+from itertools import product
+from typing import Iterator
 
+import networkx as nx
+
+from graph_cast.architecture.edge import Edge, EdgeConfig
 from graph_cast.architecture.onto import (
-    CollectionIndex,
+    SOURCE_AUX,
+    TARGET_AUX,
+    DataSourceType,
     EdgeMapping,
-    EdgeType,
-    IndexType,
-    VertexHelper,
-    WeightConfig,
+    EncodingType,
+    GraphEntity,
+    TypeVE,
 )
+from graph_cast.architecture.ptree import ParsingTree
 from graph_cast.architecture.transform import Transform
-from graph_cast.architecture.util import strip_prefix
-from graph_cast.onto import BaseDataclass, DBFlavor, Expression
+from graph_cast.architecture.util import project_dict, project_dicts
+from graph_cast.architecture.vertex import VertexConfig
+from graph_cast.onto import BaseDataclass, BaseEnum
 
 logger = logging.getLogger(__name__)
 
+DISCRIMINANT_KEY = "__discriminant_key"
+
 
 @dataclasses.dataclass
-class Vertex(BaseDataclass):
-    name: str
-    fields: list[str]
-    indexes: list[CollectionIndex] = dataclasses.field(default_factory=list)
-    filters: list[Expression] = dataclasses.field(default_factory=list)
+class Resource(BaseDataclass):
+    name: str | None = None
+    resource_type: DataSourceType = DataSourceType.TABLE
+    encoding: EncodingType = EncodingType.UTF_8
+
+
+_RESERVED_TAU_WEIGHTS = "_$row"
+
+
+class NodeType(str, BaseEnum):
+    # only refers to other nodes
+    TRIVIAL = "trivial"
+    # adds a vertex specified by a value; terminal
+    VALUE = "value"
+    # adds a vertex, directly or via a mapping; terminal
+    VERTEX = "vertex"
+    # maps children nodes to a list
+    LIST = "list"
+    # descends, maps children nodes to the doc below
+    DESCEND = "descend"
+    # adds edges between collection that have already been added
+    EDGE = "edge"
+    # adds weights to existing edges
+    WEIGHT = "weight"
+
+    def __lt__(self, other):
+        if self == other:
+            return False
+        for elem in NodeType:
+            if self == elem:
+                return True
+            elif other == elem:
+                return False
+        raise RuntimeError("__lt__ broken")
+
+    def __gt__(self, other):
+        return not (self < other)
+
+
+@dataclasses.dataclass
+class MapperNode(BaseDataclass):
+    type: NodeType = NodeType.TRIVIAL
+    edge: Edge = None
+    name: str | None = None
     transforms: list[Transform] = dataclasses.field(default_factory=list)
-    dbname: str | None = None
+    key: str | None = None
+    filter: dict = dataclasses.field(default_factory=dict)
+    unfilter: dict = dataclasses.field(default_factory=dict)
+    map: dict = dataclasses.field(default_factory=dict)
+    discriminant: str | None = None
+    children: list[dict] = dataclasses.field(default_factory=list)
 
     def __post_init__(self):
-        if self.dbname is None:
-            self.dbname = self.name
-        union_fields = set(self.fields)
-        for ei in self.indexes:
-            union_fields |= set(ei.fields)
-        self.fields = list(union_fields)
+        self._children: list[MapperNode] = [
+            MapperNode.from_dict(oo) for oo in self.children
+        ]
+        self._children = sorted(self._children, key=lambda x: x.type)
 
+    def finish_init(self, vc: VertexConfig):
+        assert self.edge is not None
+        self.edge.finish_init(vc)
+        for c in self._children:
+            c.finish_init(vc)
 
-class Edge:
-    def __init__(self, dictlike, vconf: VertexConfig, direct=True):
-        self._source: VertexHelper
-        self._target: VertexHelper
-        self._weight: list[str] = []
-        self._weight_vertices: list[WeightConfig] = []
-        self._weight_dict: dict = dict()
-        self._extra_indices: list[CollectionIndex] = []
-        self._how: EdgeMapping = dictlike.pop("how", EdgeMapping.ALL)
-        self._relation: str = dictlike.pop("relation", None)
-        self._type: EdgeType = EdgeType.DIRECT if direct else EdgeType.INDIRECT
-        self._by = None
-        self._db_flavor = vconf.db_flavor
+    def passes(self, doc):
+        """
+        Args:
+            doc:
 
-        try:
-            if isinstance(dictlike["source"], dict) and isinstance(
-                dictlike["target"], dict
-            ):
-                # dictlike["source"] is a dict with a spec of source
-                self._init_local_definition(dictlike)
+        Returns:
+            no filters - doc passes
+            filter set, no unfilter - doc passes if filter is true
+            no filter, unfilter set - doc passes if unfilter is true
+            filter set, unfilter set - doc passes if filter and unfilter is true
+
+        """
+        if not (self.filter or self.unfilter):
+            return True
+        elif self.filter:
+            flag = all([doc[k] == v for k, v in self.filter.items()])
+            if not self.unfilter:
+                return flag
             else:
-                # dictlike["source"] is a string with the name of the collection
-                self._init_basic(dictlike)
-        except KeyError as e:
-            raise KeyError(
-                f" source of target missing in edge definition :{e}"
-            )
+                return flag and any(
+                    [doc[k] != v for k, v in self.unfilter.items()]
+                )
+        else:
+            return any([doc[k] != v for k, v in self.unfilter.items()])
 
-        self._init_indices(dictlike, vconf)
+    def apply(
+        self,
+        doc,
+        vertex_config: VertexConfig,
+        acc: defaultdict[GraphEntity, list],
+        discriminant_key,
+    ):
+        if self.type == NodeType.TRIVIAL:
+            for c in self._children:
+                c.apply(doc, vertex_config, acc, discriminant_key)
+        elif self.type == NodeType.DESCEND:
+            if isinstance(doc, dict) and self.key in doc:
+                sub_doc = doc[self.key]
+                for c in self._children:
+                    c.apply(sub_doc, vertex_config, acc, discriminant_key)
+        elif self.type == NodeType.LIST:
+            if not isinstance(doc, list):
+                raise TypeError(f"at {self} doc is not list")
+            for c in self._children:
+                for sub_doc in doc:
+                    c.apply(sub_doc, vertex_config, acc, discriminant_key)
+        elif self.type == NodeType.VALUE:
+            if self.name is not None:
+                acc[self.name] += [{self.key: doc}]
+        elif self.type == NodeType.VERTEX:
+            if not isinstance(doc, dict):
+                raise TypeError(f"at {self} doc is not dict")
+            self._apply_map(doc, vertex_config, acc, discriminant_key)
+        elif self.type == NodeType.EDGE:
+            self._add_edges(vertex_config, acc, discriminant_key)
+        elif self.type == NodeType.WEIGHT:
+            self._add_weights(vertex_config, acc)
+        else:
+            pass
 
-        if "weight" in dictlike:
-            # legacy hack for when dictlike["weight"] contained only a mapper / dict
-            for item in dictlike["weight"]:
-                try:
-                    self._weight_vertices += [WeightConfig(**item)]
-                except:
-                    logger.warning(
-                        "_weight_collections init failed for edge"
-                        f" {self.edge_name_dyad}"
-                    )
-            if isinstance(dictlike["weight"], dict):
-                if "fields" in dictlike["weight"]:
-                    self._weight = dictlike["weight"]["fields"]
-                elif "vertex" not in dictlike["weight"]:
-                    # neither `fields` nor `vertex` is in dictlike["weight"]
-                    self._weight_dict = dictlike["weight"]
-            elif isinstance(dictlike["weight"], list):
-                self._weight = dictlike["weight"]
-            elif isinstance(dictlike["weight"], str):
-                self._weight = [dictlike["weight"]]
+    def __repr__(self):
+        s = f"(type = {self.type}, "
+        s += f"descend = {self.key}"
+        s += f")"
+        return s
 
-        if self.type == EdgeType.INDIRECT and "by" in dictlike:
-            self._by = vconf.vertex_dbname(dictlike["by"])
+    def _apply_map(
+        self,
+        doc,
+        vertex_config: VertexConfig,
+        acc: defaultdict[GraphEntity, list],
+        discriminant_key,
+    ):
+        if self.passes(doc) and self.name is not None:
+            keys = vertex_config.fields(self.name)
+            _doc = dict()
+            for t in self.transforms:
+                _doc.update(t(doc, __return_doc=True))
 
-        self._source_collection = vconf.vertex_dbname(self.source)
-        self._target_collection = vconf.vertex_dbname(self.target)
+            keys += [k for k in self.map if k not in keys]
 
-        self._collection_name_suffix = dictlike.pop(
-            "collection_name_suffix", ""
+            if isinstance(doc, dict):
+                _doc.update({kk: doc[kk] for kk in keys if kk in doc})
+            if self.map:
+                _doc = {
+                    self.map[k] if k in self.map else k: v
+                    for k, v in _doc.items()
+                }
+            if self.discriminant is not None:
+                _doc.update({discriminant_key: self.discriminant})
+            acc[self.name] += [_doc]
+
+    def _add_edges(self, vertex_config: VertexConfig, acc, discriminant_key):
+        assert self.edge is not None
+        # get source and target names
+        source, target = self.edge.source, self.edge.target
+
+        # get source and target edge fields
+        source_index, target_index = (
+            vertex_config.index(source),
+            vertex_config.index(target),
         )
 
-        if self._collection_name_suffix:
-            self._collection_name_suffix = f"{self._collection_name_suffix}_"
+        # get source and target items
+        source_items, target_items = acc[source], acc[target]
 
-        self._source_dbname = vconf.vertex_dbname(self.source)
-        self._target_dbname = vconf.vertex_dbname(self.target)
-
-        self._graph_name = (
-            f"{vconf.vertex_dbname(self.source)}_{vconf.vertex_dbname(self.target)}_"
-            f"{self._collection_name_suffix}graph"
+        source_items = discriminate(
+            source_items,
+            source_index,
+            self.edge.source_discriminant,
+            discriminant_key,
+        )
+        target_items = discriminate(
+            target_items,
+            target_index,
+            self.edge.target_discriminant,
+            discriminant_key,
         )
 
-    @property
-    def source(self):
-        return self._source.name
-
-    @property
-    def target(self):
-        return self._target.name
-
-    def update_weights(self, edge_with_weights):
-        self._weight = edge_with_weights.weight_fields
-        self._weight_dict = edge_with_weights.weight_dict
-        self._weight_vertices = edge_with_weights.weight_vertices
-
-    def _init_basic(self, dictlike: dict):
-        dictlike_stripped: dict = strip_prefix(dictlike)
-        self._source = VertexHelper(name=dictlike_stripped["source"])
-        self._target = VertexHelper(name=dictlike_stripped["target"])
-
-    def _init_local_definition(self, dictlike: dict):
-        """
-        used for input/json
-        :param dictlike:
-        :return:
-        """
-        dictlike_stripped: dict = strip_prefix(dictlike)
-
-        self._source = VertexHelper(**dictlike_stripped["source"])
-        self._target = VertexHelper(**dictlike_stripped["target"])
-
-    def _init_indices(self, dictlike, vconf):
-        """
-        index should be consistent with weight
-        :param dictlike:
-        :param vconf:
-        :return:
-        """
-        if "index" in dictlike:
-            for item in dictlike["index"]:
-                self._extra_indices += [self._init_index(item, vconf)]
-            self._extra_indices = [
-                x for x in self._extra_indices if x is not None
+        for u, v in product(source_items, target_items):
+            # adding weight from source or target
+            weight = dict()
+            for field in self.edge.weights.source_fields:
+                if field in u:
+                    weight[field] = u[field]
+                    if field not in self.edge.non_exclusive:
+                        del u[field]
+            for field in self.edge.weights.target_fields:
+                if field in v:
+                    weight[field] = v[field]
+                    if field not in self.edge.non_exclusive:
+                        del v[field]
+            acc[source, target, self.edge.relation] += [
+                {
+                    **{
+                        SOURCE_AUX: project_dict(u, source_index),
+                        TARGET_AUX: project_dict(v, target_index),
+                    },
+                    **weight,
+                }
             ]
 
-    def _init_index(self, item, vconf: VertexConfig) -> CollectionIndex | None:
-        """
-        default behavior for edge indices : add ["_from", "_to"] for uniqueness
-        :param item:
-        :param vconf:
-        :return:
-        """
-        item = deepcopy(item)
-        collection_name = item.get("name", None)
+    def _add_weights(self, vertex_config: VertexConfig, agg):
+        assert self.edge is not None
+        edges = agg[self.edge.source, self.edge.target, self.edge.relation]
 
-        fields = item.pop("fields", [])
-        index_fields = []
-        if collection_name is not None:
-            if not fields:
-                fields = vconf.index(collection_name).fields
-            index_fields += [f"{collection_name}@{x}" for x in fields]
-        else:
-            index_fields += fields
+        # loop over weights for an edge
+        for weight_conf in self.edge.weights.vertices:
+            vertices = [doc for doc in agg[weight_conf.name]]
 
-        unique = item.pop("unique", True)
-        index_type: IndexType = item.pop("type", IndexType.PERSISTENT)
-        deduplicate = item.pop("deduplicate", True)
-        sparse = item.pop("sparse", False)
-        fields_only = item.pop("fields_only", False)
-        if index_fields:
-            if not fields_only and self._db_flavor == DBFlavor.ARANGO:
-                index_fields = ["_from", "_to"] + index_fields
-            return CollectionIndex(
-                name=collection_name,
-                fields=index_fields,
-                unique=unique,
-                type=index_type,
-                deduplicate=deduplicate,
-                sparse=sparse,
-            )
-        else:
-            return None
+            # find all vertices satisfying condition
+            if weight_conf.filter:
+                vertices = [
+                    doc
+                    for doc in vertices
+                    if all(
+                        [
+                            doc[q] == v in doc
+                            for q, v in weight_conf.filter.items()
+                        ]
+                    )
+                ]
+            try:
+                doc = next(iter(vertices))
+                weight: dict = {}
+                if weight_conf.fields:
+                    weight = {
+                        **weight,
+                        **{
+                            weight_conf.cfield(field): doc[field]
+                            for field in weight_conf.fields
+                            if field in doc
+                        },
+                    }
+                if weight_conf.map:
+                    weight = {
+                        **weight,
+                        **{q: doc[k] for k, q in weight_conf.map.items()},
+                    }
 
-    @property
-    def source_exclude(self):
-        return [self._source.selector] if self._source.selector else []
+                if not weight_conf.fields and not weight_conf.map:
+                    try:
+                        weight = {
+                            f"{weight_conf.name}.{k}": doc[k]
+                            for k in vertex_config.index(weight_conf.name)
+                            if k in doc
+                        }
+                    except ValueError:
+                        weight = {}
+                        logger.error(
+                            " weights mapper error : weight definition on"
+                            f" {self.edge.source} {self.edge.target} refers to"
+                            f" a non existent vcollection {weight_conf.name}"
+                        )
+            except:
+                weight = {}
+            for edoc in edges:
+                edoc.update(weight)
+        agg[self.edge.source, self.edge.target, self.edge.relation] = edges
+        return agg
 
-    @property
-    def target_exclude(self):
-        return [self._target.selector] if self._target.selector else []
 
-    @property
-    def edge_name_dyad(self):
-        return self.source, self.target
+def discriminate(items, indices, discriminant_value, discriminant_key):
+    """
 
-    @property
-    def source_collection(self):
-        return self._source_collection
+    :param items: list of documents (dict)
+    :param indices:
+    :param discriminant_value:
+    :param discriminant_key:
+    :return: items
+    """
 
-    @property
-    def target_collection(self):
-        return self._target_collection
+    # pick items that have any of index field present
+    _items = [item for item in items if any([k in item for k in indices])]
 
-    @property
-    def edge_name(self):
-        if self._relation is None:
-            if self._db_flavor == DBFlavor.ARANGO:
-                x = f"{self._source_dbname}_{self._target_dbname}_{self._collection_name_suffix}edges"
-            elif self._db_flavor == DBFlavor.NEO4J:
-                x = f"{self._source_dbname}{self._target_dbname}"
-            else:
-                raise ValueError(f" Unknown DBFlavor: {self._db_flavor}")
-        else:
-            x = self._relation
-        return x
-
-    @property
-    def how(self):
-        return self._how
-
-    @property
-    def graph_name(self):
-        return self._graph_name
-
-    @property
-    def weight_fields(self):
-        return () if self._weight is None else self._weight
-
-    @property
-    def weight_dict(self):
-        return dict() if self._weight_dict is None else self._weight_dict
-
-    @property
-    def weight_vertices(self) -> list[WeightConfig]:
-        return [] if self._weight_vertices is None else self._weight_vertices
-
-    @property
-    def type(self) -> EdgeType:
-        return self._type
-
-    @property
-    def relation(self) -> str:
-        if self._relation is None:
-            return self.edge_name
-        else:
-            return self._relation
-
-    @property
-    def by(self):
-        return self._by
-
-    @property
-    def indices(self) -> list[CollectionIndex]:
-        return self._extra_indices
-
-    @property
-    def index(self) -> list[str]:
-        return self._extra_indices[0].fields
-
-    def __iadd__(self, other: Edge):
-        if self.edge_name_dyad == other.edge_name_dyad:
-            self._extra_indices += other._extra_indices
-            self._weight += other._weight
-            self._weight_vertices += other._weight_vertices
-            self._weight_dict.update(other._weight_dict)
-            # self._source_exclude += other._source_exclude
-            # self._target_exclude += other._target_exclude
-            # self._how = dictlike.pop("how", None)
-            # self._type = "direct" if direct else "indirect"
-            # self._by = None
-            return self
-        else:
-            raise ValueError(
-                "can only update Edge definitions of the same type"
-            )
+    if discriminant_value is not None:
+        _items = [
+            item
+            for item in _items
+            if discriminant_key in item
+            and item[discriminant_key] == discriminant_value
+        ]
+    return _items
 
 
 @dataclasses.dataclass
-class VertexConfig(BaseDataclass):
-    collections: list[Vertex]
-    blank_collections: list[str] = dataclasses.field(default_factory=list)
-    db_flavor: DBFlavor = DBFlavor.ARANGO
+class RowResource(Resource):
+    transforms: list[Transform] = dataclasses.field(default_factory=list)
 
     def __post_init__(self):
-        self._vcollections_all: dict[str, Vertex] = {
-            item.name: item for item in self.collections
+        self._vertices: set = set()
+        self._vertex_tau = nx.DiGraph()
+        self._transforms: dict[int, Transform] = {}
+
+        self._vertex_tau_current: nx.DiGraph = nx.DiGraph()
+        self._transforms_current: dict[int, Transform] = {}
+
+    def finish_init(
+        self, vertex_config: VertexConfig, ec: None | EdgeConfig = None
+    ):
+        for tau in self.transforms:
+            self._transforms[id(tau)] = tau
+            related_vertices = [
+                c
+                for c in vertex_config.vertex_set
+                if set(vertex_config.fields(c)) & set(tau.output)
+            ]
+            self._vertices |= set(related_vertices)
+            if not related_vertices and ec is not None:
+                if ec.weight_raw_fields() & set(tau.output):
+                    related_vertices += [_RESERVED_TAU_WEIGHTS]
+            if len(related_vertices) > 1:
+                if (
+                    tau.image is not None
+                    and tau.image in vertex_config.vertex_set
+                ):
+                    related_vertices = [tau.image]
+                else:
+                    logger.warning(
+                        f"Multiple collections {related_vertices} are"
+                        f" related to transformation {tau}, consider revising"
+                        " your schema"
+                    )
+            self._vertex_tau.add_edges_from(
+                [(c, id(tau)) for c in related_vertices]
+            )
+
+    def add_trivial_transformations(
+        self, vertex_config: VertexConfig, header_keys: list[str]
+    ):
+        self._transforms_current = deepcopy(self._transforms)
+        self._vertex_tau_current = self._vertex_tau.copy()
+
+        pre_vertex_fields_map = {
+            vertex: set(header_keys) & set(vertex_config.fields(vertex))
+            for vertex in vertex_config.vertex_set
         }
-        self.collections_set = set(self._vcollections_all.keys())
 
-        # TODO replace by types
-        # vertex_collection_name -> [numeric fields]
-        self._vcollection_numeric_fields_map = {}
+        for vertex, fs in pre_vertex_fields_map.items():
+            tau_fields = self.fields(vertex)
+            fields_passthrough = set(fs) - tau_fields
+            if fields_passthrough:
+                tau = Transform(
+                    map=dict(zip(fields_passthrough, fields_passthrough)),
+                    image=vertex,
+                )
+                self._transforms_current[id(tau)] = tau
+                self._vertex_tau_current.add_edges_from([(vertex, id(tau))])
 
-        if set(self.blank_collections) - set(self.collections_set):
-            raise ValueError(
-                f" Blank collections {self.blank_collections} are not defined"
-                " as vertex collections"
-            )
-
-    def vertex_dbname(self, vertex_name):
-        try:
-            value = self._vcollections_all[vertex_name].dbname
-        except KeyError as e:
-            logger.error(
-                "Available vertex collections :"
-                f" {self._vcollections_all.keys()}; vertex collection"
-                f" requested : {vertex_name}"
-            )
-            raise e
-        return value
-
-    def index(self, vertex_name) -> CollectionIndex:
-        return self._vcollections_all[vertex_name].indexes[0]
-
-    def indexes(self, vertex_name) -> list[CollectionIndex]:
-        return self._vcollections_all[vertex_name].indexes
-
-    def fields(self, vertex_name: str):
-        return self._vcollections_all[vertex_name].fields
-
-    # def _init_numeric_fields(self, vconfig):
-    #     self._vcollection_numeric_fields_map = {
-    #         k: v["numeric_fields"]
-    #         for k, v in vconfig.items()
-    #         if "numeric_fields" in v
-    #     }
-
-    def numeric_fields_list(self, vertex_name):
-        if vertex_name in self.collections_set:
-            if vertex_name in self._vcollection_numeric_fields_map:
-                return self._vcollection_numeric_fields_map[vertex_name]
-            else:
-                return ()
+    def transforms_by_vertex(self, vertex: str) -> Iterator[Transform]:
+        if vertex in self._vertex_tau.nodes:
+            neighbours = self._vertex_tau_current.neighbors(vertex)
         else:
-            raise ValueError(
-                " Accessing vertex collection numeric fields: vertex"
-                f" collection {vertex_name} was not defined in config"
-            )
+            return iter(())
+        return (self._transforms_current[k] for k in neighbours)
 
-    def filters(self, vertex_name) -> list[Expression]:
-        if vertex_name in self._vcollections_all:
-            return self._vcollections_all[vertex_name].filters
+    def fields(self, vertex: str | None = None) -> set[str]:
+        field_sets: Iterator[set[str]]
+        if vertex is None:
+            field_sets = (self.fields(v) for v in self._vertices)
+        elif vertex in self._vertex_tau.nodes:
+            neighbours = self._vertex_tau.neighbors(vertex)
+            field_sets = (set(self._transforms[k].output) for k in neighbours)
         else:
-            return []
+            return set()
+        fields: set[str] = set().union(*field_sets)
+        return fields
+
+
+@dataclasses.dataclass(kw_only=True)
+class TreeResource(Resource):
+    root: MapperNode
+    merge_collection: list[str] = dataclasses.field(default_factory=list)
+    extra_weights: list[Edge] = dataclasses.field(default_factory=list)
+
+    def __post_init__(self):
+        self.resource_type = DataSourceType.JSON
+
+    def finish_init(self, vc: VertexConfig):
+        for e in self.extra_weights:
+            e.finish_init(vc)
+
+    def apply(
+        self,
+        doc,
+        vertex_config: VertexConfig,
+        acc: defaultdict[GraphEntity, list],
+        discriminant_key=DISCRIMINANT_KEY,
+    ):
+        self.root.apply(
+            doc,
+            vertex_config,
+            acc,
+            discriminant_key,
+        )
+
+
+@dataclasses.dataclass
+class ResourceHolder(BaseDataclass):
+    rows: list[RowResource] = dataclasses.field(default_factory=list)
+    trees: list[TreeResource] = dataclasses.field(default_factory=list)
+
+
+@dataclasses.dataclass
+class SchemaMetadata(BaseDataclass):
+    name: str
+
+
+@dataclasses.dataclass
+class Schema(BaseDataclass):
+    general: SchemaMetadata
+    vertex_config: VertexConfig
+    edge_config: EdgeConfig
+    resources: ResourceHolder
+
+    def __post_init__(self):
+        # add extra edges from tree resources?
+        # set up edges wrt
+
+        self.edge_config.finish_init(self.vertex_config)
+        pass
+
+    """
+    -   how: all
+        source:
+            name: publication
+            _anchor: main
+            fields:
+            -   _anchor
+        target:
+            name: date
+            _anchor: main
+
+    __OR__
+
+    -   type: edge
+    how: all
+    source:
+        name: mention
+        _anchor: triple_index
+    target:
+        name: mention
+        _anchor: core
+        fields:
+        -   _role
+    index:
+    -   fields:
+        -   _role
+    """

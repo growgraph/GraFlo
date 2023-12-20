@@ -9,10 +9,10 @@ from graph_cast.architecture.graph import GraphConfig
 from graph_cast.architecture.onto import (
     SOURCE_AUX,
     TARGET_AUX,
-    CollectionIndex,
+    Index,
     IndexType,
 )
-from graph_cast.architecture.schema import VertexConfig
+from graph_cast.architecture.vertex import VertexConfig
 from graph_cast.db.arango.query import fetch_fields_query
 from graph_cast.db.connection import Connection
 from graph_cast.db.util import get_data_from_cursor
@@ -71,9 +71,9 @@ class ArangoConnection(Connection):
     def define_vertex_collections(
         self, graph_config: GraphConfig, vertex_config: VertexConfig
     ):
-        disconnected_vertex_collections = set(
-            vertex_config.collections_set
-        ) - set([v for edge in graph_config.all_edges for v in edge])
+        disconnected_vertex_collections = set(vertex_config.vertex_set) - set(
+            [v for edge in graph_config.all_edges for v in edge]
+        )
         es = list(graph_config.all_edge_definitions())
         for item in es:
             u, v = item.source, item.target
@@ -105,14 +105,14 @@ class ArangoConnection(Connection):
                 g = self.conn.graph(gname)
             else:
                 g = self.conn.create_graph(gname)  # type: ignore
-            if not g.has_edge_definition(item.edge_name):
+            if not g.has_edge_definition(item.relation):
                 _ = g.create_edge_definition(
-                    edge_collection=item.edge_name,
+                    edge_collection=item.relation,
                     from_vertex_collections=[item.source_collection],
                     to_vertex_collections=[item.target_collection],
                 )
 
-    def _add_index(self, general_collection, index: CollectionIndex):
+    def _add_index(self, general_collection, index: Index):
         data = index.to_dict()
         # in CollectionIndex "name" is used for vertex collection derived index field
         # to let arango name her index, we remove "name"
@@ -135,7 +135,7 @@ class ArangoConnection(Connection):
         return ih
 
     def define_vertex_indices(self, vertex_config: VertexConfig):
-        for c in vertex_config.collections_set:
+        for c in vertex_config.vertex_set:
             for index_obj in vertex_config.indexes(c):
                 general_collection = self.conn.collection(
                     vertex_config.vertex_dbname(c)
@@ -144,12 +144,12 @@ class ArangoConnection(Connection):
 
     def define_edge_indices(self, graph_config: GraphConfig):
         for item in graph_config.all_edge_definitions():
-            general_collection = self.conn.collection(item.edge_name)
-            for index_obj in item.indices:
+            general_collection = self.conn.collection(item.relation)
+            for index_obj in item.indexes:
                 self._add_index(general_collection, index_obj)
 
     def create_collection(
-        self, collection_name, index: None | CollectionIndex = None, g=None
+        self, collection_name, index: None | Index = None, g=None
     ):
         if not self.conn.has_collection(collection_name):
             if g is not None:

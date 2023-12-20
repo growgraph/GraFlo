@@ -8,13 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.13.0] - 2023-12
 
 ### Changed
-- In Vertex
+- In `Vertex`
   - `index` and `extra_index` are joined into `indexes`
 - In VertexConfig
-  - `blanks` became `blank_collections`
+  - `collections` became `vertices`
+  - `blanks` became `blank_vertices`
   - it now contains `list[Vertex]` not `dict`
   - each `Vertex` contains field `name` that was previously the key
-
+- In `EdgeConfig`
+  - `main` became `edges`
+  - `extra` became `extra_edges`
+- In `MapperNode` 
+  - edge is now defined under `edge` attribute of `MapperNode` instead of being a union with it
+  - `maps` key becomes `children`
+  - `type`: `dict` becomes `type`: `vertex`
+  
+    
 
 ### Added
 

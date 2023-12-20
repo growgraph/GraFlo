@@ -40,7 +40,7 @@ class Chunker(AbsChunker):
         fname=None,
         pkg_spec=None,
         batch_size=10000,
-        n_lines_max: int | None = None,
+        limit: int | None = None,
         encoding=EncodingType.UTF_8,
     ):
         """
@@ -49,7 +49,7 @@ class Chunker(AbsChunker):
         :param fname:
         :param batch_size: batch size in bytes : batch_size = 15000 corresponds to 100 lines ~ 100 symbols each
                         for gzipped sources
-        :param n_lines_max:
+        :param limit:
         :param encoding:
         """
         super().__init__()
@@ -57,7 +57,7 @@ class Chunker(AbsChunker):
             raise ValueError(f" both fname and file_obj are None")
 
         self.batch_size = batch_size
-        self.n_lines_max: int | None = n_lines_max
+        self.n_lines_max: int | None = limit
 
         logger.info(
             f"Chunker init with batch_size : {self.batch_size} n_lines_max"

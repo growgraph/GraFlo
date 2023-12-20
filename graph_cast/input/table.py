@@ -12,8 +12,8 @@ from graph_cast.architecture.onto import (
     EdgeType,
     TypeVE,
 )
-from graph_cast.architecture.schema import VertexConfig
 from graph_cast.architecture.table import TableConfig
+from graph_cast.architecture.vertex import VertexConfig
 from graph_cast.util.merge import merge_doc_basis
 
 logger = logging.getLogger(__name__)
@@ -109,7 +109,7 @@ def add_blank_collections(
     unit: defaultdict[TypeVE, list[dict]], vertex_conf: VertexConfig
 ) -> defaultdict[TypeVE, list[dict]]:
     # add blank collections
-    for vertex in vertex_conf.blank_collections:
+    for vertex in vertex_conf.blank_vertices:
         # if blank collection is in batch - add it
         if vertex not in unit:
             unit[vertex] = [{}]
@@ -140,8 +140,8 @@ def define_edges(
         g = u, v
         # blank_collections : db ids have to be retrieved to define meaningful edges
         if (
-            u not in vertex_conf.blank_collections
-            and v not in vertex_conf.blank_collections
+            u not in vertex_conf.blank_vertices
+            and v not in vertex_conf.blank_vertices
         ):
             if graph_config.graph(u, v).type == EdgeType.DIRECT:
                 ziter: product | combinations
@@ -170,7 +170,7 @@ def define_edges(
                         {
                             q: w
                             for q, w in unit_weight.items()
-                            if q in graph_config.graph(u, v).weight_fields
+                            if q in graph_config.graph(u, v).weight
                         }
                     )
                     unit[g].append(edoc)

@@ -133,7 +133,7 @@ class Connection(abc.ABC):
 
 def concluding_db_transform(db_client: ConnectionType, conf_obj):
     # TODO this should be made part of atomic etl (not applied to the whole db)
-    for cname in conf_obj.vertex_config.collections_set:
+    for cname in conf_obj.vertex_config.vertex_set:
         for field in conf_obj.vertex_config.numeric_fields_list(cname):
             query0 = update_to_numeric(
                 conf_obj.vertex_config.vertex_dbname(cname), field

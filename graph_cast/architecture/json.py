@@ -1,10 +1,10 @@
 from collections import defaultdict
 from copy import deepcopy
 
+from graph_cast.architecture.edge import Edge
 from graph_cast.architecture.general import Configurator
 from graph_cast.architecture.onto import DataSourceType, TypeVE
 from graph_cast.architecture.ptree import ParsingTree
-from graph_cast.architecture.schema import Edge
 from graph_cast.util.merge import merge_doc_basis
 
 
@@ -43,6 +43,6 @@ class JConfigurator(Configurator):
     def apply(self, doc) -> defaultdict[TypeVE, list]:
         r = self.tree.apply(doc, self.vertex_config)
         for k, v in r.items():
-            if k in self.vertex_config.collections_set:
+            if k in self.vertex_config.vertex_set:
                 r[k] = merge_doc_basis(v, self.vertex_config.index(k))
         return r

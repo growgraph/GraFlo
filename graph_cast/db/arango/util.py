@@ -1,6 +1,6 @@
 import logging
 
-from graph_cast.architecture.schema import Edge
+from graph_cast.architecture.edge import Edge
 
 logger = logging.getLogger(__name__)
 

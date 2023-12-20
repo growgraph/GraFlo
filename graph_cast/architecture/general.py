@@ -4,8 +4,8 @@ import logging
 from typing import TypeVar
 
 from graph_cast.architecture.graph import GraphConfig
-from graph_cast.architecture.schema import VertexConfig
 from graph_cast.architecture.util import strip_prefix
+from graph_cast.architecture.vertex import VertexConfig
 
 logger = logging.getLogger(__name__)
 

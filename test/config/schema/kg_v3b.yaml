@@ -1,104 +1,95 @@
 general:
-    ~name: kg_v3
-json:
-    ~maps:
-    -   ~type: edge
-        ~how: all
-        source:
-            ~name: publication
-        target:
-            ~name: mention
-            ~_anchor: _top_level
-    -   ~type: descend
-        ~key: publication
-        ~maps:
-        -   ~type: dict
-            ~name: publication
-    -   ~type: descend
-        ~key: top_level_mention
-        ~maps:
-        -   ~type: list
-            ~maps:
-            -   ~type: dict
-                ~name: mention
-                ~map:
-                    hash: _key
-                ~_anchor: _top_level
-    -   ~type: descend
-        ~key: map_mention_entity
-        ~maps:
-        -   ~type: list
-            ~maps:
-            -   ~type: edge
-                ~how: all
-                source:
-                    ~name: mention
-                target:
-                    ~name: entity
-            -   ~type: descend
-                ~key: entity
-                ~maps:
-                -   ~type: dict
-                    ~name: entity
-                    ~map:
-                        hash: _key
-            -   ~type: descend
-                ~key: mention
-                ~maps:
-                -   ~type: dict
-                    ~name: mention
-                    ~map:
-                        hash: _key
-    -   ~type: descend
-        ~key: triples
-        ~maps:
-        -   ~type: list
-            ~maps:
-            -   ~type: descend
-                ~key: triple_index
-                ~maps:
-                -   ~type: dict
-                    ~_anchor: triple_index
-                    ~name: mention
-                    ~map:
-                        hash: _key
-            -   ~type: descend
-                ~key: triple
-                ~maps:
-                -   ~type: list
-                    ~maps:
-                    -   ~type: dict
-                        ~_anchor: core
-                        ~name: mention
-                        ~map:
-                            role: _role
+    name: kg_v3
+resources:
+    trees:
+    -   root:
+            children:
+            -   type: edge
+                source: publication
+                target: mention
+                target_discriminant: _top_level
+            -   type: descend
+                key: publication
+                children:
+                -   type: vertex
+                    name: publication
+            -   type: descend
+                key: top_level_mention
+                children:
+                -   type: list
+                    children:
+                    -   type: vertex
+                        name: mention
+                        map:
                             hash: _key
-            -   ~type: edge
-                ~how: all
-                source:
-                    ~name: mention
-                    ~_anchor: triple_index
-                target:
-                    ~name: mention
-                    ~_anchor: core
-                    ~fields:
-                    -   _role
-                index:
-                -   ~fields:
-                    -   _role
-extra:
-    weights:
-    -   source:
-            ~name: mention
-        target:
-            ~name: entity
-        weight:
-        -   name: publication
-            fields:
-            -   _key
-
-vertex_collections:
-    collections:
+                        discriminant: _top_level
+            -   type: descend
+                key: map_mention_entity
+                children:
+                -   type: list
+                    children:
+                    -   type: edge
+                        source: mention
+                        target: entity
+                    -   type: descend
+                        key: entity
+                        children:
+                        -   type: vertex
+                            name: entity
+                            map:
+                                hash: _key
+                    -   type: descend
+                        key: mention
+                        children:
+                        -   type: vertex
+                            name: mention
+                            map:
+                                hash: _key
+            -   type: descend
+                key: triples
+                children:
+                -   type: list
+                    children:
+                    -   type: descend
+                        key: triple_index
+                        children:
+                        -   type: vertex
+                            discriminant: triple_index
+                            name: mention
+                            map:
+                                hash: _key
+                    -   type: descend
+                        key: triple
+                        children:
+                        -   type: list
+                            children:
+                            -   type: vertex
+                                discriminant: core
+                                name: mention
+                                map:
+                                    role: _role
+                                    hash: _key
+                    -   type: edge
+                        how: all
+                        source: mention
+                        source_discriminant: triple_index
+                        target: mention
+                        target_discriminant: core
+#                        fields:
+#                        -   _role
+                        index:
+                        -   fields:
+                            -   _role
+        extra_weights:
+        -   source: mention
+            target: entity
+            weights:
+                vertices:
+                -   name: publication
+                    fields:
+                    -   _key
+vertex_config:
+    vertices:
     -   name: publication
         dbname: publications
         fields:
@@ -137,21 +128,21 @@ vertex_collections:
         -   unique: false
             fields:
             -   text
-edge_collections:
-    main:
+edge_config:
+    edges:
     -   source: entity
         target: entity
         index:
         -   name: publication
             fields:
             -   _key
-        -   fields_only: true
+        -   exclude_edge_end_vertices: true
             unique: false
             fields:
             -   publication@_key
-    -   ~source: entity
-        ~target: entity
-        ~collection_name_suffix: aux
+    -   source: entity
+        target: entity
+        collection_name_suffix: aux
         index:
         -   fields:
             -   start_date

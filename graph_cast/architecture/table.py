@@ -11,8 +11,8 @@ from graph_cast.architecture import DataSourceType
 from graph_cast.architecture.general import Configurator
 from graph_cast.architecture.graph import GraphConfig
 from graph_cast.architecture.onto import EncodingType
-from graph_cast.architecture.schema import VertexConfig
 from graph_cast.architecture.transform import Transform
+from graph_cast.architecture.vertex import VertexConfig
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ class TableConfig:
             self._transforms[id(tau)] = tau
             related_vertices = [
                 c
-                for c in vertex_config.collections_set
+                for c in vertex_config.vertex_set
                 if set(vertex_config.fields(c)) & set(tau.output)
             ]
             self._vertices |= set(related_vertices)
@@ -68,7 +68,7 @@ class TableConfig:
             if len(related_vertices) > 1:
                 if (
                     tau.image is not None
-                    and tau.image in vertex_config.collections_set
+                    and tau.image in vertex_config.vertex_set
                 ):
                     related_vertices = [tau.image]
                 else:
@@ -86,7 +86,7 @@ class TableConfig:
     ):
         pre_vertex_fields_map = {
             vertex: set(keys) & set(vertex_config.fields(vertex))
-            for vertex in vertex_config.collections_set
+            for vertex in vertex_config.vertex_set
         }
         for vertex, fs in pre_vertex_fields_map.items():
             tau_fields = self.fields(vertex)

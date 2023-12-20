@@ -10,6 +10,7 @@ from collections import defaultdict
 from enum import Enum
 from itertools import product
 
+from graph_cast.architecture.edge import Edge
 from graph_cast.architecture.onto import (
     ANCHOR_KEY,
     SOURCE_AUX,
@@ -17,13 +18,13 @@ from graph_cast.architecture.onto import (
     EdgeMapping,
     TypeVE,
 )
-from graph_cast.architecture.schema import Edge, VertexConfig
 from graph_cast.architecture.transform import Transform
 from graph_cast.architecture.util import (
     project_dict,
     project_dicts,
     strip_prefix,
 )
+from graph_cast.architecture.vertex import VertexConfig
 
 logger = logging.getLogger(__name__)
 
@@ -222,27 +223,28 @@ class MapperNode:
         # get source and target items
         source_items, target_items = acc[source], acc[target]
 
+        # TODO revise
         source_items = pick_indexed_items_anchor_logic(
-            source_items, source_index, self.edge._source._anchor
+            source_items, source_index, self.edge.source._anchor
         )
-        target_items = pick_indexed_items_anchor_logic(
-            target_items, target_index, self.edge._target._anchor
-        )
+        # target_items = pick_indexed_items_anchor_logic(
+        #     target_items, target_index, self.edge.target._anchor
+        # )
 
         if self.edge.how == EdgeMapping.ALL:
             for u, v in product(source_items, target_items):
                 weight = dict()
                 # add `fields` to weight
-                for field in self.edge._source.fields:
-                    if field.name in u:
-                        weight[field.name] = u[field]
-                        if field.exclusive:
-                            del u[field.name]
-                for field in self.edge._target.fields:
-                    if field.name in v:
-                        weight[field.name] = v[field.name]
-                        if field.exclusive:
-                            del v[field.name]
+                for field in self.edge.source.fields:
+                    if field in u:
+                        weight[field] = u[field]
+                        if field not in self.edge.non_exclusive:
+                            del u[field]
+                for field in self.edge.target.fields:
+                    if field in v:
+                        weight[field] = v[field]
+                        if field not in self.edge.non_exclusive:
+                            del v[field]
                 acc[(source, target)] += [
                     {
                         **{
@@ -253,9 +255,10 @@ class MapperNode:
                     }
                 ]
         elif self.edge.how == EdgeMapping.ONE_N:
+            # TODO refactor
             source_field, target_field = (
-                self.edge._source.selector,
-                self.edge._target.selector,
+                self.edge.source.selector,
+                self.edge.target.selector,
             )
 
             target_items = [
@@ -269,13 +272,14 @@ class MapperNode:
                         project_dicts(target_items, target_index),
                     )
                 )
+                # TODO refactor
                 for u in source_items:
                     weight = dict()
                     weight.update(
                         {
-                            field.name: u[field.name]
-                            for field in self.edge._source.fields
-                            if field.name in u
+                            field: u[field]
+                            for field in self.edge.source.fields
+                            if field in u
                         }
                     )
                     up = project_dict(u, source_index)
@@ -310,6 +314,7 @@ class MapperNode:
         edef = self.edge
         edges = agg[(edef.source, edef.target)]
 
+        # TODO refactor
         # loop over weights for an edge
         for weight_conf in edef.weight_vertices:
             vertices = [doc for doc in agg[weight_conf.name]]
@@ -338,13 +343,13 @@ class MapperNode:
                             if field.name in doc
                         },
                     }
-                if weight_conf.mapper:
+                if weight_conf.map:
                     weight = {
                         **weight,
-                        **{q: doc[k] for k, q in weight_conf.mapper.items()},
+                        **{q: doc[k] for k, q in weight_conf.map.items()},
                     }
 
-                if not weight_conf.fields and not weight_conf.mapper:
+                if not weight_conf.fields and not weight_conf.map:
                     try:
                         weight = {
                             f"{weight_conf.name}.{k}": doc[k]

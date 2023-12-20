@@ -33,3 +33,12 @@ def ingest_atomic(conn_conf, current_path, test_db_name, input_type, mode):
         limit_files=None,
         clean_start=True,
     )
+
+
+@pytest.fixture(scope="function")
+def schema():
+    def ret_schema(mode):
+        schema_dict = FileHandle.load(f"test.config.schema", f"{mode}.yaml")
+        return schema_dict
+
+    return ret_schema

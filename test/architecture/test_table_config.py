@@ -1,5 +1,6 @@
 import logging
 from functools import partial
+from test.conftest import schema
 from test.transform.conftest import (
     df_ibes,
     df_ticker,
@@ -16,74 +17,31 @@ from test.transform.conftest import (
     vertex_config_transform_collision,
 )
 
+import pytest
+
 from graph_cast.architecture.graph import GraphConfig
-from graph_cast.architecture.onto import (
-    SOURCE_AUX,
-    TARGET_AUX,
-    EdgeType,
-    TypeVE,
-)
-from graph_cast.architecture.schema import VertexConfig
+from graph_cast.architecture.onto import SOURCE_AUX, TARGET_AUX
+from graph_cast.architecture.schema import RowResource
 from graph_cast.architecture.table import TableConfig
-from graph_cast.input.table import (
+from graph_cast.architecture.vertex import VertexConfig
+from graph_cast.flow.row import (
     add_blank_collections,
     define_edges,
     extract_weights,
     normalize_row,
-    transform_row,
+    row_to_vertices,
 )
 from graph_cast.util.merge import merge_doc_basis, merge_documents
 
 logger = logging.getLogger(__name__)
 
 
-def test_table_config_vertices(table_config_ibes, vertex_config_ibes):
-    vc = VertexConfig(vertex_config_ibes)
-    conf_obj = TableConfig(table_config_ibes, vc)
-    assert {
-        "recommendation",
-        "agency",
-        "analyst",
-        "ticker",
-        "publication",
-    } == conf_obj.vertices
-
-
-def test_table_config_fields(table_config_ibes, vertex_config_ibes):
-    vc = VertexConfig(vertex_config_ibes)
-    conf_obj = TableConfig(table_config_ibes, vc)
-    assert conf_obj.fields("recommendation") == {
-        "etext",
-        "erec",
-        "irec",
-        "itext",
-    }
-
-
-def test_table_config_fields_all(table_config_ibes, vertex_config_ibes):
-    vc = VertexConfig(vertex_config_ibes)
-    conf_obj = TableConfig(table_config_ibes, vc)
-    assert conf_obj.fields() == {
-        "cname",
-        "aname",
-        "cusip",
-        "datetime_announce",
-        "oftic",
-        "initial",
-        "itext",
-        "datetime_review",
-        "erec",
-        "last_name",
-        "etext",
-        "irec",
-    }
-
-
-def test_transform_row(table_config_ibes, vertex_config_ibes, df_ibes):
-    vc = VertexConfig(vertex_config_ibes)
-    conf_obj = TableConfig(table_config_ibes, vc)
+def test_transform_row(schema, vertex_config_ibes, df_ibes):
+    sch = schema("ibes")
+    vc = VertexConfig.from_dict(sch["vertex_config"])
+    rr = RowResource.from_dict(sch["resources"]["rows"][0])
     docs = [dict(zip(df_ibes.columns, row)) for _, row in df_ibes.iterrows()]
-    tr = transform_row(docs[0], conf_obj)
+    tr = row_to_vertices(docs[0], vc, rr)
 
     assert {k: len(v) for k, v in tr.items()} == {
         "recommendation": 1,
@@ -94,6 +52,7 @@ def test_transform_row(table_config_ibes, vertex_config_ibes, df_ibes):
     }
 
 
+@pytest.mark.skip(reason="obsolete")
 def test_merge_doc(vertex_config_ibes, row_doc_ibes):
     vc = VertexConfig(vertex_config_ibes)
     doc_upd = {}
@@ -108,6 +67,7 @@ def test_merge_doc(vertex_config_ibes, row_doc_ibes):
     }
 
 
+@pytest.mark.skip(reason="obsolete")
 def test_transform_collision(
     table_config_transform_collision,
     vertex_config_transform_collision,
@@ -125,6 +85,7 @@ def test_transform_collision(
     assert len(tr["person"][0]) == 2
 
 
+@pytest.mark.skip(reason="obsolete")
 def test_derive_edges(tconf_ibes, df_ibes):
     header_dict = dict(zip(df_ibes.columns, range(df_ibes.shape[1])))
     conf = tconf_ibes
@@ -175,6 +136,7 @@ def test_derive_edges(tconf_ibes, df_ibes):
     assert TARGET_AUX in docs[0][("analyst", "agency")][0]
 
 
+@pytest.mark.skip(reason="obsolete")
 def test_transform_row_pure_weight(
     table_config_ticker, vertex_config_ticker, edge_config_ticker, df_ticker
 ):

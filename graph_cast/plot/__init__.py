@@ -36,7 +36,7 @@ class SchemaPlotter:
         nodes = []
         edges = []
         vconf = self.conf.vertex_config
-        for k in vconf.collections_set:
+        for k in vconf.vertex_set:
             index_fields = vconf.index(k)
             fields = vconf.fields(k)
             nodes_collection = [(k, {"type": "vcollection"})]
@@ -102,7 +102,7 @@ class SchemaPlotter:
         # level_one = [x[0] for x in vclusters_index]
         # ag.add_subgraph(level_one, rank='same')
 
-        for k in vconf.collections_set:
+        for k in vconf.vertex_set:
             level_index = [f"{k}:{item}" for item in vconf.index(k)]
             index_subgraph = ag.add_subgraph(
                 level_index, name=f"cluster_{k}:def"
@@ -347,7 +347,7 @@ class SchemaPlotter:
 
         ag = nx.nx_agraph.to_agraph(g)
 
-        for vertex in self.conf.vertex_config.collections_set:
+        for vertex in self.conf.vertex_config.vertex_set:
             index = self.conf.vertex_config.index(vertex).fields
             level_index = [f"collection:field:{item}" for item in index]
             index_subgraph = ag.add_subgraph(

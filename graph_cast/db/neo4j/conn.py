@@ -5,8 +5,8 @@ from suthing import Neo4jConnectionConfig
 
 from graph_cast.architecture import Configurator
 from graph_cast.architecture.graph import GraphConfig
-from graph_cast.architecture.onto import CollectionIndex
-from graph_cast.architecture.schema import VertexConfig
+from graph_cast.architecture.onto import Index
+from graph_cast.architecture.vertex import VertexConfig
 from graph_cast.db.connection import Connection
 from graph_cast.onto import AggregationType, DBFlavor, Expression
 
@@ -54,20 +54,18 @@ class Neo4jConnection(Connection):
             logger.error(f"{e}")
 
     def define_vertex_indices(self, vertex_config: VertexConfig):
-        for c in vertex_config.collections_set:
+        for c in vertex_config.vertex_set:
             for index_obj in vertex_config.indexes(c):
                 self._add_index(c, index_obj)
 
     def define_edge_indices(self, graph_config: GraphConfig):
         for item in graph_config.all_edge_definitions():
-            for index_obj in item.indices:
+            for index_obj in item.indexes:
                 self._add_index(
-                    item.edge_name, index_obj, is_vertex_index=False
+                    item.relation, index_obj, is_vertex_index=False
                 )
 
-    def _add_index(
-        self, obj_name, index: CollectionIndex, is_vertex_index=True
-    ):
+    def _add_index(self, obj_name, index: Index, is_vertex_index=True):
         fields_str = ", ".join([f"x.{f}" for f in index.fields])
         fields_str2 = "_".join(index.fields)
         index_name = f"{obj_name}_{fields_str2}"

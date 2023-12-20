@@ -1,45 +1,46 @@
 general:
     name: ibes
-table:
--   tabletype: ibes
-    encoding: ISO-8859-1
-    transforms:
-    -   foo: parse_date_ibes
-        module: graph_cast.util.transform
-        input:
-        -   ANNDATS
-        -   ANNTIMS
-        output:
-        -   datetime_announce
-    -   foo: parse_date_ibes
-        module: graph_cast.util.transform
-        input:
-        -   REVDATS
-        -   REVTIMS
-        output:
-        -   datetime_review
-    -   foo: cast_ibes_analyst
-        module: graph_cast.util.transform
-        input:
-        -   ANALYST
-        output:
-        -   last_name
-        -   initial
-    -   map:
-            CUSIP: cusip
-            CNAME: cname
-            OFTIC: oftic
-    -   map:
-            ESTIMID: aname
-    -   map:
-            ERECCD: erec
-            ETEXT: etext
-            IRECCD: irec
-            ITEXT: itext
-vertex_collections:
-    blanks:
+resources:
+    rows:
+    -   name: ibes
+        encoding: ISO-8859-1
+        transforms:
+        -   foo: parse_date_ibes
+            module: graph_cast.util.transform
+            input:
+            -   ANNDATS
+            -   ANNTIMS
+            output:
+            -   datetime_announce
+        -   foo: parse_date_ibes
+            module: graph_cast.util.transform
+            input:
+            -   REVDATS
+            -   REVTIMS
+            output:
+            -   datetime_review
+        -   foo: cast_ibes_analyst
+            module: graph_cast.util.transform
+            input:
+            -   ANALYST
+            output:
+            -   last_name
+            -   initial
+        -   map:
+                CUSIP: cusip
+                CNAME: cname
+                OFTIC: oftic
+        -   map:
+                ESTIMID: aname
+        -   map:
+                ERECCD: erec
+                ETEXT: etext
+                IRECCD: irec
+                ITEXT: itext
+vertex_config:
+    blank_vertices:
     -   publication
-    collections:
+    vertices:
     -   name: publication
         dbname: publications
         fields:
@@ -91,8 +92,8 @@ vertex_collections:
         indexes:
         -   fields:
             -   irec
-edge_collections:
-    main:
+edge_config:
+    edges:
     -   source: publication
         target: ticker
     -   source: analyst

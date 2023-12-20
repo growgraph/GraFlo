@@ -19,32 +19,37 @@ def process_table(
     conf: ConfiguratorType,
     db_config: Optional[DBConnectionConfig] = None,
     batch_size: int = 1000,
-    max_lines: int = 10000,
+    limit: int = 10000,
     dry=False,
 ):
     """
         given a table, config that specifies table to graph mapping and db_config, transform table and load it into db
-    :param tabular_resource:
-    :param conf:
-    :param db_config:
-    :param batch_size:
-    :param max_lines:
-    :return:
+
+    Args:
+        tabular_resource:
+        conf:
+        db_config:
+        batch_size:
+        limit:
+        dry:
+
+    Returns:
+
     """
 
     logger.info("in process_table")
-    logger.info(f"max_lines : {max_lines}")
+    logger.info(f"max_lines : {limit}")
     logger.info(f"batch_size : {batch_size}")
 
     if isinstance(tabular_resource, pd.DataFrame):
         chk: AbsChunker = ChunkerDataFrame(
-            tabular_resource, batch_size=batch_size, n_lines_max=max_lines
+            tabular_resource, batch_size=batch_size, n_lines_max=limit
         )
     elif isinstance(tabular_resource, str):
         chk = Chunker(
             tabular_resource,
             batch_size=batch_size,
-            n_lines_max=max_lines,
+            limit=limit,
             encoding=conf.encoding,
         )
         # conf.set_current_resource_name(tabular_resource)
@@ -72,7 +77,7 @@ def process_table(
             with ConnectionManager(connection_config=db_config) as db_client:
                 for vcol, data in vdocuments.items():
                     # blank nodes: push and get back their keys  {"_key": ...}
-                    if vcol in conf.vertex_config.blank_collections:
+                    if vcol in conf.vertex_config.blank_vertices:
                         query0 = db_client.insert_return_batch(
                             data, conf.vertex_config.vertex_dbname(vcol)
                         )
@@ -89,7 +94,7 @@ def process_table(
                         )
 
                 # update edge misc with blank node edges
-                for vcol in conf.vertex_config.blank_collections:
+                for vcol in conf.vertex_config.blank_vertices:
                     for vfrom, vto in conf.current_edges:
                         if vcol == vfrom or vcol == vto:
                             edocuments[(vfrom, vto)].extend(
@@ -106,7 +111,7 @@ def process_table(
                         data,
                         conf.vertex_config.vertex_dbname(vfrom),
                         conf.vertex_config.vertex_dbname(vto),
-                        conf.graph(vfrom, vto).edge_name,
+                        conf.graph(vfrom, vto).relation,
                         conf.vertex_config.index(vfrom).fields,
                         conf.vertex_config.index(vto).fields,
                         False,

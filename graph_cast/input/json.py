@@ -140,7 +140,7 @@ def process_jsonlike(
                             vfrom
                         ),
                         target_class=conf_obj.vertex_config.vertex_dbname(vto),
-                        relation_name=conf_obj.graph(vfrom, vto).edge_name,
+                        relation_name=conf_obj.graph(vfrom, vto).relation,
                         match_keys_source=conf_obj.vertex_config.index(
                             vfrom
                         ).fields,
@@ -149,9 +149,7 @@ def process_jsonlike(
                         ).fields,
                         filter_uniques=False,
                         uniq_weight_collections=uniq_weight_collections,
-                        uniq_weight_fields=conf_obj.graph(
-                            vfrom, vto
-                        ).weight_fields,
+                        uniq_weight_fields=conf_obj.graph(vfrom, vto).weight,
                         dry=dry,
                         **kwargs,
                     )

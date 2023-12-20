@@ -1,0 +1,24 @@
+import logging
+from test.conftest import schema
+
+from graph_cast.architecture.schema import Schema
+
+logger = logging.getLogger(__name__)
+
+
+def test_init_simple(vertex_config_kg, edge_config_kg):
+    schema = {
+        "vertex_config": vertex_config_kg,
+        "edge_config": edge_config_kg,
+        "resources": {},
+        "general": {"name": "abc"},
+    }
+    sch = Schema.from_dict(schema)
+    assert len(sch.vertex_config.vertices) == 3
+    assert len(sch.edge_config.edges) == 3
+
+
+def test_schema_load(schema):
+    sch = schema("kg_v3b")
+    schema_obj = Schema.from_dict(sch)
+    assert len(schema_obj.resources.trees) == 1

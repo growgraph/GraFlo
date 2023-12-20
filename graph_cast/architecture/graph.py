@@ -3,10 +3,11 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Iterator
 
+from graph_cast.architecture.edge import Edge
 from graph_cast.architecture.onto import EdgeType
 from graph_cast.architecture.ptree import MapperNode, NodeType, ParsingTree
-from graph_cast.architecture.schema import Edge, VertexConfig
 from graph_cast.architecture.util import strip_prefix
+from graph_cast.architecture.vertex import VertexConfig
 
 EdgeName = tuple[str, str]
 
@@ -91,14 +92,6 @@ class GraphConfig:
         return self._edges[u, v][ix]
 
     @property
-    def direct_edges(self) -> list[EdgeName]:
-        edges = []
-        for k, item in self._edges.items():
-            if any([v.type == EdgeType.DIRECT for v in item]):
-                edges += [k]
-        return edges
-
-    @property
     def extra_edges(self) -> list[Edge]:
         edges = []
         for k, item in self._edges.items():
@@ -148,6 +141,6 @@ class GraphConfig:
     def weight_raw_fields(self) -> set:
         fields = set()
         for e, item in self._edges.items():
-            efields = {f for edef in item for f in edef.weight_fields}
+            efields = {f for edef in item for f in edef.weight}
             fields |= efields
         return fields
