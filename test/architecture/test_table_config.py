@@ -18,7 +18,8 @@ import pytest
 from graph_cast.architecture.edge import EdgeConfig
 from graph_cast.architecture.graph import GraphConfig
 from graph_cast.architecture.onto import SOURCE_AUX, TARGET_AUX
-from graph_cast.architecture.schema import RowResource, Schema
+from graph_cast.architecture.resource import RowResource
+from graph_cast.architecture.schema import Schema
 
 # from graph_cast.architecture.table import TableConfig
 from graph_cast.architecture.vertex import VertexConfig
@@ -38,7 +39,7 @@ def test_transform_row(schema, df_ibes):
     sch = schema("ibes")
     vc = VertexConfig.from_dict(sch["vertex_config"])
     ec = EdgeConfig.from_dict(sch["edge_config"])
-    rr = RowResource.from_dict(sch["resources"]["rows"][0])
+    rr = RowResource.from_dict(sch["resources"]["row_likes"][0])
     rr.finish_init(vc, ec)
     rr.add_trivial_transformations(vc, df_ibes.columns)
     docs = [dict(zip(df_ibes.columns, row)) for _, row in df_ibes.iterrows()]
@@ -150,7 +151,7 @@ def test_transform_row_pure_weight(schema, df_ticker):
     rows_dressed = [
         {k: item[v] for k, v in header_dict.items()} for item in rows
     ]
-    sch.select_resource(sch.resources.rows[0].name)
+    sch.select_resource(sch.resources.row_likes[0].name)
     rr = sch.current_resource
     rr.add_trivial_transformations(vc, df_ticker.columns)
 

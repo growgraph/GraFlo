@@ -130,9 +130,3 @@ class EdgeConfig(BaseDataclass):
             e.finish_init(vc)
         for e in self.extra_edges:
             e.finish_init(vc)
-
-    def weight_raw_fields(self) -> set[str]:
-        fields: set[str] = set()
-        for edge in self.edges:
-            fields |= edge.weights.direct
-        return fields

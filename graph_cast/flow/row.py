@@ -1,18 +1,15 @@
 from collections import defaultdict
 from itertools import combinations, product
 
+from graph_cast.architecture.edge import Edge, EdgeConfig
 from graph_cast.architecture.onto import (
     SOURCE_AUX,
     TARGET_AUX,
     EdgeType,
     GraphEntity,
 )
-from graph_cast.architecture.schema import (
-    Edge,
-    EdgeConfig,
-    RowResource,
-    VertexConfig,
-)
+from graph_cast.architecture.resource import RowResource
+from graph_cast.architecture.vertex import VertexConfig
 from graph_cast.util.merge import merge_doc_basis
 
 

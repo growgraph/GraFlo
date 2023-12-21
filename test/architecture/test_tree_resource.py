@@ -1,7 +1,9 @@
 import logging
 from test.conftest import schema
 
-from graph_cast.architecture.schema import MapperNode, Schema, TreeResource
+from graph_cast.architecture.mapper import MapperNode
+from graph_cast.architecture.resource import TreeResource
+from graph_cast.architecture.schema import Schema
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +30,11 @@ def test_mapper_wc(mapper_node_edge_weight_config):
 
 def test_schema_mapper_node(schema):
     sch = schema("kg_v3b")
-    mn = MapperNode.from_dict(sch["resources"]["trees"][0]["root"])
+    mn = MapperNode.from_dict(sch["resources"]["tree_likes"][0]["root"])
     assert len(mn._children) == 5
 
 
 def test_schema_tree(schema):
     sch = schema("kg_v3b")
-    mn = TreeResource.from_dict(sch["resources"]["trees"][0])
+    mn = TreeResource.from_dict(sch["resources"]["tree_likes"][0])
     assert len(mn.root._children) == 5

@@ -1,7 +1,7 @@
 general:
     name: ticker_history
 resources:
-    rows:
+    row_likes:
     -   name: history
         transforms:
         -   foo: round_str

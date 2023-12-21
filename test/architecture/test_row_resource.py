@@ -1,6 +1,6 @@
 import logging
 
-from graph_cast.architecture.schema import RowResource
+from graph_cast.architecture.resource import RowResource
 from graph_cast.architecture.vertex import VertexConfig
 
 logger = logging.getLogger(__name__)
