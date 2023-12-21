@@ -17,9 +17,7 @@ from graph_cast.architecture.onto import (
     EdgeMapping,
     EncodingType,
     GraphEntity,
-    TypeVE,
 )
-from graph_cast.architecture.ptree import ParsingTree
 from graph_cast.architecture.transform import Transform
 from graph_cast.architecture.util import project_dict, project_dicts
 from graph_cast.architecture.vertex import VertexConfig
@@ -35,9 +33,6 @@ class Resource(BaseDataclass):
     name: str | None = None
     resource_type: DataSourceType = DataSourceType.TABLE
     encoding: EncodingType = EncodingType.UTF_8
-
-
-_RESERVED_TAU_WEIGHTS = "_$row"
 
 
 class NodeType(str, BaseEnum):
@@ -333,7 +328,9 @@ class RowResource(Resource):
         self._transforms_current: dict[int, Transform] = {}
 
     def finish_init(
-        self, vertex_config: VertexConfig, ec: None | EdgeConfig = None
+        self,
+        vertex_config: VertexConfig,
+        edge_config: None | EdgeConfig = None,
     ):
         for tau in self.transforms:
             self._transforms[id(tau)] = tau
@@ -343,9 +340,16 @@ class RowResource(Resource):
                 if set(vertex_config.fields(c)) & set(tau.output)
             ]
             self._vertices |= set(related_vertices)
-            if not related_vertices and ec is not None:
-                if ec.weight_raw_fields() & set(tau.output):
-                    related_vertices += [_RESERVED_TAU_WEIGHTS]
+            if edge_config is not None:
+                related_edges = [
+                    e.edge_id
+                    for e in edge_config.edges
+                    if e.weights is not None
+                    and (set(e.weights.direct) & set(tau.output))
+                ]
+            else:
+                related_edges = []
+
             if len(related_vertices) > 1:
                 if (
                     tau.image is not None
@@ -359,7 +363,7 @@ class RowResource(Resource):
                         " your schema"
                     )
             self._vertex_tau.add_edges_from(
-                [(c, id(tau)) for c in related_vertices]
+                [(c, id(tau)) for c in related_vertices + related_edges]
             )
 
     def add_trivial_transformations(
@@ -384,9 +388,9 @@ class RowResource(Resource):
                 self._transforms_current[id(tau)] = tau
                 self._vertex_tau_current.add_edges_from([(vertex, id(tau))])
 
-    def transforms_by_vertex(self, vertex: str) -> Iterator[Transform]:
-        if vertex in self._vertex_tau.nodes:
-            neighbours = self._vertex_tau_current.neighbors(vertex)
+    def fetch_transforms(self, ge: GraphEntity) -> Iterator[Transform]:
+        if ge in self._vertex_tau_current.nodes:
+            neighbours = self._vertex_tau_current.neighbors(ge)
         else:
             return iter(())
         return (self._transforms_current[k] for k in neighbours)
@@ -437,6 +441,12 @@ class ResourceHolder(BaseDataclass):
     rows: list[RowResource] = dataclasses.field(default_factory=list)
     trees: list[TreeResource] = dataclasses.field(default_factory=list)
 
+    def finish_init(self, vc: VertexConfig, ec: EdgeConfig):
+        for r in self.trees:
+            r.finish_init(vc)
+        for r in self.rows:
+            r.finish_init(vertex_config=vc, edge_config=ec)
+
 
 @dataclasses.dataclass
 class SchemaMetadata(BaseDataclass):
@@ -454,8 +464,29 @@ class Schema(BaseDataclass):
         # add extra edges from tree resources?
         # set up edges wrt
 
+        # 1. validate resources
+        # 2 co-define edges from resources
+
         self.edge_config.finish_init(self.vertex_config)
+
+        self.resources.finish_init(self.vertex_config, self.edge_config)
+
+        self._current_resource: None | Resource = None
         pass
+
+    def select_resource(self, name: str):
+        for r in self.resources.trees:
+            if r.name == name:
+                self._current_resource = r
+
+        for r in self.resources.rows:
+            if r.name == name:
+                self._current_resource = r
+
+    @property
+    def current_resource(self):
+        assert self._current_resource is not None
+        return self._current_resource
 
     """
     -   how: all

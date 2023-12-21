@@ -19,6 +19,7 @@ class WeightConfig(BaseDataclass):
     source_fields: list[str] = dataclasses.field(default_factory=list)
     target_fields: list[str] = dataclasses.field(default_factory=list)
     vertices: list[Weight] = dataclasses.field(default_factory=list)
+    direct: list[str] = dataclasses.field(default_factory=list)
 
 
 @dataclasses.dataclass
@@ -44,15 +45,6 @@ class Edge(BaseDataclass):
     def __post_init__(self):
         self.source_fields: list[str]
         self.target_fields: list[str]
-        if self.relation is None:
-            if self.db_flavor == DBFlavor.ARANGO:
-                self.relation = f"{self.source_collection}_{self.target_collection}_{self.collection_name_suffix}_edges"
-            elif self.db_flavor == DBFlavor.NEO4J:
-                self.relation = (
-                    f"{self.source_collection}{self.target_collection}"
-                )
-            else:
-                raise ValueError(f" Unknown DBFlavor: {self.db_flavor}")
 
     def finish_init(self, vc: VertexConfig):
         if self.type == EdgeType.INDIRECT and self.by is not None:
@@ -107,6 +99,10 @@ class Edge(BaseDataclass):
     def edge_name_dyad(self):
         return self.source, self.target
 
+    @property
+    def edge_id(self) -> tuple[str, str, str | None]:
+        return self.source, self.target, self.relation
+
     def __iadd__(self, other: Edge):
         if self.edge_name_dyad == other.edge_name_dyad:
             self.indexes += other.indexes
@@ -136,8 +132,7 @@ class EdgeConfig(BaseDataclass):
             e.finish_init(vc)
 
     def weight_raw_fields(self) -> set[str]:
-        # TODO revise
         fields: set[str] = set()
-        # for edge in self.edges:
-        #     fields |= edge.weights
+        for edge in self.edges:
+            fields |= edge.weights.direct
         return fields

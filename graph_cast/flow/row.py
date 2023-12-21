@@ -8,7 +8,6 @@ from graph_cast.architecture.onto import (
     GraphEntity,
 )
 from graph_cast.architecture.schema import (
-    _RESERVED_TAU_WEIGHTS,
     Edge,
     EdgeConfig,
     RowResource,
@@ -34,7 +33,7 @@ def row_to_vertices(
     for vertex in vc.vertices:
         docs[vertex.name] += [
             tau(doc, __return_doc=True)
-            for tau in rr.transforms_by_vertex(vertex.name)
+            for tau in rr.fetch_transforms(vertex.name)
         ]
     return docs
 
@@ -68,16 +67,18 @@ def table_to_collections(
         for item in docs
     ]
 
-    pure_weights = [extract_weights(unit, rr) for unit in rows_dressed]
+    pure_weights = [
+        extract_weights(unit, rr, ec.edges) for unit in rows_dressed
+    ]
 
     docs = [
         define_edges(
             unit,
-            unit_weight,
-            EdgeConfig.edges,
+            unit_weights,
+            ec.edges,
             vertex_conf=vc,
         )
-        for unit, unit_weight in zip(docs, pure_weights)
+        for unit, unit_weights in zip(docs, pure_weights)
     ]
     return docs
 
@@ -113,25 +114,27 @@ def apply_filter(
     return unit
 
 
-def extract_weights(doc: dict, rr: RowResource) -> dict:
-    doc_upd = {}
-    for tau in rr.transforms_by_vertex(_RESERVED_TAU_WEIGHTS):
-        doc_upd.update(tau(doc, __return_doc=True))
+def extract_weights(
+    doc: dict, row_resource: RowResource, edges: list[Edge]
+) -> defaultdict[GraphEntity, list]:
+    doc_upd: defaultdict[GraphEntity, list] = defaultdict(list)
+    for e in edges:
+        for tau in row_resource.fetch_transforms(e.edge_id):
+            doc_upd[e.edge_id] += [tau(doc, __return_doc=True)]
     return doc_upd
 
 
 def define_edges(
     unit: defaultdict[GraphEntity, list[dict]],
-    unit_weight: dict,
+    unit_weights: defaultdict[GraphEntity, list[dict]],
     current_edges: list[Edge],
     vertex_conf: VertexConfig,
 ) -> defaultdict[GraphEntity, list[dict]]:
     for e in current_edges:
         u, v, r = e.source, e.target, e.relation
         # blank_collections : db ids have to be retrieved to define meaningful edges
-        if (
-            u not in vertex_conf.blank_vertices
-            and v not in vertex_conf.blank_vertices
+        if not (
+            u in vertex_conf.blank_vertices or v in vertex_conf.blank_vertices
         ):
             if e.type == EdgeType.DIRECT:
                 ziter: product | combinations
@@ -142,22 +145,23 @@ def define_edges(
 
                 for udoc, vdoc in ziter:
                     edoc = {SOURCE_AUX: udoc, TARGET_AUX: vdoc}
-                    for vertex_weight in e.weights.vertices:
-                        if vertex_weight.name == u:
-                            cbatch = udoc
-                        elif vertex_weight.name == v:
-                            cbatch = vdoc
-                        else:
-                            continue
-                        weights = {f: cbatch[f] for f in vertex_weight.fields}
-                        edoc.update(weights)
-                    edoc.update(
-                        {
-                            q: w
-                            for q, w in unit_weight.items()
-                            # NB investigate
-                            # if q in graph_config.graph(u, v).weight
-                        }
-                    )
-                    unit[u, v, r].append(edoc)
+                    if e.weights is not None:
+                        # weights_direct = {
+                        #     f: cbatch[f] for f in e.weights.direct
+                        # }
+
+                        for vertex_weight in e.weights.vertices:
+                            if vertex_weight.name == u:
+                                cbatch = udoc
+                            elif vertex_weight.name == v:
+                                cbatch = vdoc
+                            else:
+                                continue
+                            weights = {
+                                f: cbatch[f] for f in vertex_weight.fields
+                            }
+                            edoc.update(weights)
+                    for ud in unit_weights[e.edge_id]:
+                        edoc.update(ud)
+                    unit[e.edge_id].append(edoc)
     return unit

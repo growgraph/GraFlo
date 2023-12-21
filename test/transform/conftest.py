@@ -256,24 +256,26 @@ def df_ticker() -> pd.DataFrame:
 @pytest.fixture()
 def vertex_config_transform_collision():
     vc = yaml.safe_load("""
-        collections:
-            person:
-                dbname: people
-                fields:
-                -   id
-                -   name
-            pet:
-                dbname: pets
-                fields:
-                -   name
+        vertices:
+        -
+            name: person
+            dbname: people
+            fields:
+            -   id
+            -   name
+        -
+            name: pet
+            dbname: pets
+            fields:
+            -   name
     """)
     return vc
 
 
 @pytest.fixture()
-def table_config_transform_collision():
+def row_resource_transform_collision():
     tc = yaml.safe_load("""
-        tabletype: pets
+        name: pets
         transforms:
         -   image: pet
             map:

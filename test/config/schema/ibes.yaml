@@ -98,9 +98,10 @@ edge_config:
         target: ticker
     -   source: analyst
         target: agency
-        weight:
-        -   datetime_review
-        -   datetime_announce
+        weights:
+            direct:
+            -   datetime_review
+            -   datetime_announce
     -   source: analyst
         target: publication
     -   source: publication
