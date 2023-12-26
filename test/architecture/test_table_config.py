@@ -5,32 +5,23 @@ from test.transform.conftest import (
     df_ibes,
     df_ticker,
     df_transform_collision,
-    edge_config_ticker,
     row_doc_ibes,
     row_resource_transform_collision,
-    table_config_ticker,
-    vertex_config_ticker,
     vertex_config_transform_collision,
 )
 
-import pytest
-
 from graph_cast.architecture.edge import EdgeConfig
-from graph_cast.architecture.graph import GraphConfig
 from graph_cast.architecture.onto import SOURCE_AUX, TARGET_AUX
-from graph_cast.architecture.resource import RowResource
-from graph_cast.architecture.schema import Schema
-
-# from graph_cast.architecture.table import TableConfig
-from graph_cast.architecture.vertex import VertexConfig
-from graph_cast.flow.row import (
+from graph_cast.architecture.resource import (
+    RowResource,
     add_blank_collections,
     define_edges,
     extract_weights,
     normalize_row,
     row_to_vertices,
 )
-from graph_cast.util.merge import merge_doc_basis, merge_documents
+from graph_cast.architecture.schema import Schema
+from graph_cast.architecture.vertex import VertexConfig
 
 logger = logging.getLogger(__name__)
 
@@ -100,9 +91,8 @@ def test_derive_edges(schema, df_ibes):
     rows_dressed = [
         {k: item[v] for k, v in header_dict.items()} for item in rows
     ]
-    sch.select_resource("ibes")
 
-    rr = sch.current_resource
+    rr = sch.fetch_resource("ibes")
     rr.add_trivial_transformations(vc, df_ibes.columns)
 
     transform_row_partial = partial(row_to_vertices, vc=vc, rr=rr)
@@ -151,8 +141,7 @@ def test_transform_row_pure_weight(schema, df_ticker):
     rows_dressed = [
         {k: item[v] for k, v in header_dict.items()} for item in rows
     ]
-    sch.select_resource(sch.resources.row_likes[0].name)
-    rr = sch.current_resource
+    rr = sch.fetch_resource(sch.resources.row_likes[0].name)
     rr.add_trivial_transformations(vc, df_ticker.columns)
 
     pure_weights = [

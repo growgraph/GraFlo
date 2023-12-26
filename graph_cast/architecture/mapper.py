@@ -4,6 +4,8 @@ import dataclasses
 import logging
 from collections import defaultdict
 from itertools import product
+from types import MappingProxyType
+from typing import Any, Callable, Iterable
 
 from graph_cast.architecture.edge import Edge
 from graph_cast.architecture.onto import SOURCE_AUX, TARGET_AUX, GraphEntity
@@ -16,14 +18,12 @@ logger = logging.getLogger(__name__)
 
 
 class NodeType(str, BaseEnum):
-    # only refers to other nodes
+    # only refers to other nodes or maps children nodes to a list
     TRIVIAL = "trivial"
     # adds a vertex specified by a value; terminal
     VALUE = "value"
     # adds a vertex, directly or via a mapping; terminal
     VERTEX = "vertex"
-    # maps children nodes to a list
-    LIST = "list"
     # descends, maps children nodes to the doc below
     DESCEND = "descend"
     # adds edges between collection that have already been added
@@ -43,6 +43,25 @@ class NodeType(str, BaseEnum):
 
     def __gt__(self, other):
         return not (self < other)
+
+
+# greater numbers have lower priority
+NodeTypePriority = MappingProxyType(
+    {
+        NodeType.TRIVIAL: 0,
+        NodeType.DESCEND: 10,
+        NodeType.VALUE: 30,
+        NodeType.VERTEX: 40,
+        NodeType.EDGE: 90,
+        NodeType.WEIGHT: 100,
+    }
+)
+
+
+def update_defaultdict(dd_a: defaultdict, dd_b: defaultdict):
+    for k, v in dd_b.items():
+        dd_a[k] += v
+    return dd_a
 
 
 def discriminate(items, indices, discriminant_value, discriminant_key):
@@ -71,7 +90,7 @@ def discriminate(items, indices, discriminant_value, discriminant_key):
 @dataclasses.dataclass
 class MapperNode(BaseDataclass):
     type: NodeType = NodeType.TRIVIAL
-    edge: Edge = None
+    edge: Edge = None  # type: ignore
     name: str | None = None
     transforms: list[Transform] = dataclasses.field(default_factory=list)
     key: str | None = None
@@ -82,14 +101,23 @@ class MapperNode(BaseDataclass):
     children: list[dict] = dataclasses.field(default_factory=list)
 
     def __post_init__(self):
+        if self.key is not None:
+            assert self.type in {NodeType.DESCEND, NodeType.TRIVIAL}, (
+                f"when key present, NodeType can only be {NodeType.DESCEND} or"
+                f" not provided, for key {self.key} NodeType {self.type} found"
+            )
+            self.type = NodeType.DESCEND
         self._children: list[MapperNode] = [
             MapperNode.from_dict(oo) for oo in self.children
         ]
-        self._children = sorted(self._children, key=lambda x: x.type)
+
+        self._children = sorted(
+            self._children, key=lambda x: NodeTypePriority[x.type]
+        )
 
     def finish_init(self, vc: VertexConfig):
-        assert self.edge is not None
-        self.edge.finish_init(vc)
+        if self.type == NodeType.EDGE:
+            self.edge.finish_init(vc)
         for c in self._children:
             c.finish_init(vc)
 
@@ -126,38 +154,53 @@ class MapperNode(BaseDataclass):
         discriminant_key,
     ):
         if self.type == NodeType.TRIVIAL:
-            for c in self._children:
-                c.apply(doc, vertex_config, acc, discriminant_key)
+            if isinstance(doc, list):
+                for sub_doc in doc:
+                    acc = self._loop_over_children(
+                        sub_doc, vertex_config, acc, discriminant_key
+                    )
+            else:
+                acc = self._loop_over_children(
+                    doc, vertex_config, acc, discriminant_key
+                )
         elif self.type == NodeType.DESCEND:
             if isinstance(doc, dict) and self.key in doc:
                 sub_doc = doc[self.key]
-                for c in self._children:
-                    c.apply(sub_doc, vertex_config, acc, discriminant_key)
-        elif self.type == NodeType.LIST:
-            if not isinstance(doc, list):
-                raise TypeError(f"at {self} doc is not list")
-            for c in self._children:
-                for sub_doc in doc:
-                    c.apply(sub_doc, vertex_config, acc, discriminant_key)
+                acc = self._loop_over_children(
+                    sub_doc, vertex_config, acc, discriminant_key
+                )
         elif self.type == NodeType.VALUE:
             if self.name is not None:
                 acc[self.name] += [{self.key: doc}]
         elif self.type == NodeType.VERTEX:
             if not isinstance(doc, dict):
                 raise TypeError(f"at {self} doc is not dict")
-            self._apply_map(doc, vertex_config, acc, discriminant_key)
+            acc = self._apply_map(doc, vertex_config, acc, discriminant_key)
         elif self.type == NodeType.EDGE:
-            self._add_edges(vertex_config, acc, discriminant_key)
+            acc = self._add_edges(vertex_config, acc, discriminant_key)
         elif self.type == NodeType.WEIGHT:
-            self._add_weights(vertex_config, acc)
+            acc = self._add_weights(vertex_config, acc)
         else:
             pass
+        return acc
 
     def __repr__(self):
         s = f"(type = {self.type}, "
-        s += f"descend = {self.key}"
+        s += f"name = `{self.name}`, "
+        s += f"descend = `{self.key}`, "
+        s += f"edge = {self.edge}"
         s += f")"
         return s
+
+    def _loop_over_children(
+        self, item, vertex_config, acc, discriminant_key
+    ) -> defaultdict[GraphEntity, list]:
+        acc0: defaultdict[GraphEntity, list] = defaultdict(list)
+
+        for c in self._children:
+            acc0 = c.apply(item, vertex_config, acc0, discriminant_key)
+        acc = update_defaultdict(acc, acc0)
+        return acc
 
     def _apply_map(
         self,
@@ -184,6 +227,7 @@ class MapperNode(BaseDataclass):
             if self.discriminant is not None:
                 _doc.update({discriminant_key: self.discriminant})
             acc[self.name] += [_doc]
+        return acc
 
     def _add_edges(self, vertex_config: VertexConfig, acc, discriminant_key):
         assert self.edge is not None
@@ -212,19 +256,27 @@ class MapperNode(BaseDataclass):
             discriminant_key,
         )
 
-        for u, v in product(source_items, target_items):
+        if (
+            self.edge.source_discriminant is None
+            and self.edge.target_discriminant is None
+        ):
+            iterator: Callable[..., Iterable[Any]] = zip
+        else:
+            iterator = product
+        for u, v in iterator(source_items, target_items):
             # adding weight from source or target
             weight = dict()
-            for field in self.edge.weights.source_fields:
-                if field in u:
-                    weight[field] = u[field]
-                    if field not in self.edge.non_exclusive:
-                        del u[field]
-            for field in self.edge.weights.target_fields:
-                if field in v:
-                    weight[field] = v[field]
-                    if field not in self.edge.non_exclusive:
-                        del v[field]
+            if self.edge.weights:
+                for field in self.edge.weights.source_fields:
+                    if field in u:
+                        weight[field] = u[field]
+                        if field not in self.edge.non_exclusive:
+                            del u[field]
+                for field in self.edge.weights.target_fields:
+                    if field in v:
+                        weight[field] = v[field]
+                        if field not in self.edge.non_exclusive:
+                            del v[field]
             acc[source, target, self.edge.relation] += [
                 {
                     **{
@@ -234,6 +286,7 @@ class MapperNode(BaseDataclass):
                     **weight,
                 }
             ]
+        return acc
 
     def _add_weights(self, vertex_config: VertexConfig, agg):
         assert self.edge is not None

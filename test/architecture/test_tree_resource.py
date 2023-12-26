@@ -1,9 +1,7 @@
 import logging
-from test.conftest import schema
 
 from graph_cast.architecture.mapper import MapperNode
 from graph_cast.architecture.resource import TreeResource
-from graph_cast.architecture.schema import Schema
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +30,8 @@ def test_schema_mapper_node(schema):
     sch = schema("kg_v3b")
     mn = MapperNode.from_dict(sch["resources"]["tree_likes"][0]["root"])
     assert len(mn._children) == 5
+    assert mn._children[-1].edge is not None
+    assert mn._children[-1].edge.source == "publication"
 
 
 def test_schema_tree(schema):

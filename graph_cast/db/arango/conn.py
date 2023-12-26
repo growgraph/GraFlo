@@ -4,14 +4,14 @@ import logging
 from arango import ArangoClient
 from suthing import ArangoConnectionConfig
 
-from graph_cast.architecture import Configurator
-from graph_cast.architecture.graph import GraphConfig
+from graph_cast.architecture.edge import Edge
 from graph_cast.architecture.onto import (
     SOURCE_AUX,
     TARGET_AUX,
     Index,
     IndexType,
 )
+from graph_cast.architecture.schema import Schema
 from graph_cast.architecture.vertex import VertexConfig
 from graph_cast.db.arango.query import fetch_fields_query
 from graph_cast.db.connection import Connection
@@ -51,31 +51,25 @@ class ArangoConnection(Connection):
         # self.conn.close()
         pass
 
-    def init_db(self, conf_obj: Configurator, clean_start):
+    def init_db(self, schema: Schema, clean_start):
         if clean_start:
             self.delete_collections([], [], delete_all=True)
             #     delete_collections(sys_db, vcollections + ecollections, actual_graphs)
             # elif clean_start == "edges":
             #     delete_collections(sys_db, ecollections, [])
-        self.define_collections(conf_obj.graph_config, conf_obj.vertex_config)
-        self.define_indices(conf_obj.graph_config, conf_obj.vertex_config)
+        self.define_collections(schema)
+        self.define_indexes(schema)
 
-    def define_collections(self, graph_config, vertex_config: VertexConfig):
-        self.define_vertex_collections(graph_config, vertex_config)
-        self.define_edge_collections(graph_config)
+    def define_collections(self, schema: Schema):
+        self.define_vertex_collections(schema)
+        self.define_edge_collections(schema.edge_config.edges)
 
-    def define_indices(self, graph_config, vertex_config: VertexConfig):
-        self.define_vertex_indices(vertex_config)
-        self.define_edge_indices(graph_config)
-
-    def define_vertex_collections(
-        self, graph_config: GraphConfig, vertex_config: VertexConfig
-    ):
-        disconnected_vertex_collections = set(vertex_config.vertex_set) - set(
-            [v for edge in graph_config.all_edges for v in edge]
+    def define_vertex_collections(self, schema: Schema):
+        vertex_config = schema.vertex_config
+        disconnected_vertex_collections = (
+            set(vertex_config.vertex_set) - schema.edge_config.vertices
         )
-        es = list(graph_config.all_edge_definitions())
-        for item in es:
+        for item in schema.edge_config.edges:
             u, v = item.source, item.target
             gname = item.graph_name
             logger.info(f"{item.source}, {item.target}, {gname}")
@@ -97,9 +91,8 @@ class ArangoConnection(Connection):
                 vertex_config.vertex_dbname(v), vertex_config.index(v), None
             )
 
-    def define_edge_collections(self, graph_config: GraphConfig):
-        es = list(graph_config.all_edge_definitions())
-        for item in es:
+    def define_edge_collections(self, edges: list[Edge]):
+        for item in edges:
             gname = item.graph_name
             if self.conn.has_graph(gname):
                 g = self.conn.graph(gname)
@@ -142,10 +135,10 @@ class ArangoConnection(Connection):
                 )
                 self._add_index(general_collection, index_obj)
 
-    def define_edge_indices(self, graph_config: GraphConfig):
-        for item in graph_config.all_edge_definitions():
-            general_collection = self.conn.collection(item.relation)
-            for index_obj in item.indexes:
+    def define_edge_indices(self, edges: list[Edge]):
+        for edge in edges:
+            general_collection = self.conn.collection(edge.relation)
+            for index_obj in edge.indexes:
                 self._add_index(general_collection, index_obj)
 
     def create_collection(

@@ -20,7 +20,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config-path",
         type=str,
-        default="conf/table/ibes.yaml",
+        default="conf/csv/ibes.yaml",
         help="",
     )
 

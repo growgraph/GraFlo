@@ -7,6 +7,7 @@ import yaml
 from suthing import FileHandle, equals
 
 from graph_cast.architecture import JConfigurator, TConfigurator
+from graph_cast.caster import Caster
 from graph_cast.input import jsondoc_to_collections, table_to_collections
 from graph_cast.input.util import list_to_dict_edges, list_to_dict_vertex
 from graph_cast.onto import InputType, InputTypeFileExtensions
@@ -18,41 +19,38 @@ def current_path():
     return dirname(realpath(__file__))
 
 
-def transform_it(current_path, input_type, mode, reset):
-    data_obj = FileHandle.load(
-        f"test.data.{input_type}.{mode}",
-        f"{mode}.{InputTypeFileExtensions[input_type][0]}.gz",
-    )
-    config = FileHandle.load(f"test.config.schema", f"{mode}.yaml")
+def cast_it(schema_obj, data, reset):
+    caster = Caster(schema_obj)
+    docs = caster.cast(data)
+    pass
+    # if input_type == InputType.CSV:
+    #     conf_obj = TConfigurator(config)
+    #
+    #     header = data_obj.columns
+    #     header_dict = dict(zip(header, range(len(header))))
+    #     lines = list(data_obj.values)
+    #     conf_obj.set_mode(mode)
+    #
+    #     docs = table_to_collections(
+    #         lines,
+    #         header_dict,
+    #         conf_obj,
+    #     )
+    #
+    #     vdocuments = list_to_dict_vertex(docs)
+    #
+    #     vc = {k: len(pick_unique_dict(v)) for k, v in vdocuments.items()}
+    #
+    # elif input_type == InputType.JSON:
+    #     conf_obj = JConfigurator(config)
+    #
+    #     defdict = jsondoc_to_collections(data_obj[0], conf_obj)
+    #
+    #     vc = {k: len(v) for k, v in defdict.items()}
+    # else:
+    #     raise ValueError(f"Unknown {input_type}")
 
-    if input_type == InputType.TABLE:
-        conf_obj = TConfigurator(config)
-
-        header = data_obj.columns
-        header_dict = dict(zip(header, range(len(header))))
-        lines = list(data_obj.values)
-        conf_obj.set_mode(mode)
-
-        docs = table_to_collections(
-            lines,
-            header_dict,
-            conf_obj,
-        )
-
-        vdocuments = list_to_dict_vertex(docs)
-
-        vc = {k: len(pick_unique_dict(v)) for k, v in vdocuments.items()}
-
-    elif input_type == InputType.JSON:
-        conf_obj = JConfigurator(config)
-
-        defdict = jsondoc_to_collections(data_obj[0], conf_obj)
-
-        vc = {k: len(v) for k, v in defdict.items()}
-    else:
-        raise ValueError(f"Unknown {input_type}")
-
-    verify(vc, current_path, mode, reset)
+    # verify(vc, current_path, mode, reset)
 
 
 def verify(vc, current_path, mode, reset):
@@ -222,7 +220,7 @@ def edge_config_ticker():
 def tconf_ibes(vertex_config_ibes, edge_config_ibes, table_config_ibes):
     config = {
         "general": {"name": "ibes"},
-        "table": [table_config_ibes],
+        "csv": [table_config_ibes],
         "vertex_collections": vertex_config_ibes,
         "edge_collections": edge_config_ibes,
     }

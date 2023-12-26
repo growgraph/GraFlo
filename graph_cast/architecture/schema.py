@@ -33,48 +33,21 @@ class Schema(BaseDataclass):
         self.edge_config.finish_init(self.vertex_config)
 
         self.resources.finish_init(self.vertex_config, self.edge_config)
-
-        self._current_resource: None | Resource = None
         pass
 
-    def select_resource(self, name: str):
+    def fetch_resource(self, name: str | None = None) -> Resource:
+        _current_resource = None
         for r in self.resources.tree_likes:
-            if r.name == name:
-                self._current_resource = r
+            if name is None:
+                _current_resource = r
+            elif r.name == name:
+                _current_resource = r
 
         for r in self.resources.row_likes:
-            if r.name == name:
-                self._current_resource = r
-
-    @property
-    def current_resource(self):
-        assert self._current_resource is not None
-        return self._current_resource
-
-    """
-    -   how: all
-        source:
-            name: publication
-            _anchor: main
-            fields:
-            -   _anchor
-        target:
-            name: date
-            _anchor: main
-
-    __OR__
-
-    -   type: edge
-    how: all
-    source:
-        name: mention
-        _anchor: triple_index
-    target:
-        name: mention
-        _anchor: core
-        fields:
-        -   _role
-    index:
-    -   fields:
-        -   _role
-    """
+            if name is None:
+                _current_resource = r
+            elif r.name == name:
+                _current_resource = r
+        if _current_resource is None:
+            raise ValueError(f"Resource {name} not found")
+        return _current_resource

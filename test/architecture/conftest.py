@@ -1,8 +1,7 @@
-from os.path import dirname, join, realpath
-
 import pytest
 import yaml
-from suthing import FileHandle
+
+from graph_cast.caster import Caster
 
 
 @pytest.fixture()
@@ -364,8 +363,7 @@ def mapper_node_tree():
     type: descend
     key: map_mention_entity
     children:
-    -   type: list
-        children:
+    -   children:
         -   type: edge
             how: all
             edge:

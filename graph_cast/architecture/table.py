@@ -139,7 +139,7 @@ class TConfigurator(Configurator):
         if DataSourceType.TABLE in config:
             config_table = deepcopy(config[DataSourceType.TABLE])
         else:
-            raise KeyError("expected `table` section in config missing")
+            raise KeyError("expected `csv` section in config missing")
 
         self.mode2files = defaultdict(list)
         self.table_config: dict[str, TableConfig] = dict()
@@ -148,7 +148,7 @@ class TConfigurator(Configurator):
     def set_mode(self, mode):
         """
         TConfigurator configure several types of tables, mode tells TConfigurator
-        which type to table to deal with currently
+        which type to csv to deal with currently
         :param mode:
         :return:
         """

@@ -26,7 +26,7 @@ class SchemaPlotter:
             self.type = DataSourceType.TABLE
             self.conf = TConfigurator(self.config)
         else:
-            raise KeyError(f"Configured to plot json or table mapper schemas")
+            raise KeyError(f"Configured to plot json or csv mapper schemas")
 
         self.name = self.conf.name
         self.prefix = f"{self.name}_{self.type}"
@@ -119,7 +119,7 @@ class SchemaPlotter:
 
     def plot_source2vc(self):
         """
-        draw map of source vertices (nodes of json or table files) to vertex collections
+        draw map of source vertices (nodes of json or csv files) to vertex collections
 
 
         """
@@ -138,7 +138,7 @@ class SchemaPlotter:
             edges = []
             for table_type in self.conf.tables:
                 vertices = self.conf.vertices(table_type)
-                nodes_table = [(table_type, {"type": "table"})]
+                nodes_table = [(table_type, {"type": "csv"})]
                 nodes_collection = [
                     (vc, {"type": "vcollection"}) for vc in vertices
                 ]
@@ -255,7 +255,7 @@ class SchemaPlotter:
         # TODO adjust to TConfig
 
         """
-            source (json vertex or table) -> source fields -> vertex collection fields -> vertex collection
+            source (json vertex or csv) -> source fields -> vertex collection fields -> vertex collection
 
         :return:
         """
@@ -266,7 +266,7 @@ class SchemaPlotter:
 
         for table_name in self.conf.tables:
             nodes_table = [
-                (f"table:{table_name}", {"type": "table", "label": table_name})
+                (f"csv:{table_name}", {"type": "csv", "label": table_name})
             ]
             transforms = self.conf.table_config[table_name]
             for vertex in self.conf.vertices(table_name):
@@ -286,7 +286,7 @@ class SchemaPlotter:
                     {"type": "vcollection", "label": vertex},
                 )
                 nodes_fields_table = [
-                    (f"table:field:{kk}", {"type": "field", "label": kk})
+                    (f"csv:field:{kk}", {"type": "field", "label": kk})
                     for kk in cmap.keys()
                 ]
                 nodes_fields_collection = [
@@ -302,11 +302,11 @@ class SchemaPlotter:
                     for kk in cmap.values()
                 ]
                 edges_fields = [
-                    (f"table:field:{kk}", f"collection:field:{vv}")
+                    (f"csv:field:{kk}", f"collection:field:{vv}")
                     for kk, vv in cmap.items()
                 ]
                 edge_table_fields = [
-                    (f"table:{table_name}", q) for q, _ in nodes_fields_table
+                    (f"csv:{table_name}", q) for q, _ in nodes_fields_table
                 ]
                 edge_collection_fields = [
                     (q, node_collection[0]) for q, _ in nodes_fields_collection
@@ -372,7 +372,7 @@ fillcolor_palette = {
     "red": "#EBA59E",
 }
 map_type2shape = {
-    "table": "box",
+    "csv": "box",
     "vcollection": "ellipse",
     "index": "polygon",
     "field": "octagon",
@@ -380,11 +380,11 @@ map_type2shape = {
     "def_field": "trapezium",
 }
 map_type2color = {
-    "table": fillcolor_palette["blue"],
+    "csv": fillcolor_palette["blue"],
     "vcollection": fillcolor_palette["green"],
     "index": "orange",
     "def_field": fillcolor_palette["red"],
     "field": fillcolor_palette["violet"],
     "blank": "white",
 }
-edge_status = {"vcollection": "solid", "table": "solid"}
+edge_status = {"vcollection": "solid", "csv": "solid"}

@@ -3,7 +3,7 @@ import json
 import logging
 from collections import ChainMap, defaultdict
 
-from graph_cast.util.io import FPSmart
+from graph_cast.util.chunking import FPSmart
 
 logger = logging.getLogger(__name__)
 

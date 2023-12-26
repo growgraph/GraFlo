@@ -11,7 +11,7 @@ from graph_cast.db import ConnectionManager
 from graph_cast.input import table_to_collections
 from graph_cast.input.table import logger
 from graph_cast.input.util import list_to_dict_edges, list_to_dict_vertex
-from graph_cast.util.io import AbsChunker, Chunker, ChunkerDataFrame
+from graph_cast.util.chunking import AbsChunker, Chunker, ChunkerDataFrame
 
 
 def process_table(
@@ -23,7 +23,7 @@ def process_table(
     dry=False,
 ):
     """
-        given a table, config that specifies table to graph mapping and db_config, transform table and load it into db
+        given a csv, config that specifies csv to graph mapping and db_config, transform csv and load it into db
 
     Args:
         tabular_resource:
@@ -58,7 +58,7 @@ def process_table(
     header = chk.pop_header()
     header_dict = dict(zip(header, range(len(header))))
 
-    logger.info(f"processing current table resource : {tabular_resource}")
+    logger.info(f"processing current csv resource : {tabular_resource}")
 
     while not chk.done:
         lines = chk.pop()

@@ -72,13 +72,6 @@ class VertexConfig(BaseDataclass):
     def fields(self, vertex_name: str):
         return self._vertices_dict[vertex_name].fields
 
-    # def _init_numeric_fields(self, vconfig):
-    #     self._vcollection_numeric_fields_map = {
-    #         k: v["numeric_fields"]
-    #         for k, v in vconfig.items()
-    #         if "numeric_fields" in v
-    #     }
-
     def numeric_fields_list(self, vertex_name):
         if vertex_name in self.vertex_set:
             if vertex_name in self._vcollection_numeric_fields_map:

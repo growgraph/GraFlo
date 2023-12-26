@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--path", type=str, help="path to table datafiles")
+    parser.add_argument("--path", type=str, help="path to csv datafiles")
 
     parser.add_argument(
         "-f",

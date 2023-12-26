@@ -98,4 +98,4 @@ class Index(BaseDataclass):
 
 class DataSourceType(str, BaseEnum):
     JSON = "json"
-    TABLE = "table"
+    TABLE = "csv"

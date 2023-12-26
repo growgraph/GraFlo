@@ -1,20 +1,29 @@
 from __future__ import annotations
 
+import abc
 import dataclasses
 import logging
 from collections import defaultdict
 from copy import deepcopy
+from itertools import combinations, product
 from typing import Iterator
 
 import networkx as nx
 
-from graph_cast.architecture import DataSourceType
 from graph_cast.architecture.edge import Edge, EdgeConfig
 from graph_cast.architecture.mapper import MapperNode
-from graph_cast.architecture.onto import EncodingType, GraphEntity
+from graph_cast.architecture.onto import (
+    SOURCE_AUX,
+    TARGET_AUX,
+    EdgeType,
+    EncodingType,
+    GraphEntity,
+)
 from graph_cast.architecture.transform import Transform
 from graph_cast.architecture.vertex import VertexConfig
-from graph_cast.onto import BaseDataclass
+from graph_cast.onto import BaseDataclass, ResourceType
+from graph_cast.util.merge import merge_doc_basis, merge_documents
+from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +34,44 @@ DISCRIMINANT_KEY = "__discriminant_key"
 @dataclasses.dataclass
 class Resource(BaseDataclass):
     name: str | None = None
-    resource_type: DataSourceType = DataSourceType.TABLE
+    resource_type: ResourceType = ResourceType.ROWLIKE
     encoding: EncodingType = EncodingType.UTF_8
+    # TODO work out merging collection:
+    #       applied when there are docs without the primary key that are merged to a main doc
+    merge_collections: list[str] = dataclasses.field(default_factory=list)
+
+    @abc.abstractmethod
+    def apply(
+        self, data: list[dict], vertex_config: VertexConfig, **kwargs
+    ) -> list[defaultdict[GraphEntity, list]]:
+        pass
+
+    def normalize_unit(
+        self,
+        unit_doc: defaultdict[GraphEntity, list],
+        vertex_config: VertexConfig,
+    ) -> defaultdict[GraphEntity, list]:
+        """
+
+        Args:
+            unit_doc: generic : ddict
+            vertex_config:
+
+        Returns: defaultdict vertex and edges collections
+
+        """
+
+        for vertex, v in unit_doc.items():
+            v = pick_unique_dict(v)
+            if vertex in vertex_config.vertex_set:
+                v = merge_doc_basis(
+                    v, tuple(vertex_config.index(vertex).fields)
+                )
+            if vertex in self.merge_collections:
+                v = merge_documents(v)
+            unit_doc[vertex] = v
+
+        return unit_doc
 
 
 @dataclasses.dataclass
@@ -121,33 +166,89 @@ class RowResource(Resource):
         fields: set[str] = set().union(*field_sets)
         return fields
 
+    def apply(
+        self, data: list[dict], vertex_config: VertexConfig, **kwargs
+    ) -> list[defaultdict[GraphEntity, list]]:
+        ec = kwargs.pop("ec")
+        columns = kwargs.pop("columns")
+        self.add_trivial_transformations(vertex_config, columns)
+
+        predocs_transformed = [
+            row_to_vertices(x, vertex_config, self) for x in data
+        ]
+
+        docs = [
+            normalize_row(item, vertex_config) for item in predocs_transformed
+        ]
+
+        docs = [add_blank_collections(item, vertex_config) for item in docs]
+
+        docs = [
+            apply_filter(
+                item,
+                vertex_conf=vertex_config,
+            )
+            for item in docs
+        ]
+
+        pure_weights = [extract_weights(unit, self, ec.edges) for unit in data]
+
+        docs = [
+            define_edges(
+                unit,
+                unit_weights,
+                ec.edges,
+                vertex_conf=vertex_config,
+            )
+            for unit, unit_weights in zip(docs, pure_weights)
+        ]
+        return docs
+
 
 @dataclasses.dataclass(kw_only=True)
 class TreeResource(Resource):
     root: MapperNode
-    merge_collection: list[str] = dataclasses.field(default_factory=list)
     extra_weights: list[Edge] = dataclasses.field(default_factory=list)
 
     def __post_init__(self):
-        self.resource_type = DataSourceType.JSON
+        self.resource_type = ResourceType.TREELIKE
 
     def finish_init(self, vc: VertexConfig):
+        self.root.finish_init(vc)
         for e in self.extra_weights:
             e.finish_init(vc)
 
-    def apply(
+    def apply_doc(
         self,
-        doc,
+        doc: dict,
         vertex_config: VertexConfig,
-        acc: defaultdict[GraphEntity, list],
         discriminant_key=DISCRIMINANT_KEY,
-    ):
-        self.root.apply(
+    ) -> defaultdict[GraphEntity, list]:
+        acc: defaultdict[GraphEntity, list] = defaultdict(list)
+        acc = self.root.apply(
             doc,
             vertex_config,
             acc,
             discriminant_key,
         )
+        acc = self.normalize_unit(acc, vertex_config)
+
+        return acc
+
+    def apply(
+        self, data: list[dict], vertex_config: VertexConfig, **kwargs
+    ) -> list[defaultdict[GraphEntity, list]]:
+        discriminant_key = kwargs.pop("discriminant_key", DISCRIMINANT_KEY)
+
+        graph = [
+            self.apply_doc(
+                doc,
+                vertex_config=vertex_config,
+                discriminant_key=discriminant_key,
+            )
+            for doc in data
+        ]
+        return graph
 
 
 @dataclasses.dataclass
@@ -160,3 +261,109 @@ class ResourceHolder(BaseDataclass):
             r.finish_init(vc)
         for r in self.row_likes:
             r.finish_init(vertex_config=vc, edge_config=ec)
+
+
+def row_to_vertices(
+    doc: dict, vc: VertexConfig, rr: RowResource
+) -> defaultdict[GraphEntity, list]:
+    """
+
+        doc gets transformed and mapped onto vertices
+
+    :param doc: {k: v}
+    :param vc:
+    :param rr:
+    :return: { vertex: [doc]}
+    """
+
+    docs: defaultdict[GraphEntity, list] = defaultdict(list)
+    for vertex in vc.vertices:
+        docs[vertex.name] += [
+            tau(doc, __return_doc=True)
+            for tau in rr.fetch_transforms(vertex.name)
+        ]
+    return docs
+
+
+def normalize_row(unit, vc: VertexConfig) -> defaultdict[GraphEntity, list]:
+    doc_upd: defaultdict[GraphEntity, list] = defaultdict(list)
+    for k, item in unit.items():
+        doc_upd[k] = merge_doc_basis(item, tuple(vc.index(k).fields))
+    return doc_upd
+
+
+def add_blank_collections(
+    unit: defaultdict[GraphEntity, list[dict]], vertex_conf: VertexConfig
+) -> defaultdict[GraphEntity, list[dict]]:
+    # add blank collections
+    for vertex in vertex_conf.blank_vertices:
+        # if blank collection is in batch - add it
+        if vertex not in unit:
+            unit[vertex] = [{}]
+    return unit
+
+
+def apply_filter(
+    unit: defaultdict[GraphEntity, list[dict]], vertex_conf: VertexConfig
+) -> defaultdict[GraphEntity, list[dict]]:
+    for vertex, doc_list in unit.items():
+        if vertex_conf.filters(vertex):
+            unit[vertex] = [
+                doc
+                for doc in doc_list
+                if all(cfilter(doc) for cfilter in vertex_conf.filters(vertex))
+            ]
+    return unit
+
+
+def extract_weights(
+    doc: dict, row_resource: RowResource, edges: list[Edge]
+) -> defaultdict[GraphEntity, list]:
+    doc_upd: defaultdict[GraphEntity, list] = defaultdict(list)
+    for e in edges:
+        for tau in row_resource.fetch_transforms(e.edge_id):
+            doc_upd[e.edge_id] += [tau(doc, __return_doc=True)]
+    return doc_upd
+
+
+def define_edges(
+    unit: defaultdict[GraphEntity, list[dict]],
+    unit_weights: defaultdict[GraphEntity, list[dict]],
+    current_edges: list[Edge],
+    vertex_conf: VertexConfig,
+) -> defaultdict[GraphEntity, list[dict]]:
+    for e in current_edges:
+        u, v, r = e.source, e.target, e.relation
+        # blank_collections : db ids have to be retrieved to define meaningful edges
+        if not (
+            u in vertex_conf.blank_vertices or v in vertex_conf.blank_vertices
+        ):
+            if e.type == EdgeType.DIRECT:
+                ziter: product | combinations
+                if u != v:
+                    ziter = product(unit[u], unit[v])
+                else:
+                    ziter = combinations(unit[u], r=2)
+
+                for udoc, vdoc in ziter:
+                    edoc = {SOURCE_AUX: udoc, TARGET_AUX: vdoc}
+                    if e.weights is not None:
+                        # weights_direct = {
+                        #     f: cbatch[f] for f in e.weights.direct
+                        # }
+
+                        for vertex_weight in e.weights.vertices:
+                            if vertex_weight.name == u:
+                                cbatch = udoc
+                            elif vertex_weight.name == v:
+                                cbatch = vdoc
+                            else:
+                                continue
+                            weights = {
+                                f: cbatch[f] for f in vertex_weight.fields
+                            }
+                            edoc.update(weights)
+                    for ud in unit_weights[e.edge_id]:
+                        edoc.update(ud)
+                    unit[e.edge_id].append(edoc)
+    return unit

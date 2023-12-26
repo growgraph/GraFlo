@@ -28,7 +28,7 @@ def ingest_files(
     input_type: InputType,
     **kwargs,
 ):
-    if input_type == InputType.TABLE:
+    if input_type == InputType.CSV:
         ingest_tables(
             fpath=fpath, schema=schema, conn_conf=conn_conf, **kwargs
         )

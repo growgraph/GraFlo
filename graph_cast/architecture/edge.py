@@ -27,7 +27,7 @@ class Edge(BaseDataclass):
     source: str
     target: str
     indexes: list[Index] = dataclasses.field(default_factory=list)
-    weights: WeightConfig = None
+    weights: WeightConfig = None  # type: ignore
 
     non_exclusive: list[str] = dataclasses.field(default_factory=list)
     relation: str | None = None
@@ -51,10 +51,15 @@ class Edge(BaseDataclass):
             self.by = vc.vertex_dbname(self.by)
         self.source_collection = vc.vertex_dbname(self.source)
         self.target_collection = vc.vertex_dbname(self.target)
-        self.graph_name = (
-            f"{vc.vertex_dbname(self.source)}_{vc.vertex_dbname(self.target)}_"
-            f"{self.collection_name_suffix}_graph"
-        )
+        graph_name = [
+            vc.vertex_dbname(self.source),
+            vc.vertex_dbname(self.target),
+        ]
+        if self.relation is not None:
+            graph_name += self.relation
+        if self.collection_name_suffix is not None:
+            graph_name += self.collection_name_suffix
+        self.graph_name = "_".join(graph_name + ["graph"])
         self.db_flavor = vc.db_flavor
         self._init_indices(vc)
 
@@ -130,3 +135,7 @@ class EdgeConfig(BaseDataclass):
             e.finish_init(vc)
         for e in self.extra_edges:
             e.finish_init(vc)
+
+    @property
+    def vertices(self):
+        return {e.source for e in self.edges} | {e.target for e in self.edges}

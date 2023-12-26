@@ -4,8 +4,9 @@ from neo4j import GraphDatabase
 from suthing import Neo4jConnectionConfig
 
 from graph_cast.architecture import Configurator
-from graph_cast.architecture.graph import GraphConfig
+from graph_cast.architecture.edge import Edge
 from graph_cast.architecture.onto import Index
+from graph_cast.architecture.schema import Schema
 from graph_cast.architecture.vertex import VertexConfig
 from graph_cast.db.connection import Connection
 from graph_cast.onto import AggregationType, DBFlavor, Expression
@@ -58,11 +59,11 @@ class Neo4jConnection(Connection):
             for index_obj in vertex_config.indexes(c):
                 self._add_index(c, index_obj)
 
-    def define_edge_indices(self, graph_config: GraphConfig):
-        for item in graph_config.all_edge_definitions():
-            for index_obj in item.indexes:
+    def define_edge_indices(self, edges: list[Edge]):
+        for edge in edges:
+            for index_obj in edge.indexes:
                 self._add_index(
-                    item.relation, index_obj, is_vertex_index=False
+                    edge.relation, index_obj, is_vertex_index=False
                 )
 
     def _add_index(self, obj_name, index: Index, is_vertex_index=True):
@@ -81,17 +82,13 @@ class Neo4jConnection(Connection):
 
         self.execute(q)
 
-    def define_collections(self, graph_config, vertex_config: VertexConfig):
+    def define_collections(self, schema: Schema):
         pass
 
-    def define_indices(self, graph_config, vertex_config: VertexConfig):
-        self.define_vertex_indices(vertex_config)
-        self.define_edge_indices(graph_config)
-
-    def define_vertex_collections(self, graph_config, vertex_config):
+    def define_vertex_collections(self, schema: Schema):
         pass
 
-    def define_edge_collections(self, graph_config):
+    def define_edge_collections(self, edges: list[Edge]):
         pass
 
     def delete_collections(self, cnames=(), gnames=(), delete_all=False):
@@ -103,8 +100,8 @@ class Neo4jConnection(Connection):
             q = f"MATCH (n) DELETE n"
             self.execute(q)
 
-    def init_db(self, conf_obj: Configurator, clean_start):
-        self.define_indices(conf_obj.graph_config, conf_obj.vertex_config)
+    def init_db(self, schema: Schema, clean_start):
+        self.define_indexes(schema)
 
     def upsert_docs_batch(self, docs, class_name, match_keys, **kwargs):
         """

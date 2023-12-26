@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 from abc import ABCMeta, abstractmethod
 from enum import Enum, EnumMeta
@@ -22,7 +24,12 @@ class BaseEnum(Enum, metaclass=MetaEnum):
 
 class InputType(str, BaseEnum):
     JSON = "json"
-    TABLE = "table"
+    CSV = "csv"
+
+
+class ResourceType(str, BaseEnum):
+    ROWLIKE = "row"
+    TREELIKE = "tree"
 
 
 class DBFlavor(str, BaseEnum):
@@ -256,5 +263,8 @@ class Expression(AbsClause):
 
 
 InputTypeFileExtensions = MappingProxyType(
-    {InputType.JSON: (InputType.JSON,), InputType.TABLE: ("csv",)}
+    {
+        ResourceType.TREELIKE: (InputType.JSON,),
+        ResourceType.ROWLIKE: (InputType.CSV,),
+    }
 )

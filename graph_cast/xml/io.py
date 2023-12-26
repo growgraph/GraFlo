@@ -6,7 +6,7 @@ from shutil import copyfileobj
 
 import xmltodict
 
-from graph_cast.util.io import ChunkFlusherMono, FPSmart
+from graph_cast.util.chunking import ChunkFlusherMono, FPSmart
 
 logger = logging.getLogger(__name__)
 

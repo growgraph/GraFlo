@@ -1,7 +1,7 @@
 ~schema:
     ~name: "mixed example"
 ~sources:
--   ~type: table
+-   ~type: csv
     ~name: publications
     ~root:
         vertex_collections:

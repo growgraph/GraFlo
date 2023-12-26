@@ -1,4 +1,3 @@
-from test.conftest import current_path, ingest_atomic, reset
 from test.db.neo4js.conftest import clean_db, conn_conf, test_db_name
 
 import pytest
@@ -13,16 +12,18 @@ def modes():
         # "wos",
         # "lake_odds",
         # "kg_v3b",
+        "review"
     ]
 
 
-@pytest.fixture(scope="function")
-def table_modes():
-    return ["review"]
-
-
-def test_csv(
-    clean_db, table_modes, conn_conf, current_path, test_db_name, reset
+def test_ingest(
+    ingest_atomic,
+    clean_db,
+    table_modes,
+    conn_conf,
+    current_path,
+    test_db_name,
+    reset,
 ):
     _ = clean_db
     for m in table_modes:
@@ -30,7 +31,7 @@ def test_csv(
             conn_conf,
             current_path,
             test_db_name,
-            input_type=InputType.TABLE,
+            input_type=InputType.CSV,
             mode=m,
         )
         if m == "review":
@@ -50,12 +51,3 @@ def test_csv(
                     return_keys=["full_name"],
                 )
                 assert len(r[0]) == 1
-
-        # verify(
-        #     conn_conf,
-        #     current_path,
-        #     test_db_name,
-        #     mode=m,
-        #     reset=reset,
-        #     input_type=InputType.TABLE,
-        # )
