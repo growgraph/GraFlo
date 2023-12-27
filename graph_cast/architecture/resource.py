@@ -40,10 +40,24 @@ class Resource(BaseDataclass):
     #       applied when there are docs without the primary key that are merged to a main doc
     merge_collections: list[str] = dataclasses.field(default_factory=list)
 
-    @abc.abstractmethod
     def apply(
-        self, data: list[dict], vertex_config: VertexConfig, **kwargs
+        self, data: list[dict], vertex_config: VertexConfig, ncores=1, **kwargs
     ) -> list[defaultdict[GraphEntity, list]]:
+        graph = [
+            self.apply_doc(doc, vertex_config=vertex_config, **kwargs)
+            for doc in data
+        ]
+        return graph
+
+    def prepare_apply(self, **kwargs):
+        self._prepare_apply(**kwargs)
+
+    @abc.abstractmethod
+    def _prepare_apply(self, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def apply_doc(self, doc: dict, **kwargs):
         pass
 
     def normalize_unit(
@@ -85,6 +99,11 @@ class RowResource(Resource):
 
         self._vertex_tau_current: nx.DiGraph = nx.DiGraph()
         self._transforms_current: dict[int, Transform] = {}
+
+    def _prepare_apply(self, **kwargs):
+        columns = kwargs.pop("columns")
+        vertex_config = kwargs.pop("vertex_config")
+        self.add_trivial_transformations(vertex_config, columns)
 
     def finish_init(
         self,
@@ -166,43 +185,28 @@ class RowResource(Resource):
         fields: set[str] = set().union(*field_sets)
         return fields
 
-    def apply(
-        self, data: list[dict], vertex_config: VertexConfig, **kwargs
-    ) -> list[defaultdict[GraphEntity, list]]:
-        ec = kwargs.pop("ec")
-        columns = kwargs.pop("columns")
-        self.add_trivial_transformations(vertex_config, columns)
+    def apply_doc(self, doc: dict, **kwargs) -> defaultdict[GraphEntity, list]:
+        vertex_config: VertexConfig = kwargs.pop("vertex_config")
+        edge_config = kwargs.pop("edge_config")
 
-        predocs_transformed = [
-            row_to_vertices(x, vertex_config, self) for x in data
-        ]
+        predocs_transformed = row_to_vertices(doc, vertex_config, self)
 
-        docs = [
-            normalize_row(item, vertex_config) for item in predocs_transformed
-        ]
+        item = normalize_row(predocs_transformed, vertex_config)
 
-        docs = [add_blank_collections(item, vertex_config) for item in docs]
+        item = add_blank_collections(item, vertex_config)
 
-        docs = [
-            apply_filter(
-                item,
-                vertex_conf=vertex_config,
-            )
-            for item in docs
-        ]
+        item = apply_filter(item, vertex_conf=vertex_config)
 
-        pure_weights = [extract_weights(unit, self, ec.edges) for unit in data]
+        pure_weight = extract_weights(doc, self, edge_config.edges)
 
-        docs = [
-            define_edges(
-                unit,
-                unit_weights,
-                ec.edges,
-                vertex_conf=vertex_config,
-            )
-            for unit, unit_weights in zip(docs, pure_weights)
-        ]
-        return docs
+        item = define_edges(
+            unit=item,
+            unit_weights=pure_weight,
+            current_edges=edge_config.edges,
+            vertex_conf=vertex_config,
+        )
+
+        return item
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -218,12 +222,13 @@ class TreeResource(Resource):
         for e in self.extra_weights:
             e.finish_init(vc)
 
-    def apply_doc(
-        self,
-        doc: dict,
-        vertex_config: VertexConfig,
-        discriminant_key=DISCRIMINANT_KEY,
-    ) -> defaultdict[GraphEntity, list]:
+    def _prepare_apply(self, **kwargs):
+        pass
+
+    def apply_doc(self, doc: dict, **kwargs) -> defaultdict[GraphEntity, list]:
+        vertex_config = kwargs.pop("vertex_config")
+        discriminant_key = kwargs.pop("discriminant_key", DISCRIMINANT_KEY)
+
         acc: defaultdict[GraphEntity, list] = defaultdict(list)
         acc = self.root.apply(
             doc,
@@ -234,21 +239,6 @@ class TreeResource(Resource):
         acc = self.normalize_unit(acc, vertex_config)
 
         return acc
-
-    def apply(
-        self, data: list[dict], vertex_config: VertexConfig, **kwargs
-    ) -> list[defaultdict[GraphEntity, list]]:
-        discriminant_key = kwargs.pop("discriminant_key", DISCRIMINANT_KEY)
-
-        graph = [
-            self.apply_doc(
-                doc,
-                vertex_config=vertex_config,
-                discriminant_key=discriminant_key,
-            )
-            for doc in data
-        ]
-        return graph
 
 
 @dataclasses.dataclass

@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 class NodeType(str, BaseEnum):
     # only refers to other nodes or maps children nodes to a list
     TRIVIAL = "trivial"
+    #
+    # LIST = "list"
     # adds a vertex specified by a value; terminal
     VALUE = "value"
     # adds a vertex, directly or via a mapping; terminal
@@ -164,11 +166,17 @@ class MapperNode(BaseDataclass):
                     doc, vertex_config, acc, discriminant_key
                 )
         elif self.type == NodeType.DESCEND:
-            if isinstance(doc, dict) and self.key in doc:
+            if self.key in doc:
                 sub_doc = doc[self.key]
-                acc = self._loop_over_children(
-                    sub_doc, vertex_config, acc, discriminant_key
-                )
+                if isinstance(sub_doc, dict):
+                    acc = self._loop_over_children(
+                        sub_doc, vertex_config, acc, discriminant_key
+                    )
+                elif isinstance(sub_doc, list):
+                    for ssub_doc in sub_doc:
+                        acc = self._loop_over_children(
+                            ssub_doc, vertex_config, acc, discriminant_key
+                        )
         elif self.type == NodeType.VALUE:
             if self.name is not None:
                 acc[self.name] += [{self.key: doc}]

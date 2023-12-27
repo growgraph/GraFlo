@@ -1,5 +1,6 @@
 agency: 138
 analyst: 476
+analyst->agency->None: 999
 publication: 999
 recommendation: 106
 ticker: 69

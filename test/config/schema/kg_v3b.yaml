@@ -9,69 +9,65 @@ resources:
                     source: publication
                     target: mention
                     target_discriminant: _top_level
-            -   type: descend
-                key: publication
+            -   key: publication
                 children:
                 -   type: vertex
                     name: publication
             -   key: top_level_mention
                 children:
-                -   children:
+                -   type: vertex
+                    name: mention
+                    map:
+                        hash: _key
+                    discriminant: _top_level
+            -   key: map_mention_entity
+                children:
+                -   type: edge
+                    edge:
+                        source: mention
+                        target: entity
+                -   key: entity
+                    children:
+                    -   type: vertex
+                        name: entity
+                        map:
+                            hash: _key
+                -   key: mention
+                    children:
                     -   type: vertex
                         name: mention
                         map:
                             hash: _key
-                        discriminant: _top_level
-            -   key: map_mention_entity
-                children:
-                -   children:
-                    -   type: edge
-                        edge:
-                            source: mention
-                            target: entity
-                    -   key: entity
-                        children:
-                        -   type: vertex
-                            name: entity
-                            map:
-                                hash: _key
-                    -   key: mention
-                        children:
-                        -   type: vertex
-                            name: mention
-                            map:
-                                hash: _key
             -   key: triples
                 children:
-                -   children:
-                    -   key: triple_index
-                        children:
+                -   key: triple_index
+                    children:
+                    -   type: vertex
+                        discriminant: triple_index
+                        name: mention
+                        map:
+                            hash: _key
+                -   key: triple
+                    children:
+                    -   children:
                         -   type: vertex
-                            discriminant: triple_index
+                            discriminant: core
                             name: mention
                             map:
+                                role: _role
                                 hash: _key
-                    -   key: triple
-                        children:
-                        -   children:
-                            -   type: vertex
-                                discriminant: core
-                                name: mention
-                                map:
-                                    role: _role
-                                    hash: _key
-                    -   type: edge
-                        edge:
-                            source: mention
-                            source_discriminant: triple_index
-                            target: mention
-                            target_discriminant: core
-                            weights:
-                                target_fields:
-                                -   _role
-                            index:
-                            -   fields:
-                                -   _role
+                -   type: edge
+                    edge:
+                        source: mention
+                        source_discriminant: triple_index
+                        target: mention
+                        target_discriminant: core
+                        weights:
+                            target_fields:
+                            -   _role
+                        index:
+                        -   fields:
+                            -   _role
         extra_weights:
         -   source: mention
             target: entity

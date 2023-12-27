@@ -6,6 +6,7 @@ from abc import ABCMeta
 from typing import Union
 
 from graph_cast.onto import BaseDataclass, BaseEnum
+from graph_cast.util.transform import pick_unique_dict
 
 ANCHOR_KEY = "_anchor"
 SOURCE_AUX = "__source"
@@ -15,7 +16,7 @@ TARGET_AUX = "__target"
 TypeVE = Union[str, tuple[str, str]]
 
 # type for vertex or edge name (index)
-GraphEntity = Union[str, tuple[str, str], tuple[str, str, str | None]]
+GraphEntity = Union[str, tuple[str, str, str | None]]
 
 logger = logging.getLogger(__name__)
 
@@ -99,3 +100,29 @@ class Index(BaseDataclass):
 class DataSourceType(str, BaseEnum):
     JSON = "json"
     TABLE = "csv"
+
+
+class ItemsView:
+    def __init__(self, gc: GraphContainer):
+        self._dictlike = gc
+
+    def __iter__(self):
+        for key in self._dictlike.vertices:
+            yield key, self._dictlike.vertices[key]
+        for key in self._dictlike.edges:
+            yield key, self._dictlike.edges[key]
+
+
+@dataclasses.dataclass
+class GraphContainer(BaseDataclass):
+    vertices: dict[str, list]
+    edges: dict[tuple[str, str, str | None], list]
+
+    def __post_init__(self):
+        for k, v in self.vertices.items():
+            self.vertices[k] = pick_unique_dict(v)
+        for k, v in self.edges.items():
+            self.edges[k] = pick_unique_dict(v)
+
+    def items(self):
+        return ItemsView(self)
