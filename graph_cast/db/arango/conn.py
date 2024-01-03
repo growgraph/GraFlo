@@ -98,9 +98,9 @@ class ArangoConnection(Connection):
                 g = self.conn.graph(gname)
             else:
                 g = self.conn.create_graph(gname)  # type: ignore
-            if not g.has_edge_definition(item.relation):
+            if not g.has_edge_definition(item.graph_name):
                 _ = g.create_edge_definition(
-                    edge_collection=item.relation,
+                    edge_collection=item.graph_name,
                     from_vertex_collections=[item.source_collection],
                     to_vertex_collections=[item.target_collection],
                 )
@@ -111,7 +111,7 @@ class ArangoConnection(Connection):
         # to let arango name her index, we remove "name"
         data.pop("name")
         if index.type == IndexType.PERSISTENT:
-            # temp fix : inconsistentcy in python-arango
+            # temp fix : inconsistent in python-arango
             ih = general_collection._add_index(data)
         if index.type == IndexType.HASH:
             ih = general_collection._add_index(data)
@@ -137,7 +137,7 @@ class ArangoConnection(Connection):
 
     def define_edge_indices(self, edges: list[Edge]):
         for edge in edges:
-            general_collection = self.conn.collection(edge.relation)
+            general_collection = self.conn.collection(edge.graph_name)
             for index_obj in edge.indexes:
                 self._add_index(general_collection, index_obj)
 
@@ -249,7 +249,8 @@ class ArangoConnection(Connection):
         docs_edges,
         source_class,
         target_class,
-        relation_name,
+        relation_name=None,
+        collection_name=None,
         match_keys_source=("_key",),
         match_keys_target=("_key",),
         filter_uniques=True,
@@ -267,6 +268,7 @@ class ArangoConnection(Connection):
         :param source_class,
         :param target_class,
         :param relation_name:
+        :param collection_name:
         :param match_keys_source:
         :param match_keys_target:
         :param filter_uniques:
@@ -362,7 +364,7 @@ class ArangoConnection(Connection):
             FOR edge in {docs_edges_str} {source_filter} {target_filter}
                 LET doc = {doc_definition}
                 {clauses}
-                in {relation_name} {options}"""
+                in {collection_name} {options}"""
         if not dry:
             self.execute(q_update)
 
@@ -438,9 +440,7 @@ class ArangoConnection(Connection):
         """
         if filters is not None:
             ff = Expression.from_dict(filters)
-            filter_clause = (
-                f"FILTER {ff.cast_filter(doc_name='d', kind=DBFlavor.ARANGO)}"
-            )
+            filter_clause = f"FILTER {ff(doc_name='d', kind=DBFlavor.ARANGO)}"
         else:
             filter_clause = ""
 
@@ -485,8 +485,7 @@ class ArangoConnection(Connection):
         if filters is not None:
             ff = Expression.from_dict(filters)
             filter_clause = (
-                "FILTER"
-                f" {ff.cast_filter(doc_name='doc', kind=DBFlavor.ARANGO)}"
+                f"FILTER {ff(doc_name='doc', kind=DBFlavor.ARANGO)}"
             )
         else:
             filter_clause = ""

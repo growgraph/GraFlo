@@ -2,14 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 
-from graph_cast.architecture.onto import (
-    BaseDataclass,
-    EdgeMapping,
-    EdgeType,
-    Index,
-    IndexType,
-    Weight,
-)
+from graph_cast.architecture.onto import BaseDataclass, EdgeType, Index, Weight
 from graph_cast.architecture.vertex import VertexConfig
 from graph_cast.onto import DBFlavor
 
@@ -56,9 +49,9 @@ class Edge(BaseDataclass):
             vc.vertex_dbname(self.target),
         ]
         if self.relation is not None:
-            graph_name += self.relation
+            graph_name += [self.relation]
         if self.collection_name_suffix is not None:
-            graph_name += self.collection_name_suffix
+            graph_name += [self.collection_name_suffix]
         self.graph_name = "_".join(graph_name + ["graph"])
         self.db_flavor = vc.db_flavor
         self._init_indices(vc)
@@ -135,6 +128,10 @@ class EdgeConfig(BaseDataclass):
             e.finish_init(vc)
         for e in self.extra_edges:
             e.finish_init(vc)
+
+    def update_edges(self, edge: Edge):
+        if all([edge.edge_id != e.edge_id for e in self.edges]):
+            self.edges += [edge]
 
     @property
     def vertices(self):

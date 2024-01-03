@@ -2,7 +2,8 @@ general:
     name: kg_v3
 resources:
     tree_likes:
-    -   root:
+    -   name: kg
+        root:
             children:
             -   type: edge
                 edge:

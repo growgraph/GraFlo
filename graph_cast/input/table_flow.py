@@ -11,7 +11,11 @@ from graph_cast.db import ConnectionManager
 from graph_cast.input import table_to_collections
 from graph_cast.input.table import logger
 from graph_cast.input.util import list_to_dict_edges, list_to_dict_vertex
-from graph_cast.util.chunking import AbsChunker, Chunker, ChunkerDataFrame
+from graph_cast.util.chunker import (
+    AbstractChunker,
+    ChunkerDataFrame,
+    FileChunker,
+)
 
 
 def process_table(
@@ -42,11 +46,11 @@ def process_table(
     logger.info(f"batch_size : {batch_size}")
 
     if isinstance(tabular_resource, pd.DataFrame):
-        chk: AbsChunker = ChunkerDataFrame(
+        chk: AbstractChunker = ChunkerDataFrame(
             tabular_resource, batch_size=batch_size, n_lines_max=limit
         )
     elif isinstance(tabular_resource, str):
-        chk = Chunker(
+        chk = FileChunker(
             tabular_resource,
             batch_size=batch_size,
             limit=limit,

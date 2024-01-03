@@ -2,14 +2,14 @@ general:
     name: review
 resources:
     row_likes:
-    -   tabletype: authors
+    -   name: authors
         transforms:
         -   image: author
             map:
                 author_id: id
                 FullName: full_name
                 HIndex: hindex
-        -   image: research_field
+        -   image: researchField
             map:
                 research_sector: id
 vertex_config:
@@ -25,7 +25,7 @@ vertex_config:
         -   fields:
             -   id
             -   full_name
-    -   name: research_field
+    -   name: researchField
         dbname: ResearchField
         fields:
         -   id
@@ -37,7 +37,7 @@ vertex_config:
 edge_config:
     edges:
     -   source: author
-        target: research_field
+        target: researchField
         relation: belongsTo
         indexes:
         -   fields:

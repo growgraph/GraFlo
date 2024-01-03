@@ -59,7 +59,9 @@ def list_docs_to_graph_container(
                 )
                 edict[k].extend(v)
     return GraphContainer(
-        vertices=dict(vdict.items()), edges=dict(edict.items())
+        vertices=dict(vdict.items()),
+        edges=dict(edict.items()),
+        linear=list_default_dicts,
     )
 
 

@@ -7,7 +7,7 @@ from itertools import product
 from types import MappingProxyType
 from typing import Any, Callable, Iterable
 
-from graph_cast.architecture.edge import Edge
+from graph_cast.architecture.edge import Edge, EdgeConfig
 from graph_cast.architecture.onto import SOURCE_AUX, TARGET_AUX, GraphEntity
 from graph_cast.architecture.transform import Transform
 from graph_cast.architecture.util import project_dict
@@ -117,11 +117,12 @@ class MapperNode(BaseDataclass):
             self._children, key=lambda x: NodeTypePriority[x.type]
         )
 
-    def finish_init(self, vc: VertexConfig):
+    def finish_init(self, vc: VertexConfig, edge_config: EdgeConfig):
         if self.type == NodeType.EDGE:
             self.edge.finish_init(vc)
+            edge_config.update_edges(self.edge)
         for c in self._children:
-            c.finish_init(vc)
+            c.finish_init(vc, edge_config=edge_config)
 
     def passes(self, doc):
         """

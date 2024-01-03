@@ -59,6 +59,7 @@ class Connection(abc.ABC):
         source_class,
         target_class,
         relation_name,
+        collection_name,
         match_keys_source,
         match_keys_target,
         filter_uniques=True,

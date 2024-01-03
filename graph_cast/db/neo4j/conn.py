@@ -3,7 +3,6 @@ import logging
 from neo4j import GraphDatabase
 from suthing import Neo4jConnectionConfig
 
-from graph_cast.architecture import Configurator
 from graph_cast.architecture.edge import Edge
 from graph_cast.architecture.onto import Index
 from graph_cast.architecture.schema import Schema
@@ -138,6 +137,7 @@ class Neo4jConnection(Connection):
         source_class,
         target_class,
         relation_name,
+        collection_name=None,
         match_keys_source=("_key",),
         match_keys_target=("_key",),
         filter_uniques=True,
@@ -186,9 +186,7 @@ class Neo4jConnection(Connection):
 
         if filters is not None:
             ff = Expression.from_dict(filters)
-            filter_clause = (
-                f"WHERE {ff.cast_filter(doc_name='n', kind=DBFlavor.NEO4J)}"
-            )
+            filter_clause = f"WHERE {ff(doc_name='n', kind=DBFlavor.NEO4J)}"
         else:
             filter_clause = ""
 

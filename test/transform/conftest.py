@@ -15,69 +15,6 @@ from graph_cast.util.transform import pick_unique_dict
 
 
 @pytest.fixture()
-def current_path():
-    return dirname(realpath(__file__))
-
-
-def cast_it(schema_obj, data, reset):
-    caster = Caster(schema_obj)
-    docs = caster.cast(data)
-    pass
-    # if input_type == InputType.CSV:
-    #     conf_obj = TConfigurator(config)
-    #
-    #     header = data_obj.columns
-    #     header_dict = dict(zip(header, range(len(header))))
-    #     lines = list(data_obj.values)
-    #     conf_obj.set_mode(mode)
-    #
-    #     docs = table_to_collections(
-    #         lines,
-    #         header_dict,
-    #         conf_obj,
-    #     )
-    #
-    #     vdocuments = list_to_dict_vertex(docs)
-    #
-    #     vc = {k: len(pick_unique_dict(v)) for k, v in vdocuments.items()}
-    #
-    # elif input_type == InputType.JSON:
-    #     conf_obj = JConfigurator(config)
-    #
-    #     defdict = jsondoc_to_collections(data_obj[0], conf_obj)
-    #
-    #     vc = {k: len(v) for k, v in defdict.items()}
-    # else:
-    #     raise ValueError(f"Unknown {input_type}")
-
-    # verify(vc, current_path, mode, reset)
-
-
-def verify(vc, current_path, mode, reset):
-    vc_tranformed = {
-        "->".join(list(k)) if isinstance(k, tuple) else k: v
-        for k, v in vc.items()
-    }
-
-    if reset:
-        FileHandle.dump(
-            vc_tranformed,
-            join(current_path, f"../ref/transform/{mode}_sizes.yaml"),
-        )
-
-    else:
-        ref_vc = FileHandle.load(f"test.ref.transform", f"{mode}_sizes.yaml")
-        if not equals(vc, ref_vc):
-            print(f" mode: {mode}")
-            for k, v in ref_vc.items():
-                print(
-                    f" {k} expected: {v}, received:"
-                    f" {vc[k] if k in vc else None}"
-                )
-        assert equals(vc_tranformed, ref_vc)
-
-
-@pytest.fixture()
 def table_config_ibes():
     tc = yaml.safe_load("""
         tabletype: ibes

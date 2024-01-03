@@ -32,8 +32,8 @@ class Schema(BaseDataclass):
 
         self.edge_config.finish_init(self.vertex_config)
 
+        # modifies resources; adds extra edges found while parsing
         self.resources.finish_init(self.vertex_config, self.edge_config)
-        pass
 
     def fetch_resource(self, name: str | None = None) -> Resource:
         _current_resource = None

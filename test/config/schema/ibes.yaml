@@ -47,6 +47,8 @@ vertex_config:
         -   datetime_review
         -   datetime_announce
         indexes:
+        -   fields:
+            -   _key
         -   type: hash
             unique: false
             fields:

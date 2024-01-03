@@ -2,6 +2,7 @@ import pytest
 
 from graph_cast.onto import (
     ComparisonOperator,
+    DBFlavor,
     Expression,
     LeafClause,
     LogicalOperator,

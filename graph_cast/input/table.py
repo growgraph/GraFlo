@@ -30,7 +30,7 @@ def table_to_collections(
         {k: item[v] for k, v in header_dict.items()} for item in rows
     ]
 
-    # adding `trivial` transformations : when column is cast directly to a vertex field
+    # adding `trivial` transformations : when column is caster directly to a vertex field
     conf.current_transform_config.add_passthrough_transformations(
         header_dict.keys(), vertex_conf
     )

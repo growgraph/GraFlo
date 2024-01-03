@@ -5,7 +5,7 @@ import dataclasses
 import logging
 from collections import defaultdict
 from copy import deepcopy
-from itertools import combinations, product
+from itertools import chain, combinations, product
 from typing import Iterator
 
 import networkx as nx
@@ -39,6 +39,7 @@ class Resource(BaseDataclass):
     # TODO work out merging collection:
     #       applied when there are docs without the primary key that are merged to a main doc
     merge_collections: list[str] = dataclasses.field(default_factory=list)
+    extra_weights: list[Edge] = dataclasses.field(default_factory=list)
 
     def apply(
         self, data: list[dict], vertex_config: VertexConfig, ncores=1, **kwargs
@@ -102,7 +103,9 @@ class RowResource(Resource):
 
     def _prepare_apply(self, **kwargs):
         columns = kwargs.pop("columns")
+        assert columns is not None
         vertex_config = kwargs.pop("vertex_config")
+        assert vertex_config is not None
         self.add_trivial_transformations(vertex_config, columns)
 
     def finish_init(
@@ -212,13 +215,12 @@ class RowResource(Resource):
 @dataclasses.dataclass(kw_only=True)
 class TreeResource(Resource):
     root: MapperNode
-    extra_weights: list[Edge] = dataclasses.field(default_factory=list)
 
     def __post_init__(self):
         self.resource_type = ResourceType.TREELIKE
 
-    def finish_init(self, vc: VertexConfig):
-        self.root.finish_init(vc)
+    def finish_init(self, vc: VertexConfig, edge_config: EdgeConfig):
+        self.root.finish_init(vc, edge_config=edge_config)
         for e in self.extra_weights:
             e.finish_init(vc)
 
@@ -248,9 +250,12 @@ class ResourceHolder(BaseDataclass):
 
     def finish_init(self, vc: VertexConfig, ec: EdgeConfig):
         for r in self.tree_likes:
-            r.finish_init(vc)
+            r.finish_init(vc, edge_config=ec)
         for r in self.row_likes:
             r.finish_init(vertex_config=vc, edge_config=ec)
+
+    def __iter__(self):
+        return chain(self.row_likes, self.tree_likes)
 
 
 def row_to_vertices(

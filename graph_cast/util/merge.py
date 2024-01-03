@@ -13,7 +13,7 @@ def merge_doc_basis(
     :return:
     """
 
-    # cast each doc to a sorted tuple keeping only keys from keys
+    # caster each doc to a sorted tuple keeping only keys from keys
     docs_tuplezied = [
         tuple(
             sorted({k: v for k, v in item.items() if k in index_keys}.items())

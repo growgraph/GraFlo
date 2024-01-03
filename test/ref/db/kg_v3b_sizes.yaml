@@ -1,0 +1,8 @@
+entities: 80
+entities->entities->None: 0
+entities->entities->aux: 0
+mentions: 124
+mentions->entities->None: 98
+mentions->mentions->None: 126
+publications: 1
+publications->mentions->None: 41
