@@ -98,9 +98,9 @@ class ArangoConnection(Connection):
                 g = self.conn.graph(gname)
             else:
                 g = self.conn.create_graph(gname)  # type: ignore
-            if not g.has_edge_definition(item.graph_name):
+            if not g.has_edge_definition(item.collection_name):
                 _ = g.create_edge_definition(
-                    edge_collection=item.graph_name,
+                    edge_collection=item.collection_name,
                     from_vertex_collections=[item.source_collection],
                     to_vertex_collections=[item.target_collection],
                 )
@@ -137,7 +137,7 @@ class ArangoConnection(Connection):
 
     def define_edge_indices(self, edges: list[Edge]):
         for edge in edges:
-            general_collection = self.conn.collection(edge.graph_name)
+            general_collection = self.conn.collection(edge.collection_name)
             for index_obj in edge.indexes:
                 self._add_index(general_collection, index_obj)
 

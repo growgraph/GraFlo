@@ -33,6 +33,7 @@ class Edge(BaseDataclass):
     source_collection: str | None = None
     target_collection: str | None = None
     graph_name: str | None = None
+    collection_name: str | None = None
     db_flavor: DBFlavor = DBFlavor.ARANGO
 
     def __post_init__(self):
@@ -53,6 +54,7 @@ class Edge(BaseDataclass):
         if self.collection_name_suffix is not None:
             graph_name += [self.collection_name_suffix]
         self.graph_name = "_".join(graph_name + ["graph"])
+        self.collection_name = "_".join(graph_name + ["edges"])
         self.db_flavor = vc.db_flavor
         self._init_indices(vc)
 

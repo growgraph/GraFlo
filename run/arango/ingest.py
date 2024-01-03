@@ -3,7 +3,8 @@ import logging
 
 from suthing import ConfigFactory, FileHandle
 
-from graph_cast.main import ingest_tables
+from graph_cast.architecture.schema import Schema
+from graph_cast.caster import Caster
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-b",
         "--batch-size",
-        default=500000,
+        default=5000,
         type=int,
         help="number of symbols read from (archived) file for a single batch",
     )
@@ -78,18 +79,18 @@ if __name__ == "__main__":
         filemode="w",
     )
 
-    schema_config = FileHandle.load(fpath=args.config_path)
+    schema = Schema.from_dict(FileHandle.load(fpath=args.config_path))
     conn_conf = ConfigFactory.create_config(
         dict_like=FileHandle.load(fpath=args.db_config_path)
     )
 
-    ingest_tables(
-        args.path,
-        schema_config,
-        conn_conf,
-        batch_size=args.batch_size,
+    rr = schema.fetch_resource()
+
+    caster = Caster(schema)
+    caster.ingest_files(
+        path=args.path,
         limit_files=args.limit_files,
-        max_lines=args.max_lines,
         clean_start=args.clean_start,
-        n_threads=args.n_thread,
+        batch_size=args.batch_size,
+        conn_conf=conn_conf,
     )

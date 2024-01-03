@@ -1,6 +1,5 @@
 import argparse
 
-from graph_cast.architecture import DataSourceType
 from graph_cast.plot import SchemaPlotter
 
 """
@@ -82,5 +81,8 @@ def main():
     plotter.plot_vc2fields()
     plotter.plot_source2vc()
     plotter.plot_vc2vc(prune_leaves=args.prune_low_degree_nodes)
-    if plotter.type == DataSourceType.TABLE:
-        plotter.plot_source2vc_detailed()
+    # plotter.plot_source2vc_detailed()
+
+
+if __name__ == "__main__":
+    main()

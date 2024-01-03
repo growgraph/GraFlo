@@ -147,13 +147,13 @@ class Caster:
             # currently works only on item level
             for edge in resource.extra_weights:
                 for weight in edge.weights.vertices:
-                    vname = weight.name
-                    index_fields = vc.index(vname)
+                    assert weight.name is not None
+                    index_fields = vc.index(weight.name)
 
                     if not self.dry:
                         weights_per_item = db_client.fetch_present_documents(
-                            class_name=vc.vertex_dbname(vname),
-                            batch=gc.vertices[vname],
+                            class_name=vc.vertex_dbname(weight.name),
+                            batch=gc.vertices[weight.name],
                             match_keys=index_fields.fields,
                             keep_keys=weight.fields,
                         )
@@ -177,7 +177,7 @@ class Caster:
                         source_class=vc.vertex_dbname(edge.source),
                         target_class=vc.vertex_dbname(edge.target),
                         relation_name=edge.relation,
-                        collection_name=edge.graph_name,
+                        collection_name=edge.collection_name,
                         match_keys_source=vc.index(edge.source).fields,
                         match_keys_target=vc.index(edge.target).fields,
                         filter_uniques=False,
@@ -208,7 +208,7 @@ class Caster:
             if columns is None:
                 raise ValueError(f"columns should be set")
         else:
-            return data
+            return data  # type: ignore
         rows_dressed = [
             {k: v for k, v in zip(columns, item)} for item in _data
         ]

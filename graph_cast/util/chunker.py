@@ -67,7 +67,7 @@ class FileChunkerNew(AbstractChunker):
         super().__init__(**kwargs)
         self.filename: Path = filename
         self.file_obj: TextIO | gzip.GzipFile | None = None
-        self.encoding: EncodingType = encoding
+        self.encoding: EncodingType | None = encoding
         # b for binary, t for text
         self.mode = mode
         if self.mode == "b":

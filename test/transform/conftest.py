@@ -1,17 +1,8 @@
 import io
-from os.path import dirname, join, realpath
 
 import pandas as pd
 import pytest
 import yaml
-from suthing import FileHandle, equals
-
-from graph_cast.architecture import JConfigurator, TConfigurator
-from graph_cast.caster import Caster
-from graph_cast.input import jsondoc_to_collections, table_to_collections
-from graph_cast.input.util import list_to_dict_edges, list_to_dict_vertex
-from graph_cast.onto import InputType, InputTypeFileExtensions
-from graph_cast.util.transform import pick_unique_dict
 
 
 @pytest.fixture()
@@ -151,18 +142,6 @@ def edge_config_ticker():
                 -   name
     """)
     return ec
-
-
-@pytest.fixture()
-def tconf_ibes(vertex_config_ibes, edge_config_ibes, table_config_ibes):
-    config = {
-        "general": {"name": "ibes"},
-        "csv": [table_config_ibes],
-        "vertex_collections": vertex_config_ibes,
-        "edge_collections": edge_config_ibes,
-    }
-    tc = TConfigurator(config)
-    return tc
 
 
 @pytest.fixture()

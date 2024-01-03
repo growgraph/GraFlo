@@ -4,11 +4,7 @@ from itertools import product
 import networkx as nx
 from suthing import FileHandle
 
-from graph_cast.architecture import (
-    DataSourceType,
-    JConfigurator,
-    TConfigurator,
-)
+from graph_cast.architecture import DataSourceType, Schema
 
 
 class SchemaPlotter:
@@ -19,17 +15,11 @@ class SchemaPlotter:
 
         self.type: DataSourceType
 
-        if DataSourceType.JSON in self.config:
-            self.type = DataSourceType.JSON
-            self.conf = JConfigurator(self.config)
-        elif DataSourceType.TABLE in self.config:
-            self.type = DataSourceType.TABLE
-            self.conf = TConfigurator(self.config)
-        else:
-            raise KeyError(f"Configured to plot json or csv mapper schemas")
+        self.conf = Schema.from_dict(self.config)
 
-        self.name = self.conf.name
-        self.prefix = f"{self.name}_{self.type}"
+        self.name = self.conf.general.name
+        # self.prefix = f"{self.name}_{self.type}"
+        self.prefix = self.name
 
     def plot_vc2fields(self):
         g = nx.DiGraph()
@@ -124,34 +114,34 @@ class SchemaPlotter:
 
         """
         nodes = []
-        if self.type == DataSourceType.JSON:
-            g = nx.DiGraph()
-            edges = list(self.conf.graph_config.all_edges)
-            for ee in edges:
-                for n in ee:
-                    nodes += [(n, {"type": "vcollection"})]
+        # if self.type == DataSourceType.JSON:
+        #     g = nx.DiGraph()
+        #     edges = list(self.conf.graph_config.all_edges)
+        #     for ee in edges:
+        #         for n in ee:
+        #             nodes += [(n, {"type": "vcollection"})]
+        #
+        #     for nid, weight in nodes:
+        #         g.add_node(nid, **weight)
+        # elif self.type == DataSourceType.TABLE:
+        g = nx.MultiDiGraph()
+        edges = []
+        for resource in self.conf.resources:
+            vertices = resource._vertices
+            nodes_table = [
+                (resource.name, {"type": f"{resource.resource_type}"})
+            ]
+            nodes_collection = [
+                (vc, {"type": "vcollection"}) for vc in vertices
+            ]
+            nodes += nodes_table
+            nodes += nodes_collection
+            edges += [
+                (nt[0], nc[0])
+                for nt, nc in product(nodes_table, nodes_collection)
+            ]
 
-            for nid, weight in nodes:
-                g.add_node(nid, **weight)
-        elif self.type == DataSourceType.TABLE:
-            g = nx.MultiDiGraph()
-            edges = []
-            for table_type in self.conf.tables:
-                vertices = self.conf.vertices(table_type)
-                nodes_table = [(table_type, {"type": "csv"})]
-                nodes_collection = [
-                    (vc, {"type": "vcollection"}) for vc in vertices
-                ]
-                nodes += nodes_table
-                nodes += nodes_collection
-                edges += [
-                    (nt[0], nc[0])
-                    for nt, nc in product(nodes_table, nodes_collection)
-                ]
-
-            g.add_nodes_from(nodes)
-        else:
-            raise KeyError(f"Supported types : {DataSourceType}")
+        g.add_nodes_from(nodes)
 
         g.add_edges_from(edges)
 
@@ -166,8 +156,8 @@ class SchemaPlotter:
                 upd_dict["forcelabel"] = True
             if "name" in props:
                 upd_dict["label"] = props["name"]
-            for table_type, v in upd_dict.items():
-                g.nodes[n][table_type] = v
+            for resource, v in upd_dict.items():
+                g.nodes[n][resource] = v
 
         ag = nx.nx_agraph.to_agraph(g)
         ag.draw(
@@ -183,33 +173,20 @@ class SchemaPlotter:
         """
         g = nx.MultiDiGraph()
         nodes = []
-        edge_labels = []
-        if self.type == DataSourceType.JSON:
-            # edges = list(self.conf.graph_config.all_edges)
+        edges = []
+        for e in self.conf.edge_config.edges:
+            if e.relation is not None:
+                ee = (e.source, e.target, {"label": e.relation})
+            else:
+                ee = e.source, e.target
+            edges += [ee]
 
-            edges = [
-                (a, b, {"label": label})
-                for a, b, label in self.conf.graph_config.edges_triples
-            ]
+        for ee in edges:
+            for n in ee[:2]:
+                nodes += [(n, {"type": "vcollection"})]
 
-            for ee in edges:
-                for n in ee[:2]:
-                    nodes += [(n, {"type": "vcollection"})]
-
-            for nid, weight in nodes:
-                g.add_node(nid, **weight)
-        elif self.type == DataSourceType.TABLE:
-            nodes = []
-            nodes += [
-                (vcol, {"type": "vcollection"})
-                for vcol in self.conf.vertices()
-            ]
-
-            edges = self.conf.graph_config.edge_projection(
-                self.conf.vertices()
-            )
-        else:
-            raise ValueError(f"Unknown type {self.type}")
+        for nid, weight in nodes:
+            g.add_node(nid, **weight)
 
         g.add_nodes_from(nodes)
         g.add_edges_from(edges)
@@ -370,9 +347,12 @@ fillcolor_palette = {
     "green": "#BEDFC8",
     "blue": "#B7D1DF",
     "red": "#EBA59E",
+    "peach": "#FFE5B4",
 }
 map_type2shape = {
     "csv": "box",
+    "row": "box",
+    "tree": "box",
     "vcollection": "ellipse",
     "index": "polygon",
     "field": "octagon",
@@ -380,7 +360,8 @@ map_type2shape = {
     "def_field": "trapezium",
 }
 map_type2color = {
-    "csv": fillcolor_palette["blue"],
+    "row": fillcolor_palette["blue"],
+    "tree": fillcolor_palette["peach"],
     "vcollection": fillcolor_palette["green"],
     "index": "orange",
     "def_field": fillcolor_palette["red"],

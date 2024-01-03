@@ -117,12 +117,30 @@ class MapperNode(BaseDataclass):
             self._children, key=lambda x: NodeTypePriority[x.type]
         )
 
-    def finish_init(self, vc: VertexConfig, edge_config: EdgeConfig):
+    def finish_init(
+        self,
+        vc: VertexConfig,
+        edge_config: EdgeConfig,
+        vertex_accumulator: set,
+    ):
         if self.type == NodeType.EDGE:
             self.edge.finish_init(vc)
             edge_config.update_edges(self.edge)
         for c in self._children:
-            c.finish_init(vc, edge_config=edge_config)
+            c.finish_init(
+                vc,
+                edge_config=edge_config,
+                vertex_accumulator=vertex_accumulator,
+            )
+        if self.type == NodeType.VERTEX:
+            connected_vertices = []
+            for v in vc.vertices:
+                if set(self.map.values()).intersection(set(v.fields)):
+                    connected_vertices += [v.name]
+                for t in self.transforms:
+                    if set(v.fields).intersection(set(t.output)):
+                        connected_vertices += [v.name]
+            vertex_accumulator |= set(connected_vertices)
 
     def passes(self, doc):
         """

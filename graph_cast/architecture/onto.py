@@ -3,7 +3,8 @@ from __future__ import annotations
 import dataclasses
 import logging
 from abc import ABCMeta
-from typing import Union
+from collections import defaultdict
+from typing import Any, Union
 
 from graph_cast.onto import BaseDataclass, BaseEnum
 from graph_cast.util.transform import pick_unique_dict
@@ -117,7 +118,7 @@ class ItemsView:
 class GraphContainer(BaseDataclass):
     vertices: dict[str, list]
     edges: dict[tuple[str, str, str | None], list]
-    linear: list[dict]
+    linear: list[defaultdict[str | tuple[str, str, str | None], list[Any]]]
 
     def __post_init__(self):
         pass
@@ -140,11 +141,11 @@ def cast_graph_name_to_triple(s: GraphEntity):
         elif len(s2) == 2:
             return *s2[:-1], None
         elif len(s2) == 3:
-            if s2[-1] == "graph":
+            if s2[-1] in ["graph", "edges"]:
                 return *s2[:-1], None
             else:
                 return tuple(s2)
-        elif len(s2) == 4 and s2[-1] == "graph":
+        elif len(s2) == 4 and s2[-1] in ["graph", "edges"]:
             return tuple(s2[:-1])
         raise ValueError(
             f"Invalid graph_name {s} : can not be cast to GraphEntity"

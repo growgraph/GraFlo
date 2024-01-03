@@ -41,6 +41,9 @@ class Resource(BaseDataclass):
     merge_collections: list[str] = dataclasses.field(default_factory=list)
     extra_weights: list[Edge] = dataclasses.field(default_factory=list)
 
+    def __post_init__(self):
+        self._vertices = set()
+
     def apply(
         self, data: list[dict], vertex_config: VertexConfig, ncores=1, **kwargs
     ) -> list[defaultdict[GraphEntity, list]]:
@@ -94,7 +97,7 @@ class RowResource(Resource):
     transforms: list[Transform] = dataclasses.field(default_factory=list)
 
     def __post_init__(self):
-        self._vertices: set = set()
+        super().__post_init__()
         self._vertex_tau = nx.DiGraph()
         self._transforms: dict[int, Transform] = {}
 
@@ -217,10 +220,14 @@ class TreeResource(Resource):
     root: MapperNode
 
     def __post_init__(self):
+        super().__post_init__()
         self.resource_type = ResourceType.TREELIKE
 
     def finish_init(self, vc: VertexConfig, edge_config: EdgeConfig):
-        self.root.finish_init(vc, edge_config=edge_config)
+        # TODO bug : not all vertices are picked up : check kg_v3
+        self.root.finish_init(
+            vc, edge_config=edge_config, vertex_accumulator=self._vertices
+        )
         for e in self.extra_weights:
             e.finish_init(vc)
 
