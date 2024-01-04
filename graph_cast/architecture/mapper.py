@@ -11,7 +11,10 @@ from graph_cast.architecture.edge import Edge, EdgeConfig
 from graph_cast.architecture.onto import SOURCE_AUX, TARGET_AUX, GraphEntity
 from graph_cast.architecture.transform import Transform
 from graph_cast.architecture.util import project_dict
-from graph_cast.architecture.vertex import VertexConfig
+from graph_cast.architecture.vertex import (
+    VertexConfig,
+    VertexRepresentationHelper,
+)
 from graph_cast.onto import BaseDataclass, BaseEnum
 
 logger = logging.getLogger(__name__)
@@ -121,7 +124,7 @@ class MapperNode(BaseDataclass):
         self,
         vc: VertexConfig,
         edge_config: EdgeConfig,
-        vertex_accumulator: set,
+        vertex_rep: dict[str, VertexRepresentationHelper],
     ):
         if self.type == NodeType.EDGE:
             self.edge.finish_init(vc)
@@ -130,17 +133,18 @@ class MapperNode(BaseDataclass):
             c.finish_init(
                 vc,
                 edge_config=edge_config,
-                vertex_accumulator=vertex_accumulator,
+                vertex_rep=vertex_rep,
             )
         if self.type == NodeType.VERTEX:
-            connected_vertices = []
-            for v in vc.vertices:
-                if set(self.map.values()).intersection(set(v.fields)):
-                    connected_vertices += [v.name]
+            if self.name not in vertex_rep:
+                assert self.name is not None
+                vertex_rep[self.name] = VertexRepresentationHelper(
+                    name=self.name, fields=vc.fields(self.name)
+                )
+                if self.map:
+                    vertex_rep[self.name].maps += [dict(self.map)]
                 for t in self.transforms:
-                    if set(v.fields).intersection(set(t.output)):
-                        connected_vertices += [v.name]
-            vertex_accumulator |= set(connected_vertices)
+                    vertex_rep[self.name].transforms += [(t.input, t.output)]
 
     def passes(self, doc):
         """

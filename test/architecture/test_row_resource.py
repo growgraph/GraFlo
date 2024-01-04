@@ -15,7 +15,7 @@ def test_finish(row_resource_ibes, vertex_config_ibes):
     rr = RowResource.from_dict(row_resource_ibes)
     vc = VertexConfig.from_dict(vertex_config_ibes)
     rr.finish_init(vc)
-    assert rr._vertices == {
+    assert set(rr.vertex_rep.keys()) == {
         "recommendation",
         "agency",
         "analyst",

@@ -6,6 +6,34 @@ from suthing import FileHandle
 
 from graph_cast.architecture import DataSourceType, Schema
 
+fillcolor_palette = {
+    "violet": "#DDD0E5",
+    "green": "#BEDFC8",
+    "blue": "#B7D1DF",
+    "red": "#EBA59E",
+    "peach": "#FFE5B4",
+}
+map_type2shape = {
+    "csv": "box",
+    "row": "box",
+    "tree": "box",
+    "vcollection": "ellipse",
+    "index": "polygon",
+    "field": "octagon",
+    "blank": "box",
+    "def_field": "trapezium",
+}
+map_type2color = {
+    "row": fillcolor_palette["blue"],
+    "tree": fillcolor_palette["peach"],
+    "vcollection": fillcolor_palette["green"],
+    "index": "orange",
+    "def_field": fillcolor_palette["red"],
+    "field": fillcolor_palette["violet"],
+    "blank": "white",
+}
+edge_status = {"vcollection": "solid", "csv": "solid"}
+
 
 class SchemaPlotter:
     def __init__(self, config_filename, fig_path):
@@ -114,20 +142,10 @@ class SchemaPlotter:
 
         """
         nodes = []
-        # if self.type == DataSourceType.JSON:
-        #     g = nx.DiGraph()
-        #     edges = list(self.conf.graph_config.all_edges)
-        #     for ee in edges:
-        #         for n in ee:
-        #             nodes += [(n, {"type": "vcollection"})]
-        #
-        #     for nid, weight in nodes:
-        #         g.add_node(nid, **weight)
-        # elif self.type == DataSourceType.TABLE:
         g = nx.MultiDiGraph()
         edges = []
         for resource in self.conf.resources:
-            vertices = resource._vertices
+            vertices = list(resource.vertex_rep.keys())
             nodes_table = [
                 (resource.name, {"type": f"{resource.resource_type}"})
             ]
@@ -230,7 +248,7 @@ class SchemaPlotter:
 
     def plot_source2vc_detailed(self):
         """
-            source (json vertex or csv) -> source fields -> vertex collection fields -> vertex collection
+            resource (treelike or rowlike) -> source fields -> vertex collection fields -> vertex collection
 
         :return:
         """
@@ -239,12 +257,15 @@ class SchemaPlotter:
         nodes = []
         edges = []
 
-        for table_name in self.conf.tables:
+        for resource in self.conf.resources:
             nodes_table = [
-                (f"csv:{table_name}", {"type": "csv", "label": table_name})
+                (
+                    f"{resource.resource_type}:{resource.name}",
+                    {"type": "csv", "label": resource.name},
+                )
             ]
-            transforms = self.conf.table_config[table_name]
-            for vertex in self.conf.vertices(table_name):
+            transforms = self.conf.table_config[resource.name]
+            for vertex in self.conf.vertices(resource.name):
                 index = self.conf.vertex_config.index(vertex)
                 ref_fields = index.fields
                 maps = transforms._vcollections[vertex]
@@ -277,11 +298,15 @@ class SchemaPlotter:
                     for kk in cmap.values()
                 ]
                 edges_fields = [
-                    (f"csv:field:{kk}", f"collection:field:{vv}")
+                    (
+                        f"{resource.resource_type}:field:{kk}",
+                        f"collection:field:{vv}",
+                    )
                     for kk, vv in cmap.items()
                 ]
                 edge_table_fields = [
-                    (f"csv:{table_name}", q) for q, _ in nodes_fields_table
+                    (f"{resource.resource_type}:{resource.name}", q)
+                    for q, _ in nodes_fields_table
                 ]
                 edge_collection_fields = [
                     (q, node_collection[0]) for q, _ in nodes_fields_collection
@@ -338,32 +363,3 @@ class SchemaPlotter:
             "pdf",
             prog="dot",
         )
-
-
-fillcolor_palette = {
-    "violet": "#DDD0E5",
-    "green": "#BEDFC8",
-    "blue": "#B7D1DF",
-    "red": "#EBA59E",
-    "peach": "#FFE5B4",
-}
-map_type2shape = {
-    "csv": "box",
-    "row": "box",
-    "tree": "box",
-    "vcollection": "ellipse",
-    "index": "polygon",
-    "field": "octagon",
-    "blank": "box",
-    "def_field": "trapezium",
-}
-map_type2color = {
-    "row": fillcolor_palette["blue"],
-    "tree": fillcolor_palette["peach"],
-    "vcollection": fillcolor_palette["green"],
-    "index": "orange",
-    "def_field": fillcolor_palette["red"],
-    "field": fillcolor_palette["violet"],
-    "blank": "white",
-}
-edge_status = {"vcollection": "solid", "csv": "solid"}

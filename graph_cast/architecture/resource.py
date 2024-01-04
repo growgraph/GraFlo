@@ -20,7 +20,10 @@ from graph_cast.architecture.onto import (
     GraphEntity,
 )
 from graph_cast.architecture.transform import Transform
-from graph_cast.architecture.vertex import VertexConfig
+from graph_cast.architecture.vertex import (
+    VertexConfig,
+    VertexRepresentationHelper,
+)
 from graph_cast.onto import BaseDataclass, ResourceType
 from graph_cast.util.merge import merge_doc_basis, merge_documents
 from graph_cast.util.transform import pick_unique_dict
@@ -42,7 +45,7 @@ class Resource(BaseDataclass):
     extra_weights: list[Edge] = dataclasses.field(default_factory=list)
 
     def __post_init__(self):
-        self._vertices = set()
+        self.vertex_rep: dict[str, VertexRepresentationHelper] = dict()
 
     def apply(
         self, data: list[dict], vertex_config: VertexConfig, ncores=1, **kwargs
@@ -123,7 +126,16 @@ class RowResource(Resource):
                 for c in vertex_config.vertex_set
                 if set(vertex_config.fields(c)) & set(tau.output)
             ]
-            self._vertices |= set(related_vertices)
+            for v in related_vertices:
+                self.vertex_rep[v] = VertexRepresentationHelper(
+                    name=v, fields=vertex_config.fields(v)
+                )
+
+                if tau.output:
+                    self.vertex_rep[v].transforms += [(tau.input, tau.output)]
+                if tau.map:
+                    self.vertex_rep[v].maps += [dict(tau.map)]
+
             if edge_config is not None:
                 related_edges = [
                     e.edge_id
@@ -182,7 +194,7 @@ class RowResource(Resource):
     def fields(self, vertex: str | None = None) -> set[str]:
         field_sets: Iterator[set[str]]
         if vertex is None:
-            field_sets = (self.fields(v) for v in self._vertices)
+            field_sets = (self.fields(v) for v in self.vertex_rep.keys())
         elif vertex in self._vertex_tau.nodes:
             neighbours = self._vertex_tau.neighbors(vertex)
             field_sets = (set(self._transforms[k].output) for k in neighbours)
@@ -224,9 +236,8 @@ class TreeResource(Resource):
         self.resource_type = ResourceType.TREELIKE
 
     def finish_init(self, vc: VertexConfig, edge_config: EdgeConfig):
-        # TODO bug : not all vertices are picked up : check kg_v3
         self.root.finish_init(
-            vc, edge_config=edge_config, vertex_accumulator=self._vertices
+            vc, edge_config=edge_config, vertex_rep=self.vertex_rep
         )
         for e in self.extra_weights:
             e.finish_init(vc)
