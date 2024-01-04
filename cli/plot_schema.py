@@ -81,7 +81,7 @@ def main():
     plotter.plot_vc2fields()
     plotter.plot_source2vc()
     plotter.plot_vc2vc(prune_leaves=args.prune_low_degree_nodes)
-    # plotter.plot_source2vc_detailed()
+    plotter.plot_source2vc_detailed()
 
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@ map_type2shape = {
     "csv": "box",
     "row": "box",
     "tree": "box",
+    "transform": "oval",
     "vcollection": "ellipse",
     "index": "polygon",
     "field": "octagon",
@@ -28,6 +29,7 @@ map_type2color = {
     "tree": fillcolor_palette["peach"],
     "vcollection": fillcolor_palette["green"],
     "index": "orange",
+    "transform": "grey",
     "def_field": fillcolor_palette["red"],
     "field": fillcolor_palette["violet"],
     "blank": "white",
@@ -248,7 +250,7 @@ class SchemaPlotter:
 
     def plot_source2vc_detailed(self):
         """
-            resource (treelike or rowlike) -> source fields -> vertex collection fields -> vertex collection
+            resource [treelike or rowlike] -> source fields -> vertex collection fields -> vertex collection
 
         :return:
         """
@@ -261,64 +263,165 @@ class SchemaPlotter:
             nodes_table = [
                 (
                     f"{resource.resource_type}:{resource.name}",
-                    {"type": "csv", "label": resource.name},
+                    {
+                        "type": f"{resource.resource_type}",
+                        "label": resource.name,
+                    },
                 )
             ]
-            transforms = self.conf.table_config[resource.name]
-            for vertex in self.conf.vertices(resource.name):
+            for vertex, rep in resource.vertex_rep.items():
                 index = self.conf.vertex_config.index(vertex)
-                ref_fields = index.fields
-                maps = transforms._vcollections[vertex]
-                cmap = maps[0]._raw_map
-                fields_collection_complementary = set(ref_fields) - set(
-                    cmap.values()
-                )
-                cmap.update(
-                    {qq: qq for qq in list(fields_collection_complementary)}
-                )
-
                 node_collection = (
                     f"collection:{vertex}",
                     {"type": "vcollection", "label": vertex},
                 )
-                nodes_fields_table = [
-                    (f"csv:field:{kk}", {"type": "field", "label": kk})
-                    for kk in cmap.keys()
-                ]
-                nodes_fields_collection = [
-                    (
-                        f"collection:field:{kk}",
-                        {
-                            "type": (
-                                "def_field" if kk in ref_fields else "field"
-                            ),
-                            "label": kk,
-                        },
+
+                nodes_fields_resource = []
+                nodes_fields_collection = []
+                nodes_transforms = []
+                edges_fields = []
+                edges_fields_transforms = []
+
+                ref_fields = index.fields
+
+                for m in rep.maps:
+                    nodes_fields_resource += [
+                        (
+                            f"{resource.resource_type}:field:{kk}",
+                            {"type": "field", "label": kk},
+                        )
+                        for kk in m.keys()
+                    ]
+                    nodes_fields_collection += [
+                        (
+                            f"collection:field:{kk}",
+                            {
+                                "type": (
+                                    "def_field"
+                                    if kk in ref_fields
+                                    else "field"
+                                ),
+                                "label": kk,
+                            },
+                        )
+                        for kk in m.values()
+                    ]
+                    edges_fields += [
+                        (
+                            f"{resource.resource_type}:field:{kk}",
+                            f"collection:field:{vv}",
+                        )
+                        for kk, vv in m.items()
+                    ]
+
+                for m in rep.transforms:
+                    inputs = m[0]
+                    outputs = m[1]
+                    nodes_fields_resource += [
+                        (
+                            f"{resource.resource_type}:field:{kk}",
+                            {"type": "field", "label": kk},
+                        )
+                        for kk in inputs
+                    ]
+                    nodes_fields_collection += [
+                        (
+                            f"collection:field:{kk}",
+                            {
+                                "type": (
+                                    "def_field"
+                                    if kk in ref_fields
+                                    else "field"
+                                ),
+                                "label": kk,
+                            },
+                        )
+                        for kk in outputs
+                    ]
+
+                    t_spec = inputs + outputs
+                    t_key = "-".join(t_spec)
+                    t_label = "-".join([x[0] for x in t_spec])
+
+                    nodes_transforms += [
+                        (
+                            f"transform:{t_key}",
+                            {
+                                "type": "transform",
+                                "label": t_label,
+                            },
+                        )
+                    ]
+
+                    edges_fields += [
+                        (
+                            f"{resource.resource_type}:field:{f}",
+                            f"transform:{t_key}",
+                        )
+                        for f in inputs
+                    ]
+
+                    edges_fields += [
+                        (
+                            f"transform:{t_key}",
+                            f"collection:field:{f}",
+                        )
+                        for f in outputs
+                    ]
+
+                trivial_fields = {
+                    kk
+                    for kk in rep.fields
+                    if not any(
+                        [
+                            x["label"] == kk
+                            for _, x in nodes_fields_resource
+                            + nodes_fields_collection
+                        ]
                     )
-                    for kk in cmap.values()
-                ]
-                edges_fields = [
+                }
+
+                nodes_fields_resource += [
                     (
                         f"{resource.resource_type}:field:{kk}",
-                        f"collection:field:{vv}",
+                        {"type": "field", "label": kk},
                     )
-                    for kk, vv in cmap.items()
+                    for kk in trivial_fields
                 ]
-                edge_table_fields = [
+
+                nodes_fields_collection += [
+                    (f"collection:field:{kk}", {"type": "field", "label": kk})
+                    for kk in trivial_fields
+                ]
+
+                edge_resource_fields = [
                     (f"{resource.resource_type}:{resource.name}", q)
-                    for q, _ in nodes_fields_table
+                    for q, _ in nodes_fields_resource
                 ]
                 edge_collection_fields = [
                     (q, node_collection[0]) for q, _ in nodes_fields_collection
                 ]
+
+                edges_fields += [
+                    (
+                        f"{resource.resource_type}:field:{kk}",
+                        f"collection:field:{kk}",
+                    )
+                    for kk in trivial_fields
+                ]
+
                 nodes += (
                     nodes_table
                     + [node_collection]
-                    + nodes_fields_table
+                    + nodes_fields_resource
                     + nodes_fields_collection
+                    + nodes_transforms
                 )
                 edges += (
-                    edges_fields + edge_table_fields + edge_collection_fields
+                    edges_fields
+                    + edge_resource_fields
+                    + edge_collection_fields
+                    + edges_fields_transforms
                 )
         g.add_nodes_from(nodes)
         g.add_edges_from(edges)
@@ -337,7 +440,7 @@ class SchemaPlotter:
 
         for e in g.edges(data=True):
             s, t, _ = e
-            g.nodes[s]
+            # g.nodes[s]
             upd_dict = {
                 # "style": edge_status[target_props["type"]],
                 "arrowhead": "vee"

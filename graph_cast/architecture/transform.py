@@ -35,6 +35,9 @@ class Transform(BaseDataclass):
         self._foo = None
 
         self._init_foo()
+        self.functional_transform = False
+        if self._foo is not None:
+            self.functional_transform = True
 
         self.input = self._tuple_it(self.input)
 

@@ -127,11 +127,12 @@ class RowResource(Resource):
                 if set(vertex_config.fields(c)) & set(tau.output)
             ]
             for v in related_vertices:
-                self.vertex_rep[v] = VertexRepresentationHelper(
-                    name=v, fields=vertex_config.fields(v)
-                )
+                if v not in self.vertex_rep:
+                    self.vertex_rep[v] = VertexRepresentationHelper(
+                        name=v, fields=vertex_config.fields(v)
+                    )
 
-                if tau.output:
+                if tau.functional_transform:
                     self.vertex_rep[v].transforms += [(tau.input, tau.output)]
                 if tau.map:
                     self.vertex_rep[v].maps += [dict(tau.map)]
