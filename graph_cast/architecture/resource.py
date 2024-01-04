@@ -47,15 +47,6 @@ class Resource(BaseDataclass):
     def __post_init__(self):
         self.vertex_rep: dict[str, VertexRepresentationHelper] = dict()
 
-    def apply(
-        self, data: list[dict], vertex_config: VertexConfig, ncores=1, **kwargs
-    ) -> list[defaultdict[GraphEntity, list]]:
-        graph = [
-            self.apply_doc(doc, vertex_config=vertex_config, **kwargs)
-            for doc in data
-        ]
-        return graph
-
     def prepare_apply(self, **kwargs):
         self._prepare_apply(**kwargs)
 

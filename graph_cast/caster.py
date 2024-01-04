@@ -1,6 +1,7 @@
 import logging
 import multiprocessing as mp
 import queue
+from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from os import listdir
 from os.path import isfile, join
@@ -26,6 +27,7 @@ class Caster:
         self.n_cores = kwargs.pop("n_cores", 1)
         self.max_items = kwargs.pop("max_items", None)
         self.batch_size = kwargs.pop("batch_size", 10000)
+        self.n_threads = kwargs.pop("n_threads", 1)
         self.dry = kwargs.pop("dry", False)
         self.schema = schema
 
@@ -46,22 +48,25 @@ class Caster:
         return files
 
     def cast_normal_resource(
-        self, resource, columns=None, resource_name=None
+        self, data, columns=None, resource_name=None
     ) -> GraphContainer:
         vc = self.schema.vertex_config
         ec = self.schema.edge_config
         rr = self.schema.fetch_resource(resource_name)
         if columns is None:
-            columns = list(resource[0].keys())
+            columns = list(data[0].keys())
         if rr.resource_type == ResourceType.ROWLIKE:
             rr.prepare_apply(columns=columns, vertex_config=vc)
-            docs = rr.apply(
-                resource, vertex_config=vc, edge_config=ec, columns=columns
+
+        with ThreadPoolExecutor(max_workers=self.n_threads) as executor:
+            docs = list(
+                executor.map(
+                    lambda doc: rr.apply_doc(
+                        doc, vertex_config=vc, edge_config=ec, columns=columns
+                    ),
+                    data,
+                )
             )
-        elif rr.resource_type == ResourceType.TREELIKE:
-            docs = rr.apply(resource, vertex_config=vc)
-        else:
-            raise ValueError(f"unknown ResourceType {rr.resource_type}")
 
         graph = list_docs_to_graph_container(docs)
         return graph

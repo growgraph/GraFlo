@@ -21,7 +21,7 @@ def modes():
     return ["kg_v3b", "ibes"]
 
 
-def test_cast(modes, schema_obj, current_path, reset):
+def cast(modes, schema_obj, current_path, reset, n_threads=1):
     for mode in modes:
         schema = schema_obj(mode)
         rr = schema.fetch_resource()
@@ -30,9 +30,10 @@ def test_cast(modes, schema_obj, current_path, reset):
             f"{mode}.{InputTypeFileExtensions[rr.resource_type][0]}.gz",
         )
 
-        caster = Caster(schema)
+        caster = Caster(schema, n_threads=n_threads)
         data = caster.normalize_resource(data_obj)
         graph = caster.cast_normal_resource(data)
+
         graph.pick_unique()
 
         vc = {k: len(v) for k, v in graph.items()}
@@ -43,3 +44,8 @@ def test_cast(modes, schema_obj, current_path, reset):
             test_type="transform",
             reset=reset,
         )
+
+
+def test_cast(modes, schema_obj, current_path, reset):
+    cast(modes, schema_obj, current_path, reset)
+    cast(modes, schema_obj, current_path, reset, 4)
