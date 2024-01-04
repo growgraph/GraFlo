@@ -44,7 +44,7 @@ def schema_obj():
     return fetch_schema_obj
 
 
-def ingest_atomic(conn_conf, current_path, test_db_name, mode):
+def ingest_atomic(conn_conf, current_path, test_db_name, mode, n_cores=1):
     schema_o = fetch_schema_obj(mode)
     rr = schema_o.fetch_resource()
     path = Path(
@@ -58,6 +58,7 @@ def ingest_atomic(conn_conf, current_path, test_db_name, mode):
 
     caster = Caster(schema_o)
     caster.ingest_files(
+        n_cores=n_cores,
         path=path,
         limit_files=None,
         clean_start=True,

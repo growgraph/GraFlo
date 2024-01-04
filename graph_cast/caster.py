@@ -215,6 +215,15 @@ class Caster:
         return rows_dressed
 
     def ingest_files(self, path: Path, **kwargs):
+        """
+
+        Args:
+            path:
+            **kwargs:
+
+        Returns:
+
+        """
         conn_conf: DBConnectionConfig = kwargs.get("conn_conf", None)
         self.clean_start = kwargs.pop("clean_start", self.clean_start)
         self.n_cores = kwargs.pop("n_cores", self.n_cores)
@@ -238,7 +247,7 @@ class Caster:
             if self.n_cores > 1:
                 queue_tasks: mp.Queue = mp.Queue()
                 for item in tasks:
-                    queue_tasks.put(*item)
+                    queue_tasks.put(item)
 
                 func = partial(
                     self.process_with_queue,

@@ -32,21 +32,13 @@ def verify_from_db(conn_conf, current_path, test_db_name, mode, reset):
     verify(vc, current_path, mode, test_type="db", reset=reset)
 
 
-def test_ingest(
-    create_db,
-    modes,
-    conn_conf,
-    current_path,
-    test_db_name,
-    reset,
+def ingest_files(
+    create_db, modes, conn_conf, current_path, test_db_name, reset, n_cores=1
 ):
     _ = create_db
     for m in modes:
         ingest_atomic(
-            conn_conf,
-            current_path,
-            test_db_name,
-            mode=m,
+            conn_conf, current_path, test_db_name, mode=m, n_cores=n_cores
         )
         verify_from_db(
             conn_conf,
@@ -126,3 +118,32 @@ def test_ingest(
                     filters=[ComparisonOperator.NEQ, "odds", "kind"],
                 )
                 assert len(r) == 1
+
+
+def test_ingest(
+    create_db,
+    modes,
+    conn_conf,
+    current_path,
+    test_db_name,
+    reset,
+):
+    ingest_files(
+        create_db,
+        modes,
+        conn_conf,
+        current_path,
+        test_db_name,
+        reset,
+        n_cores=1,
+    )
+
+    ingest_files(
+        create_db,
+        modes,
+        conn_conf,
+        current_path,
+        test_db_name,
+        reset,
+        n_cores=2,
+    )
