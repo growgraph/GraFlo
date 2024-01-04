@@ -1,6 +1,6 @@
 import argparse
 
-from graph_cast.plot import SchemaPlotter
+from graph_cast.plot.plotter import SchemaPlotter
 
 """
 

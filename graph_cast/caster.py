@@ -12,8 +12,8 @@ from suthing import DBConnectionConfig, Timer
 from graph_cast.architecture.onto import SOURCE_AUX, TARGET_AUX, GraphContainer
 from graph_cast.architecture.resource import Resource
 from graph_cast.architecture.schema import Schema
+from graph_cast.architecture.util import list_docs_to_graph_container
 from graph_cast.db import ConnectionManager
-from graph_cast.input.util import list_docs_to_graph_container
 from graph_cast.onto import ResourceType
 from graph_cast.util.chunker import ChunkerFactory
 

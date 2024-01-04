@@ -28,11 +28,3 @@ def define_extra_edges(g: Edge):
     s_last = f"IN {ucol}_{vcol}_edges"
     query0 = s + s_ins + s_last
     return query0
-
-
-def update_to_numeric(collection_name, field):
-    s1 = f"FOR p IN {collection_name} FILTER p.{field} update p with {{"
-    s2 = f"{field}: TO_NUMBER(p.{field}) "
-    s3 = f"}} in {collection_name}"
-    q0 = s1 + s2 + s3
-    return q0

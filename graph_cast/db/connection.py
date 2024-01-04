@@ -5,7 +5,7 @@ from typing import TypeVar
 from graph_cast.architecture.edge import Edge
 from graph_cast.architecture.schema import Schema
 from graph_cast.architecture.vertex import VertexConfig
-from graph_cast.db.arango.util import define_extra_edges, update_to_numeric
+from graph_cast.db.arango.util import define_extra_edges
 from graph_cast.onto import AggregationType
 
 logger = logging.getLogger(__name__)
@@ -135,14 +135,6 @@ class Connection(abc.ABC):
 
 
 def concluding_db_transform(db_client: ConnectionType, conf_obj):
-    # TODO this should be made part of atomic etl (not applied to the whole db)
-    for cname in conf_obj.vertex_config.vertex_set:
-        for field in conf_obj.vertex_config.numeric_fields_list(cname):
-            query0 = update_to_numeric(
-                conf_obj.vertex_config.vertex_dbname(cname), field
-            )
-            db_client.execute(query0)
-
     # create edge u -> v from u->w, v->w edges
     # find edge_cols uw and vw
     for ee in conf_obj.graph_config.extra_edges:

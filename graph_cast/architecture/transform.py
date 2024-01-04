@@ -2,7 +2,7 @@ import dataclasses
 import importlib
 import logging
 
-from graph_cast.onto import BaseDataclass, DBFlavor, Expression
+from graph_cast.onto import BaseDataclass
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +135,7 @@ class Transform(BaseDataclass):
         if isinstance(transform_result, (list, tuple)) and not self.switch:
             upd = {k: v for k, v in zip(self.output, transform_result)}
         else:
-            # TODO works only there is one switch clause
+            # TODO : temporary solution works only there is one switch clause
             upd = {self.output[-1]: transform_result}
         for k0, (q, qq) in self.switch.items():
             upd.update({q: k0})

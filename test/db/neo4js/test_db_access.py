@@ -14,7 +14,7 @@ def test_create_vertex_index(conn_conf, schema_obj):
         q = "SHOW INDEX;"
         cursor = db_client.execute(q)
         data = cursor.data()
-    assert any([item["name"] == "research_field_id" for item in data]) & any(
+    assert any([item["name"] == "researchField_id" for item in data]) & any(
         [item["name"] == "author_id_full_name" for item in data]
     )
 

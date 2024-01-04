@@ -36,7 +36,7 @@ class Resource(BaseDataclass):
     name: str | None = None
     resource_type: ResourceType = ResourceType.ROWLIKE
     encoding: EncodingType = EncodingType.UTF_8
-    # TODO work out merging collection:
+    # TODO create a test for merging collection (long term):
     #       applied when there are docs without the primary key that are merged to a main doc
     merge_collections: list[str] = dataclasses.field(default_factory=list)
     extra_weights: list[Edge] = dataclasses.field(default_factory=list)

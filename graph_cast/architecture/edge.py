@@ -86,38 +86,12 @@ class Edge(BaseDataclass):
         return index
 
     @property
-    def source_exclude(self):
-        # TODO refactor out
-        return []
-
-    @property
-    def target_exclude(self):
-        # TODO refactor out
-        return []
-
-    @property
     def edge_name_dyad(self):
         return self.source, self.target
 
     @property
     def edge_id(self) -> tuple[str, str, str | None]:
         return self.source, self.target, self.relation
-
-    def __iadd__(self, other: Edge):
-        if self.edge_name_dyad == other.edge_name_dyad:
-            self.indexes += other.indexes
-            # TODO revise
-            # self.weights += other.weights
-            # self._source_exclude += other._source_exclude
-            # self._target_exclude += other._target_exclude
-            # self._how = dictlike.pop("how", None)
-            # self._type = "direct" if direct else "indirect"
-            # self._by = None
-            return self
-        else:
-            raise ValueError(
-                "can only update Edge definitions of the same type"
-            )
 
 
 @dataclasses.dataclass

@@ -78,7 +78,6 @@ class ArangoConnection(Connection):
             else:
                 g = self.conn.create_graph(gname)  # type: ignore
 
-            # TODO create collections without referencing the graph
             ih = self.create_collection(
                 vertex_config.vertex_dbname(u), vertex_config.index(u), g
             )
@@ -563,3 +562,10 @@ class ArangoConnection(Connection):
         )
         batch_absent = [batch[j] for j in absent_indices]
         return batch_absent
+
+    def update_to_numeric(self, collection_name, field):
+        s1 = f"FOR p IN {collection_name} FILTER p.{field} update p with {{"
+        s2 = f"{field}: TO_NUMBER(p.{field}) "
+        s3 = f"}} in {collection_name}"
+        q0 = s1 + s2 + s3
+        return q0
