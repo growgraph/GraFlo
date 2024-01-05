@@ -6,7 +6,7 @@ from abc import ABCMeta
 from collections import defaultdict
 from typing import Any, Union
 
-from graph_cast.onto import BaseDataclass, BaseEnum
+from graph_cast.onto import BaseDataclass, BaseEnum, DBFlavor
 from graph_cast.util.transform import pick_unique_dict
 
 ANCHOR_KEY = "_anchor"
@@ -88,14 +88,22 @@ class Index(BaseDataclass):
     type: IndexType = IndexType.PERSISTENT
     deduplicate: bool = True
     sparse: bool = False
-    exclude_edge_end_vertices: bool = False
-
-    def __post_init__(self):
-        if not self.fields:
-            self.fields = ["_key"]
+    exclude_edge_endpoints: bool = False
 
     def __iter__(self):
         return iter(self.fields)
+
+    def db_form(self, db_type: DBFlavor):
+        r = self.to_dict()
+        if db_type == DBFlavor.ARANGO:
+            _ = r.pop("name")
+            _ = r.pop("exclude_edge_endpoints")
+        elif db_type == DBFlavor.NEO4J:
+            pass
+        else:
+            raise ValueError(f"Unknown db_type {db_type}")
+
+        return r
 
 
 class DataSourceType(str, BaseEnum):

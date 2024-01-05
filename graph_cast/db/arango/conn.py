@@ -105,10 +105,9 @@ class ArangoConnection(Connection):
                 )
 
     def _add_index(self, general_collection, index: Index):
-        data = index.to_dict()
-        # in CollectionIndex "name" is used for vertex collection derived index field
+        data = index.db_form(DBFlavor.ARANGO)
+        # in Index "name" is used for vertex collection derived index field
         # to let arango name her index, we remove "name"
-        data.pop("name")
         if index.type == IndexType.PERSISTENT:
             # temp fix : inconsistent in python-arango
             ih = general_collection._add_index(data)

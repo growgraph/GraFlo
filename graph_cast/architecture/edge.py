@@ -73,16 +73,27 @@ class Edge(BaseDataclass):
         :param vc:
         :return:
         """
-        if index.name is not None:
-            index_fields = [
-                f"{index.name}@{x}" for x in vc.index(index.name).fields
-            ]
-            if (
-                not index.exclude_edge_end_vertices
-                and self.db_flavor == DBFlavor.ARANGO
-            ):
+
+        index_fields = []
+
+        if index.name is None:
+            index_fields += index.fields
+        else:
+            # add index over a vertex of index.name
+            if index.fields:
+                fields = index.fields
+            else:
+                fields = vc.index(index.name).fields
+            index_fields += [f"{index.name}@{x}" for x in fields]
+
+        if (
+            not index.exclude_edge_endpoints
+            and self.db_flavor == DBFlavor.ARANGO
+        ):
+            if all([item not in index_fields for item in ["_from", "_to"]]):
                 index_fields = ["_from", "_to"] + index_fields
-            index.fields = index_fields
+
+        index.fields = index_fields
         return index
 
     @property

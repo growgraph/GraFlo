@@ -114,12 +114,11 @@ def edge_with_vertex_indexes():
         target: entity
         indexes:
         -   name: publication
+        -   exclude_edge_endpoints: true
+            unique: false
+            name: publication
             fields:
             -   _key
-        -   exclude_edge_end_vertices: true
-            unique: false
-            fields:
-            -   publication@_key
     """)
     return tc
 

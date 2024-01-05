@@ -76,8 +76,15 @@ def verify(vc, current_path, mode, test_type, kind="sizes", reset=False):
             "->".join([f"{x}" for x in k]) if isinstance(k, tuple) else k: v
             for k, v in vc_transformed.items()
         }
+    elif kind == "indexes":
+        vc_transformed = []
+        for k, ixs in vc.items():
+            ixs = sorted(ixs, key=lambda x: "_".join(x["fields"]))
+            vc_transformed += [(k, ixs)]
+        vc_transformed = sorted(vc_transformed, key=lambda x: x[0])
+
     else:
-        vc_transformed = vc
+        raise ValueError(f"value {kind} not accepted")
 
     if reset:
         FileHandle.dump(
