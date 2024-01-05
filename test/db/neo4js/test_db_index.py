@@ -1,8 +1,4 @@
-import logging
-
 from graph_cast.db import ConnectionManager
-
-logger = logging.getLogger(__name__)
 
 
 def test_create_vertex_index(conn_conf, schema_obj):

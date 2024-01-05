@@ -140,15 +140,30 @@ class ArangoConnection(Connection):
             for index_obj in edge.indexes:
                 self._add_index(general_collection, index_obj)
 
+    def fetch_indexes(self, db_class_name: str | None = None):
+        if db_class_name is None:
+            classes = self.conn.collections()
+        elif self.conn.has_collection(db_class_name):
+            classes = [self.conn.collection(db_class_name)]
+        else:
+            classes = []
+
+        r = {}
+        for cname in classes:
+            assert isinstance(cname["name"], str)
+            c = self.conn.collection(cname["name"])
+            r[cname["name"]] = c.indexes()
+        return r
+
     def create_collection(
-        self, collection_name, index: None | Index = None, g=None
+        self, db_class_name, index: None | Index = None, g=None
     ):
-        if not self.conn.has_collection(collection_name):
+        if not self.conn.has_collection(db_class_name):
             if g is not None:
-                _ = g.create_vertex_collection(collection_name)
+                _ = g.create_vertex_collection(db_class_name)
             else:
-                self.conn.create_collection(collection_name)
-            general_collection = self.conn.collection(collection_name)
+                self.conn.create_collection(db_class_name)
+            general_collection = self.conn.collection(db_class_name)
             if index is not None and index.fields != ["_key"]:
                 ih = self._add_index(general_collection, index)
                 return ih

@@ -66,22 +66,29 @@ def ingest_atomic(conn_conf, current_path, test_db_name, mode, n_cores=1):
     )
 
 
-def verify(vc, current_path, mode, test_type, reset):
-    vc_transformed = {cast_graph_name_to_triple(k): v for k, v in vc.items()}
+def verify(vc, current_path, mode, test_type, kind="sizes", reset=False):
+    if kind == "sizes":
+        vc_transformed = {
+            cast_graph_name_to_triple(k): v for k, v in vc.items()
+        }
 
-    vc_transformed = {
-        "->".join([f"{x}" for x in k]) if isinstance(k, tuple) else k: v
-        for k, v in vc_transformed.items()
-    }
+        vc_transformed = {
+            "->".join([f"{x}" for x in k]) if isinstance(k, tuple) else k: v
+            for k, v in vc_transformed.items()
+        }
+    else:
+        vc_transformed = vc
 
     if reset:
         FileHandle.dump(
             vc_transformed,
-            join(current_path, f"./ref/{test_type}/{mode}_sizes.yaml"),
+            join(current_path, f"./ref/{test_type}/{mode}_{kind}.yaml"),
         )
 
     else:
-        ref_vc = FileHandle.load(f"test.ref.{test_type}", f"{mode}_sizes.yaml")
+        ref_vc = FileHandle.load(
+            f"test.ref.{test_type}", f"{mode}_{kind}.yaml"
+        )
         if not equals(vc_transformed, ref_vc):
             print(f" mode: {mode}")
             for k, v in ref_vc.items():

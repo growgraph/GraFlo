@@ -1,0 +1,249 @@
+_analyzers:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+_appbundles:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+_apps:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: true
+    fields:
+    -   mount
+    selectivity: 1
+    sparse: true
+    type: hash
+    unique: true
+_aqlfunctions:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+_fishbowl:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+_frontend:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+_graphs:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+_jobs:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: false
+    fields:
+    -   queue
+    -   status
+    -   delayUntil
+    sparse: false
+    type: skiplist
+    unique: false
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: false
+    fields:
+    -   status
+    -   queue
+    -   delayUntil
+    sparse: false
+    type: skiplist
+    unique: false
+_queues:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+agencies:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: true
+    fields:
+    -   aname
+    selectivity: 1
+    sparse: false
+    type: persistent
+    unique: true
+analysts:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: true
+    fields:
+    -   last_name
+    -   initial
+    selectivity: 1
+    sparse: false
+    type: persistent
+    unique: true
+analysts_agencies_edges:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+-   fields:
+    -   _from
+    -   _to
+    selectivity: 1
+    sparse: false
+    type: edge
+    unique: false
+analysts_publications_edges:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+-   fields:
+    -   _from
+    -   _to
+    selectivity: 1
+    sparse: false
+    type: edge
+    unique: false
+publications:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: true
+    fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: persistent
+    unique: true
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: true
+    fields:
+    -   datetime_review
+    selectivity: 1
+    sparse: false
+    type: hash
+    unique: false
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: true
+    fields:
+    -   datetime_announce
+    selectivity: 1
+    sparse: false
+    type: hash
+    unique: false
+publications_recommendations_edges:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+-   fields:
+    -   _from
+    -   _to
+    selectivity: 1
+    sparse: false
+    type: edge
+    unique: false
+publications_tickers_edges:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+-   fields:
+    -   _from
+    -   _to
+    selectivity: 1
+    sparse: false
+    type: edge
+    unique: false
+recommendations:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: true
+    fields:
+    -   irec
+    selectivity: 1
+    sparse: false
+    type: persistent
+    unique: true
+tickers:
+-   fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: true
+    fields:
+    -   cusip
+    -   cname
+    -   oftic
+    selectivity: 1
+    sparse: false
+    type: persistent
+    unique: true
