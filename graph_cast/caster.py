@@ -3,15 +3,12 @@ import multiprocessing as mp
 import queue
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
-from os import listdir
-from os.path import isfile, join
 from pathlib import Path
 
 import pandas as pd
 from suthing import DBConnectionConfig, Timer
 
 from graph_cast.architecture.onto import SOURCE_AUX, TARGET_AUX, GraphContainer
-from graph_cast.architecture.resource import Resource
 from graph_cast.architecture.schema import Schema
 from graph_cast.architecture.util import list_docs_to_graph_container
 from graph_cast.db import ConnectionManager
@@ -36,10 +33,9 @@ class Caster:
         fpath: Path, limit_files=None, pattern=None
     ) -> list[Path]:
         files = [
-            Path(join(fpath, f))
-            for f in listdir(fpath)
-            if isfile(join(fpath, f))
-            and (True if pattern is None else pattern in f)
+            f
+            for f in fpath.iterdir()
+            if f.is_file() and (True if pattern is None else pattern in f.name)
         ]
 
         if limit_files is not None:
@@ -74,17 +70,17 @@ class Caster:
     def process_batch(
         self,
         batch,
-        resource: Resource,
+        resource_name: str,
         conn_conf: None | DBConnectionConfig = None,
     ):
-        gc = self.cast_normal_resource(batch)
+        gc = self.cast_normal_resource(batch, resource_name=resource_name)
         if conn_conf is not None:
-            self.push_db(gc, conn_conf, resource)
+            self.push_db(gc, conn_conf, resource_name=resource_name)
 
     def process_resource(
         self,
         resource,
-        resource_config: Resource,
+        resource_name: str,
         conn_conf: None | DBConnectionConfig = None,
     ):
         """
@@ -92,7 +88,7 @@ class Caster:
         Args:
             resource: file
             conn_conf:
-            resource_config:
+            resource_name:
 
         Returns:
 
@@ -103,16 +99,17 @@ class Caster:
         )
         for batch in chunker:
             self.process_batch(
-                batch, resource=resource_config, conn_conf=conn_conf
+                batch, resource_name=resource_name, conn_conf=conn_conf
             )
 
     def push_db(
         self,
         gc: GraphContainer,
         conn_conf: DBConnectionConfig,
-        resource: Resource,
+        resource_name: str,
     ):
         vc = self.schema.vertex_config
+        resource = self.schema.fetch_resource(resource_name)
         with ConnectionManager(connection_config=conn_conf) as db_client:
             for vcol, data in gc.vertices.items():
                 # blank nodes: push and get back their keys  {"_key": ...}
@@ -155,7 +152,7 @@ class Caster:
                     assert weight.name is not None
                     index_fields = vc.index(weight.name)
 
-                    if not self.dry:
+                    if not self.dry and weight.name in gc.vertices:
                         weights_per_item = db_client.fetch_present_documents(
                             class_name=vc.vertex_dbname(weight.name),
                             batch=gc.vertices[weight.name],
@@ -175,7 +172,7 @@ class Caster:
 
         with ConnectionManager(connection_config=conn_conf) as db_client:
             for edge in self.schema.edge_config.edges:
-                if edge.edge_id in gc.edges:
+                if not self.dry and edge.edge_id in gc.edges:
                     data = gc.edges[edge.edge_id]
                     db_client.insert_edges_batch(
                         docs_edges=data,
@@ -193,12 +190,12 @@ class Caster:
         while True:
             try:
                 task = tasks.get_nowait()
-                filepath, resource = task
+                filepath, resource_name = task
             except queue.Empty:
                 break
             else:
                 self.process_resource(
-                    resource=filepath, resource_config=resource, **kwargs
+                    resource=filepath, resource_name=resource_name, **kwargs
                 )
 
     @staticmethod
@@ -240,13 +237,16 @@ class Caster:
         with ConnectionManager(connection_config=conn_conf) as db_client:
             db_client.init_db(self.schema, self.clean_start)
 
-        tasks = []
+        tasks: list[tuple[Path, str]] = []
         for r in self.schema.resources:
+            current_pattern = (
+                r.name if r.name not in patterns else patterns[r.name]
+            )
             files = Caster.discover_files(
-                path, limit_files=limit_files, pattern=r.name
+                path, limit_files=limit_files, pattern=current_pattern
             )
             logger.info(f"For resource name {r.name} {len(files)} were found")
-            tasks += [(f, r) for f in files]
+            tasks += [(f, r.name) for f in files]
 
         with Timer() as klepsidra:
             if self.n_cores > 1:
@@ -275,6 +275,6 @@ class Caster:
             else:
                 for f, r in tasks:
                     self.process_resource(
-                        resource=f, resource_config=r, **kwargs
+                        resource=f, resource_name=r, **kwargs
                     )
         logger.info(f"Processing took {klepsidra.elapsed:.1f} sec")

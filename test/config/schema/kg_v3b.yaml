@@ -1,5 +1,5 @@
 general:
-    name: kg_v3
+    name: kg_v3b
 resources:
     tree_likes:
     -   name: kg
@@ -77,6 +77,21 @@ resources:
                 -   name: publication
                     fields:
                     -   _key
+    -   name: communities
+        root:
+            children:
+            -   type: edge
+                edge:
+                    source: entity
+                    target: community
+            -   key: entity
+                children:
+                -   type: vertex
+                    name: entity
+            -   key: community
+                children:
+                -   type: vertex
+                    name: community
 vertex_config:
     vertices:
     -   name: publication
@@ -121,6 +136,18 @@ vertex_config:
         -   unique: false
             fields:
             -   text
+    -   name: community
+        dbname: communities
+        fields:
+        -   obs_date
+        -   t_window
+        -   comm_id
+        -   size
+        indexes:
+        -   fields:
+            -   obs_date
+            -   t_window
+            -   comm_id
 edge_config:
     edges:
     -   source: entity
@@ -142,9 +169,25 @@ edge_config:
             -   end_date
         -   fields:
             -   spec
+    -   source: entity
+        target: entity
+        collection_name_suffix: convolution
+        indexes:
+        -   fields:
+            -   obs_date
+            -   t_window
+#        -   fields_only: true
+#            unique: false
+#            fields:
+#            -   obs_date
+#            -   t_window
     -   source: mention
         target: entity
         indexes:
         -   name: publication
             fields:
             -   _key
+    -   source: entity
+        target: community
+    -   source: community
+        target: community

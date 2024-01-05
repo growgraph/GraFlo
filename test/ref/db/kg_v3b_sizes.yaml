@@ -1,6 +1,10 @@
+communities: 0
+communities->communities->None: 0
 entities: 80
+entities->communities->None: 0
 entities->entities->None: 0
 entities->entities->aux: 0
+entities->entities->convolution: 0
 mentions: 124
 mentions->entities->None: 98
 mentions->mentions->None: 126

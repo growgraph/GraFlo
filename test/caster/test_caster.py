@@ -23,8 +23,10 @@ def modes():
 
 def cast(modes, schema_obj, current_path, reset, n_threads=1):
     for mode in modes:
+        # work with main resource
+        resource_name = mode.split("_")[0]
         schema = schema_obj(mode)
-        rr = schema.fetch_resource()
+        rr = schema.fetch_resource(name=resource_name)
         data_obj = FileHandle.load(
             f"test.data.{InputTypeFileExtensions[rr.resource_type][0]}.{mode}",
             f"{mode}.{InputTypeFileExtensions[rr.resource_type][0]}.gz",
@@ -32,7 +34,7 @@ def cast(modes, schema_obj, current_path, reset, n_threads=1):
 
         caster = Caster(schema, n_threads=n_threads)
         data = caster.normalize_resource(data_obj)
-        graph = caster.cast_normal_resource(data)
+        graph = caster.cast_normal_resource(data, resource_name=resource_name)
 
         graph.pick_unique()
 
