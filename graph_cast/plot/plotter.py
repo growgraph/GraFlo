@@ -260,15 +260,13 @@ class SchemaPlotter:
         edges = []
 
         for resource in self.conf.resources:
-            nodes_table = [
-                (
-                    f"{resource.resource_type}:{resource.name}",
-                    {
-                        "type": f"{resource.resource_type}",
-                        "label": resource.name,
-                    },
-                )
-            ]
+            nodes_table = [(
+                f"{resource.resource_type}:{resource.name}",
+                {
+                    "type": f"{resource.resource_type}",
+                    "label": resource.name,
+                },
+            )]
             for vertex, rep in resource.vertex_rep.items():
                 index = self.conf.vertex_config.index(vertex)
                 node_collection = (
@@ -343,15 +341,13 @@ class SchemaPlotter:
                     t_key = "-".join(t_spec)
                     t_label = "-".join([x[0] for x in t_spec])
 
-                    nodes_transforms += [
-                        (
-                            f"transform:{t_key}",
-                            {
-                                "type": "transform",
-                                "label": t_label,
-                            },
-                        )
-                    ]
+                    nodes_transforms += [(
+                        f"transform:{t_key}",
+                        {
+                            "type": "transform",
+                            "label": t_label,
+                        },
+                    )]
 
                     edges_fields += [
                         (
@@ -372,13 +368,11 @@ class SchemaPlotter:
                 trivial_fields = {
                     kk
                     for kk in rep.fields
-                    if not any(
-                        [
-                            x["label"] == kk
-                            for _, x in nodes_fields_resource
-                            + nodes_fields_collection
-                        ]
-                    )
+                    if not any([
+                        x["label"] == kk
+                        for _, x in nodes_fields_resource
+                        + nodes_fields_collection
+                    ])
                 }
 
                 nodes_fields_resource += [

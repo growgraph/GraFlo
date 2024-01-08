@@ -73,13 +73,11 @@ def implication(ops):
     return b if a else True
 
 
-OperatorMapping = MappingProxyType(
-    {
-        LogicalOperator.AND: all,
-        LogicalOperator.OR: any,
-        LogicalOperator.IMPLICATION: implication,
-    }
-)
+OperatorMapping = MappingProxyType({
+    LogicalOperator.AND: all,
+    LogicalOperator.OR: any,
+    LogicalOperator.IMPLICATION: implication,
+})
 
 
 class BaseDataclass(JSONWizard, JSONWizard.Meta):
@@ -262,9 +260,7 @@ class Expression(AbsClause):
         pass
 
 
-InputTypeFileExtensions = MappingProxyType(
-    {
-        ResourceType.TREELIKE: (InputType.JSON,),
-        ResourceType.ROWLIKE: (InputType.CSV,),
-    }
-)
+InputTypeFileExtensions = MappingProxyType({
+    ResourceType.TREELIKE: (InputType.JSON,),
+    ResourceType.ROWLIKE: (InputType.CSV,),
+})

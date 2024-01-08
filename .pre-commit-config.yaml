@@ -11,39 +11,39 @@ repos:
 #        -   --remove-all-unused-imports
 
 -   repo: https://github.com/ambv/black
-    rev: 23.7.0
+    rev: 23.12.1
     hooks:
     -   id: black
         args: [--preview, -l 79]
 
 -   repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
+    rev: 5.13.2
     hooks:
     -   id: isort
         args:
         -   --line-length=79
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.4.1
+    rev: v1.8.0
     hooks:
     -   id: mypy
         exclude: (^test/)
         args: [--show-error-codes]
         additional_dependencies: [types-requests, types-python-dateutil, types-waitress, types-PyYAML, pandas-stubs]
 -   repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-    rev: v2.9.0
+    rev: v2.12.0
     hooks:
     -   id: pretty-format-yaml
         args: [--autofix, --indent, '4', --preserve-quotes]
 
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
     -   id: pretty-format-json
         exclude: .*jsonld$
         args: [--autofix, --indent, '4', --no-sort-keys]
 
 -   repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-    rev: v2.9.0
+    rev: v2.12.0
     hooks:
     -   id: pretty-format-toml
         args: [--autofix]

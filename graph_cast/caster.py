@@ -136,14 +136,12 @@ class Caster:
                     if vcol == vfrom or vcol == vto:
                         if edge.edge_id not in gc.edges:
                             gc.edges[edge.edge_id] = []
-                        gc.edges[edge.edge_id].extend(
-                            [
-                                {SOURCE_AUX: x, TARGET_AUX: y}
-                                for x, y in zip(
-                                    gc.vertices[vfrom], gc.vertices[vto]
-                                )
-                            ]
-                        )
+                        gc.edges[edge.edge_id].extend([
+                            {SOURCE_AUX: x, TARGET_AUX: y}
+                            for x, y in zip(
+                                gc.vertices[vfrom], gc.vertices[vto]
+                            )
+                        ])
 
         with ConnectionManager(connection_config=conn_conf) as db_client:
             # currently works only on item level

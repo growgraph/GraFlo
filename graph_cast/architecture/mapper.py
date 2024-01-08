@@ -51,16 +51,14 @@ class NodeType(str, BaseEnum):
 
 
 # greater numbers have lower priority
-NodeTypePriority = MappingProxyType(
-    {
-        NodeType.TRIVIAL: 0,
-        NodeType.DESCEND: 10,
-        NodeType.VALUE: 30,
-        NodeType.VERTEX: 40,
-        NodeType.EDGE: 90,
-        NodeType.WEIGHT: 100,
-    }
-)
+NodeTypePriority = MappingProxyType({
+    NodeType.TRIVIAL: 0,
+    NodeType.DESCEND: 10,
+    NodeType.VALUE: 30,
+    NodeType.VERTEX: 40,
+    NodeType.EDGE: 90,
+    NodeType.WEIGHT: 100,
+})
 
 
 def update_defaultdict(dd_a: defaultdict, dd_b: defaultdict):
@@ -308,15 +306,13 @@ class MapperNode(BaseDataclass):
                         weight[field] = v[field]
                         if field not in self.edge.non_exclusive:
                             del v[field]
-            acc[source, target, self.edge.relation] += [
-                {
-                    **{
-                        SOURCE_AUX: project_dict(u, source_index),
-                        TARGET_AUX: project_dict(v, target_index),
-                    },
-                    **weight,
-                }
-            ]
+            acc[source, target, self.edge.relation] += [{
+                **{
+                    SOURCE_AUX: project_dict(u, source_index),
+                    TARGET_AUX: project_dict(v, target_index),
+                },
+                **weight,
+            }]
         return acc
 
     def _add_weights(self, vertex_config: VertexConfig, agg):
@@ -332,12 +328,10 @@ class MapperNode(BaseDataclass):
                 vertices = [
                     doc
                     for doc in vertices
-                    if all(
-                        [
-                            doc[q] == v in doc
-                            for q, v in weight_conf.filter.items()
-                        ]
-                    )
+                    if all([
+                        doc[q] == v in doc
+                        for q, v in weight_conf.filter.items()
+                    ])
                 ]
             try:
                 doc = next(iter(vertices))
