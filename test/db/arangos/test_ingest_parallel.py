@@ -30,5 +30,5 @@ def test_ingest(
         current_path,
         test_db_name,
         reset,
-        n_cores=1,
+        n_cores=2,
     )

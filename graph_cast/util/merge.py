@@ -42,17 +42,17 @@ def merge_doc_basis(
 
 def merge_documents(
     docs: list[dict],
-    main_key="_key",
-    anchor_key=ANCHOR_KEY,
-    anchor_value="main",
+    main_key,
+    discriminant_key,
+    discriminant_value="main",
 ):
     """
     docs contain documents with main_key and documents without
     all docs without main_key should be merged with the doc that has doc[anchor_key] == anchor_value
     :param docs:
     :param main_key:
-    :param anchor_key:
-    :param anchor_value:
+    :param discriminant_key:
+    :param discriminant_value:
     :return: list of docs, each of which contains main_key
     """
     mains_: list = []
@@ -66,7 +66,8 @@ def merge_documents(
     for item in mains_:
         (
             anchors
-            if anchor_key in item and item[anchor_key] == anchor_value
+            if discriminant_key in item
+            and item[discriminant_key] == discriminant_value
             else mains
         ).append(item)
 

@@ -76,7 +76,7 @@ class Connection(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def fetch_docs(self, class_name, filters, limit, return_keys):
+    def fetch_docs(self, class_name, filters, limit, return_keys, unset_keys):
         pass
 
     @abc.abstractmethod

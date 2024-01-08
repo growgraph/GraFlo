@@ -181,6 +181,7 @@ class Neo4jConnection(Connection):
         filters: list | dict | None = None,
         limit: int | None = None,
         return_keys: list | None = None,
+        unset_keys: list | None = None,
     ):
         # "MATCH (d:chunks) WHERE d.t > 15 RETURN d { .kind, .t }"
 

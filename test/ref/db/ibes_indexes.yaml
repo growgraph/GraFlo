@@ -35,13 +35,6 @@ _aqlfunctions:
     sparse: false
     type: primary
     unique: true
-_fishbowl:
--   fields:
-    -   _key
-    selectivity: 1
-    sparse: false
-    type: primary
-    unique: true
 _frontend:
 -   fields:
     -   _key
@@ -225,6 +218,9 @@ recommendations:
     estimates: true
     fields:
     -   irec
+    -   erec
+    -   etext
+    -   itext
     selectivity: 1
     sparse: false
     type: persistent

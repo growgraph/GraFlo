@@ -441,6 +441,7 @@ class ArangoConnection(Connection):
         filters: list | dict | None = None,
         limit: int | None = None,
         return_keys: list | None = None,
+        unset_keys: list | None = None,
     ):
         """
 
@@ -449,6 +450,7 @@ class ArangoConnection(Connection):
         :param limit:
             {"AND": [["==", "1", "x"], ["==", "2", "y", "% 2"]]}
         :param return_keys:
+        :param unset_keys:
         :return:
         """
         if filters is not None:
@@ -457,11 +459,18 @@ class ArangoConnection(Connection):
         else:
             filter_clause = ""
 
-        if return_keys is not None:
-            keep_clause_ = ", ".join([f'"{item}"' for item in return_keys])
-            keep_clause = f"KEEP(d, {keep_clause_})"
+        if return_keys is None:
+            if unset_keys is None:
+                return_clause = "d"
+            else:
+                tmp_clause = ", ".join([f'"{item}"' for item in unset_keys])
+                return_clause = f"UNSET(d, {tmp_clause})"
         else:
-            keep_clause = "d"
+            if unset_keys is None:
+                tmp_clause = ", ".join([f'"{item}"' for item in return_keys])
+                return_clause = f"KEEP(d, {tmp_clause})"
+            else:
+                raise ValueError(f"both return_keys and unset_keys are set")
 
         if limit is not None and isinstance(limit, int):
             limit_clause = f"LIMIT {limit}"
@@ -472,7 +481,7 @@ class ArangoConnection(Connection):
             f"FOR d in {class_name}"
             f"  {filter_clause}"
             f"  {limit_clause}"
-            f"  RETURN {keep_clause}"
+            f"  RETURN {return_clause}"
         )
         cursor = self.execute(q)
         return get_data_from_cursor(cursor)

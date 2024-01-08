@@ -62,12 +62,14 @@ class Resource(BaseDataclass):
         self,
         unit_doc: defaultdict[GraphEntity, list],
         vertex_config: VertexConfig,
+        discriminant_key: str,
     ) -> defaultdict[GraphEntity, list]:
         """
 
         Args:
             unit_doc: generic : ddict
             vertex_config:
+            vertex_config: discriminant_key
 
         Returns: defaultdict vertex and edges collections
 
@@ -79,8 +81,13 @@ class Resource(BaseDataclass):
                 v = merge_doc_basis(
                     v, tuple(vertex_config.index(vertex).fields)
                 )
-            if vertex in self.merge_collections:
-                v = merge_documents(v)
+            # TODO : fix merging
+            # use case - when the same vertex is defined is different places of the incoming tree-like input (json)
+            # if vertex in self.merge_collections:
+            #     v = merge_documents(v, vertex_config.index(vertex).fields, discriminant_key)
+            if vertex in vertex_config.vertex_set:
+                for item in v:
+                    item.pop(discriminant_key, None)
             unit_doc[vertex] = v
 
         return unit_doc
@@ -248,7 +255,7 @@ class TreeResource(Resource):
             acc,
             discriminant_key,
         )
-        acc = self.normalize_unit(acc, vertex_config)
+        acc = self.normalize_unit(acc, vertex_config, discriminant_key)
 
         return acc
 

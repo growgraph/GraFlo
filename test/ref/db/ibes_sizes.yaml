@@ -5,5 +5,5 @@ analysts->publications->None: 1000
 publications: 1000
 publications->recommendations->None: 1000
 publications->tickers->None: 1000
-recommendations: 5
+recommendations: 106
 tickers: 69

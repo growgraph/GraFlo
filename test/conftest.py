@@ -8,6 +8,7 @@ from graph_cast.architecture.onto import cast_graph_name_to_triple
 from graph_cast.architecture.schema import Schema
 from graph_cast.caster import Caster
 from graph_cast.onto import InputTypeFileExtensions
+from graph_cast.util.misc import sorted_dicts
 
 
 def pytest_addoption(parser):
@@ -66,41 +67,56 @@ def ingest_atomic(conn_conf, current_path, test_db_name, mode, n_cores=1):
     )
 
 
-def verify(vc, current_path, mode, test_type, kind="sizes", reset=False):
+def verify(sample, current_path, mode, test_type, kind="sizes", reset=False):
+    ext = "yaml"
     if kind == "sizes":
-        vc_transformed = {
-            cast_graph_name_to_triple(k): v for k, v in vc.items()
+        sample_transformed = {
+            cast_graph_name_to_triple(k): v for k, v in sample.items()
         }
 
-        vc_transformed = {
+        sample_transformed = {
             "->".join([f"{x}" for x in k]) if isinstance(k, tuple) else k: v
-            for k, v in vc_transformed.items()
+            for k, v in sample_transformed.items()
         }
     elif kind == "indexes":
-        vc_transformed = []
-        for k, ixs in vc.items():
-            ixs = sorted(ixs, key=lambda x: "_".join(x["fields"]))
-            vc_transformed += [(k, ixs)]
-        vc_transformed = sorted(vc_transformed, key=lambda x: x[0])
-
+        # sample_transformed = []
+        # for k, ixs in sample.items():
+        #     ixs = sorted(ixs, key=lambda x: "_".join(x["fields"]))
+        #     sample_transformed += [(k, ixs)]
+        # sample_transformed = sorted(sample_transformed, key=lambda x: x[0])
+        sample_transformed = sorted_dicts(sample)
+    elif kind == "contents":
+        sample_transformed = sorted_dicts(sample)
     else:
         raise ValueError(f"value {kind} not accepted")
 
     if reset:
         FileHandle.dump(
-            vc_transformed,
-            join(current_path, f"./ref/{test_type}/{mode}_{kind}.yaml"),
+            sample_transformed,
+            join(current_path, f"./ref/{test_type}/{mode}_{kind}.{ext}"),
         )
 
     else:
-        ref_vc = FileHandle.load(
-            f"test.ref.{test_type}", f"{mode}_{kind}.yaml"
+        sample_ref = FileHandle.load(
+            f"test.ref.{test_type}", f"{mode}_{kind}.{ext}"
         )
-        if not equals(vc_transformed, ref_vc):
+        flag = equals(sample_transformed, sample_ref)
+        if not flag:
             print(f" mode: {mode}")
-            for k, v in ref_vc.items():
-                print(
-                    f" {k} expected: {v}, received:"
-                    f" {vc_transformed[k] if k in vc_transformed else None}"
-                )
-        assert equals(vc_transformed, ref_vc)
+            if isinstance(sample_ref, dict):
+                for k, v in sample_ref.items():
+                    if v != sample_transformed[k]:
+                        print(
+                            f"for {k}\n"
+                            f"expected: {v}\n"
+                            "received:"
+                            f" {sample_transformed[k] if k in sample_transformed else None}"
+                        )
+            elif isinstance(sample_ref, list):
+                for j, (x, y) in enumerate(
+                    zip(sample_ref, sample_transformed)
+                ):
+                    if x != y:
+                        print(f"for item {j}\nexpected: {x}\nreceived: {y}")
+
+        assert flag

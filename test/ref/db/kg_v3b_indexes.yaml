@@ -35,13 +35,6 @@ _aqlfunctions:
     sparse: false
     type: primary
     unique: true
-_fishbowl:
--   fields:
-    -   _key
-    selectivity: 1
-    sparse: false
-    type: primary
-    unique: true
 _frontend:
 -   fields:
     -   _key
@@ -133,8 +126,7 @@ entities:
     deduplicate: true
     estimates: true
     fields:
-    -   id
-    -   ent_type
+    -   _key
     selectivity: 1
     sparse: false
     type: persistent
@@ -144,7 +136,7 @@ entities:
     estimates: true
     fields:
     -   id
-    -   ent_db_type
+    -   ent_type
     selectivity: 1
     sparse: false
     type: persistent
@@ -228,6 +220,8 @@ entities_entities_edges:
     deduplicate: true
     estimates: true
     fields:
+    -   _from
+    -   _to
     -   publication@_id
     selectivity: 1
     sparse: false
@@ -312,8 +306,17 @@ mentions:
     deduplicate: true
     estimates: true
     fields:
+    -   _key
+    selectivity: 1
+    sparse: false
+    type: persistent
+    unique: true
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: true
+    fields:
     -   text
-    selectivity: 0.6693548387096774
+    selectivity: 1
     sparse: false
     type: persistent
     unique: false
@@ -327,7 +330,7 @@ mentions_entities_edges:
 -   fields:
     -   _from
     -   _to
-    selectivity: 0.826530612244898
+    selectivity: 1
     sparse: false
     type: edge
     unique: false
@@ -347,7 +350,7 @@ mentions_entities_edges:
     estimates: true
     fields:
     -   publication@_id
-    selectivity: 0.01020408163265306
+    selectivity: 1
     sparse: false
     type: persistent
     unique: false
@@ -361,21 +364,10 @@ mentions_mentions_edges:
 -   fields:
     -   _from
     -   _to
-    selectivity: 0.49603174603174605
+    selectivity: 1
     sparse: false
     type: edge
     unique: false
--   cacheEnabled: false
-    deduplicate: true
-    estimates: true
-    fields:
-    -   _from
-    -   _to
-    -   _role
-    selectivity: 1
-    sparse: false
-    type: persistent
-    unique: true
 publications:
 -   fields:
     -   _key
@@ -412,7 +404,7 @@ publications_mentions_edges:
 -   fields:
     -   _from
     -   _to
-    selectivity: 0.5121951219512195
+    selectivity: 1
     sparse: false
     type: edge
     unique: false
