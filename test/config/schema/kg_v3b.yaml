@@ -76,7 +76,7 @@ resources:
                 vertices:
                 -   name: publication
                     fields:
-                    -   _key
+                    -   _id
     -   name: communities
         root:
             children:

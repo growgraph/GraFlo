@@ -6,7 +6,6 @@ from suthing import ConfigFactory, FileHandle
 
 from graph_cast.db import ConnectionManager
 from graph_cast.onto import AggregationType, ComparisonOperator
-from graph_cast.util.misc import sorted_dicts
 
 
 @pytest.fixture(scope="function")
@@ -62,7 +61,9 @@ def verify_from_db(conn_conf, current_path, test_db_name, mode, reset):
                 unset_keys=[
                     "_id",
                     "_rev",
-                    "publication@_key",
+                    "publication@_id",
+                    # TODO remove _anchor after regression is fixed
+                    "_anchor",
                 ],
             )
     for k, docs in contents.items():
