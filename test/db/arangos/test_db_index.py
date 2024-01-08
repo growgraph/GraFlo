@@ -1,4 +1,4 @@
-from test.conftest import ingest_atomic, verify
+from test.conftest import verify
 
 import pytest
 
@@ -31,7 +31,6 @@ def init_db(m, conn_conf, schema, current_path, reset):
     verify(ixs, current_path, m, test_type="db", kind="indexes", reset=reset)
 
 
-# @pytest.mark.skip(reason="no way of currently testing this")
 def test_index(
     create_db, modes, conn_conf, schema_obj, current_path, test_db_name, reset
 ):

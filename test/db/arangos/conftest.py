@@ -62,8 +62,6 @@ def verify_from_db(conn_conf, current_path, test_db_name, mode, reset):
                     "_id",
                     "_rev",
                     "publication@_id",
-                    # TODO remove _anchor after regression is fixed
-                    "_anchor",
                 ],
             )
     for k, docs in contents.items():
