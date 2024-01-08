@@ -229,6 +229,7 @@ class Caster:
         self.n_cores = kwargs.pop("n_cores", self.n_cores)
         self.max_items = kwargs.pop("max_items", self.max_items)
         self.batch_size = kwargs.pop("batch_size", self.batch_size)
+        self.dry = kwargs.pop("dry", self.dry)
         limit_files = kwargs.pop("limit_files", None)
         patterns = kwargs.pop("patterns", {})
 
