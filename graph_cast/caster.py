@@ -44,7 +44,7 @@ class Caster:
         return files
 
     def cast_normal_resource(
-        self, data, columns=None, resource_name=None
+        self, data, columns=None, resource_name: str | None = None
     ) -> GraphContainer:
         vc = self.schema.vertex_config
         ec = self.schema.edge_config
@@ -70,7 +70,7 @@ class Caster:
     def process_batch(
         self,
         batch,
-        resource_name: str,
+        resource_name: str | None,
         conn_conf: None | DBConnectionConfig = None,
     ):
         gc = self.cast_normal_resource(batch, resource_name=resource_name)
@@ -80,7 +80,7 @@ class Caster:
     def process_resource(
         self,
         resource,
-        resource_name: str,
+        resource_name: str | None,
         conn_conf: None | DBConnectionConfig = None,
     ):
         """
@@ -106,7 +106,7 @@ class Caster:
         self,
         gc: GraphContainer,
         conn_conf: DBConnectionConfig,
-        resource_name: str,
+        resource_name: str | None,
     ):
         vc = self.schema.vertex_config
         resource = self.schema.fetch_resource(resource_name)
