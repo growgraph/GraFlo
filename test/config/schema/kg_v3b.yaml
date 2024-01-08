@@ -66,7 +66,7 @@ resources:
                         weights:
                             target_fields:
                             -   _role
-                        index:
+                        indexes:
                         -   fields:
                             -   _role
         extra_weights:
@@ -126,6 +126,9 @@ vertex_config:
         -   fields:
             -   id
             -   ent_type
+        -   fields:
+            -   id
+            -   ent_db_type
     -   name: mention
         dbname: mentions
         fields:
@@ -157,10 +160,10 @@ edge_config:
             fields:
             -   _id
         -   name: publication
-            exclude_edge_end_vertices: true
-            unique: false
             fields:
             -   _id
+            exclude_edge_endpoints: true
+            unique: false
     -   source: entity
         target: entity
         collection_name_suffix: tmp

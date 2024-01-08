@@ -1,21 +1,18 @@
 _analyzers:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
 _appbundles:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
 _apps:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
@@ -24,35 +21,36 @@ _apps:
     estimates: true
     fields:
     -   mount
-    selectivity: 1
     sparse: true
     type: hash
     unique: true
 _aqlfunctions:
 -   fields:
     -   _key
-    selectivity: 1
+    sparse: false
+    type: primary
+    unique: true
+_fishbowl:
+-   fields:
+    -   _key
     sparse: false
     type: primary
     unique: true
 _frontend:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
 _graphs:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
 _jobs:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
@@ -79,14 +77,12 @@ _jobs:
 _queues:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
 communities:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
@@ -97,28 +93,24 @@ communities:
     -   obs_date
     -   t_window
     -   comm_id
-    selectivity: 1
     sparse: false
     type: persistent
     unique: true
 communities_communities_edges:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
 -   fields:
     -   _from
     -   _to
-    selectivity: 1
     sparse: false
     type: edge
     unique: false
 entities:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
@@ -126,8 +118,8 @@ entities:
     deduplicate: true
     estimates: true
     fields:
-    -   _key
-    selectivity: 1
+    -   id
+    -   ent_type
     sparse: false
     type: persistent
     unique: true
@@ -136,36 +128,31 @@ entities:
     estimates: true
     fields:
     -   id
-    -   ent_type
-    selectivity: 1
+    -   ent_db_type
     sparse: false
     type: persistent
     unique: true
 entities_communities_edges:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
 -   fields:
     -   _from
     -   _to
-    selectivity: 1
     sparse: false
     type: edge
     unique: false
 entities_entities_convolution_edges:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
 -   fields:
     -   _from
     -   _to
-    selectivity: 1
     sparse: false
     type: edge
     unique: false
@@ -177,7 +164,6 @@ entities_entities_convolution_edges:
     -   _to
     -   obs_date
     -   t_window
-    selectivity: 1
     sparse: false
     type: persistent
     unique: true
@@ -187,21 +173,18 @@ entities_entities_convolution_edges:
     fields:
     -   obs_date
     -   t_window
-    selectivity: 1
     sparse: false
     type: persistent
     unique: false
 entities_entities_edges:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
 -   fields:
     -   _from
     -   _to
-    selectivity: 1
     sparse: false
     type: edge
     unique: false
@@ -212,7 +195,6 @@ entities_entities_edges:
     -   _from
     -   _to
     -   publication@_id
-    selectivity: 1
     sparse: false
     type: persistent
     unique: true
@@ -220,24 +202,19 @@ entities_entities_edges:
     deduplicate: true
     estimates: true
     fields:
-    -   _from
-    -   _to
     -   publication@_id
-    selectivity: 1
     sparse: false
     type: persistent
     unique: false
 entities_entities_redux_edges:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
 -   fields:
     -   _from
     -   _to
-    selectivity: 1
     sparse: false
     type: edge
     unique: false
@@ -248,7 +225,6 @@ entities_entities_redux_edges:
     -   _from
     -   _to
     -   publication@_id
-    selectivity: 1
     sparse: false
     type: persistent
     unique: true
@@ -257,21 +233,18 @@ entities_entities_redux_edges:
     estimates: true
     fields:
     -   publication@_id
-    selectivity: 1
     sparse: false
     type: persistent
     unique: false
 entities_entities_tmp_edges:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
 -   fields:
     -   _from
     -   _to
-    selectivity: 1
     sparse: false
     type: edge
     unique: false
@@ -282,7 +255,6 @@ entities_entities_tmp_edges:
     -   _from
     -   _to
     -   publication@_id
-    selectivity: 1
     sparse: false
     type: persistent
     unique: true
@@ -291,46 +263,32 @@ entities_entities_tmp_edges:
     estimates: true
     fields:
     -   publication@_id
-    selectivity: 1
     sparse: false
     type: persistent
     unique: false
 mentions:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
-    unique: true
--   cacheEnabled: false
-    deduplicate: true
-    estimates: true
-    fields:
-    -   _key
-    selectivity: 1
-    sparse: false
-    type: persistent
     unique: true
 -   cacheEnabled: false
     deduplicate: true
     estimates: true
     fields:
     -   text
-    selectivity: 1
     sparse: false
     type: persistent
     unique: false
 mentions_entities_edges:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
 -   fields:
     -   _from
     -   _to
-    selectivity: 1
     sparse: false
     type: edge
     unique: false
@@ -341,7 +299,6 @@ mentions_entities_edges:
     -   _from
     -   _to
     -   publication@_id
-    selectivity: 1
     sparse: false
     type: persistent
     unique: true
@@ -350,28 +307,34 @@ mentions_entities_edges:
     estimates: true
     fields:
     -   publication@_id
-    selectivity: 1
     sparse: false
     type: persistent
     unique: false
 mentions_mentions_edges:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
 -   fields:
     -   _from
     -   _to
-    selectivity: 1
     sparse: false
     type: edge
     unique: false
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: true
+    fields:
+    -   _from
+    -   _to
+    -   _role
+    sparse: false
+    type: persistent
+    unique: true
 publications:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
@@ -381,7 +344,6 @@ publications:
     fields:
     -   arxiv
     -   doi
-    selectivity: 1
     sparse: false
     type: persistent
     unique: true
@@ -390,21 +352,18 @@ publications:
     estimates: true
     fields:
     -   created
-    selectivity: 1
     sparse: false
     type: persistent
     unique: false
 publications_mentions_edges:
 -   fields:
     -   _key
-    selectivity: 1
     sparse: false
     type: primary
     unique: true
 -   fields:
     -   _from
     -   _to
-    selectivity: 1
     sparse: false
     type: edge
     unique: false

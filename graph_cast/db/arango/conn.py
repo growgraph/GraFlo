@@ -127,11 +127,14 @@ class ArangoConnection(Connection):
 
     def define_vertex_indices(self, vertex_config: VertexConfig):
         for c in vertex_config.vertex_set:
+            general_collection = self.conn.collection(
+                vertex_config.vertex_dbname(c)
+            )
+            ixs = general_collection.indexes()
+            field_combinations = [tuple(ix["fields"]) for ix in ixs]
             for index_obj in vertex_config.indexes(c):
-                general_collection = self.conn.collection(
-                    vertex_config.vertex_dbname(c)
-                )
-                self._add_index(general_collection, index_obj)
+                if tuple(index_obj.fields) not in field_combinations:
+                    self._add_index(general_collection, index_obj)
 
     def define_edge_indices(self, edges: list[Edge]):
         for edge in edges:

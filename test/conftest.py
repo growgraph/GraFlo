@@ -79,11 +79,6 @@ def verify(sample, current_path, mode, test_type, kind="sizes", reset=False):
             for k, v in sample_transformed.items()
         }
     elif kind == "indexes":
-        # sample_transformed = []
-        # for k, ixs in sample.items():
-        #     ixs = sorted(ixs, key=lambda x: "_".join(x["fields"]))
-        #     sample_transformed += [(k, ixs)]
-        # sample_transformed = sorted(sample_transformed, key=lambda x: x[0])
         sample_transformed = sorted_dicts(sample)
     elif kind == "contents":
         sample_transformed = sorted_dicts(sample)

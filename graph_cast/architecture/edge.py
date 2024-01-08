@@ -117,6 +117,7 @@ class EdgeConfig(BaseDataclass):
             e.finish_init(vc)
 
     def update_edges(self, edge: Edge):
+        # TODO better update : the incoming edge might complement
         if all([edge.edge_id != e.edge_id for e in self.edges]):
             self.edges += [edge]
 

@@ -8,7 +8,7 @@ from graph_cast.db import ConnectionManager
 @pytest.fixture(scope="function")
 def modes():
     return [
-        # "kg_v3b",
+        "kg_v3b",
         "ibes",
         # "wos_json",
         # "lake_odds",
@@ -26,6 +26,7 @@ def init_db(m, conn_conf, schema, current_path, reset):
         for ix in batch:
             del ix["id"]
             del ix["name"]
+            _ = ix.pop("selectivity", None)
 
     verify(ixs, current_path, m, test_type="db", kind="indexes", reset=reset)
 
