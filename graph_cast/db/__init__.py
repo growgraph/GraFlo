@@ -1,2 +1,2 @@
-from .connection import Connection, ConnectionType
-from .manager import ConnectionManager
+from .connection import Connection, ConnectionType  # noqa
+from .manager import ConnectionManager  # noqa

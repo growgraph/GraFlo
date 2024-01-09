@@ -93,7 +93,7 @@ class Transform(BaseDataclass):
 
         elif self.class_name is not None:
             try:
-                _class = eval(self.class_name)
+                eval(self.class_name)
             except Exception as e:
                 raise Exception(
                     f"Provided class {self.class_name} not valid: {e}"

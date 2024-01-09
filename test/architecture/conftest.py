@@ -1,8 +1,6 @@
 import pytest
 import yaml
 
-from graph_cast.caster import Caster
-
 
 @pytest.fixture()
 def vertex_pub():

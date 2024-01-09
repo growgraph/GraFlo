@@ -1,1 +1,1 @@
-from .plotter import SchemaPlotter
+from .plotter import SchemaPlotter  # noqa

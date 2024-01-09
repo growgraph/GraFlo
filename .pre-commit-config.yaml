@@ -1,21 +1,19 @@
 fail_fast: false
 
 repos:
-#-   repo: https://github.com/myint/autoflake
-#    rev: v2.2.0
-#    hooks:
-#    -   id: autoflake
-#        args:
-#        -   --in-place
-#        -   --remove-unused-variables
-#        -   --remove-all-unused-imports
-
+-   repo: https://github.com/myint/autoflake
+    rev: v2.2.1
+    hooks:
+    -   id: autoflake
+        args:
+        -   --in-place
+        -   --remove-unused-variables
+        -   --remove-all-unused-imports
 -   repo: https://github.com/ambv/black
     rev: 23.12.1
     hooks:
     -   id: black
         args: [--preview, -l 79]
-
 -   repo: https://github.com/PyCQA/isort
     rev: 5.13.2
     hooks:
@@ -41,7 +39,6 @@ repos:
     -   id: pretty-format-json
         exclude: .*jsonld$
         args: [--autofix, --indent, '4', --no-sort-keys]
-
 -   repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
     rev: v2.12.0
     hooks:

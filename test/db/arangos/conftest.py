@@ -15,7 +15,7 @@ def test_db_name():
 
 @pytest.fixture(scope="function")
 def test_db_port():
-    env = FileHandle.load("docker.arango", ".env")
+    FileHandle.load("docker.arango", ".env")
     port = os.environ["ARANGO_PORT"]
     return port
 

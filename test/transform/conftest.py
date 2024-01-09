@@ -1,6 +1,3 @@
-import io
-
-import pandas as pd
 import pytest
 import yaml
 
@@ -142,88 +139,6 @@ def edge_config_ticker():
                 -   name
     """)
     return ec
-
-
-@pytest.fixture()
-def df_ibes() -> pd.DataFrame:
-    df0_str = """TICKER,CUSIP,CNAME,OFTIC,ACTDATS,ESTIMID,ANALYST,ERECCD,ETEXT,IRECCD,ITEXT,EMASKCD,AMASKCD,USFIRM,ACTTIMS,REVDATS,REVTIMS,ANNDATS,ANNTIMS
-0000,87482X10,TALMER BANCORP,TLMR,20140310,RBCDOMIN,ARFSTROM      J,2,OUTPERFORM,2,BUY,00000659,00071182,1,8:54:03,20160126,9:35:52,20140310,0:20:00
-0000,87482X10,TALMER BANCORP,TLMR,20140311,JPMORGAN,ALEXOPOULOS   S,,OVERWEIGHT,2,BUY,00001243,00079092,1,17:10:47,20160126,10:09:34,20140310,0:25:00"""
-    return pd.read_csv(
-        io.StringIO(df0_str),
-        sep=",",
-        dtype={"TICKER": str, "ANNDATS": str, "REVDATS": str},
-    )
-
-
-@pytest.fixture()
-def df_ticker() -> pd.DataFrame:
-    df0_str = """Date,Open,High,Low,Close,Volume,Dividends,Stock Splits,__ticker
-2014-04-15,17.899999618530273,17.920000076293945,15.149999618530273,15.350000381469727,3531700,0,0,AAPL
-2014-04-16,15.350000381469727,16.09000015258789,15.210000038146973,15.619999885559082,266500,0,0,AAPL"""
-    return pd.read_csv(
-        io.StringIO(df0_str),
-        sep=",",
-    )
-
-
-@pytest.fixture()
-def vertex_config_transform_collision():
-    vc = yaml.safe_load("""
-        vertices:
-        -
-            name: person
-            dbname: people
-            fields:
-            -   id
-            -   name
-        -
-            name: pet
-            dbname: pets
-            fields:
-            -   name
-    """)
-    return vc
-
-
-@pytest.fixture()
-def row_resource_transform_collision():
-    tc = yaml.safe_load("""
-        name: pets
-        transforms:
-        -   image: pet
-            map:
-                pet_name: name
-    """)
-    return tc
-
-
-@pytest.fixture()
-def df_transform_collision() -> pd.DataFrame:
-    df0_str = """id,name,pet_name
-A0,Joe,Rex"""
-    return pd.read_csv(
-        io.StringIO(df0_str),
-        sep=",",
-    )
-
-
-@pytest.fixture()
-def row_doc_ibes() -> dict[str, list]:
-    return {
-        "agency": [{"aname": "RBCDOMIN"}],
-        "analyst": [{"initial": "J", "last_name": "ARFSTROM"}],
-        "publication": [
-            {"datetime_announce": "2014-03-10T0:20:00Z"},
-            {"datetime_review": "2016-01-26T9:35:52Z"},
-        ],
-        "recommendation": [
-            {"erec": 2.0, "etext": "OUTPERFORM", "irec": 2, "itext": "BUY"}
-        ],
-        "ticker": [
-            {"cname": "TALMER BANCORP", "cusip": "87482X10", "oftic": "TLMR"}
-        ],
-    }
 
 
 @pytest.fixture()

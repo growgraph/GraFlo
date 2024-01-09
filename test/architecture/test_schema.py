@@ -1,5 +1,4 @@
 import logging
-from test.conftest import schema
 
 from graph_cast.architecture.schema import Schema
 

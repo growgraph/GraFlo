@@ -8,14 +8,14 @@ from graph_cast.db import ConnectionManager
 
 @pytest.fixture(scope="function")
 def test_db_port():
-    env = FileHandle.load("docker.neo4j", ".env")
+    FileHandle.load("docker.neo4j", ".env")
     port = os.environ["NEO4J_BOLT_PORT"]
     return port
 
 
 @pytest.fixture(scope="function")
 def creds():
-    env = FileHandle.load("docker.neo4j", ".env")
+    FileHandle.load("docker.neo4j", ".env")
     creds = os.environ["NEO4J_AUTH"].split("/")
     cred_name, cred_pass = creds[0], creds[1]
     return cred_name, cred_pass

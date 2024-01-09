@@ -25,7 +25,7 @@ from graph_cast.architecture.vertex import (
     VertexRepresentationHelper,
 )
 from graph_cast.onto import BaseDataclass, ResourceType
-from graph_cast.util.merge import merge_doc_basis, merge_documents
+from graph_cast.util.merge import merge_doc_basis
 from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)

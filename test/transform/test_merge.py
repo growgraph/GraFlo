@@ -1,6 +1,6 @@
 import pytest
 
-from graph_cast.util.merge import merge_doc_basis, merge_documents
+from graph_cast.util.merge import merge_doc_basis
 
 
 @pytest.fixture
