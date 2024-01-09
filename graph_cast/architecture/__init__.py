@@ -1,2 +1,2 @@
-from .onto import DataSourceType  # noqa
+from .onto import DataSourceType, Index  # noqa
 from .schema import Schema  # noqa

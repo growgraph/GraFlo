@@ -24,7 +24,6 @@ repos:
     rev: v1.8.0
     hooks:
     -   id: mypy
-        exclude: (^test/)
         args: [--show-error-codes]
         additional_dependencies: [types-requests, types-python-dateutil, types-waitress, types-PyYAML, pandas-stubs]
 -   repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks

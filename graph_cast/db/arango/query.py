@@ -108,7 +108,7 @@ def fetch_fields_query(
     if filters is not None:
         ff = Expression.from_dict(filters)
         extrac_filter_clause = (
-            f" && {ff.cast_filter(doc_name='_cdoc', kind=DBFlavor.ARANGO)}"
+            f" && {ff(doc_name='_cdoc', kind=DBFlavor.ARANGO)}"
         )
     else:
         extrac_filter_clause = ""
