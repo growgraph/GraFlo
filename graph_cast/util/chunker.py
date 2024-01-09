@@ -4,15 +4,14 @@ import abc
 import csv
 import gc
 import gzip
-import io
 import json
 import logging
-import pkgutil
 import re
 from pathlib import Path
 from typing import Any, TextIO, TypeVar
 
 import ijson
+import pandas as pd
 
 from graph_cast.architecture.onto import BaseEnum, EncodingType
 
@@ -44,9 +43,12 @@ class AbstractChunker(abc.ABC):
             self._prepare_iteration()
         return self
 
-    @abc.abstractmethod
     def __next__(self):
-        pass
+        batch = self._next_item()
+        self.cnt += len(batch)
+        if not batch or self._limit_reached():
+            raise StopIteration
+        return batch
 
     @abc.abstractmethod
     def _next_item(self):
@@ -56,7 +58,7 @@ class AbstractChunker(abc.ABC):
         self.iteration_tried = True
 
 
-class FileChunkerNew(AbstractChunker):
+class FileChunker(AbstractChunker):
     def __init__(
         self,
         filename,
@@ -111,7 +113,7 @@ class FileChunkerNew(AbstractChunker):
         return batch
 
 
-class TableChunker(FileChunkerNew):
+class TableChunker(FileChunker):
     def __init__(self, **kwargs):
         self.sep = kwargs.pop("sep", ",")
         super().__init__(**kwargs)
@@ -132,7 +134,7 @@ class TableChunker(FileChunkerNew):
         return dressed
 
 
-class JsonlChunker(FileChunkerNew):
+class JsonlChunker(FileChunker):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -142,7 +144,7 @@ class JsonlChunker(FileChunkerNew):
         return lines2
 
 
-class JsonChunker(FileChunkerNew):
+class JsonChunker(FileChunker):
     def __init__(self, **kwargs):
         super().__init__(mode="b", **kwargs)
         self.parser: Any
@@ -156,164 +158,70 @@ class JsonChunker(FileChunkerNew):
 
 
 class TrivialChunker(AbstractChunker):
-    def __init__(self, array, **kwargs):
+    def __init__(self, array: list[dict], **kwargs):
         super().__init__(**kwargs)
         self.array = array
 
-    def _prepare_iteration(self):
-        pass
-
     def _next_item(self):
-        pass
+        return self.array[self.cnt : self.cnt + self.batch_size]
 
     def __next__(self):
-        cid = self.cnt
-        batch = self.array[cid : cid + self.batch_size]
+        batch = self._next_item()
         self.cnt += len(batch)
         if not batch or self._limit_reached():
             raise StopIteration
         return batch
 
 
+class ChunkerDataFrame(AbstractChunker):
+    def __init__(self, df: pd.DataFrame, **kwargs):
+        super().__init__(**kwargs)
+        self.df = df
+        self.columns = df.columns
+
+    def _next_item(self):
+        cid = self.cnt
+        pre_batch = self.df.iloc[cid : cid + self.batch_size].values.tolist()
+        batch = [
+            {k: v for k, v in zip(self.columns, item)} for item in pre_batch
+        ]
+        return batch
+
+
 class ChunkerFactory:
     @classmethod
     def create_chunker(cls, **kwargs) -> AbstractChunker:
-        filename: Path | None = kwargs.get("filename", None)
+        resource: Path | list[dict] | pd.DataFrame | None = kwargs.pop(
+            "resource", None
+        )
         chunker_type = kwargs.pop("type", None)
-        if filename is None:
-            return TrivialChunker(**kwargs)
-        elif chunker_type == ChunkerType.JSONL or (
-            chunker_type is None and ".jsonl" in filename.suffixes
-        ):
-            return JsonlChunker(**kwargs)
-        elif chunker_type == ChunkerType.JSON or (
-            chunker_type is None and ".json" in filename.suffixes
-        ):
-            return JsonChunker(**kwargs)
-        elif chunker_type == ChunkerType.TABLE or (
-            chunker_type is None
-            and any([".csv" in filename.suffixes, ".tsv" in filename.suffixes])
-        ):
-            if ".tsv" in filename.suffixes:
-                return TableChunker(sep="\t", **kwargs)
-            else:
-                return TableChunker(sep=",", **kwargs)
+        if isinstance(resource, list):
+            return TrivialChunker(array=resource, **kwargs)
+        elif isinstance(resource, pd.DataFrame):
+            return ChunkerDataFrame(df=resource, **kwargs)
+        elif isinstance(resource, Path):
+            if chunker_type == ChunkerType.JSONL or (
+                chunker_type is None and ".jsonl" in resource.suffixes
+            ):
+                return JsonlChunker(filename=resource, **kwargs)
+            elif chunker_type == ChunkerType.JSON or (
+                chunker_type is None and ".json" in resource.suffixes
+            ):
+                return JsonChunker(filename=resource, **kwargs)
+            elif chunker_type == ChunkerType.TABLE or (
+                chunker_type is None
+                and any(
+                    [".csv" in resource.suffixes, ".tsv" in resource.suffixes]
+                )
+            ):
+                if ".tsv" in resource.suffixes:
+                    return TableChunker(filename=resource, sep="\t", **kwargs)
+                else:
+                    return TableChunker(filename=resource, sep=",", **kwargs)
         raise ValueError(
             "Could not determine the type of required Chunker "
-            f"for type={chunker_type} and filename={filename}"
+            f"for type={chunker_type} and resource={resource}"
         )
-
-
-class FileChunker(AbstractChunker):
-    def __init__(
-        self,
-        filename=None,
-        pkg_spec=None,
-        batch_size=10000,
-        limit: int | None = None,
-        encoding=EncodingType.UTF_8,
-    ):
-        """
-        WARNING : if misc sources are gzipped - batch_size does not correspond to lines, instead it's a proxy for bytes
-
-        :param filename:
-        :param batch_size: batch size in bytes : batch_size = 15000 corresponds to 100 lines ~ 100 symbols each
-                        for gzipped sources
-        :param limit:
-        :param encoding:
-        """
-        super().__init__()
-        if filename is None and pkg_spec is None:
-            raise ValueError(f" both filename and file_obj are None")
-
-        self.batch_size = batch_size
-        self.n_lines_max: int | None = limit
-
-        logger.info(
-            f"Chunker init with batch_size : {self.batch_size} n_lines_max"
-            f" {self.n_lines_max}"
-        )
-        if filename is not None:
-            if filename[-2:] == "gz":
-                self.file_obj = gzip.open(filename, "rt", encoding=encoding)
-            else:
-                self.file_obj = open(filename, "rt")
-        else:
-            bytes_ = pkgutil.get_data(*pkg_spec)
-            if isinstance(bytes_, bytes):
-                if pkg_spec[1][-2:] == "gz":
-                    self.file_obj = gzip.GzipFile(
-                        fileobj=io.BytesIO(bytes_), mode="r"
-                    )
-                else:
-                    self.file_obj = io.BytesIO(bytes_)
-            else:
-                raise TypeError(f"bytes_ should be a bytes Type")
-
-            self.file_obj = io.TextIOWrapper(self.file_obj, encoding="utf-8")  # type: ignore
-        self._done = False
-
-    def pop_header(self):
-        header = self.file_obj.readline().rstrip("\n")
-        header = header.split(",")
-        return header
-
-    def pop(self):
-        if self.n_lines_max is None or (
-            self.n_lines_max is not None
-            and self.units_processed < self.n_lines_max
-        ):
-            lines = self.file_obj.readlines(self.batch_size)
-            lines2 = [
-                next(csv.reader([line.rstrip()], skipinitialspace=True))
-                for line in lines
-            ]
-            if self.n_lines_max is not None and (
-                self.units_processed + len(lines2) > self.n_lines_max
-            ):
-                lines2 = lines2[: (self.n_lines_max - self.units_processed)]
-            self.units_processed += len(lines2)
-            if not lines2:
-                self._done = True
-                self.file_obj.close()
-                return []
-            else:
-                return lines2
-        else:
-            self._done = True
-            self.file_obj.close()
-            return []
-
-
-class ChunkerDataFrame(AbstractChunker):
-    def __init__(self, df, batch_size, n_lines_max=None):
-        super().__init__()
-        self.batch_size = batch_size
-        self.n_lines_max = n_lines_max
-        self.file_obj = df
-        self._done = False
-        self.idx = [
-            i for i in range(0, self.file_obj.shape[0], self.batch_size)
-        ][::-1]
-
-    def pop_header(self):
-        return self.file_obj.columns
-
-    def pop(self):
-        if self.idx:
-            cid = self.idx.pop()
-            lines = self.file_obj.iloc[
-                cid : cid + self.batch_size
-            ].values.tolist()
-            self.units_processed += len(lines)
-            if not lines:
-                self._done = True
-                return False
-            else:
-                return lines
-        else:
-            self._done = True
-            return False
 
 
 class ChunkFlusherMono:

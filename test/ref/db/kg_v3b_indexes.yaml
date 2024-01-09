@@ -30,12 +30,6 @@ _aqlfunctions:
     sparse: false
     type: primary
     unique: true
-_fishbowl:
--   fields:
-    -   _key
-    sparse: false
-    type: primary
-    unique: true
 _frontend:
 -   fields:
     -   _key

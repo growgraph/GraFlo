@@ -10,7 +10,6 @@ from suthing import DBConnectionConfig, Timer
 
 from graph_cast.architecture.onto import SOURCE_AUX, TARGET_AUX, GraphContainer
 from graph_cast.architecture.schema import Schema
-from graph_cast.architecture.util import list_docs_to_graph_container
 from graph_cast.db import ConnectionManager
 from graph_cast.onto import ResourceType
 from graph_cast.util.chunker import ChunkerFactory
@@ -49,9 +48,8 @@ class Caster:
         vc = self.schema.vertex_config
         ec = self.schema.edge_config
         rr = self.schema.fetch_resource(resource_name)
-        if columns is None:
+        if rr.resource_type == ResourceType.ROWLIKE and rr and columns is None:
             columns = list(data[0].keys())
-        if rr.resource_type == ResourceType.ROWLIKE:
             rr.prepare_apply(columns=columns, vertex_config=vc)
 
         with ThreadPoolExecutor(max_workers=self.n_threads) as executor:
@@ -64,7 +62,7 @@ class Caster:
                 )
             )
 
-        graph = list_docs_to_graph_container(docs)
+        graph = GraphContainer.from_docs_list(docs)
         return graph
 
     def process_batch(
@@ -95,7 +93,7 @@ class Caster:
         """
 
         chunker = ChunkerFactory.create_chunker(
-            filename=resource, batch_size=self.batch_size, limit=self.max_items
+            resource=resource, batch_size=self.batch_size, limit=self.max_items
         )
         for batch in chunker:
             self.process_batch(

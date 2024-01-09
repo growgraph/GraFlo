@@ -4,7 +4,7 @@ from pathlib import Path
 from graph_cast.architecture.onto import EncodingType
 from graph_cast.util.chunker import (
     ChunkerFactory,
-    FileChunkerNew,
+    FileChunker,
     JsonChunker,
     JsonlChunker,
     TableChunker,
@@ -13,7 +13,7 @@ from graph_cast.util.chunker import (
 
 
 def test_trivial():
-    array = list(range(9))
+    array = [{"a": v} for v in range(9)]
     ch = TrivialChunker(batch_size=5, array=array)
     for _ in ch:
         pass
@@ -26,11 +26,11 @@ def test_file_chunker():
             os.path.dirname(__file__), "../data/csv/ticker/ticker.csv.gz"
         )
     )
-    ch = FileChunkerNew(batch_size=5, limit=6, filename=filename)
+    ch = FileChunker(batch_size=5, limit=6, filename=filename)
     for _ in ch:
         pass
     assert ch.cnt == 6
-    ch = FileChunkerNew(batch_size=90, limit=250, filename=filename)
+    ch = FileChunker(batch_size=90, limit=250, filename=filename)
     for _ in ch:
         pass
     assert ch.cnt == 200
@@ -73,7 +73,7 @@ def test_factory():
     args = {
         "limit": 200,
         "batch_size": 50,
-        "filename": Path("smth.csv.gz"),
+        "resource": Path("smth.csv.gz"),
         "encoding": EncodingType.UTF_8,
     }
     ch = ChunkerFactory.create_chunker(**args)

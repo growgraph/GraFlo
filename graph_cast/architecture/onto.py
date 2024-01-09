@@ -140,6 +140,32 @@ class GraphContainer(BaseDataclass):
         for k, v in self.edges.items():
             self.edges[k] = pick_unique_dict(v)
 
+    @classmethod
+    def from_docs_list(
+        cls, list_default_dicts: list[defaultdict[GraphEntity, list]]
+    ) -> GraphContainer:
+        vdict: defaultdict[str, list] = defaultdict(list)
+        edict: defaultdict[tuple[str, str, str | None], list] = defaultdict(
+            list
+        )
+
+        for d in list_default_dicts:
+            for k, v in d.items():
+                if isinstance(k, str):
+                    vdict[k].extend(v)
+                elif isinstance(k, tuple):
+                    assert (
+                        len(k) == 3
+                        and all(isinstance(item, str) for item in k[:-1])
+                        and isinstance(k[-1], (str, type(None)))
+                    )
+                    edict[k].extend(v)
+        return GraphContainer(
+            vertices=dict(vdict.items()),
+            edges=dict(edict.items()),
+            linear=list_default_dicts,
+        )
+
 
 def cast_graph_name_to_triple(s: GraphEntity):
     if isinstance(s, str):
