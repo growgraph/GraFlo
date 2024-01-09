@@ -1,3 +1,6 @@
+from arango.exceptions import CursorNextError
+
+
 def get_data_from_cursor(cursor, limit=None):
     batch = []
     cnt = 0
@@ -9,4 +12,6 @@ def get_data_from_cursor(cursor, limit=None):
             batch.append(item)
             cnt += 1
         except StopIteration:
+            return batch
+        except CursorNextError:
             return batch
