@@ -59,8 +59,8 @@ def knapsack(weights, ks_size=7):
 
 
 @click.command()
-@click.option("-c", "--schema-path", type=click.Path())
-@click.option("-o", "--figure-output-path", type=click.Path())
+@click.option("-c", "--schema-path", type=click.Path(), required=True)
+@click.option("-o", "--figure-output-path", type=click.Path(), required=True)
 @click.option("-p", "--prune-low-degree-nodes", type=bool, default=True)
 def plot_schema(schema_path, figure_output_path, prune_low_degree_nodes):
     """

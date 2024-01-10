@@ -6,7 +6,8 @@ requires = ["poetry-core>=1.0.0"]
 authors = ["Alexander Belikov <alexander@growgraph.dev>"]
 description = "ETL to cast tabular and json data types into graphs (collections of vertices and edges)"
 name = "graph_cast"
-version = "0.13.4c"
+packages = [{include = "cli"}, {include = "graph_cast"}]
+version = "0.13.4"
 
 [tool.poetry.dependencies]
 click = "^8.1.7"
