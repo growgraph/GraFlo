@@ -1,5 +1,5 @@
 import logging
-import os
+import pathlib
 import subprocess
 import sys
 from datetime import date
@@ -12,11 +12,11 @@ logger = logging.getLogger(__name__)
 
 def act_db(
     conf: ArangoConnectionConfig,
-    db_name,
-    output_path,
-    restore,
-    docker_version,
-    use_docker,
+    db_name: str,
+    output_path: pathlib.Path,
+    restore: bool,
+    docker_version: str,
+    use_docker: bool,
 ):
     """
 
@@ -29,12 +29,12 @@ def act_db(
     :return:
     """
     host = f"tcp://{conf.ip_addr}:{conf.port}"
-    db_folder = os.path.join(output_path, db_name)
+    db_folder = output_path / db_name
 
     cmd = "arangorestore" if restore else "arangodump"
     if use_docker:
         ru = (
-            f"docker run -it --rm -v {db_folder}:/dump"
+            f"docker run --rm --network=host -v {db_folder}:/dump"
             f" arangodb/arangodb:{docker_version} {cmd}"
         )
         output = "--output-directory /dump"
@@ -44,20 +44,27 @@ def act_db(
 
     dir_spec = "input" if restore else "output"
 
-    query = f"""
-        {ru} --server.endpoint {host} --server.username {conf.cred_name} --server.password "{conf.cred_pass}" --{dir_spec}-directory {output} --server.database "{db_name}" """
+    query = f"""{ru} --server.endpoint {host} --server.username {conf.cred_name} --server.password "{conf.cred_pass}" --{dir_spec}-directory {output} --server.database "{db_name}" """
 
     restore_suffix = "--create-database true --force-same-database true"
     if restore:
         query += restore_suffix
+    else:
+        query += "--overwrite true"
 
-    subprocess.run(query, shell=True)
+    flag = subprocess.run(query, shell=True)
+    logger.info(f"returned {flag}")
 
 
 @click.command()
-@click.option("--db-config-path", type=click.Path())
+@click.option(
+    "--db-config-path", type=click.Path(exists=True, path_type=pathlib.Path)
+)
 @click.option("--db", type=str, multiple=True)
-@click.option("--store-directory-path", type=click.Path())
+@click.option(
+    "--store-directory-path",
+    type=click.Path(exists=True, path_type=pathlib.Path),
+)
 @click.option("--docker-version", type=str, default="3.10.6")
 @click.option("--restore", type=bool, default=False)
 @click.option("--use-docker", type=bool, default=True)
@@ -65,12 +72,13 @@ def manage_dbs(
     db_config_path,
     db,
     store_directory_path,
+    restore,
     docker_version,
-    restore=False,
     use_docker=True,
 ):
     """
     dump/restore arango databases
+    either arangosh or docker should be available in the system
     """
     conn_conf = FileHandle.load(fpath=db_config_path)
     db_conf: ArangoConnectionConfig = ConfigFactory.create_config(
@@ -81,11 +89,13 @@ def manage_dbs(
     if restore:
         out_path = store_directory_path
     else:
-        out_path = os.path.join(store_directory_path, date.today().isoformat())
+        out_path = (
+            store_directory_path.expanduser().resolve()
+            / date.today().isoformat()
+        )
 
-    exists = os.path.exists(out_path)
-    if not exists:
-        os.makedirs(out_path)
+    if not out_path.exists():
+        out_path.mkdir(exist_ok=True)
 
     with Timer() as t_all:
         for db in db:
@@ -100,11 +110,11 @@ def manage_dbs(
                         use_docker=use_docker,
                     )
                 except Exception as e:
-                    print(e)
-            print(
+                    logging.error(e)
+            logging.info(
                 f"{action} {db} took  {t_dump.mins} mins {t_dump.secs:.2f} sec"
             )
-    print(f"all {action} took  {t_all.mins} mins {t_all.secs:.2f} sec")
+    logging.info(f"all {action} took  {t_all.mins} mins {t_all.secs:.2f} sec")
 
 
 if __name__ == "__main__":
