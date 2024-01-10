@@ -5,7 +5,8 @@ import logging
 
 from graph_cast.architecture.onto import Index
 from graph_cast.architecture.transform import Transform
-from graph_cast.onto import BaseDataclass, DBFlavor, Expression
+from graph_cast.filter.onto import Expression
+from graph_cast.onto import BaseDataclass, DBFlavor
 
 logger = logging.getLogger(__name__)
 

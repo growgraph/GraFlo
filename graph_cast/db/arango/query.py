@@ -5,7 +5,8 @@ from os.path import join
 
 from arango import ArangoClient
 
-from graph_cast.onto import DBFlavor, Expression
+from graph_cast.filter.onto import Expression
+from graph_cast.onto import DBFlavor
 
 logger = logging.getLogger(__name__)
 

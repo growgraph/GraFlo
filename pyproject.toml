@@ -9,6 +9,7 @@ name = "graph_cast"
 version = "0.13.4a"
 
 [tool.poetry.dependencies]
+click = "^8.1.7"
 dataclass-wizard = "^0.22.2"
 ijson = "^3.2.3"
 neo4j = "^4.4.3"
@@ -28,4 +29,6 @@ pre-commit = "^3.3.3"
 pygraphviz = "^1.6"
 
 [tool.poetry.scripts]
-plot_schema = "cli.plot_schema:main"
+ingest = "cli.ingest:ingest"
+manage_dbs = "cli.manage_dbs:manage_dbs"
+plot_schema = "cli.plot_schema:plot_schema"

@@ -16,7 +16,8 @@ from graph_cast.architecture.vertex import VertexConfig
 from graph_cast.db.arango.query import fetch_fields_query
 from graph_cast.db.connection import Connection
 from graph_cast.db.util import get_data_from_cursor
-from graph_cast.onto import AggregationType, DBFlavor, Expression
+from graph_cast.filter.onto import Expression
+from graph_cast.onto import AggregationType, DBFlavor
 from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)

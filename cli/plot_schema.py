@@ -1,4 +1,7 @@
-import argparse
+import logging
+import sys
+
+import click
 
 from graph_cast.plot.plotter import SchemaPlotter
 
@@ -55,34 +58,22 @@ def knapsack(weights, ks_size=7):
     return acc_ret
 
 
-def main():
-    parser = argparse.ArgumentParser()
+@click.command()
+@click.option("-c", "--schema-path", type=click.Path())
+@click.option("-o", "--figure-output-path", type=click.Path())
+@click.option("-p", "--prune-low-degree-nodes", type=bool, default=True)
+def plot_schema(schema_path, figure_output_path, prune_low_degree_nodes):
+    """
+    plot graph_cast schema
+    """
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
-    parser.add_argument(
-        "-c", "--config-path", required=True, help="path to config file"
-    )
-
-    parser.add_argument(
-        "-f",
-        "--figure-output-path",
-        required=True,
-        help="path to output the figure",
-    )
-    parser.add_argument(
-        "-p",
-        "--prune-low-degree-nodes",
-        action="store_true",
-        help="prune low degree nodes for vc2vc",
-    )
-
-    args = parser.parse_args()
-
-    plotter = SchemaPlotter(args.config_path, args.figure_output_path)
+    plotter = SchemaPlotter(schema_path, figure_output_path)
     plotter.plot_vc2fields()
     plotter.plot_source2vc()
-    plotter.plot_vc2vc(prune_leaves=args.prune_low_degree_nodes)
+    plotter.plot_vc2vc(prune_leaves=prune_low_degree_nodes)
     plotter.plot_source2vc_detailed()
 
 
 if __name__ == "__main__":
-    main()
+    plot_schema()

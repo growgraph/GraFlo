@@ -13,6 +13,7 @@ from graph_cast.architecture.schema import Schema
 from graph_cast.db import ConnectionManager
 from graph_cast.onto import ResourceType
 from graph_cast.util.chunker import ChunkerFactory
+from graph_cast.util.onto import FilePattern, Patterns
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +30,14 @@ class Caster:
 
     @staticmethod
     def discover_files(
-        fpath: Path, limit_files=None, pattern=None
+        fpath: Path, pattern: FilePattern, limit_files=None
     ) -> list[Path]:
+        assert pattern.sub_path is not None
         files = [
             f
-            for f in fpath.iterdir()
-            if f.is_file() and (True if pattern is None else pattern in f.name)
+            for f in (fpath / pattern.sub_path).iterdir()
+            if f.is_file()
+            and (True if pattern.regex is None else pattern.regex in f.name)
         ]
 
         if limit_files is not None:
@@ -229,18 +232,20 @@ class Caster:
         self.batch_size = kwargs.pop("batch_size", self.batch_size)
         self.dry = kwargs.pop("dry", self.dry)
         limit_files = kwargs.pop("limit_files", None)
-        patterns = kwargs.pop("patterns", {})
+        patterns = kwargs.pop("patterns", Patterns())
 
         with ConnectionManager(connection_config=conn_conf) as db_client:
             db_client.init_db(self.schema, self.clean_start)
 
         tasks: list[tuple[Path, str]] = []
         for r in self.schema.resources:
-            current_pattern = (
-                r.name if r.name not in patterns else patterns[r.name]
+            pattern = (
+                FilePattern(regex=r.name)
+                if r.name not in patterns.patterns
+                else patterns[r.name]
             )
             files = Caster.discover_files(
-                path, limit_files=limit_files, pattern=current_pattern
+                path, limit_files=limit_files, pattern=pattern
             )
             logger.info(f"For resource name {r.name} {len(files)} were found")
             tasks += [(f, r.name) for f in files]

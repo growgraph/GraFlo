@@ -8,7 +8,8 @@ from graph_cast.architecture.onto import Index
 from graph_cast.architecture.schema import Schema
 from graph_cast.architecture.vertex import VertexConfig
 from graph_cast.db.connection import Connection
-from graph_cast.onto import AggregationType, DBFlavor, Expression
+from graph_cast.filter.onto import Expression
+from graph_cast.onto import AggregationType, DBFlavor
 
 logger = logging.getLogger(__name__)
 

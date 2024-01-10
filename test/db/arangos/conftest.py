@@ -5,7 +5,8 @@ import pytest
 from suthing import ConfigFactory, FileHandle
 
 from graph_cast.db import ConnectionManager
-from graph_cast.onto import AggregationType, ComparisonOperator
+from graph_cast.filter.onto import ComparisonOperator
+from graph_cast.onto import AggregationType
 
 
 @pytest.fixture(scope="function")
