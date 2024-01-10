@@ -29,7 +29,7 @@ def current_path():
 
 
 def fetch_schema_dict(mode):
-    schema_dict = FileHandle.load(f"test.config.schema", f"{mode}.yaml")
+    schema_dict = FileHandle.load("test.config.schema", f"{mode}.yaml")
     return schema_dict
 
 
@@ -82,6 +82,7 @@ def verify(sample, current_path, mode, test_type, kind="sizes", reset=False):
             for k, v in sample_transformed.items()
         }
     elif kind == "indexes":
+        _ = sample.pop("_fishbowl", None)
         sample_transformed = sorted_dicts(sample)
     elif kind == "contents":
         sample_transformed = sorted_dicts(sample)
@@ -95,9 +96,7 @@ def verify(sample, current_path, mode, test_type, kind="sizes", reset=False):
         )
 
     else:
-        sample_ref = FileHandle.load(
-            f"test.ref.{test_type}", f"{mode}_{kind}.{ext}"
-        )
+        sample_ref = FileHandle.load(f"test.ref.{test_type}", f"{mode}_{kind}.{ext}")
         flag = equals(sample_transformed, sample_ref)
         if not flag:
             print(f" mode: {mode}")
@@ -111,9 +110,7 @@ def verify(sample, current_path, mode, test_type, kind="sizes", reset=False):
                             f" {sample_transformed[k] if k in sample_transformed else None}"
                         )
             elif isinstance(sample_ref, list):
-                for j, (x, y) in enumerate(
-                    zip(sample_ref, sample_transformed)
-                ):
+                for j, (x, y) in enumerate(zip(sample_ref, sample_transformed)):
                     if x != y:
                         print(f"for item {j}\nexpected: {x}\nreceived: {y}")
 
@@ -165,27 +162,28 @@ def row_doc_ibes() -> dict[str, list]:
         "recommendation": [
             {"erec": 2.0, "etext": "OUTPERFORM", "irec": 2, "itext": "BUY"}
         ],
-        "ticker": [
-            {"cname": "TALMER BANCORP", "cusip": "87482X10", "oftic": "TLMR"}
-        ],
+        "ticker": [{"cname": "TALMER BANCORP", "cusip": "87482X10", "oftic": "TLMR"}],
     }
 
 
 @pytest.fixture()
 def row_resource_transform_collision():
-    tc = yaml.safe_load("""
+    tc = yaml.safe_load(
+        """
         name: pets
         transforms:
         -   image: pet
             map:
                 pet_name: name
-    """)
+    """
+    )
     return tc
 
 
 @pytest.fixture()
 def vertex_config_transform_collision():
-    vc = yaml.safe_load("""
+    vc = yaml.safe_load(
+        """
         vertices:
         -
             name: person
@@ -198,5 +196,6 @@ def vertex_config_transform_collision():
             dbname: pets
             fields:
             -   name
-    """)
+    """
+    )
     return vc

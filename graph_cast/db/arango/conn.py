@@ -79,15 +79,15 @@ class ArangoConnection(Connection):
             else:
                 g = self.conn.create_graph(gname)  # type: ignore
 
-            ih = self.create_collection(
+            _ = self.create_collection(
                 vertex_config.vertex_dbname(u), vertex_config.index(u), g
             )
 
-            ih = self.create_collection(
+            _ = self.create_collection(
                 vertex_config.vertex_dbname(v), vertex_config.index(v), g
             )
         for v in disconnected_vertex_collections:
-            ih = self.create_collection(
+            _ = self.create_collection(
                 vertex_config.vertex_dbname(v), vertex_config.index(v), None
             )
 
@@ -128,9 +128,7 @@ class ArangoConnection(Connection):
 
     def define_vertex_indices(self, vertex_config: VertexConfig):
         for c in vertex_config.vertex_set:
-            general_collection = self.conn.collection(
-                vertex_config.vertex_dbname(c)
-            )
+            general_collection = self.conn.collection(vertex_config.vertex_dbname(c))
             ixs = general_collection.indexes()
             field_combinations = [tuple(ix["fields"]) for ix in ixs]
             for index_obj in vertex_config.indexes(c):
@@ -158,9 +156,7 @@ class ArangoConnection(Connection):
             r[cname["name"]] = c.indexes()
         return r
 
-    def create_collection(
-        self, db_class_name, index: None | Index = None, g=None
-    ):
+    def create_collection(self, db_class_name, index: None | Index = None, g=None):
         if not self.conn.has_collection(db_class_name):
             if g is not None:
                 _ = g.create_vertex_collection(db_class_name)
@@ -175,16 +171,10 @@ class ArangoConnection(Connection):
 
     def delete_collections(self, cnames=(), gnames=(), delete_all=False):
         logger.info("collections (non system):")
-        logger.info(
-            [c for c in self.conn.collections() if c["name"][0] != "_"]
-        )
+        logger.info([c for c in self.conn.collections() if c["name"][0] != "_"])
 
         if delete_all:
-            cnames = [
-                c["name"]
-                for c in self.conn.collections()
-                if c["name"][0] != "_"
-            ]
+            cnames = [c["name"] for c in self.conn.collections() if c["name"][0] != "_"]
             gnames = [g["name"] for g in self.conn.graphs()]
 
         for cn in cnames:
@@ -192,9 +182,7 @@ class ArangoConnection(Connection):
                 self.conn.delete_collection(cn)
 
         logger.info("collections (after delete operation):")
-        logger.info(
-            [c for c in self.conn.collections() if c["name"][0] != "_"]
-        )
+        logger.info([c for c in self.conn.collections() if c["name"][0] != "_"])
 
         logger.info("graphs:")
         logger.info(self.conn.graphs())
@@ -241,9 +229,7 @@ class ArangoConnection(Connection):
             upsert_clause = f"UPSERT {{{upsert_clause}}}"
 
             if isinstance(update_keys, list):
-                update_clause = ", ".join(
-                    [f'"{k}": doc.{k}' for k in update_keys]
-                )
+                update_clause = ", ".join([f'"{k}": doc.{k}' for k in update_keys])
                 update_clause = f"{{{update_clause}}}"
             elif update_keys == "doc":
                 update_clause = "doc"
@@ -277,11 +263,11 @@ class ArangoConnection(Connection):
         head=None,
         **kwargs,
     ):
-        f"""
+        """
             using ("_key",) for match_keys_source and match_keys_target saves time
                 (no need to look it up from field discriminants)
 
-        :param docs_edges: in format  [{{ _source_aux: source_doc, _target_aux: target_doc}}]
+        :param docs_edges: in format  [{ _source_aux: source_doc, _target_aux: target_doc}]
         :param source_class,
         :param target_class,
         :param relation_name:
@@ -350,13 +336,9 @@ class ArangoConnection(Connection):
             ups_to = result_to if target_filter else "doc._to"
 
             weight_fs = []
+            weight_fs += uniq_weight_fields if uniq_weight_fields is not None else []
             weight_fs += (
-                uniq_weight_fields if uniq_weight_fields is not None else []
-            )
-            weight_fs += (
-                uniq_weight_collections
-                if uniq_weight_collections is not None
-                else []
+                uniq_weight_collections if uniq_weight_collections is not None else []
             )
             if weight_fs:
                 weights_clause = ", " + ", ".join(
@@ -365,11 +347,7 @@ class ArangoConnection(Connection):
             else:
                 weights_clause = ""
 
-            upsert = (
-                f"{{'_from': {ups_from}, '_to': {ups_to}"
-                + weights_clause
-                + "}"
-            )
+            upsert = f"{{'_from': {ups_from}, '_to': {ups_to}" + weights_clause + "}"
             logger.debug(f" upsert clause: {upsert}")
             clauses = f"UPSERT {upsert} INSERT doc UPDATE {{}}"
             options = "OPTIONS {exclusive: true}"
@@ -474,7 +452,7 @@ class ArangoConnection(Connection):
                 tmp_clause = ", ".join([f'"{item}"' for item in return_keys])
                 return_clause = f"KEEP(d, {tmp_clause})"
             else:
-                raise ValueError(f"both return_keys and unset_keys are set")
+                raise ValueError("both return_keys and unset_keys are set")
 
         if limit is not None and isinstance(limit, int):
             limit_clause = f"LIMIT {limit}"
@@ -510,9 +488,7 @@ class ArangoConnection(Connection):
 
         if filters is not None:
             ff = Expression.from_dict(filters)
-            filter_clause = (
-                f"FILTER {ff(doc_name='doc', kind=DBFlavor.ARANGO)}"
-            )
+            filter_clause = f"FILTER {ff(doc_name='doc', kind=DBFlavor.ARANGO)}"
         else:
             filter_clause = ""
 
@@ -580,13 +556,11 @@ class ArangoConnection(Connection):
         # there were multiple docs return for the same pair of filtering condition
         if any([len(v) > 1 for v in present_docs_keys.values()]):
             logger.warning(
-                f"fetch_present_documents returned multiple docs per filtering"
-                f" condition"
+                "fetch_present_documents returned multiple docs per filtering"
+                " condition"
             )
 
-        absent_indices = sorted(
-            set(range(len(batch))) - set(present_docs_keys.keys())
-        )
+        absent_indices = sorted(set(range(len(batch))) - set(present_docs_keys.keys()))
         batch_absent = [batch[j] for j in absent_indices]
         return batch_absent
 

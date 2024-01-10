@@ -4,7 +4,8 @@ import yaml
 
 @pytest.fixture()
 def vertex_pub():
-    tc = yaml.safe_load("""
+    tc = yaml.safe_load(
+        """
         name: publication
         dbname: publications
         fields:
@@ -46,31 +47,37 @@ def vertex_pub():
             output:
             -   last_name
             -   initial
-    """)
+    """
+    )
     return tc
 
 
 @pytest.fixture()
 def vertex_helper():
-    tc = yaml.safe_load("""
+    tc = yaml.safe_load(
+        """
         name: analyst
-    """)
+    """
+    )
     return tc
 
 
 @pytest.fixture()
 def vertex_helper_b():
-    tc = yaml.safe_load("""
+    tc = yaml.safe_load(
+        """
             fields:
             -   datetime_review
             -   datetime_announce
-    """)
+    """
+    )
     return tc
 
 
 @pytest.fixture()
 def edge_with_weights():
-    tc = yaml.safe_load("""
+    tc = yaml.safe_load(
+        """
         source: analyst
         target: agency
         weights:
@@ -83,13 +90,15 @@ def edge_with_weights():
                     fields:
                         - datetime_review
                         - datetime_announce
-    """)
+    """
+    )
     return tc
 
 
 @pytest.fixture()
 def edge_indexes():
-    tc = yaml.safe_load("""
+    tc = yaml.safe_load(
+        """
         source: entity
         target: entity
         collection_name_suffix: aux
@@ -101,13 +110,15 @@ def edge_indexes():
         -   
             fields:
             -   spec
-    """)
+    """
+    )
     return tc
 
 
 @pytest.fixture()
 def edge_with_vertex_indexes():
-    tc = yaml.safe_load("""
+    tc = yaml.safe_load(
+        """
         source: entity
         target: entity
         indexes:
@@ -117,23 +128,27 @@ def edge_with_vertex_indexes():
             name: publication
             fields:
             -   _key
-    """)
+    """
+    )
     return tc
 
 
 @pytest.fixture()
 def index_a():
-    tc = yaml.safe_load("""
+    tc = yaml.safe_load(
+        """
     fields:
         -   start_date
         -   end_date
-    """)
+    """
+    )
     return tc
 
 
 @pytest.fixture()
 def vertex_config_kg():
-    vc = yaml.safe_load("""
+    vc = yaml.safe_load(
+        """
     vertices:
     -   name: publication
         dbname: publications
@@ -173,13 +188,15 @@ def vertex_config_kg():
         -   unique: false
             fields:
             -   text
-    """)
+    """
+    )
     return vc
 
 
 @pytest.fixture()
 def edge_config_kg():
-    tc = yaml.safe_load("""
+    tc = yaml.safe_load(
+        """
     edges:
     -   source: entity
         target: entity
@@ -206,13 +223,15 @@ def edge_config_kg():
         -   name: publication
             fields:
             -   _key
-    """)
+    """
+    )
     return tc
 
 
 @pytest.fixture()
 def vertex_config_ibes():
-    vc = yaml.safe_load("""
+    vc = yaml.safe_load(
+        """
         blanks:
         -   publication
         vertices:
@@ -276,13 +295,15 @@ def vertex_config_ibes():
                 -
                     fields:
                     -   irec
-    """)
+    """
+    )
     return vc
 
 
 @pytest.fixture()
 def row_resource_ibes():
-    tc = yaml.safe_load("""
+    tc = yaml.safe_load(
+        """
         type: ibes
         encoding: ISO-8859-1
         transforms:
@@ -318,13 +339,15 @@ def row_resource_ibes():
                 ETEXT: etext
                 IRECCD: irec
                 ITEXT: itext
-    """)
+    """
+    )
     return tc
 
 
 @pytest.fixture()
 def mapper_node_a():
-    mn = yaml.safe_load("""
+    mn = yaml.safe_load(
+        """
     type: vertex
     name: date
     # __extra:
@@ -338,25 +361,29 @@ def mapper_node_a():
         -   year
         -   month
         -   day
-    """)
+    """
+    )
     return mn
 
 
 @pytest.fixture()
 def mapper_node_edge():
-    mn = yaml.safe_load("""
+    mn = yaml.safe_load(
+        """
         type: edge
         edge:
             how: all
             source: mention
             target: entity
-    """)
+    """
+    )
     return mn
 
 
 @pytest.fixture()
 def mapper_node_tree():
-    mn = yaml.safe_load("""
+    mn = yaml.safe_load(
+        """
     type: descend
     key: map_mention_entity
     children:
@@ -380,13 +407,15 @@ def mapper_node_tree():
                 name: mention
                 map:
                     hash: _key
-    """)
+    """
+    )
     return mn
 
 
 @pytest.fixture()
 def mapper_node_edge_weight_config():
-    mn = yaml.safe_load("""
+    mn = yaml.safe_load(
+        """
         type: edge
         edge:
             how: all
@@ -401,5 +430,6 @@ def mapper_node_edge_weight_config():
                 -
                     fields:
                     -   a
-    """)
+    """
+    )
     return mn

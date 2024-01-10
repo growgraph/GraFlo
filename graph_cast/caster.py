@@ -99,9 +99,7 @@ class Caster:
             resource=resource, batch_size=self.batch_size, limit=self.max_items
         )
         for batch in chunker:
-            self.process_batch(
-                batch, resource_name=resource_name, conn_conf=conn_conf
-            )
+            self.process_batch(batch, resource_name=resource_name, conn_conf=conn_conf)
 
     def push_db(
         self,
@@ -115,9 +113,7 @@ class Caster:
             for vcol, data in gc.vertices.items():
                 # blank nodes: push and get back their keys  {"_key": ...}
                 if vcol in vc.blank_vertices:
-                    query0 = db_client.insert_return_batch(
-                        data, vc.vertex_dbname(vcol)
-                    )
+                    query0 = db_client.insert_return_batch(data, vc.vertex_dbname(vcol))
                     cursor = db_client.execute(query0)
                     gc.vertices[vcol] = [item for item in cursor]
                 else:
@@ -137,12 +133,12 @@ class Caster:
                     if vcol == vfrom or vcol == vto:
                         if edge.edge_id not in gc.edges:
                             gc.edges[edge.edge_id] = []
-                        gc.edges[edge.edge_id].extend([
-                            {SOURCE_AUX: x, TARGET_AUX: y}
-                            for x, y in zip(
-                                gc.vertices[vfrom], gc.vertices[vto]
-                            )
-                        ])
+                        gc.edges[edge.edge_id].extend(
+                            [
+                                {SOURCE_AUX: x, TARGET_AUX: y}
+                                for x, y in zip(gc.vertices[vfrom], gc.vertices[vto])
+                            ]
+                        )
 
         with ConnectionManager(connection_config=conn_conf) as db_client:
             # currently works only on item level
@@ -164,8 +160,7 @@ class Caster:
 
                             for ee in item[edge.edge_id]:
                                 weight_collection_attached = {
-                                    weight.cfield(k): v
-                                    for k, v in weights[0].items()
+                                    weight.cfield(k): v for k, v in weights[0].items()
                                 }
                                 ee.update(weight_collection_attached)
 
@@ -207,12 +202,10 @@ class Caster:
         elif isinstance(data[0], list):
             _data = data
             if columns is None:
-                raise ValueError(f"columns should be set")
+                raise ValueError("columns should be set")
         else:
             return data  # type: ignore
-        rows_dressed = [
-            {k: v for k, v in zip(columns, item)} for item in _data
-        ]
+        rows_dressed = [{k: v for k, v in zip(columns, item)} for item in _data]
         return rows_dressed
 
     def ingest_files(self, path: Path, **kwargs):
@@ -267,16 +260,12 @@ class Caster:
                 processes = []
 
                 for w in range(self.n_cores):
-                    p = mp.Process(
-                        target=func, args=(queue_tasks,), kwargs=kwargs
-                    )
+                    p = mp.Process(target=func, args=(queue_tasks,), kwargs=kwargs)
                     processes.append(p)
                     p.start()
                     for p in processes:
                         p.join()
             else:
                 for f, r in tasks:
-                    self.process_resource(
-                        resource=f, resource_name=r, **kwargs
-                    )
+                    self.process_resource(resource=f, resource_name=r, **kwargs)
         logger.info(f"Processing took {klepsidra.elapsed:.1f} sec")

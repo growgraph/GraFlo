@@ -1,8 +1,6 @@
 def sorted_dicts(d):
     if isinstance(d, (tuple, list)):
-        if d and all(
-            [not isinstance(dd, (list, tuple, dict)) for dd in d[0].values()]
-        ):
+        if d and all([not isinstance(dd, (list, tuple, dict)) for dd in d[0].values()]):
             return sorted(d, key=lambda x: tuple(x.items()))
     elif isinstance(d, dict):
         return {

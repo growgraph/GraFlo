@@ -127,8 +127,7 @@ class TableChunker(FileChunker):
     def __next__(self):
         lines = super().__next__()
         lines2 = [
-            next(csv.reader([line.rstrip()], skipinitialspace=True))
-            for line in lines
+            next(csv.reader([line.rstrip()], skipinitialspace=True)) for line in lines
         ]
         dressed = [dict(zip(self.header, row)) for row in lines2]
         return dressed
@@ -182,18 +181,14 @@ class ChunkerDataFrame(AbstractChunker):
     def _next_item(self):
         cid = self.cnt
         pre_batch = self.df.iloc[cid : cid + self.batch_size].values.tolist()
-        batch = [
-            {k: v for k, v in zip(self.columns, item)} for item in pre_batch
-        ]
+        batch = [{k: v for k, v in zip(self.columns, item)} for item in pre_batch]
         return batch
 
 
 class ChunkerFactory:
     @classmethod
     def create_chunker(cls, **kwargs) -> AbstractChunker:
-        resource: Path | list[dict] | pd.DataFrame | None = kwargs.pop(
-            "resource", None
-        )
+        resource: Path | list[dict] | pd.DataFrame | None = kwargs.pop("resource", None)
         chunker_type = kwargs.pop("type", None)
         if isinstance(resource, list):
             return TrivialChunker(array=resource, **kwargs)
@@ -210,9 +205,7 @@ class ChunkerFactory:
                 return JsonChunker(filename=resource, **kwargs)
             elif chunker_type == ChunkerType.TABLE or (
                 chunker_type is None
-                and any(
-                    [".csv" in resource.suffixes, ".tsv" in resource.suffixes]
-                )
+                and any([".csv" in resource.suffixes, ".tsv" in resource.suffixes])
             ):
                 if ".tsv" in resource.suffixes:
                     return TableChunker(filename=resource, sep="\t", **kwargs)
@@ -256,9 +249,7 @@ class ChunkFlusherMono:
             gc.collect()
 
     def stop(self):
-        return self.maxchunks is not None and (
-            self.chunk_count >= self.maxchunks
-        )
+        return self.maxchunks is not None and (self.chunk_count >= self.maxchunks)
 
     def items_processed(self):
         return self.iprocessed

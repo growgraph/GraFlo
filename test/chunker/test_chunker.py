@@ -22,9 +22,7 @@ def test_trivial():
 
 def test_file_chunker():
     filename = Path(
-        os.path.join(
-            os.path.dirname(__file__), "../data/csv/ticker/ticker.csv.gz"
-        )
+        os.path.join(os.path.dirname(__file__), "../data/csv/ticker/ticker.csv.gz")
     )
     ch = FileChunker(batch_size=5, limit=6, filename=filename)
     for _ in ch:
@@ -38,9 +36,7 @@ def test_file_chunker():
 
 def test_table_chunker():
     filename = Path(
-        os.path.join(
-            os.path.dirname(__file__), "../data/csv/ticker/ticker.csv.gz"
-        )
+        os.path.join(os.path.dirname(__file__), "../data/csv/ticker/ticker.csv.gz")
     )
     ch = TableChunker(batch_size=5, limit=6, filename=filename)
     for item in ch:
@@ -50,9 +46,7 @@ def test_table_chunker():
 
 def test_jsonl_chunker():
     filename = Path(
-        os.path.join(
-            os.path.dirname(__file__), "../data/jsonl/e00000000.jsonl.gz"
-        )
+        os.path.join(os.path.dirname(__file__), "../data/jsonl/e00000000.jsonl.gz")
     )
     ch = JsonlChunker(batch_size=5, limit=6, filename=filename)
     for item in ch:

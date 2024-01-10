@@ -57,9 +57,7 @@ def act_db(
 
 
 @click.command()
-@click.option(
-    "--db-config-path", type=click.Path(exists=True, path_type=pathlib.Path)
-)
+@click.option("--db-config-path", type=click.Path(exists=True, path_type=pathlib.Path))
 @click.option("--db", type=str, multiple=True)
 @click.option(
     "--store-directory-path",
@@ -81,29 +79,26 @@ def manage_dbs(
     either arangosh or docker should be available in the system
     """
     conn_conf = FileHandle.load(fpath=db_config_path)
-    db_conf: ArangoConnectionConfig = ConfigFactory.create_config(
-        dict_like=conn_conf
-    )
+    db_conf: ArangoConnectionConfig = ConfigFactory.create_config(dict_like=conn_conf)
 
     action = "restoring" if restore else "dumping"
     if restore:
         out_path = store_directory_path
     else:
         out_path = (
-            store_directory_path.expanduser().resolve()
-            / date.today().isoformat()
+            store_directory_path.expanduser().resolve() / date.today().isoformat()
         )
 
     if not out_path.exists():
         out_path.mkdir(exist_ok=True)
 
     with Timer() as t_all:
-        for db in db:
+        for dbname in db:
             with Timer() as t_dump:
                 try:
                     act_db(
                         db_conf,
-                        db,
+                        dbname,
                         out_path,
                         restore=restore,
                         docker_version=docker_version,
@@ -112,7 +107,7 @@ def manage_dbs(
                 except Exception as e:
                     logging.error(e)
             logging.info(
-                f"{action} {db} took  {t_dump.mins} mins {t_dump.secs:.2f} sec"
+                f"{action} {dbname} took  {t_dump.mins} mins {t_dump.secs:.2f} sec"
             )
     logging.info(f"all {action} took  {t_all.mins} mins {t_all.secs:.2f} sec")
 

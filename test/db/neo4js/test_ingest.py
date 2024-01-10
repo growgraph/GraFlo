@@ -36,9 +36,7 @@ def test_ingest(
             with ConnectionManager(connection_config=conn_conf) as db_client:
                 r = db_client.fetch_docs("Author")
                 assert len(r) == 374
-                r = db_client.fetch_docs(
-                    "Author", filters=["==", "10", "hindex"]
-                )
+                r = db_client.fetch_docs("Author", filters=["==", "10", "hindex"])
                 assert len(r) == 8
                 r = db_client.fetch_docs("Author", limit=1)
                 assert len(r) == 1

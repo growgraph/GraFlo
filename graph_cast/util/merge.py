@@ -1,9 +1,7 @@
 from collections import ChainMap
 
 
-def merge_doc_basis(
-    docs: list[dict], index_keys: tuple[str, ...]
-) -> list[dict]:
+def merge_doc_basis(docs: list[dict], index_keys: tuple[str, ...]) -> list[dict]:
     """
 
     :param docs:
@@ -13,9 +11,7 @@ def merge_doc_basis(
 
     # caster each doc to a sorted tuple keeping only keys from keys
     docs_tuplezied = [
-        tuple(
-            sorted({k: v for k, v in item.items() if k in index_keys}.items())
-        )
+        tuple(sorted({k: v for k, v in item.items() if k in index_keys}.items()))
         for item in docs
     ]
 
@@ -64,8 +60,7 @@ def merge_documents(
     for item in mains_:
         (
             anchors
-            if discriminant_key in item
-            and item[discriminant_key] == discriminant_value
+            if discriminant_key in item and item[discriminant_key] == discriminant_value
             else mains
         ).append(item)
 

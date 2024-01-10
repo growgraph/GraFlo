@@ -40,7 +40,7 @@ def knapsack(weights, ks_size=7):
     while pp:
         w_item = []
         w_item += [pp.pop()]
-        ww_item = sum([l for _, l in w_item])
+        ww_item = sum([item for _, item in w_item])
         while ww_item < ks_size:
             cnt = 0
             for j, item in enumerate(pp[::-1]):

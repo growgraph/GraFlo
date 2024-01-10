@@ -67,9 +67,7 @@ def test_input_output():
 
 
 def test_parse_multi_item(quoted_multi_item):
-    r = parse_multi_item(
-        quoted_multi_item, mapper={"name": "full_name"}, direct=["id"]
-    )
+    r = parse_multi_item(quoted_multi_item, mapper={"name": "full_name"}, direct=["id"])
     assert r["full_name"][0] == "Luca D'Auria"
     assert r["id"][-1] == "360777873683"
 

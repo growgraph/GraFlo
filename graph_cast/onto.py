@@ -8,9 +8,9 @@ from dataclass_wizard.enums import DateTimeTo
 
 
 class MetaEnum(EnumMeta):
-    def __contains__(cls, item):
+    def __contains__(cls, item, **kwargs):
         try:
-            cls(item)
+            cls(item, **kwargs)
         except ValueError:
             return False
         return True
@@ -55,7 +55,9 @@ class BaseDataclass(JSONWizard, JSONWizard.Meta):
     # skip_defaults = True
 
 
-InputTypeFileExtensions = MappingProxyType({
-    ResourceType.TREELIKE: (InputType.JSON,),
-    ResourceType.ROWLIKE: (InputType.CSV,),
-})
+InputTypeFileExtensions = MappingProxyType(
+    {
+        ResourceType.TREELIKE: (InputType.JSON,),
+        ResourceType.ROWLIKE: (InputType.CSV,),
+    }
+)

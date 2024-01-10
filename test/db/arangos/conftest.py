@@ -98,9 +98,7 @@ def ingest_files(
 ):
     _ = create_db
     for m in modes:
-        ingest_atomic(
-            conn_conf, current_path, test_db_name, mode=m, n_cores=n_cores
-        )
+        ingest_atomic(conn_conf, current_path, test_db_name, mode=m, n_cores=n_cores)
         verify_from_db(
             conn_conf,
             current_path,
@@ -114,9 +112,7 @@ def ingest_files(
                 r = db_client.fetch_docs("chunks")
                 assert len(r) == 2
                 assert r[0]["data"]
-                r = db_client.fetch_docs(
-                    "chunks", filters=["==", "odds", "kind"]
-                )
+                r = db_client.fetch_docs("chunks", filters=["==", "odds", "kind"])
                 assert len(r) == 1
                 r = db_client.fetch_docs("chunks", limit=1)
                 assert len(r) == 1

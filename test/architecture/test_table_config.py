@@ -79,9 +79,7 @@ def test_derive_edges(schema, df_ibes):
 
     vc = sch.vertex_config
 
-    rows_dressed = [
-        {k: item[v] for k, v in header_dict.items()} for item in rows
-    ]
+    rows_dressed = [{k: item[v] for k, v in header_dict.items()} for item in rows]
 
     rr = sch.fetch_resource("ibes")
     rr.add_trivial_transformations(vc, df_ibes.columns)
@@ -129,9 +127,7 @@ def test_transform_row_pure_weight(schema, df_ticker):
 
     vc = sch.vertex_config
 
-    rows_dressed = [
-        {k: item[v] for k, v in header_dict.items()} for item in rows
-    ]
+    rows_dressed = [{k: item[v] for k, v in header_dict.items()} for item in rows]
     rr = sch.fetch_resource(sch.resources.row_likes[0].name)
     rr.add_trivial_transformations(vc, df_ticker.columns)
 

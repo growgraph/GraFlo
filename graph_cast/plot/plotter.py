@@ -64,9 +64,7 @@ class SchemaPlotter:
                 (
                     f"{k}:{item}",
                     {
-                        "type": (
-                            "def_field" if item in index_fields else "field"
-                        ),
+                        "type": ("def_field" if item in index_fields else "field"),
                         "label": item,
                     },
                 )
@@ -74,10 +72,7 @@ class SchemaPlotter:
             ]
             nodes += nodes_collection
             nodes += nodes_fields
-            edges += [
-                (x[0], y[0])
-                for x, y in product(nodes_collection, nodes_fields)
-            ]
+            edges += [(x[0], y[0]) for x, y in product(nodes_collection, nodes_fields)]
 
         g.add_nodes_from(nodes)
         g.add_edges_from(edges)
@@ -124,9 +119,7 @@ class SchemaPlotter:
 
         for k in vconf.vertex_set:
             level_index = [f"{k}:{item}" for item in vconf.index(k)]
-            index_subgraph = ag.add_subgraph(
-                level_index, name=f"cluster_{k}:def"
-            )
+            index_subgraph = ag.add_subgraph(level_index, name=f"cluster_{k}:def")
             index_subgraph.node_attr["style"] = "filled"
             index_subgraph.node_attr["label"] = "definition"
 
@@ -148,17 +141,12 @@ class SchemaPlotter:
         edges = []
         for resource in self.conf.resources:
             vertices = list(resource.vertex_rep.keys())
-            nodes_table = [
-                (resource.name, {"type": f"{resource.resource_type}"})
-            ]
-            nodes_collection = [
-                (vc, {"type": "vcollection"}) for vc in vertices
-            ]
+            nodes_table = [(resource.name, {"type": f"{resource.resource_type}"})]
+            nodes_collection = [(vc, {"type": "vcollection"}) for vc in vertices]
             nodes += nodes_table
             nodes += nodes_collection
             edges += [
-                (nt[0], nc[0])
-                for nt, nc in product(nodes_table, nodes_collection)
+                (nt[0], nc[0]) for nt, nc in product(nodes_table, nodes_collection)
             ]
 
         g.add_nodes_from(nodes)
@@ -260,13 +248,15 @@ class SchemaPlotter:
         edges = []
 
         for resource in self.conf.resources:
-            nodes_table = [(
-                f"{resource.resource_type}:{resource.name}",
-                {
-                    "type": f"{resource.resource_type}",
-                    "label": resource.name,
-                },
-            )]
+            nodes_table = [
+                (
+                    f"{resource.resource_type}:{resource.name}",
+                    {
+                        "type": f"{resource.resource_type}",
+                        "label": resource.name,
+                    },
+                )
+            ]
             for vertex, rep in resource.vertex_rep.items():
                 index = self.conf.vertex_config.index(vertex)
                 node_collection = (
@@ -294,11 +284,7 @@ class SchemaPlotter:
                         (
                             f"collection:field:{kk}",
                             {
-                                "type": (
-                                    "def_field"
-                                    if kk in ref_fields
-                                    else "field"
-                                ),
+                                "type": ("def_field" if kk in ref_fields else "field"),
                                 "label": kk,
                             },
                         )
@@ -326,11 +312,7 @@ class SchemaPlotter:
                         (
                             f"collection:field:{kk}",
                             {
-                                "type": (
-                                    "def_field"
-                                    if kk in ref_fields
-                                    else "field"
-                                ),
+                                "type": ("def_field" if kk in ref_fields else "field"),
                                 "label": kk,
                             },
                         )
@@ -341,13 +323,15 @@ class SchemaPlotter:
                     t_key = "-".join(t_spec)
                     t_label = "-".join([x[0] for x in t_spec])
 
-                    nodes_transforms += [(
-                        f"transform:{t_key}",
-                        {
-                            "type": "transform",
-                            "label": t_label,
-                        },
-                    )]
+                    nodes_transforms += [
+                        (
+                            f"transform:{t_key}",
+                            {
+                                "type": "transform",
+                                "label": t_label,
+                            },
+                        )
+                    ]
 
                     edges_fields += [
                         (
@@ -368,11 +352,12 @@ class SchemaPlotter:
                 trivial_fields = {
                     kk
                     for kk in rep.fields
-                    if not any([
-                        x["label"] == kk
-                        for _, x in nodes_fields_resource
-                        + nodes_fields_collection
-                    ])
+                    if not any(
+                        [
+                            x["label"] == kk
+                            for _, x in nodes_fields_resource + nodes_fields_collection
+                        ]
+                    )
                 }
 
                 nodes_fields_resource += [
@@ -454,9 +439,7 @@ class SchemaPlotter:
             index_subgraph.node_attr["label"] = "definition"
 
         ag.draw(
-            os.path.join(
-                self.fig_path, f"{self.prefix}_source2vc_detailed.pdf"
-            ),
+            os.path.join(self.fig_path, f"{self.prefix}_source2vc_detailed.pdf"),
             "pdf",
             prog="dot",
         )

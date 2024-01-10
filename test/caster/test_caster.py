@@ -47,9 +47,7 @@ def cast(modes, schema_obj, current_path, level, reset, n_threads=1):
                 resource=pathlib.Path(fname), resource_name=resource_name
             )
         elif level == 1:
-            caster.process_resource(
-                resource=data_obj, resource_name=resource_name
-            )
+            caster.process_resource(resource=data_obj, resource_name=resource_name)
         elif level == 2:
             data_obj = FileHandle.load(
                 f"test.data.{InputTypeFileExtensions[rr.resource_type][0]}.{mode}",
@@ -57,9 +55,7 @@ def cast(modes, schema_obj, current_path, level, reset, n_threads=1):
             )
 
             data = caster.normalize_resource(data_obj)
-            graph = caster.cast_normal_resource(
-                data, resource_name=resource_name
-            )
+            graph = caster.cast_normal_resource(data, resource_name=resource_name)
 
             graph.pick_unique()
 

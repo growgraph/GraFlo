@@ -78,9 +78,7 @@ class Resource(BaseDataclass):
         for vertex, v in unit_doc.items():
             v = pick_unique_dict(v)
             if vertex in vertex_config.vertex_set:
-                v = merge_doc_basis(
-                    v, tuple(vertex_config.index(vertex).fields)
-                )
+                v = merge_doc_basis(v, tuple(vertex_config.index(vertex).fields))
             # TODO : fix merging
             # use case - when the same vertex is defined is different places of the incoming tree-like input (json)
             # if vertex in self.merge_collections:
@@ -146,10 +144,7 @@ class RowResource(Resource):
                 related_edges = []
 
             if len(related_vertices) > 1:
-                if (
-                    tau.image is not None
-                    and tau.image in vertex_config.vertex_set
-                ):
+                if tau.image is not None and tau.image in vertex_config.vertex_set:
                     related_vertices = [tau.image]
                 else:
                     logger.warning(
@@ -235,9 +230,7 @@ class TreeResource(Resource):
         self.resource_type = ResourceType.TREELIKE
 
     def finish_init(self, vc: VertexConfig, edge_config: EdgeConfig):
-        self.root.finish_init(
-            vc, edge_config=edge_config, vertex_rep=self.vertex_rep
-        )
+        self.root.finish_init(vc, edge_config=edge_config, vertex_rep=self.vertex_rep)
         for e in self.extra_weights:
             e.finish_init(vc)
 
@@ -291,8 +284,7 @@ def row_to_vertices(
     docs: defaultdict[GraphEntity, list] = defaultdict(list)
     for vertex in vc.vertices:
         docs[vertex.name] += [
-            tau(doc, __return_doc=True)
-            for tau in rr.fetch_transforms(vertex.name)
+            tau(doc, __return_doc=True) for tau in rr.fetch_transforms(vertex.name)
         ]
     return docs
 
@@ -345,11 +337,9 @@ def define_edges(
     vertex_conf: VertexConfig,
 ) -> defaultdict[GraphEntity, list[dict]]:
     for e in current_edges:
-        u, v, r = e.source, e.target, e.relation
+        u, v, _ = e.source, e.target, e.relation
         # blank_collections : db ids have to be retrieved to define meaningful edges
-        if not (
-            u in vertex_conf.blank_vertices or v in vertex_conf.blank_vertices
-        ):
+        if not (u in vertex_conf.blank_vertices or v in vertex_conf.blank_vertices):
             if e.type == EdgeType.DIRECT:
                 ziter: product | combinations
                 if u != v:
@@ -371,9 +361,7 @@ def define_edges(
                                 cbatch = vdoc
                             else:
                                 continue
-                            weights = {
-                                f: cbatch[f] for f in vertex_weight.fields
-                            }
+                            weights = {f: cbatch[f] for f in vertex_weight.fields}
                             edoc.update(weights)
                     for ud in unit_weights[e.edge_id]:
                         edoc.update(ud)

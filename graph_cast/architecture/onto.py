@@ -145,9 +145,7 @@ class GraphContainer(BaseDataclass):
         cls, list_default_dicts: list[defaultdict[GraphEntity, list]]
     ) -> GraphContainer:
         vdict: defaultdict[str, list] = defaultdict(list)
-        edict: defaultdict[tuple[str, str, str | None], list] = defaultdict(
-            list
-        )
+        edict: defaultdict[tuple[str, str, str | None], list] = defaultdict(list)
 
         for d in list_default_dicts:
             for k, v in d.items():
@@ -181,8 +179,6 @@ def cast_graph_name_to_triple(s: GraphEntity):
                 return tuple(s2)
         elif len(s2) == 4 and s2[-1] in ["graph", "edges"]:
             return tuple(s2[:-1])
-        raise ValueError(
-            f"Invalid graph_name {s} : can not be cast to GraphEntity"
-        )
+        raise ValueError(f"Invalid graph_name {s} : can not be cast to GraphEntity")
     else:
         return s

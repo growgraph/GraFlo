@@ -45,9 +45,7 @@ def profile_query(query, nq, profile_times, fpath, limit=None, **kwargs):
             cursor = basic_query(query, profile=True, **kwargs)
             profiling += [cursor.profile()]
             cursor.close()
-        with open(
-            join(fpath, f"query{nq}_profile{limit_str}.json"), "w"
-        ) as fp:
+        with open(join(fpath, f"query{nq}_profile{limit_str}.json"), "w") as fp:
             json.dump(profiling, fp, indent=4)
 
     logger.info(f"starting actual query at {limit}")
@@ -96,21 +94,15 @@ def fetch_fields_query(
 
     docs_str = json.dumps(docs_)
 
-    match_str = " &&".join(
-        [f" _cdoc['{key}'] == _doc['{key}']" for key in match_keys]
-    )
+    match_str = " &&".join([f" _cdoc['{key}'] == _doc['{key}']" for key in match_keys])
 
     return_vars = [x.replace("@", "_") for x in return_keys]
 
-    keep_clause = (
-        f"KEEP(_x, {list(return_vars)})" if return_vars is not None else "_x"
-    )
+    keep_clause = f"KEEP(_x, {list(return_vars)})" if return_vars is not None else "_x"
 
     if filters is not None:
         ff = Expression.from_dict(filters)
-        extrac_filter_clause = (
-            f" && {ff(doc_name='_cdoc', kind=DBFlavor.ARANGO)}"
-        )
+        extrac_filter_clause = f" && {ff(doc_name='_cdoc', kind=DBFlavor.ARANGO)}"
     else:
         extrac_filter_clause = ""
 

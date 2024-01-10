@@ -4,7 +4,8 @@ import yaml
 
 @pytest.fixture()
 def table_config_ibes():
-    tc = yaml.safe_load("""
+    tc = yaml.safe_load(
+        """
         tabletype: ibes
         encoding: ISO-8859-1
         transforms:
@@ -40,13 +41,15 @@ def table_config_ibes():
                 ETEXT: etext
                 IRECCD: irec
                 ITEXT: itext
-    """)
+    """
+    )
     return tc
 
 
 @pytest.fixture()
 def vertex_config_ibes():
-    vc = yaml.safe_load("""
+    vc = yaml.safe_load(
+        """
         blanks:
         -   publication
         collections:
@@ -97,13 +100,15 @@ def vertex_config_ibes():
                 -   itext
                 index:
                 -   irec
-    """)
+    """
+    )
     return vc
 
 
 @pytest.fixture()
 def edge_config_ibes():
-    vc = yaml.safe_load("""
+    vc = yaml.safe_load(
+        """
         main:
         -   source: publication
             target: ticker
@@ -116,13 +121,15 @@ def edge_config_ibes():
             target: publication
         -   source: publication
             target: recommendation
-    """)
+    """
+    )
     return vc
 
 
 @pytest.fixture()
 def edge_config_ticker():
-    ec = yaml.safe_load("""
+    ec = yaml.safe_load(
+        """
         main:
         -   source: ticker
             target: feature
@@ -137,13 +144,15 @@ def edge_config_ticker():
             -   fields:
                 -   t_obs
                 -   name
-    """)
+    """
+    )
     return ec
 
 
 @pytest.fixture()
 def vertex_config_ticker():
-    vc = yaml.safe_load("""
+    vc = yaml.safe_load(
+        """
         collections:
             ticker:
                 dbname: tickers
@@ -192,13 +201,15 @@ def vertex_config_ticker():
                     field: name
                     foo: __ne__
                     value: Volume    
-    """)
+    """
+    )
     return vc
 
 
 @pytest.fixture()
 def table_config_ticker():
-    tc = yaml.safe_load("""
+    tc = yaml.safe_load(
+        """
         tabletype: _all
         transforms:
         -   foo: round_str
@@ -229,5 +240,6 @@ def table_config_ticker():
                 Date: t_obs
         -   map:
                 __ticker: oftic
-    """)
+    """
+    )
     return tc

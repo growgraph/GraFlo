@@ -43,9 +43,7 @@ class Transform(BaseDataclass):
 
         self.fields = self._tuple_it(self.fields)
 
-        self.input = (
-            self.fields if self.fields and not self.input else self.input
-        )
+        self.input = self.fields if self.fields and not self.input else self.input
         if not self.output:
             self.output = self.input
         self.output = self._tuple_it(self.output)
@@ -81,9 +79,7 @@ class Transform(BaseDataclass):
             try:
                 _module = importlib.import_module(self.module)
             except Exception as e:
-                raise TypeError(
-                    f"Provided module {self.module} is not valid: {e}"
-                )
+                raise TypeError(f"Provided module {self.module} is not valid: {e}")
             try:
                 self._foo = getattr(_module, self.foo)
             except Exception as e:
@@ -95,9 +91,7 @@ class Transform(BaseDataclass):
             try:
                 eval(self.class_name)
             except Exception as e:
-                raise Exception(
-                    f"Provided class {self.class_name} not valid: {e}"
-                )
+                raise Exception(f"Provided class {self.class_name} not valid: {e}")
 
     def __call__(self, *nargs, **kwargs):
         """

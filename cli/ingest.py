@@ -53,7 +53,7 @@ def ingest(
     resource_pattern_config_path,
 ):
     schema_path.name.split(".")[0]
-    logging.config.fileConfig(f"logging.conf", disable_existing_loggers=False)
+    logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
 
     logging.basicConfig(level=logging.INFO)
 

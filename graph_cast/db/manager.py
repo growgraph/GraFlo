@@ -17,7 +17,7 @@ class ConnectionManager:
         secret_path=None,
         args=None,
         connection_config: Optional[ProtoConnectionConfig] = None,
-        **kwargs
+        **kwargs,
     ):
         self.config: ProtoConnectionConfig = (
             ConfigFactory.create_config(secret_path, args)

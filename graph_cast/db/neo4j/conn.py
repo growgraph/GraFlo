@@ -62,9 +62,7 @@ class Neo4jConnection(Connection):
     def define_edge_indices(self, edges: list[Edge]):
         for edge in edges:
             for index_obj in edge.indexes:
-                self._add_index(
-                    edge.relation, index_obj, is_vertex_index=False
-                )
+                self._add_index(edge.relation, index_obj, is_vertex_index=False)
 
     def _add_index(self, obj_name, index: Index, is_vertex_index=True):
         fields_str = ", ".join([f"x.{f}" for f in index.fields])
@@ -97,7 +95,7 @@ class Neo4jConnection(Connection):
                 q = f"MATCH (n:{c}) DELETE n"
                 self.execute(q)
         else:
-            q = f"MATCH (n) DELETE n"
+            q = "MATCH (n) DELETE n"
             self.execute(q)
 
     def init_db(self, schema: Schema, clean_start):
@@ -151,17 +149,13 @@ class Neo4jConnection(Connection):
         dry = kwargs.pop("dry", False)
 
         source_match_str = [
-            f"source.{key} = row['__source'].{key}"
-            for key in match_keys_source
+            f"source.{key} = row['__source'].{key}" for key in match_keys_source
         ]
         target_match_str = [
-            f"target.{key} = row['__target'].{key}"
-            for key in match_keys_target
+            f"target.{key} = row['__target'].{key}" for key in match_keys_target
         ]
 
-        match_clause = "WHERE " + " AND ".join(
-            source_match_str + target_match_str
-        )
+        match_clause = "WHERE " + " AND ".join(source_match_str + target_match_str)
 
         q = f"""
             WITH $batch AS batch 
@@ -174,7 +168,7 @@ class Neo4jConnection(Connection):
             self.execute(q, batch=docs_edges)
 
     def insert_return_batch(self, docs, class_name):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def fetch_docs(
         self,
@@ -222,7 +216,7 @@ class Neo4jConnection(Connection):
         flatten=False,
         filters: list | dict | None = None,
     ):
-        raise NotImplemented
+        raise NotImplementedError
 
     def aggregate(
         self,
@@ -232,7 +226,7 @@ class Neo4jConnection(Connection):
         aggregated_field: str | None = None,
         filters: list | dict | None = None,
     ):
-        raise NotImplemented
+        raise NotImplementedError
 
     def keep_absent_documents(
         self,
@@ -242,4 +236,4 @@ class Neo4jConnection(Connection):
         keep_keys,
         filters: list | dict | None = None,
     ):
-        raise NotImplemented
+        raise NotImplementedError

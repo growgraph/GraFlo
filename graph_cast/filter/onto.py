@@ -19,11 +19,13 @@ def implication(ops):
     return b if a else True
 
 
-OperatorMapping = MappingProxyType({
-    LogicalOperator.AND: all,
-    LogicalOperator.OR: any,
-    LogicalOperator.IMPLICATION: implication,
-})
+OperatorMapping = MappingProxyType(
+    {
+        LogicalOperator.AND: all,
+        LogicalOperator.OR: any,
+        LogicalOperator.IMPLICATION: implication,
+    }
+)
 
 
 class ComparisonOperator(str, BaseEnum):
@@ -156,9 +158,7 @@ class Clause(AbsClause):
     def _cast_generic(self, doc_name, kind):
         if len(self.deps) == 1:
             if self.operator == LogicalOperator.NOT:
-                return (
-                    f"{self.operator} {self.deps[0](kind=kind, doc_name=doc_name)}"
-                )
+                return f"{self.operator} {self.deps[0](kind=kind, doc_name=doc_name)}"
             else:
                 raise ValueError(
                     f" length of deps = {len(self.deps)} but operator is not"

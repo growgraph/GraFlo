@@ -7,41 +7,49 @@ from graph_cast.onto import ExpressionFlavor
 
 @pytest.fixture()
 def clause_open():
-    s = yaml.safe_load("""
+    s = yaml.safe_load(
+        """
         field: name
         operator: __eq__
         value: Open
-    """)
+    """
+    )
     return s
 
 
 @pytest.fixture()
 def clause_close():
-    s = yaml.safe_load("""
+    s = yaml.safe_load(
+        """
         field: name
         operator: __eq__
         value: Close
-    """)
+    """
+    )
     return s
 
 
 @pytest.fixture()
 def clause_volume():
-    s = yaml.safe_load("""
+    s = yaml.safe_load(
+        """
         field: name
         operator: __ne__
         value: Volume
-    """)
+    """
+    )
     return s
 
 
 @pytest.fixture()
 def clause_b():
-    s = yaml.safe_load("""
+    s = yaml.safe_load(
+        """
         field: value
         operator: __gt__
         value: 0
-    """)
+    """
+    )
     return s
 
 

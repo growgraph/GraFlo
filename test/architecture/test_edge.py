@@ -46,9 +46,7 @@ def test_complement_edge_init(edge_indexes, vertex_config_kg):
     assert len(e.indexes) == 2
 
 
-def test_edge_with_vertex_index_init(
-    edge_with_vertex_indexes, vertex_config_kg
-):
+def test_edge_with_vertex_index_init(edge_with_vertex_indexes, vertex_config_kg):
     vertex_config = VertexConfig.from_dict(vertex_config_kg)
     e = Edge.from_dict(edge_with_vertex_indexes)
     e.finish_init(vertex_config)

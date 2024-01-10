@@ -86,10 +86,7 @@ class Edge(BaseDataclass):
                 fields = vc.index(index.name).fields
             index_fields += [f"{index.name}@{x}" for x in fields]
 
-        if (
-            not index.exclude_edge_endpoints
-            and self.db_flavor == DBFlavor.ARANGO
-        ):
+        if not index.exclude_edge_endpoints and self.db_flavor == DBFlavor.ARANGO:
             if all([item not in index_fields for item in ["_from", "_to"]]):
                 index_fields = ["_from", "_to"] + index_fields
 

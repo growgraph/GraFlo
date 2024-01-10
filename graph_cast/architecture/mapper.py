@@ -51,14 +51,16 @@ class NodeType(str, BaseEnum):
 
 
 # greater numbers have lower priority
-NodeTypePriority = MappingProxyType({
-    NodeType.TRIVIAL: 0,
-    NodeType.DESCEND: 10,
-    NodeType.VALUE: 30,
-    NodeType.VERTEX: 40,
-    NodeType.EDGE: 90,
-    NodeType.WEIGHT: 100,
-})
+NodeTypePriority = MappingProxyType(
+    {
+        NodeType.TRIVIAL: 0,
+        NodeType.DESCEND: 10,
+        NodeType.VALUE: 30,
+        NodeType.VERTEX: 40,
+        NodeType.EDGE: 90,
+        NodeType.WEIGHT: 100,
+    }
+)
 
 
 def update_defaultdict(dd_a: defaultdict, dd_b: defaultdict):
@@ -84,8 +86,7 @@ def discriminate(items, indices, discriminant_value, discriminant_key):
         _items = [
             item
             for item in _items
-            if discriminant_key in item
-            and item[discriminant_key] == discriminant_value
+            if discriminant_key in item and item[discriminant_key] == discriminant_value
         ]
     return _items
 
@@ -114,9 +115,7 @@ class MapperNode(BaseDataclass):
             MapperNode.from_dict(oo) for oo in self.children
         ]
 
-        self._children = sorted(
-            self._children, key=lambda x: NodeTypePriority[x.type]
-        )
+        self._children = sorted(self._children, key=lambda x: NodeTypePriority[x.type])
 
     def finish_init(
         self,
@@ -163,9 +162,7 @@ class MapperNode(BaseDataclass):
             if not self.unfilter:
                 return flag
             else:
-                return flag and any(
-                    [doc[k] != v for k, v in self.unfilter.items()]
-                )
+                return flag and any([doc[k] != v for k, v in self.unfilter.items()])
         else:
             return any([doc[k] != v for k, v in self.unfilter.items()])
 
@@ -218,7 +215,7 @@ class MapperNode(BaseDataclass):
         s += f"name = `{self.name}`, "
         s += f"descend = `{self.key}`, "
         s += f"edge = {self.edge}"
-        s += f")"
+        s += ")"
         return s
 
     def _loop_over_children(
@@ -249,10 +246,7 @@ class MapperNode(BaseDataclass):
             if isinstance(doc, dict):
                 _doc.update({kk: doc[kk] for kk in keys if kk in doc})
             if self.map:
-                _doc = {
-                    self.map[k] if k in self.map else k: v
-                    for k, v in _doc.items()
-                }
+                _doc = {self.map[k] if k in self.map else k: v for k, v in _doc.items()}
             if self.discriminant is not None:
                 _doc.update({discriminant_key: self.discriminant})
             acc[self.name] += [_doc]
@@ -306,13 +300,15 @@ class MapperNode(BaseDataclass):
                         weight[field] = v[field]
                         if field not in self.edge.non_exclusive:
                             del v[field]
-            acc[source, target, self.edge.relation] += [{
-                **{
-                    SOURCE_AUX: project_dict(u, source_index),
-                    TARGET_AUX: project_dict(v, target_index),
-                },
-                **weight,
-            }]
+            acc[source, target, self.edge.relation] += [
+                {
+                    **{
+                        SOURCE_AUX: project_dict(u, source_index),
+                        TARGET_AUX: project_dict(v, target_index),
+                    },
+                    **weight,
+                }
+            ]
         return acc
 
     def _add_weights(self, vertex_config: VertexConfig, agg):
@@ -328,10 +324,7 @@ class MapperNode(BaseDataclass):
                 vertices = [
                     doc
                     for doc in vertices
-                    if all([
-                        doc[q] == v in doc
-                        for q, v in weight_conf.filter.items()
-                    ])
+                    if all([doc[q] == v in doc for q, v in weight_conf.filter.items()])
                 ]
             try:
                 doc = next(iter(vertices))
