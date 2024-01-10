@@ -6,7 +6,7 @@ requires = ["poetry-core>=1.0.0"]
 authors = ["Alexander Belikov <alexander@growgraph.dev>"]
 description = "ETL to cast tabular and json data types into graphs (collections of vertices and edges)"
 name = "graph_cast"
-packages = [{include = "cli"}, {include = "graph_cast"}]
+packages = [{include = "graph_cast"}]
 version = "0.13.4"
 
 [tool.poetry.dependencies]
@@ -31,6 +31,6 @@ pre-commit = "^3.3.3"
 pygraphviz = "^1.6"
 
 [tool.poetry.scripts]
-ingest = "cli.ingest:ingest"
-manage_dbs = "cli.manage_dbs:manage_dbs"
-plot_schema = "cli.plot_schema:plot_schema"
+ingest = "graph_cast.cli.ingest:ingest"
+manage_dbs = "graph_cast.cli.manage_dbs:manage_dbs"
+plot_schema = "graph_cast.cli.plot_schema:plot_schema"
