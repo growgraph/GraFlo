@@ -5,6 +5,18 @@ import networkx as nx
 from suthing import FileHandle
 
 from graph_cast.architecture import DataSourceType, Schema
+from graph_cast.onto import BaseEnum
+
+
+class AuxNodeType(str, BaseEnum):
+    FIELD = "field"
+    FIELD_DEFINITION = "field_definition"
+    INDEX = "field"
+    RESOURCE = "resource"
+    TRANSFORM = "transform"
+    VERTEX = "vertex"
+    VERTEX_BLANK = "vertex_blank"
+
 
 fillcolor_palette = {
     "violet": "#DDD0E5",
@@ -14,27 +26,91 @@ fillcolor_palette = {
     "peach": "#FFE5B4",
 }
 map_type2shape = {
-    "csv": "box",
-    "row": "box",
-    "tree": "box",
-    "transform": "oval",
-    "vcollection": "ellipse",
-    "index": "polygon",
-    "field": "octagon",
-    "blank": "box",
-    "def_field": "trapezium",
+    AuxNodeType.RESOURCE: "box",
+    AuxNodeType.VERTEX_BLANK: "box",
+    AuxNodeType.FIELD_DEFINITION: "trapezium",
+    AuxNodeType.TRANSFORM: "oval",
+    AuxNodeType.VERTEX: "ellipse",
+    AuxNodeType.INDEX: "polygon",
+    AuxNodeType.FIELD: "octagon",
 }
+
 map_type2color = {
-    "row": fillcolor_palette["blue"],
-    "tree": fillcolor_palette["peach"],
-    "vcollection": fillcolor_palette["green"],
-    "index": "orange",
-    "transform": "grey",
-    "def_field": fillcolor_palette["red"],
-    "field": fillcolor_palette["violet"],
-    "blank": "white",
+    AuxNodeType.RESOURCE: fillcolor_palette["blue"],
+    # "tree": fillcolor_palette["peach"],
+    AuxNodeType.FIELD_DEFINITION: fillcolor_palette["red"],
+    AuxNodeType.VERTEX_BLANK: "white",
+    AuxNodeType.VERTEX: fillcolor_palette["green"],
+    AuxNodeType.INDEX: "orange",
+    AuxNodeType.TRANSFORM: "grey",
+    AuxNodeType.FIELD: fillcolor_palette["violet"],
 }
-edge_status = {"vcollection": "solid", "csv": "solid"}
+
+edge_status = {AuxNodeType.VERTEX: "solid"}
+
+
+def get_auxnode_id(ntype: AuxNodeType, label=False, vfield=False, **kwargs):
+    vertex = kwargs.pop("vertex", None)
+    resource = kwargs.pop("resource", None)
+    vertex_shortcut = kwargs.pop("vertex_sh", None)
+    resource_shortcut = kwargs.pop("resource_sh", None)
+    if ntype == AuxNodeType.RESOURCE:
+        resource_type = kwargs.pop("resource_type")
+        if label:
+            s = f"{resource}"
+        else:
+            s = f"{ntype}:{resource_type}:{resource}"
+    elif ntype == AuxNodeType.VERTEX:
+        if label:
+            s = f"{vertex}"
+        else:
+            s = f"{ntype}:{vertex}"
+    elif ntype == AuxNodeType.FIELD:
+        field = kwargs.pop("field", None)
+        if vfield:
+            if label:
+                s = f"({vertex_shortcut[vertex]}){field}"
+            else:
+                s = f"{ntype}:{vertex}:{field}"
+        else:
+            if label:
+                s = f"<{resource_shortcut[resource]}>{field}"
+            else:
+                s = f"{ntype}:{resource}:{field}"
+    elif ntype == AuxNodeType.TRANSFORM:
+        inputs = kwargs.pop("inputs")
+        outputs = kwargs.pop("outputs")
+        t_spec = inputs + outputs
+        t_key = "-".join(t_spec)
+        t_label = "-".join([x[0] for x in t_spec])
+
+        if label:
+            s = f"[t]{t_label}"
+        else:
+            s = f"transform:{t_key}"
+    return s
+
+
+def lto_dict(strings):
+    strings = list(set(strings))
+    d = {"": strings}
+    while any([len(v) > 1 for v in d.values()]):
+        keys = list(d.keys())
+        for k in keys:
+            item = d.pop(k)
+            if len(item) < 2:
+                d[k] = item
+            else:
+                for s in item:
+                    if s:
+                        if k + s[0] in d:
+                            d[k + s[0]].append(s[1:])
+                        else:
+                            d[k + s[0]] = [s[1:]]
+                    else:
+                        d[k] = [s]
+    r = {k + v[0]: k for k, v in d.items()}
+    return r
 
 
 class SchemaPlotter:
@@ -56,16 +132,36 @@ class SchemaPlotter:
         nodes = []
         edges = []
         vconf = self.conf.vertex_config
+        vertex_prefix_dict = lto_dict([v for v in self.conf.vertex_config.vertex_set])
+
+        kwargs = {"vfield": True, "vertex_sh": vertex_prefix_dict}
         for k in vconf.vertex_set:
             index_fields = vconf.index(k)
             fields = vconf.fields(k)
-            nodes_collection = [(k, {"type": "vcollection"})]
+            kwargs["vertex"] = k
+            nodes_collection = [
+                (
+                    get_auxnode_id(AuxNodeType.VERTEX, **kwargs),
+                    {
+                        "type": AuxNodeType.VERTEX,
+                        "label": get_auxnode_id(
+                            AuxNodeType.VERTEX, label=True, **kwargs
+                        ),
+                    },
+                )
+            ]
             nodes_fields = [
                 (
-                    f"{k}:{item}",
+                    get_auxnode_id(AuxNodeType.FIELD, field=item, **kwargs),
                     {
-                        "type": ("def_field" if item in index_fields else "field"),
-                        "label": item,
+                        "type": (
+                            AuxNodeType.FIELD_DEFINITION
+                            if item in index_fields
+                            else AuxNodeType.FIELD
+                        ),
+                        "label": get_auxnode_id(
+                            AuxNodeType.FIELD, field=item, label=True, **kwargs
+                        ),
                     },
                 )
                 for item in fields
@@ -118,7 +214,16 @@ class SchemaPlotter:
         # ag.add_subgraph(level_one, rank='same')
 
         for k in vconf.vertex_set:
-            level_index = [f"{k}:{item}" for item in vconf.index(k)]
+            level_index = [
+                get_auxnode_id(
+                    AuxNodeType.FIELD,
+                    vertex=k,
+                    field=item,
+                    vfield=True,
+                    vertex_sh=vertex_prefix_dict,
+                )
+                for item in vconf.index(k)
+            ]
             index_subgraph = ag.add_subgraph(level_index, name=f"cluster_{k}:def")
             index_subgraph.node_attr["style"] = "filled"
             index_subgraph.node_attr["label"] = "definition"
@@ -139,14 +244,44 @@ class SchemaPlotter:
         nodes = []
         g = nx.MultiDiGraph()
         edges = []
+        resource_prefix_dict = lto_dict(
+            [resource.name for resource in self.conf.resources]
+        )
+        vertex_prefix_dict = lto_dict([v for v in self.conf.vertex_config.vertex_set])
+        kwargs = {"vertex_sh": vertex_prefix_dict, "resource_sh": resource_prefix_dict}
+
         for resource in self.conf.resources:
+            kwargs["resource"] = resource.name
+            kwargs["resource_type"] = resource.resource_type
+
             vertices = list(resource.vertex_rep.keys())
-            nodes_table = [(resource.name, {"type": f"{resource.resource_type}"})]
-            nodes_collection = [(vc, {"type": "vcollection"}) for vc in vertices]
-            nodes += nodes_table
-            nodes += nodes_collection
+            nodes_resource = [
+                (
+                    get_auxnode_id(AuxNodeType.RESOURCE, **kwargs),
+                    {
+                        "type": AuxNodeType.RESOURCE,
+                        "label": get_auxnode_id(
+                            AuxNodeType.RESOURCE, label=True, **kwargs
+                        ),
+                    },
+                )
+            ]
+            nodes_vertex = [
+                (
+                    get_auxnode_id(AuxNodeType.VERTEX, vertex=v, **kwargs),
+                    {
+                        "type": AuxNodeType.VERTEX,
+                        "label": get_auxnode_id(
+                            AuxNodeType.VERTEX, vertex=v, label=True, **kwargs
+                        ),
+                    },
+                )
+                for v in vertices
+            ]
+            nodes += nodes_resource
+            nodes += nodes_vertex
             edges += [
-                (nt[0], nc[0]) for nt, nc in product(nodes_table, nodes_collection)
+                (nt[0], nc[0]) for nt, nc in product(nodes_resource, nodes_vertex)
             ]
 
         g.add_nodes_from(nodes)
@@ -184,14 +319,31 @@ class SchemaPlotter:
         edges = []
         for e in self.conf.edge_config.edges:
             if e.relation is not None:
-                ee = (e.source, e.target, {"label": e.relation})
+                ee = (
+                    get_auxnode_id(AuxNodeType.VERTEX, vertex=e.source),
+                    get_auxnode_id(AuxNodeType.VERTEX, vertex=e.target),
+                    {"label": e.relation},
+                )
             else:
-                ee = e.source, e.target
+                ee = (
+                    get_auxnode_id(AuxNodeType.VERTEX, vertex=e.source),
+                    get_auxnode_id(AuxNodeType.VERTEX, vertex=e.target),
+                )
             edges += [ee]
 
-        for ee in edges:
-            for n in ee[:2]:
-                nodes += [(n, {"type": "vcollection"})]
+        for ee in self.conf.edge_config.edges:
+            for v in (ee.source, ee.target):
+                nodes += [
+                    (
+                        get_auxnode_id(AuxNodeType.VERTEX, vertex=v),
+                        {
+                            "type": AuxNodeType.VERTEX,
+                            "label": get_auxnode_id(
+                                AuxNodeType.VERTEX, vertex=v, label=True
+                            ),
+                        },
+                    )
+                ]
 
         for nid, weight in nodes:
             g.add_node(nid, **weight)
@@ -246,26 +398,41 @@ class SchemaPlotter:
         g = nx.DiGraph()
         nodes = []
         edges = []
-
+        resource_prefix_dict = lto_dict(
+            [resource.name for resource in self.conf.resources]
+        )
+        vertex_prefix_dict = lto_dict([v for v in self.conf.vertex_config.vertex_set])
+        kwargs = {"vertex_sh": vertex_prefix_dict, "resource_sh": resource_prefix_dict}
         for resource in self.conf.resources:
+            kwargs["resource"] = resource.name
+            kwargs["resource_type"] = resource.resource_type
+
             nodes_table = [
                 (
-                    f"{resource.resource_type}:{resource.name}",
+                    get_auxnode_id(AuxNodeType.RESOURCE, **kwargs),
                     {
-                        "type": f"{resource.resource_type}",
-                        "label": resource.name,
+                        "type": AuxNodeType.RESOURCE,
+                        "label": get_auxnode_id(
+                            AuxNodeType.RESOURCE, label=True, **kwargs
+                        ),
                     },
                 )
             ]
             for vertex, rep in resource.vertex_rep.items():
+                kwargs["vertex"] = vertex
                 index = self.conf.vertex_config.index(vertex)
                 node_collection = (
-                    f"collection:{vertex}",
-                    {"type": "vcollection", "label": vertex},
+                    get_auxnode_id(AuxNodeType.VERTEX, **kwargs),
+                    {
+                        "type": AuxNodeType.VERTEX,
+                        "label": get_auxnode_id(
+                            AuxNodeType.VERTEX, label=True, **kwargs
+                        ),
+                    },
                 )
 
                 nodes_fields_resource = []
-                nodes_fields_collection = []
+                nodes_fields_vertex = []
                 nodes_transforms = []
                 edges_fields = []
                 edges_fields_transforms = []
@@ -275,25 +442,40 @@ class SchemaPlotter:
                 for m in rep.maps:
                     nodes_fields_resource += [
                         (
-                            f"{resource.resource_type}:field:{kk}",
-                            {"type": "field", "label": kk},
-                        )
-                        for kk in m.keys()
-                    ]
-                    nodes_fields_collection += [
-                        (
-                            f"collection:field:{kk}",
+                            get_auxnode_id(AuxNodeType.FIELD, field=f, **kwargs),
                             {
-                                "type": ("def_field" if kk in ref_fields else "field"),
-                                "label": kk,
+                                "type": AuxNodeType.FIELD,
+                                "label": get_auxnode_id(
+                                    AuxNodeType.FIELD, field=f, label=True, **kwargs
+                                ),
                             },
                         )
-                        for kk in m.values()
+                        for f in m.keys()
+                    ]
+                    nodes_fields_vertex += [
+                        (
+                            get_auxnode_id(
+                                AuxNodeType.FIELD, field=f, vfield=True, **kwargs
+                            ),
+                            {
+                                "type": AuxNodeType.FIELD,
+                                "label": get_auxnode_id(
+                                    AuxNodeType.FIELD,
+                                    field=f,
+                                    vfield=True,
+                                    label=True,
+                                    **kwargs,
+                                ),
+                            },
+                        )
+                        for f in m.values()
                     ]
                     edges_fields += [
                         (
-                            f"{resource.resource_type}:field:{kk}",
-                            f"collection:field:{vv}",
+                            get_auxnode_id(AuxNodeType.FIELD, field=kk, **kwargs),
+                            get_auxnode_id(
+                                AuxNodeType.FIELD, field=vv, vfield=True, **kwargs
+                            ),
                         )
                         for kk, vv in m.items()
                     ]
@@ -303,48 +485,88 @@ class SchemaPlotter:
                     outputs = m[1]
                     nodes_fields_resource += [
                         (
-                            f"{resource.resource_type}:field:{kk}",
-                            {"type": "field", "label": kk},
-                        )
-                        for kk in inputs
-                    ]
-                    nodes_fields_collection += [
-                        (
-                            f"collection:field:{kk}",
+                            get_auxnode_id(AuxNodeType.FIELD, field=f, **kwargs),
                             {
-                                "type": ("def_field" if kk in ref_fields else "field"),
-                                "label": kk,
+                                "type": AuxNodeType.FIELD,
+                                "label": get_auxnode_id(
+                                    AuxNodeType.FIELD,
+                                    field=f,
+                                    vfield=True,
+                                    label=True,
+                                    **kwargs,
+                                ),
                             },
                         )
-                        for kk in outputs
+                        for f in inputs
                     ]
-
-                    t_spec = inputs + outputs
-                    t_key = "-".join(t_spec)
-                    t_label = "-".join([x[0] for x in t_spec])
+                    nodes_fields_vertex += [
+                        (
+                            get_auxnode_id(
+                                AuxNodeType.FIELD, field=f, vfield=True, **kwargs
+                            ),
+                            {
+                                "type": (
+                                    AuxNodeType.FIELD_DEFINITION
+                                    if f in ref_fields
+                                    else AuxNodeType.FIELD
+                                ),
+                                "label": get_auxnode_id(
+                                    AuxNodeType.FIELD,
+                                    field=f,
+                                    vfield=True,
+                                    label=True,
+                                    **kwargs,
+                                ),
+                            },
+                        )
+                        for f in outputs
+                    ]
 
                     nodes_transforms += [
                         (
-                            f"transform:{t_key}",
+                            get_auxnode_id(
+                                AuxNodeType.TRANSFORM,
+                                inputs=inputs,
+                                outputs=outputs,
+                                **kwargs,
+                            ),
                             {
-                                "type": "transform",
-                                "label": t_label,
+                                "type": AuxNodeType.TRANSFORM,
+                                "label": get_auxnode_id(
+                                    AuxNodeType.TRANSFORM,
+                                    inputs=inputs,
+                                    outputs=outputs,
+                                    label=True,
+                                    **kwargs,
+                                ),
                             },
                         )
                     ]
 
                     edges_fields += [
                         (
-                            f"{resource.resource_type}:field:{f}",
-                            f"transform:{t_key}",
+                            get_auxnode_id(AuxNodeType.FIELD, field=f, **kwargs),
+                            get_auxnode_id(
+                                AuxNodeType.TRANSFORM,
+                                inputs=inputs,
+                                outputs=outputs,
+                                **kwargs,
+                            ),
                         )
                         for f in inputs
                     ]
 
                     edges_fields += [
                         (
-                            f"transform:{t_key}",
-                            f"collection:field:{f}",
+                            get_auxnode_id(
+                                AuxNodeType.TRANSFORM,
+                                inputs=inputs,
+                                outputs=outputs,
+                                **kwargs,
+                            ),
+                            get_auxnode_id(
+                                AuxNodeType.FIELD, field=f, vfield=True, **kwargs
+                            ),
                         )
                         for f in outputs
                     ]
@@ -352,48 +574,59 @@ class SchemaPlotter:
                 trivial_fields = {
                     kk
                     for kk in rep.fields
-                    if not any(
-                        [
-                            x["label"] == kk
-                            for _, x in nodes_fields_resource + nodes_fields_collection
-                        ]
-                    )
+                    if not any([kk in t[0] + t[1] for t in rep.transforms])
                 }
 
                 nodes_fields_resource += [
                     (
-                        f"{resource.resource_type}:field:{kk}",
-                        {"type": "field", "label": kk},
+                        get_auxnode_id(AuxNodeType.FIELD, field=f, **kwargs),
+                        {
+                            "type": AuxNodeType.FIELD,
+                            "label": get_auxnode_id(
+                                AuxNodeType.FIELD, field=f, label=True, **kwargs
+                            ),
+                        },
                     )
-                    for kk in trivial_fields
+                    for f in trivial_fields
                 ]
 
-                nodes_fields_collection += [
-                    (f"collection:field:{kk}", {"type": "field", "label": kk})
-                    for kk in trivial_fields
+                nodes_fields_vertex += [
+                    (
+                        get_auxnode_id(
+                            AuxNodeType.FIELD, field=f, vfield=True, **kwargs
+                        ),
+                        {
+                            "type": AuxNodeType.FIELD,
+                            "label": get_auxnode_id(
+                                AuxNodeType.FIELD,
+                                field=f,
+                                vfield=True,
+                                label=True,
+                                **kwargs,
+                            ),
+                        },
+                    )
+                    for f in trivial_fields
                 ]
 
                 edge_resource_fields = [
-                    (f"{resource.resource_type}:{resource.name}", q)
+                    (get_auxnode_id(AuxNodeType.RESOURCE, **kwargs), q)
                     for q, _ in nodes_fields_resource
                 ]
                 edge_collection_fields = [
-                    (q, node_collection[0]) for q, _ in nodes_fields_collection
+                    (q, node_collection[0]) for q, _ in nodes_fields_vertex
                 ]
 
                 edges_fields += [
-                    (
-                        f"{resource.resource_type}:field:{kk}",
-                        f"collection:field:{kk}",
-                    )
-                    for kk in trivial_fields
+                    (u[0], v[0])
+                    for u, v in zip(nodes_fields_resource, nodes_fields_vertex)
                 ]
 
                 nodes += (
                     nodes_table
                     + [node_collection]
                     + nodes_fields_resource
-                    + nodes_fields_collection
+                    + nodes_fields_vertex
                     + nodes_transforms
                 )
                 edges += (
