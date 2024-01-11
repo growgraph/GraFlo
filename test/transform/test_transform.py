@@ -106,3 +106,17 @@ def test_switch_complete():
     t = Transform(**kwargs)
     r = t(doc, __return_doc=True)
     assert r["value"] == 17.9
+
+
+def test_fields():
+    doc = {"id": "https://openalex.org/A123"}
+
+    kwargs = {
+        "module": "graph_cast.util.transform",
+        "foo": "split_keep_part",
+        "fields": "id",
+        "params": {"sep": "/", "keep": -1},
+    }
+    t = Transform(**kwargs)
+    r = t(doc, __return_doc=True)
+    assert r["id"] == "A123"

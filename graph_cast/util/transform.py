@@ -198,3 +198,7 @@ def pick_unique_dict(docs):
     docs = {json.dumps(d, sort_keys=True) for d in docs}
     docs = [json.loads(t) for t in docs]
     return docs
+
+
+def split_keep_part(s: str, sep="/", keep=-1):
+    return s.split(sep)[keep]
