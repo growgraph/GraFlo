@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import dataclasses
 import importlib
 import logging
+from copy import deepcopy
 
 from graph_cast.onto import BaseDataclass
 
@@ -13,6 +16,7 @@ class TransformException(BaseException):
 
 @dataclasses.dataclass
 class Transform(BaseDataclass):
+    name: str | None = None
     module: str | None = None
     class_name: str | None = None
     foo: str | None = None
@@ -56,9 +60,9 @@ class Transform(BaseDataclass):
             elif self.switch:
                 self.input = tuple([k for k in self.switch])
                 self.output = tuple(self.switch[self.input[0]])
-            else:
+            elif not self.name:
                 raise ValueError(
-                    "Either input and output, fields, or map should be"
+                    "Either input and output, fields, map or name should be"
                     " provided to Transform constructor."
                 )
 
@@ -137,6 +141,21 @@ class Transform(BaseDataclass):
         for k0, (q, qq) in self.switch.items():
             upd.update({q: k0})
         return upd
+
+    @property
+    def is_dummy(self):
+        return (self.name is not None) and (not self.map or self._foo is None)
+
+    def update(self, t: Transform):
+        t_copy = deepcopy(t)
+        if self.input:
+            t_copy.input = self.input
+        if self.output:
+            t_copy.output = self.output
+        if self.params:
+            t_copy.params.update(self.params)
+        t_copy.__post_init__()
+        return t_copy
 
     def __str__(self):
         return f"{id(self)} | {self.foo} {self.input} -> {self.output}"

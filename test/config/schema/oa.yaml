@@ -1,0 +1,79 @@
+general:
+    name: openalex
+resources:
+    tree_likes:
+    -   name: authors
+        root:
+            children:
+            -   type: vertex
+                name: author
+                transforms:
+                -   name: keep_suffix_id
+            -   key: ids
+                children: []
+            -   key: last_known_institution
+                children:
+                -   type: vertex
+                    name: institution
+                    transforms:
+                    -   name: keep_suffix_id
+                -   type: edge
+                    edge:
+                        source: author
+                        target: institution
+#                      target_discriminant: _top_level
+                    weights:
+                        source_fields:
+                        -   updated_date
+                        -   created_date
+    -   name: works
+        root:
+            children:
+            -   type: vertex
+                name: work
+                transforms:
+                -   name: keep_suffix_id
+                -   name: keep_suffix_id
+                    params:
+                        sep: "/"
+                        keep: [-2, -1]
+                    input:
+                    -   doi
+                    output:
+                    -   doi
+vertex_config:
+    vertices:
+    -   name: author
+        dbname: authors
+        fields:
+        -   _key
+        indexes:
+        -   fields:
+            -   _key
+    -   name: institution
+        dbname: institutions
+        fields:
+        -   _key
+        indexes:
+        -   fields:
+            -   _key
+    -   name: work
+        dbname: works
+        fields:
+        -   _key
+        -   doi
+        indexes:
+        -   fields:
+            -   _key
+transforms:
+    keep_suffix_id:
+        foo: split_keep_part
+        module: graph_cast.util.transform
+        params:
+            sep: "/"
+            keep: -1
+        input:
+        -   id
+        output:
+        -   _key
+edge_config: []

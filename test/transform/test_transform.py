@@ -108,7 +108,7 @@ def test_switch_complete():
     assert r["value"] == 17.9
 
 
-def test_fields():
+def test_split_keep_part():
     doc = {"id": "https://openalex.org/A123"}
 
     kwargs = {
@@ -120,3 +120,29 @@ def test_fields():
     t = Transform(**kwargs)
     r = t(doc, __return_doc=True)
     assert r["id"] == "A123"
+
+
+def test_split_keep_part_longer():
+    doc = {"doi": "https://doi.org/10.1007/978-3-123"}
+
+    kwargs = {
+        "module": "graph_cast.util.transform",
+        "foo": "split_keep_part",
+        "fields": "doi",
+        "params": {"sep": "/", "keep": [-2, -1]},
+    }
+    t = Transform(**kwargs)
+    r = t(doc, __return_doc=True)
+    assert r["doi"] == "10.1007/978-3-123"
+
+
+def test_transform_shortcut(schema_obj):
+    schema = schema_obj("oa")
+    doc = {
+        "doi": "https://doi.org/10.1007/978-3-123",
+        "id": "https://openalex.org/A123",
+    }
+    resource = schema.resources.tree_likes[-1]
+    r = resource.apply_doc(doc, vertex_config=schema.vertex_config)
+    assert r["work"][0]["_key"] == "A123"
+    assert r["work"][0]["doi"] == "10.1007/978-3-123"

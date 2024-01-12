@@ -114,8 +114,15 @@ class RowResource(Resource):
         self,
         vertex_config: VertexConfig,
         edge_config: None | EdgeConfig = None,
+        transforms: dict[str, Transform] | None = None,
     ):
+        if transforms is None:
+            transforms = {}
+
         for tau in self.transforms:
+            if tau.is_dummy:
+                if tau.name in transforms:
+                    tau.update(transforms[tau.name])
             self._transforms[id(tau)] = tau
             related_vertices = [
                 c
@@ -229,8 +236,18 @@ class TreeResource(Resource):
         super().__post_init__()
         self.resource_type = ResourceType.TREELIKE
 
-    def finish_init(self, vc: VertexConfig, edge_config: EdgeConfig):
-        self.root.finish_init(vc, edge_config=edge_config, vertex_rep=self.vertex_rep)
+    def finish_init(
+        self,
+        vc: VertexConfig,
+        edge_config: EdgeConfig,
+        transforms: dict[str, Transform],
+    ):
+        self.root.finish_init(
+            vc,
+            edge_config=edge_config,
+            vertex_rep=self.vertex_rep,
+            transforms=transforms,
+        )
         for e in self.extra_weights:
             e.finish_init(vc)
 
@@ -258,11 +275,13 @@ class ResourceHolder(BaseDataclass):
     row_likes: list[RowResource] = dataclasses.field(default_factory=list)
     tree_likes: list[TreeResource] = dataclasses.field(default_factory=list)
 
-    def finish_init(self, vc: VertexConfig, ec: EdgeConfig):
+    def finish_init(
+        self, vc: VertexConfig, ec: EdgeConfig, transforms: dict[str, Transform]
+    ):
         for r in self.tree_likes:
-            r.finish_init(vc, edge_config=ec)
+            r.finish_init(vc, edge_config=ec, transforms=transforms)
         for r in self.row_likes:
-            r.finish_init(vertex_config=vc, edge_config=ec)
+            r.finish_init(vertex_config=vc, edge_config=ec, transforms=transforms)
 
     def __iter__(self):
         return chain(self.row_likes, self.tree_likes)

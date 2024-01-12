@@ -200,5 +200,9 @@ def pick_unique_dict(docs):
     return docs
 
 
-def split_keep_part(s: str, sep="/", keep=-1):
-    return s.split(sep)[keep]
+def split_keep_part(s: str, sep="/", keep=-1) -> str:
+    if isinstance(keep, list):
+        items = s.split(sep)
+        return sep.join(items[k] for k in keep)
+    else:
+        return s.split(sep)[keep]

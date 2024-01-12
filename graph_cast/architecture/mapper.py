@@ -122,6 +122,7 @@ class MapperNode(BaseDataclass):
         vc: VertexConfig,
         edge_config: EdgeConfig,
         vertex_rep: dict[str, VertexRepresentationHelper],
+        transforms: dict[str, Transform],
     ):
         if self.type == NodeType.EDGE:
             self.edge.finish_init(vc)
@@ -131,8 +132,19 @@ class MapperNode(BaseDataclass):
                 vc,
                 edge_config=edge_config,
                 vertex_rep=vertex_rep,
+                transforms=transforms,
             )
         if self.type == NodeType.VERTEX:
+            dummy_transforms = [t for t in self.transforms if t.is_dummy]
+            valid_transforms = [t for t in self.transforms if not t.is_dummy]
+
+            while dummy_transforms:
+                t = dummy_transforms.pop()
+                if t.name in transforms:
+                    valid_transforms += [t.update(transforms[t.name])]
+
+            self.transforms = valid_transforms
+
             if self.name not in vertex_rep:
                 assert self.name is not None
                 vertex_rep[self.name] = VertexRepresentationHelper(
@@ -244,7 +256,9 @@ class MapperNode(BaseDataclass):
             keys += [k for k in self.map if k not in keys]
 
             if isinstance(doc, dict):
-                _doc.update({kk: doc[kk] for kk in keys if kk in doc})
+                _doc.update(
+                    {kk: doc[kk] for kk in keys if kk in doc and kk not in _doc}
+                )
             if self.map:
                 _doc = {self.map[k] if k in self.map else k: v for k, v in _doc.items()}
             if self.discriminant is not None:

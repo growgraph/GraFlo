@@ -5,6 +5,7 @@ import logging
 
 from graph_cast.architecture.edge import EdgeConfig
 from graph_cast.architecture.resource import Resource, ResourceHolder
+from graph_cast.architecture.transform import Transform
 from graph_cast.architecture.vertex import VertexConfig
 from graph_cast.onto import BaseDataclass
 
@@ -22,18 +23,18 @@ class Schema(BaseDataclass):
     vertex_config: VertexConfig
     edge_config: EdgeConfig
     resources: ResourceHolder
+    transforms: dict[str, Transform] = dataclasses.field(default_factory=dict)
 
     def __post_init__(self):
-        # add extra edges from tree resources?
-        # set up edges wrt
-
         # 1. validate resources
         # 2 co-define edges from resources
 
         self.edge_config.finish_init(self.vertex_config)
 
         # modifies resources; adds extra edges found while parsing
-        self.resources.finish_init(self.vertex_config, self.edge_config)
+        self.resources.finish_init(
+            vc=self.vertex_config, ec=self.edge_config, transforms=self.transforms
+        )
 
     def fetch_resource(self, name: str | None = None) -> Resource:
         _current_resource = None
