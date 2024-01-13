@@ -53,10 +53,10 @@ class NodeType(str, BaseEnum):
 # greater numbers have lower priority
 NodeTypePriority = MappingProxyType(
     {
-        NodeType.TRIVIAL: 0,
-        NodeType.DESCEND: 10,
         NodeType.VALUE: 30,
         NodeType.VERTEX: 40,
+        NodeType.TRIVIAL: 50,
+        NodeType.DESCEND: 60,
         NodeType.EDGE: 90,
         NodeType.WEIGHT: 100,
     }
