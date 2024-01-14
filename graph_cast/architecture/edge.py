@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import dataclasses
 
-from graph_cast.architecture.onto import BaseDataclass, EdgeType, Index, Weight
+from graph_cast.architecture.onto import (
+    BaseDataclass,
+    EdgeCastingType,
+    EdgeType,
+    Index,
+    Weight,
+)
 from graph_cast.architecture.vertex import VertexConfig
 from graph_cast.onto import DBFlavor
 
@@ -28,6 +34,7 @@ class Edge(BaseDataclass):
     source_discriminant: str | None = None
     target_discriminant: str | None = None
     type: EdgeType = EdgeType.DIRECT
+    casting_type: EdgeCastingType = EdgeCastingType.PAIR_LIKE
     by: str | None = None
     collection_name_suffix: str | None = None
     source_collection: str | None = None
@@ -40,9 +47,17 @@ class Edge(BaseDataclass):
         self.source_fields: list[str]
         self.target_fields: list[str]
 
-    def finish_init(self, vc: VertexConfig):
+    def finish_init(
+        self, vc: VertexConfig, same_level_vertices: list[str] | None = None
+    ):
         if self.type == EdgeType.INDIRECT and self.by is not None:
             self.by = vc.vertex_dbname(self.by)
+
+        same_level_vertices = [] if same_level_vertices is None else same_level_vertices
+        if self.source in same_level_vertices and self.target in same_level_vertices:
+            self.casting_type = EdgeCastingType.PAIR_LIKE
+        else:
+            self.casting_type = EdgeCastingType.PRODUCT_LIKE
         self.source_collection = vc.vertex_dbname(self.source)
         self.target_collection = vc.vertex_dbname(self.target)
         graph_name = [

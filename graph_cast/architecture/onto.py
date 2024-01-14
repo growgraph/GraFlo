@@ -182,3 +182,8 @@ def cast_graph_name_to_triple(s: GraphEntity):
         raise ValueError(f"Invalid graph_name {s} : can not be cast to GraphEntity")
     else:
         return s
+
+
+class EdgeCastingType(str, BaseEnum):
+    PAIR_LIKE = "pair"
+    PRODUCT_LIKE = "product"

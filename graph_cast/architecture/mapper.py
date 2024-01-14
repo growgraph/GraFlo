@@ -8,7 +8,12 @@ from types import MappingProxyType
 from typing import Any, Callable, Iterable
 
 from graph_cast.architecture.edge import Edge, EdgeConfig
-from graph_cast.architecture.onto import SOURCE_AUX, TARGET_AUX, GraphEntity
+from graph_cast.architecture.onto import (
+    SOURCE_AUX,
+    TARGET_AUX,
+    EdgeCastingType,
+    GraphEntity,
+)
 from graph_cast.architecture.transform import Transform
 from graph_cast.architecture.util import project_dict
 from graph_cast.architecture.vertex import (
@@ -123,17 +128,27 @@ class MapperNode(BaseDataclass):
         edge_config: EdgeConfig,
         vertex_rep: dict[str, VertexRepresentationHelper],
         transforms: dict[str, Transform],
+        same_level_vertices: list[str] | None = None,
     ):
-        if self.type == NodeType.EDGE:
-            self.edge.finish_init(vc)
-            edge_config.update_edges(self.edge)
+        same_level_vertices = [] if same_level_vertices is None else same_level_vertices
+        _same_level_vertices = [
+            c.name
+            for c in self._children
+            if c.type == NodeType.VERTEX and c.name is not None
+        ]
+
         for c in self._children:
             c.finish_init(
                 vc,
                 edge_config=edge_config,
                 vertex_rep=vertex_rep,
                 transforms=transforms,
+                same_level_vertices=_same_level_vertices,
             )
+
+        if self.type == NodeType.EDGE:
+            self.edge.finish_init(vc, same_level_vertices)
+            edge_config.update_edges(self.edge)
         if self.type == NodeType.VERTEX:
             dummy_transforms = [t for t in self.transforms if t.is_dummy]
             valid_transforms = [t for t in self.transforms if not t.is_dummy]
@@ -293,10 +308,7 @@ class MapperNode(BaseDataclass):
             discriminant_key,
         )
 
-        if (
-            self.edge.source_discriminant is None
-            and self.edge.target_discriminant is None
-        ):
+        if self.edge.casting_type == EdgeCastingType.PAIR_LIKE:
             iterator: Callable[..., Iterable[Any]] = zip
         else:
             iterator = product
