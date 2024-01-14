@@ -54,7 +54,12 @@ class Edge(BaseDataclass):
             self.by = vc.vertex_dbname(self.by)
 
         same_level_vertices = [] if same_level_vertices is None else same_level_vertices
-        if self.source in same_level_vertices and self.target in same_level_vertices:
+        if (
+            self.source in same_level_vertices
+            and self.target in same_level_vertices
+            and self.source_discriminant is None
+            and self.target_discriminant is None
+        ):
             self.casting_type = EdgeCastingType.PAIR_LIKE
         else:
             self.casting_type = EdgeCastingType.PRODUCT_LIKE

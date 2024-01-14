@@ -74,13 +74,13 @@ def update_defaultdict(dd_a: defaultdict, dd_b: defaultdict):
     return dd_a
 
 
-def discriminate(items, indices, discriminant_value, discriminant_key):
+def discriminate(items, indices, discriminant_key, discriminant_value):
     """
 
     :param items: list of documents (dict)
     :param indices:
-    :param discriminant_value:
     :param discriminant_key:
+    :param discriminant_value:
     :return: items
     """
 
@@ -298,15 +298,42 @@ class MapperNode(BaseDataclass):
         source_items = discriminate(
             source_items,
             source_index,
-            self.edge.source_discriminant,
             discriminant_key,
+            self.edge.source_discriminant,
         )
+
         target_items = discriminate(
             target_items,
             target_index,
-            self.edge.target_discriminant,
             discriminant_key,
+            self.edge.target_discriminant,
         )
+
+        if source == target:
+            # in the rare case when the relation is between the vertex types and the discriminant value is not set
+            # for one the groups, we make them disjoint
+
+            if (
+                self.edge.source_discriminant is not None
+                and self.edge.target_discriminant is None
+            ):
+                target_items = [
+                    item
+                    for item in target_items
+                    if discriminant_key in item
+                    and item[discriminant_key] != self.edge.source_discriminant
+                ]
+
+            elif (
+                self.edge.source_discriminant is None
+                and self.edge.target_discriminant is not None
+            ):
+                source_items = [
+                    item
+                    for item in source_items
+                    if discriminant_key in item
+                    and item[discriminant_key] != self.edge.target_discriminant
+                ]
 
         if self.edge.casting_type == EdgeCastingType.PAIR_LIKE:
             iterator: Callable[..., Iterable[Any]] = zip
