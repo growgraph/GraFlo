@@ -108,6 +108,22 @@ def test_switch_complete():
     assert r["value"] == 17.9
 
 
+def test_return_doc_false():
+    doc = {
+        "Open": "17.899999618530273",
+    }
+
+    kwargs = {
+        "module": "graph_cast.util.transform",
+        "foo": "round_str",
+        "switch": {"Open": ["name", "value"]},
+        "params": {"ndigits": 3},
+    }
+    t = Transform(**kwargs)
+    r = t(doc, __return_doc=False)
+    assert r == 17.9
+
+
 def test_split_keep_part():
     doc = {"id": "https://openalex.org/A123"}
 

@@ -448,8 +448,7 @@ def mapper_value():
             -   type: value
                 name: concept
                 transforms:
-                -   name: keep_suffix_id
-                    foo: split_keep_part
+                -   foo: split_keep_part
                     module: graph_cast.util.transform
                     params:
                         sep: "/"

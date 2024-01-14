@@ -130,29 +130,29 @@ class MapperNode(BaseDataclass):
         if self.type == NodeType.EDGE:
             self.edge.finish_init(vc, same_level_vertices)
             edge_config.update_edges(self.edge)
-        elif self.type == NodeType.VERTEX:
+        elif self.type == NodeType.VERTEX or self.type == NodeType.VALUE:
             dummy_transforms = [t for t in self.transforms if t.is_dummy]
             valid_transforms = [t for t in self.transforms if not t.is_dummy]
 
             while dummy_transforms:
                 t = dummy_transforms.pop()
-                if t.name in transforms:
+                if t.name is not None and t.name in transforms:
                     valid_transforms += [t.update(transforms[t.name])]
 
             self.transforms = valid_transforms
-
-            if self.name not in vertex_rep:
-                assert self.name is not None
-                vertex_rep[self.name] = VertexRepresentationHelper(
-                    name=self.name, fields=vc.fields(self.name)
-                )
-                if self.map:
-                    vertex_rep[self.name].maps += [dict(self.map)]
-                for t in self.transforms:
-                    vertex_rep[self.name].transforms += [(t.input, t.output)]
-        elif self.type == NodeType.VALUE:
-            if self.key is None:
-                self.key = parent_level_key
+            if self.type == NodeType.VERTEX:
+                if self.name not in vertex_rep:
+                    assert self.name is not None
+                    vertex_rep[self.name] = VertexRepresentationHelper(
+                        name=self.name, fields=vc.fields(self.name)
+                    )
+                    if self.map:
+                        vertex_rep[self.name].maps += [dict(self.map)]
+                    for t in self.transforms:
+                        vertex_rep[self.name].transforms += [(t.input, t.output)]
+            elif self.type == NodeType.VALUE:
+                if self.key is None:
+                    self.key = parent_level_key
 
     def passes(self, doc):
         """
