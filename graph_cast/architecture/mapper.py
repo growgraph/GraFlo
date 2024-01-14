@@ -21,6 +21,7 @@ from graph_cast.architecture.vertex import (
     VertexRepresentationHelper,
 )
 from graph_cast.onto import BaseDataclass, BaseEnum
+from graph_cast.util.merge import discriminate
 
 logger = logging.getLogger(__name__)
 
@@ -72,28 +73,6 @@ def update_defaultdict(dd_a: defaultdict, dd_b: defaultdict):
     for k, v in dd_b.items():
         dd_a[k] += v
     return dd_a
-
-
-def discriminate(items, indices, discriminant_key, discriminant_value):
-    """
-
-    :param items: list of documents (dict)
-    :param indices:
-    :param discriminant_key:
-    :param discriminant_value:
-    :return: items
-    """
-
-    # pick items that have any of index field present
-    _items = [item for item in items if any([k in item for k in indices])]
-
-    if discriminant_value is not None:
-        _items = [
-            item
-            for item in _items
-            if discriminant_key in item and item[discriminant_key] == discriminant_value
-        ]
-    return _items
 
 
 @dataclasses.dataclass
@@ -288,7 +267,7 @@ class MapperNode(BaseDataclass):
     def _apply_value(self, doc, acc: defaultdict[GraphEntity, list]):
         value = doc
         for t in self.transforms:
-            value = t(doc)
+            value = t(doc, __return_doc=False)
         if self.name is not None:
             acc[self.name] += [{self.key: value}]
         return acc
