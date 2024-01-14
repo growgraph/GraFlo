@@ -28,8 +28,8 @@ def discriminate(
                     and item[discriminant_key] == discriminant_value
                 ):
                     result += [item]
-                if fast:
-                    break
+                    if fast:
+                        break
             return result
     return _items
 
@@ -52,8 +52,8 @@ def discriminate_by_key(items, indexes, discriminant_key, fast=False):
         for item in _items:
             if discriminant_key in item:
                 result += [item]
-            if fast:
-                break
+                if fast:
+                    break
         return result
     return _items
 
