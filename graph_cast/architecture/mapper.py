@@ -320,8 +320,8 @@ class MapperNode(BaseDataclass):
                 target_items = [
                     item
                     for item in target_items
-                    if discriminant_key in item
-                    and item[discriminant_key] != self.edge.source_discriminant
+                    if discriminant_key not in item
+                    or item[discriminant_key] != self.edge.source_discriminant
                 ]
 
             elif (
@@ -331,8 +331,8 @@ class MapperNode(BaseDataclass):
                 source_items = [
                     item
                     for item in source_items
-                    if discriminant_key in item
-                    and item[discriminant_key] != self.edge.target_discriminant
+                    if discriminant_key is not item
+                    or item[discriminant_key] != self.edge.target_discriminant
                 ]
 
         if self.edge.casting_type == EdgeCastingType.PAIR_LIKE:
