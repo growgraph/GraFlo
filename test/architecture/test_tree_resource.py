@@ -1,6 +1,8 @@
 import logging
+from collections import defaultdict
 
 from graph_cast.architecture.mapper import MapperNode
+from graph_cast.architecture.onto import GraphEntity
 from graph_cast.architecture.resource import TreeResource
 
 logger = logging.getLogger(__name__)
@@ -38,3 +40,14 @@ def test_schema_tree(schema):
     sch = schema("kg_v3b")
     mn = TreeResource.from_dict(sch["resources"]["tree_likes"][0])
     assert len(mn.root._children) == 5
+
+
+def test_mapper_value(mapper_value):
+    mn = MapperNode.from_dict(mapper_value)
+    mn.finish_init(None, None, None, None)
+    test_doc = {"wikidata": "https://www.wikidata.org/wiki/Q123", "mag": 105794591}
+    acc: defaultdict[GraphEntity, list] = defaultdict(list)
+    acc = mn._children[0].apply(test_doc, None, acc, None)
+    assert acc["concept"][0] == {"mag": 105794591}
+    acc = mn._children[1].apply(test_doc, None, acc, None)
+    assert acc["concept"][1] == {"wikidata": "Q123"}

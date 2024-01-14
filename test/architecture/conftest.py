@@ -348,19 +348,17 @@ def row_resource_ibes():
 def mapper_node_a():
     mn = yaml.safe_load(
         """
-    type: vertex
-    name: date
-    # __extra:
-    #     _anchor: main
-    transforms:
-    -   foo: parse_date_standard
-        module: graph_cast.util.transform
-        input:
-        -   '@sortdate'
-        output:
-        -   year
-        -   month
-        -   day
+        type: vertex
+        name: date
+        transforms:
+        -   foo: parse_date_standard
+            module: graph_cast.util.transform
+            input:
+            -   '@sortdate'
+            output:
+            -   year
+            -   month
+            -   day
     """
     )
     return mn
@@ -384,29 +382,29 @@ def mapper_node_edge():
 def mapper_node_tree():
     mn = yaml.safe_load(
         """
-    type: descend
-    key: map_mention_entity
-    children:
-    -   children:
-        -   type: edge
-            how: all
-            edge:
-                source: mention
-                target: entity
-        -   type: descend
-            key: entity
-            children:
-            -   type: vertex
-                name: entity
-                map:
-                    hash: _key
-        -   type: descend
-            key: mention
-            children:
-            -   type: vertex
-                name: mention
-                map:
-                    hash: _key
+        type: descend
+        key: map_mention_entity
+        children:
+        -   children:
+            -   type: edge
+                how: all
+                edge:
+                    source: mention
+                    target: entity
+            -   type: descend
+                key: entity
+                children:
+                -   type: vertex
+                    name: entity
+                    map:
+                        hash: _key
+            -   type: descend
+                key: mention
+                children:
+                -   type: vertex
+                    name: mention
+                    map:
+                        hash: _key
     """
     )
     return mn
@@ -430,6 +428,36 @@ def mapper_node_edge_weight_config():
                 -
                     fields:
                     -   a
+    """
+    )
+    return mn
+
+
+@pytest.fixture()
+def mapper_value():
+    mn = yaml.safe_load(
+        """
+        key: ids
+        children:
+        -   key: mag
+            children:
+            -   type: value
+                name: concept
+        -   key: wikidata
+            children:
+            -   type: value
+                name: concept
+                transforms:
+                -   name: keep_suffix_id
+                    foo: split_keep_part
+                    module: graph_cast.util.transform
+                    params:
+                        sep: "/"
+                        keep: -1
+                    input:
+                    -   wikidata
+                    output:
+                    -   wikidata
     """
     )
     return mn

@@ -129,6 +129,7 @@ class MapperNode(BaseDataclass):
         vertex_rep: dict[str, VertexRepresentationHelper],
         transforms: dict[str, Transform],
         same_level_vertices: list[str] | None = None,
+        parent_level_key: str | None = None,
     ):
         same_level_vertices = [] if same_level_vertices is None else same_level_vertices
         _same_level_vertices = [
@@ -144,12 +145,13 @@ class MapperNode(BaseDataclass):
                 vertex_rep=vertex_rep,
                 transforms=transforms,
                 same_level_vertices=_same_level_vertices,
+                parent_level_key=self.key,
             )
 
         if self.type == NodeType.EDGE:
             self.edge.finish_init(vc, same_level_vertices)
             edge_config.update_edges(self.edge)
-        if self.type == NodeType.VERTEX:
+        elif self.type == NodeType.VERTEX:
             dummy_transforms = [t for t in self.transforms if t.is_dummy]
             valid_transforms = [t for t in self.transforms if not t.is_dummy]
 
@@ -169,6 +171,9 @@ class MapperNode(BaseDataclass):
                     vertex_rep[self.name].maps += [dict(self.map)]
                 for t in self.transforms:
                     vertex_rep[self.name].transforms += [(t.input, t.output)]
+        elif self.type == NodeType.VALUE:
+            if self.key is None:
+                self.key = parent_level_key
 
     def passes(self, doc):
         """
@@ -213,18 +218,17 @@ class MapperNode(BaseDataclass):
         elif self.type == NodeType.DESCEND:
             if self.key in doc:
                 sub_doc = doc[self.key]
-                if isinstance(sub_doc, dict):
-                    acc = self._loop_over_children(
-                        sub_doc, vertex_config, acc, discriminant_key
-                    )
-                elif isinstance(sub_doc, list):
+                if isinstance(sub_doc, list):
                     for ssub_doc in sub_doc:
                         acc = self._loop_over_children(
                             ssub_doc, vertex_config, acc, discriminant_key
                         )
+                else:
+                    acc = self._loop_over_children(
+                        sub_doc, vertex_config, acc, discriminant_key
+                    )
         elif self.type == NodeType.VALUE:
-            if self.name is not None:
-                acc[self.name] += [{self.key: doc}]
+            acc = self._apply_value(doc, acc)
         elif self.type == NodeType.VERTEX:
             if not isinstance(doc, dict):
                 raise TypeError(f"at {self} doc is not dict")
@@ -281,7 +285,20 @@ class MapperNode(BaseDataclass):
             acc[self.name] += [_doc]
         return acc
 
-    def _add_edges(self, vertex_config: VertexConfig, acc, discriminant_key):
+    def _apply_value(self, doc, acc: defaultdict[GraphEntity, list]):
+        value = doc
+        for t in self.transforms:
+            value = t(doc)
+        if self.name is not None:
+            acc[self.name] += [{self.key: value}]
+        return acc
+
+    def _add_edges(
+        self,
+        vertex_config: VertexConfig,
+        acc: defaultdict[GraphEntity, list],
+        discriminant_key,
+    ):
         assert self.edge is not None
         # get source and target names
         source, target = self.edge.source, self.edge.target
