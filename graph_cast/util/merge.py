@@ -3,11 +3,13 @@ from __future__ import annotations
 from collections import ChainMap
 
 
-def discriminate(items, indices, discriminant_key, discriminant_value, fast=False):
+def discriminate(
+    items, indexes, discriminant_key, discriminant_value: str | None = None, fast=False
+):
     """
 
     :param items: list of documents (dict)
-    :param indices:
+    :param indexes:
     :param discriminant_key:
     :param discriminant_value:
     :param fast:
@@ -15,39 +17,62 @@ def discriminate(items, indices, discriminant_key, discriminant_value, fast=Fals
     """
 
     # pick items that have any of index field present
-    _items = [item for item in items if any([k in item for k in indices])]
+    _items = [item for item in items if any(k in item for k in indexes)]
 
-    if discriminant_value is not None:
+    if discriminant_key is not None:
+        result = []
+        if discriminant_value is not None:
+            for item in _items:
+                if (
+                    discriminant_key in item
+                    and item[discriminant_key] == discriminant_value
+                ):
+                    result += [item]
+                if fast:
+                    break
+            return result
+    return _items
+
+
+def discriminate_by_key(items, indexes, discriminant_key, fast=False):
+    """
+
+    :param items: list of documents (dict)
+    :param indexes:
+    :param discriminant_key:
+    :param fast:
+    :return: items
+    """
+
+    # pick items that have any of index field present
+    _items = [item for item in items if any(k in item for k in indexes)]
+
+    if discriminant_key is not None:
         result = []
         for item in _items:
-            if (
-                discriminant_key in item
-                and item[discriminant_key] == discriminant_value
-            ):
+            if discriminant_key in item:
                 result += [item]
             if fast:
                 break
         return result
-    else:
-        return _items
+    return _items
 
 
 def merge_doc_basis(
     docs: list[dict],
     index_keys: tuple[str, ...],
     discriminant_key=None,
-    discriminant_value=None,
+    # discriminant_value=None,
 ) -> list[dict]:
     """
 
     :param docs:
     :param index_keys:
     :param discriminant_key:
-    :param discriminant_value:
+    # :param discriminant_value:
     :return:
     """
 
-    # cast docs to sorted tuples keeping only indexes
     docs_tuplezied = [
         tuple(sorted((k, v) for k, v in item.items() if k in index_keys))
         for item in docs
@@ -62,15 +87,14 @@ def merge_doc_basis(
 
     # merge docs without any index keys onto the first relevant doc
     if () in docs_tuplezied:
-        relevant_docs = discriminate(
-            docs, index_keys, discriminant_key, discriminant_value, fast=True
+        relevant_docs = discriminate_by_key(
+            docs, index_keys, discriminant_key, fast=True
         )
         if relevant_docs:
             tuple_ix = tuple(
                 sorted((k, v) for k, v in relevant_docs[0].items() if k in index_keys)
             )
-            bearing_docs[tuple_ix].update(bearing_docs[()])
-        del bearing_docs[()]
+            bearing_docs[tuple_ix].update(bearing_docs.pop(()))
 
     return list(bearing_docs.values())
 

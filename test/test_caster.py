@@ -33,7 +33,7 @@ def cast(modes, schema_obj, current_path, level, reset, n_threads=1):
         rr = schema.fetch_resource(name=resource_name)
         fname = os.path.join(
             current_path,
-            f"../data/{InputTypeFileExtensions[rr.resource_type][0]}/{mode}",
+            f"./data/{InputTypeFileExtensions[rr.resource_type][0]}/{mode}",
             f"{mode}.{InputTypeFileExtensions[rr.resource_type][0]}.gz",
         )
 

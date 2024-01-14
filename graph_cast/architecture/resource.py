@@ -69,7 +69,7 @@ class Resource(BaseDataclass):
         Args:
             unit_doc: generic : ddict
             vertex_config:
-            vertex_config: discriminant_key
+            discriminant_key:
 
         Returns: defaultdict vertex and edges collections
 
@@ -78,11 +78,9 @@ class Resource(BaseDataclass):
         for vertex, v in unit_doc.items():
             v = pick_unique_dict(v)
             if vertex in vertex_config.vertex_set:
-                v = merge_doc_basis(v, tuple(vertex_config.index(vertex).fields))
-            # TODO : fix merging
-            # use case - when the same vertex is defined is different places of the incoming tree-like input (json)
-            # if vertex in self.merge_collections:
-            #     v = merge_documents(v, vertex_config.index(vertex).fields, discriminant_key)
+                v = merge_doc_basis(
+                    v, tuple(vertex_config.index(vertex).fields), discriminant_key
+                )
             if vertex in vertex_config.vertex_set:
                 for item in v:
                     item.pop(discriminant_key, None)
