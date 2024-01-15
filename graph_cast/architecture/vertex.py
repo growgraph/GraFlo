@@ -41,7 +41,7 @@ class VertexConfig(BaseDataclass):
         self._vertices_dict: dict[str, Vertex] = {
             item.name: item for item in self.vertices
         }
-        self.vertex_set = set(self._vertices_dict.keys())
+        self.vertex_set: set[str] = set(self._vertices_dict.keys())
 
         # TODO replace by types
         # vertex_collection_name -> [numeric fields]

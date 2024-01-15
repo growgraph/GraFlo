@@ -74,8 +74,13 @@ class Resource(BaseDataclass):
         for vertex, v in unit_doc.items():
             v = pick_unique_dict(v)
             if vertex in vertex_config.vertex_set:
+                assert isinstance(vertex, str)
                 v = merge_doc_basis(
-                    v, tuple(vertex_config.index(vertex).fields), DISCRIMINANT_KEY
+                    v,
+                    tuple(vertex_config.index(vertex).fields),
+                    DISCRIMINANT_KEY
+                    if vertex_config.discriminant_chart[vertex]
+                    else None,
                 )
             if vertex in vertex_config.vertex_set:
                 for item in v:
