@@ -47,7 +47,7 @@ def test_mapper_value(mapper_value):
     mn.finish_init(None, None, None, None)
     test_doc = {"wikidata": "https://www.wikidata.org/wiki/Q123", "mag": 105794591}
     acc: defaultdict[GraphEntity, list] = defaultdict(list)
-    acc = mn._children[0].apply(test_doc, None, acc, None)
+    acc = mn._children[0].apply(test_doc, None, acc)
     assert acc["concept"][0] == {"mag": 105794591}
-    acc = mn._children[1].apply(test_doc, None, acc, None)
+    acc = mn._children[1].apply(test_doc, None, acc)
     assert acc["concept"][1] == {"wikidata": "Q123"}

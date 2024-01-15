@@ -187,3 +187,6 @@ def cast_graph_name_to_triple(s: GraphEntity):
 class EdgeCastingType(str, BaseEnum):
     PAIR_LIKE = "pair"
     PRODUCT_LIKE = "product"
+
+
+DISCRIMINANT_KEY = "__discriminant_key"

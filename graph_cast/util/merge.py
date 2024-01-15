@@ -65,6 +65,9 @@ def merge_doc_basis(
     # discriminant_value=None,
 ) -> list[dict]:
     """
+        TODO so far this function works well when there are only two groups of docs:
+            with discriminant_key and without
+            but it should be made to work when there are groups with different discriminant_value's of discriminant_key
 
     :param docs:
     :param index_keys:

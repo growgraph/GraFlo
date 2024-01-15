@@ -13,6 +13,7 @@ import networkx as nx
 from graph_cast.architecture.edge import Edge, EdgeConfig
 from graph_cast.architecture.mapper import MapperNode
 from graph_cast.architecture.onto import (
+    DISCRIMINANT_KEY,
     SOURCE_AUX,
     TARGET_AUX,
     EdgeType,
@@ -29,9 +30,6 @@ from graph_cast.util.merge import merge_doc_basis
 from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
-
-
-DISCRIMINANT_KEY = "__discriminant_key"
 
 
 @dataclasses.dataclass
@@ -62,14 +60,12 @@ class Resource(BaseDataclass):
         self,
         unit_doc: defaultdict[GraphEntity, list],
         vertex_config: VertexConfig,
-        discriminant_key: str,
     ) -> defaultdict[GraphEntity, list]:
         """
 
         Args:
             unit_doc: generic : ddict
             vertex_config:
-            discriminant_key:
 
         Returns: defaultdict vertex and edges collections
 
@@ -79,11 +75,11 @@ class Resource(BaseDataclass):
             v = pick_unique_dict(v)
             if vertex in vertex_config.vertex_set:
                 v = merge_doc_basis(
-                    v, tuple(vertex_config.index(vertex).fields), discriminant_key
+                    v, tuple(vertex_config.index(vertex).fields), DISCRIMINANT_KEY
                 )
             if vertex in vertex_config.vertex_set:
                 for item in v:
-                    item.pop(discriminant_key, None)
+                    item.pop(DISCRIMINANT_KEY, None)
             unit_doc[vertex] = v
 
         return unit_doc
@@ -253,17 +249,15 @@ class TreeResource(Resource):
         pass
 
     def apply_doc(self, doc: dict, **kwargs) -> defaultdict[GraphEntity, list]:
-        vertex_config = kwargs.pop("vertex_config")
-        discriminant_key = kwargs.pop("discriminant_key", DISCRIMINANT_KEY)
+        vertex_config: VertexConfig = kwargs.pop("vertex_config")
 
         acc: defaultdict[GraphEntity, list] = defaultdict(list)
         acc = self.root.apply(
             doc,
             vertex_config,
             acc,
-            discriminant_key,
         )
-        acc = self.normalize_unit(acc, vertex_config, discriminant_key)
+        acc = self.normalize_unit(acc, vertex_config)
 
         return acc
 

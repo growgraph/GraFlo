@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+from collections import defaultdict
 
 from graph_cast.architecture.onto import Index
 from graph_cast.architecture.transform import Transform
@@ -45,6 +46,8 @@ class VertexConfig(BaseDataclass):
         # TODO replace by types
         # vertex_collection_name -> [numeric fields]
         self._vcollection_numeric_fields_map = {}
+
+        self.discriminant_chart: defaultdict[str, bool] = defaultdict(lambda: False)
 
         if set(self.blank_vertices) - set(self.vertex_set):
             raise ValueError(

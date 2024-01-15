@@ -9,6 +9,7 @@ from typing import Any, Callable, Iterable
 
 from graph_cast.architecture.edge import Edge, EdgeConfig
 from graph_cast.architecture.onto import (
+    DISCRIMINANT_KEY,
     SOURCE_AUX,
     TARGET_AUX,
     EdgeCastingType,
@@ -140,6 +141,11 @@ class MapperNode(BaseDataclass):
                     valid_transforms += [t.update(transforms[t.name])]
 
             self.transforms = valid_transforms
+
+            if self.discriminant is not None:
+                assert self.name is not None
+                vc.discriminant_chart[self.name] = True
+
             if self.type == NodeType.VERTEX:
                 if self.name not in vertex_rep:
                     assert self.name is not None
@@ -178,42 +184,33 @@ class MapperNode(BaseDataclass):
             return any([doc[k] != v for k, v in self.unfilter.items()])
 
     def apply(
-        self,
-        doc,
-        vertex_config: VertexConfig,
-        acc: defaultdict[GraphEntity, list],
-        discriminant_key,
+        self, doc, vertex_config: VertexConfig, acc: defaultdict[GraphEntity, list]
     ):
         if self.type == NodeType.TRIVIAL:
             if isinstance(doc, list):
                 for sub_doc in doc:
-                    acc = self._loop_over_children(
-                        sub_doc, vertex_config, acc, discriminant_key
-                    )
+                    acc = self._loop_over_children(sub_doc, vertex_config, acc)
             else:
-                acc = self._loop_over_children(
-                    doc, vertex_config, acc, discriminant_key
-                )
+                acc = self._loop_over_children(doc, vertex_config, acc)
         elif self.type == NodeType.DESCEND:
             if self.key in doc:
                 sub_doc = doc[self.key]
                 if isinstance(sub_doc, list):
                     for ssub_doc in sub_doc:
-                        acc = self._loop_over_children(
-                            ssub_doc, vertex_config, acc, discriminant_key
-                        )
+                        acc = self._loop_over_children(ssub_doc, vertex_config, acc)
                 else:
-                    acc = self._loop_over_children(
-                        sub_doc, vertex_config, acc, discriminant_key
-                    )
+                    acc = self._loop_over_children(sub_doc, vertex_config, acc)
         elif self.type == NodeType.VALUE:
             acc = self._apply_value(doc, acc)
         elif self.type == NodeType.VERTEX:
             if not isinstance(doc, dict):
                 raise TypeError(f"at {self} doc is not dict")
-            acc = self._apply_map(doc, vertex_config, acc, discriminant_key)
+            acc = self._apply_map(doc, vertex_config, acc)
         elif self.type == NodeType.EDGE:
-            acc = self._add_edges(vertex_config, acc, discriminant_key)
+            acc = self._add_edges(
+                vertex_config,
+                acc,
+            )
         elif self.type == NodeType.WEIGHT:
             acc = self._add_weights(vertex_config, acc)
         else:
@@ -229,12 +226,12 @@ class MapperNode(BaseDataclass):
         return s
 
     def _loop_over_children(
-        self, item, vertex_config, acc, discriminant_key
+        self, item, vertex_config, acc
     ) -> defaultdict[GraphEntity, list]:
         acc0: defaultdict[GraphEntity, list] = defaultdict(list)
 
         for c in self._children:
-            acc0 = c.apply(item, vertex_config, acc0, discriminant_key)
+            acc0 = c.apply(item, vertex_config, acc0)
         acc = update_defaultdict(acc, acc0)
         return acc
 
@@ -243,7 +240,6 @@ class MapperNode(BaseDataclass):
         doc,
         vertex_config: VertexConfig,
         acc: defaultdict[GraphEntity, list],
-        discriminant_key,
     ):
         if self.passes(doc) and self.name is not None:
             keys = vertex_config.fields(self.name)
@@ -260,7 +256,7 @@ class MapperNode(BaseDataclass):
             if self.map:
                 _doc = {self.map[k] if k in self.map else k: v for k, v in _doc.items()}
             if self.discriminant is not None:
-                _doc.update({discriminant_key: self.discriminant})
+                _doc.update({DISCRIMINANT_KEY: self.discriminant})
             acc[self.name] += [_doc]
         return acc
 
@@ -276,7 +272,6 @@ class MapperNode(BaseDataclass):
         self,
         vertex_config: VertexConfig,
         acc: defaultdict[GraphEntity, list],
-        discriminant_key,
     ):
         assert self.edge is not None
         # get source and target names
@@ -294,14 +289,14 @@ class MapperNode(BaseDataclass):
         source_items = discriminate(
             source_items,
             source_index,
-            discriminant_key,
+            DISCRIMINANT_KEY if vertex_config.discriminant_chart[source] else None,
             self.edge.source_discriminant,
         )
 
         target_items = discriminate(
             target_items,
             target_index,
-            discriminant_key,
+            DISCRIMINANT_KEY if vertex_config.discriminant_chart[target] else None,
             self.edge.target_discriminant,
         )
 
@@ -316,8 +311,8 @@ class MapperNode(BaseDataclass):
                 target_items = [
                     item
                     for item in target_items
-                    if discriminant_key not in item
-                    or item[discriminant_key] != self.edge.source_discriminant
+                    if DISCRIMINANT_KEY not in item
+                    or item[DISCRIMINANT_KEY] != self.edge.source_discriminant
                 ]
 
             elif (
@@ -327,8 +322,8 @@ class MapperNode(BaseDataclass):
                 source_items = [
                     item
                     for item in source_items
-                    if discriminant_key is not item
-                    or item[discriminant_key] != self.edge.target_discriminant
+                    if DISCRIMINANT_KEY is not item
+                    or item[DISCRIMINANT_KEY] != self.edge.target_discriminant
                 ]
 
         if self.edge.casting_type == EdgeCastingType.PAIR_LIKE:
