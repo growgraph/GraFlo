@@ -1,0 +1,118 @@
+~schema:
+    ~name: "mixed example"
+~sources:
+-   ~type: csv
+    ~name: publications
+    ~root:
+        vertex_collections:
+        -   type: publication
+            map:
+                wos_id: _key
+                pubyear: year
+                pubmonth: month
+                pubday: day
+        -   type: medium
+            map:
+                source: title
+        -   type: language
+-   ~type: json
+    ~root:
+    -   ~type: dict
+        ~name: chunk
+
+#        vertex_collections:
+#        -   type: contributor
+#        -   type: publication
+#            map:
+#                wos_id: _key
+~vertex_collections:
+    collections:
+        publication:
+            dbname: publications
+            fields:
+            -   _key
+            -   accession_no
+            -   title
+            -   year
+            -   month
+            -   day
+            numeric_fields:
+            -   year
+            -   month
+            -   day
+            index:
+            -   _key
+            extra_index:
+            -   type: hash
+                unique: false
+                fields:
+                -   title
+            -   type: hash
+                unique: false
+                fields:
+                -   year
+        medium:
+            dbname: media
+            fields:
+            -   issn
+            -   isbn
+            -   title
+            -   eissn
+            -   eisbn
+            index:
+            -   issn
+            -   isbn
+            -   title
+            extra_index:
+            -   type: hash
+                unique: false
+                fields:
+                -   issn
+        language:
+            dbname: languages
+            fields:
+            -   language
+            index:
+            -   language
+        contributor:
+            dbname: contributors
+            fields:
+            -   first_name
+            -   last_name
+            index:
+            -   first_name
+            -   last_name
+        organization:
+            dbname: organizations
+            fields:
+            -   organization
+            -   country
+            -   city
+            index:
+            -   organization
+            -   country
+            -   city
+            extra_index:
+            -   type: hash
+                unique: false
+                fields:
+                -   country
+~edge_collections:
+    main:
+    -   source: publication
+        target: medium
+    -   source: publication
+        target: language
+    -   source: contributor
+        target: publication
+    -   source: organization
+        target: publication
+    -   source: publication
+        target: publication
+    extra:
+    -   source: contributor
+        target: organization
+        by: publication
+        weight:
+            _key: pubid
+            year: year

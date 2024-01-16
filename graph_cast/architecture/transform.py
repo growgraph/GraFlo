@@ -1,5 +1,11 @@
+from __future__ import annotations
+
+import dataclasses
 import importlib
 import logging
+from copy import deepcopy
+
+from graph_cast.onto import BaseDataclass
 
 logger = logging.getLogger(__name__)
 
@@ -8,60 +14,57 @@ class TransformException(BaseException):
     pass
 
 
-class Transform:
-    def __init__(self, **kwargs):
-        self._module = None
-        self._class = None
+@dataclasses.dataclass
+class Transform(BaseDataclass):
+    name: str | None = None
+    module: str | None = None
+    class_name: str | None = None
+    foo: str | None = None
+    fields: tuple[str, ...] = dataclasses.field(default_factory=tuple)
+    input: tuple[str, ...] = dataclasses.field(default_factory=tuple)
+    output: tuple[str, ...] = dataclasses.field(default_factory=tuple)
+    params: dict = dataclasses.field(default_factory=dict)
+    map: dict[str, str] = dataclasses.field(default_factory=dict)
+    switch: dict[str, str] = dataclasses.field(default_factory=dict)
+
+    """
+        transform image, i.e. the vertex of interest
+        it is used to disambiguate the transformation - vertex relation
+        consider vertices va : {name} and vb: {name}
+        transformations: t_a: {va_name -> name} and t_b : {vb_name -> name}
+    """
+    image: str | None = None
+
+    def __post_init__(self):
         self._foo = None
 
-        module_name = kwargs.pop("module", None)
-        class_name = kwargs.pop("class", None)
-        foo_name = kwargs.pop("foo", None)
+        self._init_foo()
+        self.functional_transform = False
+        if self._foo is not None:
+            self.functional_transform = True
 
-        self._init_foo(module_name, class_name, foo_name)
+        self.input = self._tuple_it(self.input)
 
-        self._params = dict()
+        self.fields = self._tuple_it(self.fields)
 
-        self._inputs: tuple[str, ...] = kwargs.pop("input", tuple())
-        self._inputs = self._tuple_it(self._inputs)
+        self.input = self.fields if self.fields and not self.input else self.input
+        if not self.output:
+            self.output = self.input
+        self.output = self._tuple_it(self.output)
 
-        self._outputs: tuple[str, ...] = kwargs.pop("output", self._inputs)
-        self._outputs = self._tuple_it(self._outputs)
-
-        self._params = kwargs.pop("params", {})
-        if not isinstance(self._params, dict):
-            raise TypeError("params should be a dict")
-
-        fields: tuple[str, ...] = kwargs.pop("fields", tuple())
-        fields = self._tuple_it(fields)
-
-        self._inputs = fields if fields and not self._inputs else self._inputs
-        self._outputs = (
-            fields if fields and not self._outputs else self._outputs
-        )
-
-        local_map = kwargs.pop("map", {})
-        self._switch: dict[str, tuple[str, str]] = kwargs.pop("switch", {})
-
-        if not self._inputs and not self._outputs:
-            if local_map:
-                items = list(local_map.items())
-                self._inputs = tuple(x for x, _ in items)
-                self._outputs = tuple(x for _, x in items)
-            elif self._switch:
-                self._inputs = tuple([k for k in self._switch])
-                self._outputs = tuple(self._switch[self._inputs[0]])
-            else:
+        if not self.input and not self.output:
+            if self.map:
+                items = list(self.map.items())
+                self.input = tuple(x for x, _ in items)
+                self.output = tuple(x for _, x in items)
+            elif self.switch:
+                self.input = tuple([k for k in self.switch])
+                self.output = tuple(self.switch[self.input[0]])
+            elif not self.name:
                 raise ValueError(
-                    "Either input and output, fields, or map should be"
+                    "Either input and output, fields, map or name should be"
                     " provided to Transform constructor."
                 )
-
-        # transform image, i.e. the vertex of interest
-        # it is used to disambiguate the transformation - vertex relation
-        # consider vertices va : {name} and vb: {name}
-        # transformations: t_a: {va_name -> name} and t_b : {vb_name -> name}
-        self._image: str | None = kwargs.pop("image", None)
 
     @staticmethod
     def _tuple_it(x):
@@ -71,38 +74,28 @@ class Transform:
             x = tuple(x)
         return x
 
-    @property
-    def image(self):
-        return self._image
-
-    def _init_foo(self, module_name, class_name, foo_name):
+    def _init_foo(self):
         """
         if module and foo are not None - try to init them
-        :param module_name:
-        :param class_name:
-        :param foo_name:
         :return:
         """
-        if module_name is not None:
+        if self.module is not None:
             try:
-                self._module = importlib.import_module(module_name)
+                _module = importlib.import_module(self.module)
             except Exception as e:
-                raise TypeError(
-                    f"Provided module {module_name} is not valid: {e}"
-                )
-        elif class_name is not None:
+                raise TypeError(f"Provided module {self.module} is not valid: {e}")
             try:
-                self._class = eval(class_name)
-            except Exception as e:
-                raise Exception(f"Provided class {class_name} not valid: {e}")
-
-        if self._module is not None and foo_name is not None:
-            try:
-                self._foo = getattr(self._module, foo_name)
+                self._foo = getattr(_module, self.foo)
             except Exception as e:
                 raise ValueError(
                     f"Could not instantiate transform function. Exception: {e}"
                 )
+
+        elif self.class_name is not None:
+            try:
+                eval(self.class_name)
+            except Exception as e:
+                raise Exception(f"Provided class {self.class_name} not valid: {e}")
 
     def __call__(self, *nargs, **kwargs):
         """
@@ -119,7 +112,7 @@ class Transform:
             try:
                 input_doc = nargs[0]
                 if isinstance(input_doc, dict):
-                    output_values = [input_doc[k] for k in self._inputs]
+                    output_values = [input_doc[k] for k in self.input]
                 else:
                     output_values = nargs
             except Exception as e:
@@ -130,9 +123,9 @@ class Transform:
         else:
             if nargs and isinstance(input_doc := nargs[0], dict):
                 new_args = [input_doc[k] for k in self.input]
-                output_values = self._foo(*new_args, **kwargs, **self._params)
+                output_values = self._foo(*new_args, **kwargs, **self.params)
             else:
-                output_values = self._foo(*nargs, **kwargs, **self._params)
+                output_values = self._foo(*nargs, **kwargs, **self.params)
         if return_doc:
             r = self._dress_as_dict(output_values)
         else:
@@ -140,24 +133,31 @@ class Transform:
         return r
 
     def _dress_as_dict(self, transform_result):
-        if isinstance(transform_result, (list, tuple)) and not self._switch:
-            upd = {k: v for k, v in zip(self._outputs, transform_result)}
+        if isinstance(transform_result, (list, tuple)) and not self.switch:
+            upd = {k: v for k, v in zip(self.output, transform_result)}
         else:
-            # TODO works only there is one switch clause
-            upd = {self._outputs[-1]: transform_result}
-        for k0, (q, qq) in self._switch.items():
+            # TODO : temporary solution works only there is one switch clause
+            upd = {self.output[-1]: transform_result}
+        for k0, (q, qq) in self.switch.items():
             upd.update({q: k0})
         return upd
 
     @property
-    def input(self):
-        return self._inputs
+    def is_dummy(self):
+        return (self.name is not None) and (not self.map or self._foo is None)
 
-    @property
-    def output(self) -> tuple[str, ...]:
-        return self._outputs
+    def update(self, t: Transform):
+        t_copy = deepcopy(t)
+        if self.input:
+            t_copy.input = self.input
+        if self.output:
+            t_copy.output = self.output
+        if self.params:
+            t_copy.params.update(self.params)
+        t_copy.__post_init__()
+        return t_copy
 
     def __str__(self):
-        return f"{id(self)} | {self._foo} {self._inputs} -> {self._outputs}"
+        return f"{id(self)} | {self.foo} {self.input} -> {self.output}"
 
     __repr__ = __str__

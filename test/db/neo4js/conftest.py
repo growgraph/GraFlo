@@ -1,5 +1,4 @@
 import os
-from os.path import dirname, realpath
 
 import pytest
 from suthing import ConfigFactory, FileHandle
@@ -9,14 +8,14 @@ from graph_cast.db import ConnectionManager
 
 @pytest.fixture(scope="function")
 def test_db_port():
-    env = FileHandle.load("docker.neo4j", ".env")
+    FileHandle.load("docker.neo4j", ".env")
     port = os.environ["NEO4J_BOLT_PORT"]
     return port
 
 
 @pytest.fixture(scope="function")
 def creds():
-    env = FileHandle.load("docker.neo4j", ".env")
+    FileHandle.load("docker.neo4j", ".env")
     creds = os.environ["NEO4J_AUTH"].split("/")
     cred_name, cred_pass = creds[0], creds[1]
     return cred_name, cred_pass
@@ -40,11 +39,6 @@ def conn_conf(test_db_port, creds):
 
 
 @pytest.fixture()
-def current_path():
-    return dirname(realpath(__file__))
-
-
-@pytest.fixture()
 def clean_db(conn_conf):
     with ConnectionManager(connection_config=conn_conf) as db_client:
         db_client.delete_collections()
@@ -53,18 +47,3 @@ def clean_db(conn_conf):
 @pytest.fixture(scope="function")
 def test_db_name():
     return "neo4j"
-
-
-# def ingest_atomic(conn_conf, current_path, test_db_name, input_type, mode):
-#     path = join(current_path, f"../data/{input_type}/{mode}")
-#     schema = ResourceHandler.load(f"conf.{input_type}", f"{mode}.yaml")
-#
-#     conn_conf.database = test_db_name
-#     ingest_files(
-#         fpath=path,
-#         schema=schema,
-#         conn_conf=conn_conf,
-#         input_type=input_type,
-#         limit_files=None,
-#         clean_start=True,
-#     )

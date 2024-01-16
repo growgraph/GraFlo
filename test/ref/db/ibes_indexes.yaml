@@ -1,0 +1,208 @@
+_analyzers:
+-   fields:
+    -   _key
+    sparse: false
+    type: primary
+    unique: true
+_appbundles:
+-   fields:
+    -   _key
+    sparse: false
+    type: primary
+    unique: true
+_apps:
+-   fields:
+    -   _key
+    sparse: false
+    type: primary
+    unique: true
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: true
+    fields:
+    -   mount
+    sparse: true
+    type: hash
+    unique: true
+_aqlfunctions:
+-   fields:
+    -   _key
+    sparse: false
+    type: primary
+    unique: true
+_frontend:
+-   fields:
+    -   _key
+    sparse: false
+    type: primary
+    unique: true
+_graphs:
+-   fields:
+    -   _key
+    sparse: false
+    type: primary
+    unique: true
+_jobs:
+-   fields:
+    -   _key
+    sparse: false
+    type: primary
+    unique: true
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: false
+    fields:
+    -   queue
+    -   status
+    -   delayUntil
+    sparse: false
+    type: skiplist
+    unique: false
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: false
+    fields:
+    -   status
+    -   queue
+    -   delayUntil
+    sparse: false
+    type: skiplist
+    unique: false
+_queues:
+-   fields:
+    -   _key
+    sparse: false
+    type: primary
+    unique: true
+agencies:
+-   fields:
+    -   _key
+    sparse: false
+    type: primary
+    unique: true
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: true
+    fields:
+    -   aname
+    sparse: false
+    type: persistent
+    unique: true
+analysts:
+-   fields:
+    -   _key
+    sparse: false
+    type: primary
+    unique: true
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: true
+    fields:
+    -   last_name
+    -   initial
+    sparse: false
+    type: persistent
+    unique: true
+analysts_agencies_edges:
+-   fields:
+    -   _key
+    sparse: false
+    type: primary
+    unique: true
+-   fields:
+    -   _from
+    -   _to
+    sparse: false
+    type: edge
+    unique: false
+analysts_publications_edges:
+-   fields:
+    -   _key
+    sparse: false
+    type: primary
+    unique: true
+-   fields:
+    -   _from
+    -   _to
+    sparse: false
+    type: edge
+    unique: false
+publications:
+-   fields:
+    -   _key
+    sparse: false
+    type: primary
+    unique: true
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: true
+    fields:
+    -   datetime_review
+    sparse: false
+    type: hash
+    unique: false
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: true
+    fields:
+    -   datetime_announce
+    sparse: false
+    type: hash
+    unique: false
+publications_recommendations_edges:
+-   fields:
+    -   _key
+    sparse: false
+    type: primary
+    unique: true
+-   fields:
+    -   _from
+    -   _to
+    sparse: false
+    type: edge
+    unique: false
+publications_tickers_edges:
+-   fields:
+    -   _key
+    sparse: false
+    type: primary
+    unique: true
+-   fields:
+    -   _from
+    -   _to
+    sparse: false
+    type: edge
+    unique: false
+recommendations:
+-   fields:
+    -   _key
+    sparse: false
+    type: primary
+    unique: true
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: true
+    fields:
+    -   irec
+    -   erec
+    -   etext
+    -   itext
+    sparse: false
+    type: persistent
+    unique: true
+tickers:
+-   fields:
+    -   _key
+    sparse: false
+    type: primary
+    unique: true
+-   cacheEnabled: false
+    deduplicate: true
+    estimates: true
+    fields:
+    -   cusip
+    -   cname
+    -   oftic
+    sparse: false
+    type: persistent
+    unique: true

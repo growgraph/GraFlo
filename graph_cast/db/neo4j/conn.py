@@ -3,11 +3,13 @@ import logging
 from neo4j import GraphDatabase
 from suthing import Neo4jConnectionConfig
 
-from graph_cast.architecture import Configurator
-from graph_cast.architecture.graph import GraphConfig
-from graph_cast.architecture.schema import CollectionIndex, VertexConfig
+from graph_cast.architecture.edge import Edge
+from graph_cast.architecture.onto import Index
+from graph_cast.architecture.schema import Schema
+from graph_cast.architecture.vertex import VertexConfig
 from graph_cast.db.connection import Connection
-from graph_cast.onto import AggregationType, DBFlavor, init_filter
+from graph_cast.filter.onto import Expression
+from graph_cast.onto import AggregationType, DBFlavor
 
 logger = logging.getLogger(__name__)
 
@@ -53,21 +55,16 @@ class Neo4jConnection(Connection):
             logger.error(f"{e}")
 
     def define_vertex_indices(self, vertex_config: VertexConfig):
-        for c in vertex_config.collections:
-            self._add_index(c, vertex_config.index(c))
-            for index_obj in vertex_config.extra_index_list(c):
+        for c in vertex_config.vertex_set:
+            for index_obj in vertex_config.indexes(c):
                 self._add_index(c, index_obj)
 
-    def define_edge_indices(self, graph_config: GraphConfig):
-        for item in graph_config.all_edge_definitions():
-            for index_obj in item.indices:
-                self._add_index(
-                    item.edge_name, index_obj, is_vertex_index=False
-                )
+    def define_edge_indices(self, edges: list[Edge]):
+        for edge in edges:
+            for index_obj in edge.indexes:
+                self._add_index(edge.relation, index_obj, is_vertex_index=False)
 
-    def _add_index(
-        self, obj_name, index: CollectionIndex, is_vertex_index=True
-    ):
+    def _add_index(self, obj_name, index: Index, is_vertex_index=True):
         fields_str = ", ".join([f"x.{f}" for f in index.fields])
         fields_str2 = "_".join(index.fields)
         index_name = f"{obj_name}_{fields_str2}"
@@ -83,17 +80,13 @@ class Neo4jConnection(Connection):
 
         self.execute(q)
 
-    def define_collections(self, graph_config, vertex_config: VertexConfig):
+    def define_collections(self, schema: Schema):
         pass
 
-    def define_indices(self, graph_config, vertex_config: VertexConfig):
-        self.define_vertex_indices(vertex_config)
-        self.define_edge_indices(graph_config)
-
-    def define_vertex_collections(self, graph_config, vertex_config):
+    def define_vertex_collections(self, schema: Schema):
         pass
 
-    def define_edge_collections(self, graph_config):
+    def define_edge_collections(self, edges: list[Edge]):
         pass
 
     def delete_collections(self, cnames=(), gnames=(), delete_all=False):
@@ -102,11 +95,11 @@ class Neo4jConnection(Connection):
                 q = f"MATCH (n:{c}) DELETE n"
                 self.execute(q)
         else:
-            q = f"MATCH (n) DELETE n"
+            q = "MATCH (n) DELETE n"
             self.execute(q)
 
-    def init_db(self, conf_obj: Configurator, clean_start):
-        self.define_indices(conf_obj.graph_config, conf_obj.vertex_config)
+    def init_db(self, schema: Schema, clean_start):
+        self.define_indexes(schema)
 
     def upsert_docs_batch(self, docs, class_name, match_keys, **kwargs):
         """
@@ -143,6 +136,7 @@ class Neo4jConnection(Connection):
         source_class,
         target_class,
         relation_name,
+        collection_name=None,
         match_keys_source=("_key",),
         match_keys_target=("_key",),
         filter_uniques=True,
@@ -155,17 +149,13 @@ class Neo4jConnection(Connection):
         dry = kwargs.pop("dry", False)
 
         source_match_str = [
-            f"source.{key} = row['__source'].{key}"
-            for key in match_keys_source
+            f"source.{key} = row['__source'].{key}" for key in match_keys_source
         ]
         target_match_str = [
-            f"target.{key} = row['__target'].{key}"
-            for key in match_keys_target
+            f"target.{key} = row['__target'].{key}" for key in match_keys_target
         ]
 
-        match_clause = "WHERE " + " AND ".join(
-            source_match_str + target_match_str
-        )
+        match_clause = "WHERE " + " AND ".join(source_match_str + target_match_str)
 
         q = f"""
             WITH $batch AS batch 
@@ -178,7 +168,7 @@ class Neo4jConnection(Connection):
             self.execute(q, batch=docs_edges)
 
     def insert_return_batch(self, docs, class_name):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def fetch_docs(
         self,
@@ -186,14 +176,13 @@ class Neo4jConnection(Connection):
         filters: list | dict | None = None,
         limit: int | None = None,
         return_keys: list | None = None,
+        unset_keys: list | None = None,
     ):
         # "MATCH (d:chunks) WHERE d.t > 15 RETURN d { .kind, .t }"
 
         if filters is not None:
-            ff = init_filter(filters)
-            filter_clause = (
-                f"WHERE {ff.cast_filter(doc_name='n', kind=DBFlavor.NEO4J)}"
-            )
+            ff = Expression.from_dict(filters)
+            filter_clause = f"WHERE {ff(doc_name='n', kind=DBFlavor.NEO4J)}"
         else:
             filter_clause = ""
 
@@ -219,9 +208,15 @@ class Neo4jConnection(Connection):
         return r
 
     def fetch_present_documents(
-        self, batch, class_name, match_keys, keep_keys, flatten=False
+        self,
+        batch,
+        class_name,
+        match_keys,
+        keep_keys,
+        flatten=False,
+        filters: list | dict | None = None,
     ):
-        raise NotImplemented
+        raise NotImplementedError
 
     def aggregate(
         self,
@@ -231,7 +226,14 @@ class Neo4jConnection(Connection):
         aggregated_field: str | None = None,
         filters: list | dict | None = None,
     ):
-        raise NotImplemented
+        raise NotImplementedError
 
-    def keep_absent_documents(self, batch, class_name, match_keys, keep_keys):
-        raise NotImplemented
+    def keep_absent_documents(
+        self,
+        batch,
+        class_name,
+        match_keys,
+        keep_keys,
+        filters: list | dict | None = None,
+    ):
+        raise NotImplementedError

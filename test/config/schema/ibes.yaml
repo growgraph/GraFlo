@@ -1,101 +1,112 @@
 general:
     name: ibes
-table:
--   tabletype: ibes
-    encoding: ISO-8859-1
-    transforms:
-    -   foo: parse_date_ibes
-        module: graph_cast.util.transform
-        input:
-        -   ANNDATS
-        -   ANNTIMS
-        output:
-        -   datetime_announce
-    -   foo: parse_date_ibes
-        module: graph_cast.util.transform
-        input:
-        -   REVDATS
-        -   REVTIMS
-        output:
-        -   datetime_review
-    -   foo: cast_ibes_analyst
-        module: graph_cast.util.transform
-        input:
-        -   ANALYST
-        output:
-        -   last_name
-        -   initial
-    -   map:
-            CUSIP: cusip
-            CNAME: cname
-            OFTIC: oftic
-    -   map:
-            ESTIMID: aname
-    -   map:
-            ERECCD: erec
-            ETEXT: etext
-            IRECCD: irec
-            ITEXT: itext
-vertex_collections:
-    blanks:
+resources:
+    row_likes:
+    -   name: ibes
+        encoding: ISO-8859-1
+        transforms:
+        -   foo: parse_date_ibes
+            module: graph_cast.util.transform
+            input:
+            -   ANNDATS
+            -   ANNTIMS
+            output:
+            -   datetime_announce
+        -   foo: parse_date_ibes
+            module: graph_cast.util.transform
+            input:
+            -   REVDATS
+            -   REVTIMS
+            output:
+            -   datetime_review
+        -   foo: cast_ibes_analyst
+            module: graph_cast.util.transform
+            input:
+            -   ANALYST
+            output:
+            -   last_name
+            -   initial
+        -   map:
+                CUSIP: cusip
+                CNAME: cname
+                OFTIC: oftic
+        -   map:
+                ESTIMID: aname
+        -   map:
+                ERECCD: erec
+                ETEXT: etext
+                IRECCD: irec
+                ITEXT: itext
+vertex_config:
+    blank_vertices:
     -   publication
-    collections:
-        publication:
-            basename: publications
+    vertices:
+    -   name: publication
+        dbname: publications
+        fields:
+        -   datetime_review
+        -   datetime_announce
+        indexes:
+        -   fields:
+            -   _key
+        -   type: hash
+            unique: false
             fields:
             -   datetime_review
+        -   type: hash
+            unique: false
+            fields:
             -   datetime_announce
-            extra_index:
-            -   type: hash
-                unique: false
-                fields:
-                -   datetime_review
-            -   type: hash
-                unique: false
-                fields:
-                -   datetime_announce
-        ticker:
-            basename: tickers
-            fields:
+    -   name: ticker
+        dbname: tickers
+        fields:
+        -   cusip
+        -   cname
+        -   oftic
+        indexes:
+        -   fields:
             -   cusip
             -   cname
             -   oftic
-            index:
-            -   cusip
-            -   cname
-            -   oftic
-        agency:
-            basename: agencies
-            fields:
+    -   name: agency
+        dbname: agencies
+        fields:
+        -   aname
+        indexes:
+        -   fields:
             -   aname
-            index:
-            -   aname
-        analyst:
-            basename: analysts
-            fields:
+    -   name: analyst
+        dbname: analysts
+        fields:
+        -   last_name
+        -   initial
+        indexes:
+        -   fields:
             -   last_name
             -   initial
-            index:
-            -   last_name
-            -   initial
-        recommendation:
-            basename: recommendations
-            fields:
+    -   name: recommendation
+        dbname: recommendations
+        fields:
+        -   erec
+        -   etext
+        -   irec
+        -   itext
+        indexes:
+        -   fields:
+            -   irec
             -   erec
             -   etext
-            -   irec
             -   itext
-            index:
-            -   irec
-edge_collections:
-    main:
+edge_config:
+    edges:
     -   source: publication
         target: ticker
     -   source: analyst
         target: agency
-        weight:
-        -   datetime_review
-        -   datetime_announce
+        weights:
+            direct:
+            -   datetime_review
+            -   datetime_announce
     -   source: analyst
         target: publication
     -   source: publication

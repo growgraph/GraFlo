@@ -10,7 +10,9 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture
 def quoted_multi_row():
-    return """1486058874058,"['id:206158957580, name:Marcello Martini'\n'id:360777873683, name:F. Giudicepietro'\n"id:489626818966, name:Luca D'Auria"]",[127313418 165205528],2015,10.1038/SREP13100"""
+    return """1486058874058,"['id:206158957580, name:Marcello Martini'
+    'id:360777873683, name:F. Giudicepietro'
+    "id:489626818966, name:Luca D'Auria"]",[127313418 165205528],2015,10.1038/SREP13100"""
 
 
 @pytest.fixture
@@ -65,9 +67,7 @@ def test_input_output():
 
 
 def test_parse_multi_item(quoted_multi_item):
-    r = parse_multi_item(
-        quoted_multi_item, mapper={"name": "full_name"}, direct=["id"]
-    )
+    r = parse_multi_item(quoted_multi_item, mapper={"name": "full_name"}, direct=["id"])
     assert r["full_name"][0] == "Luca D'Auria"
     assert r["id"][-1] == "360777873683"
 
@@ -106,3 +106,59 @@ def test_switch_complete():
     t = Transform(**kwargs)
     r = t(doc, __return_doc=True)
     assert r["value"] == 17.9
+
+
+def test_return_doc_false():
+    doc = {
+        "Open": "17.899999618530273",
+    }
+
+    kwargs = {
+        "module": "graph_cast.util.transform",
+        "foo": "round_str",
+        "switch": {"Open": ["name", "value"]},
+        "params": {"ndigits": 3},
+    }
+    t = Transform(**kwargs)
+    r = t(doc, __return_doc=False)
+    assert r == 17.9
+
+
+def test_split_keep_part():
+    doc = {"id": "https://openalex.org/A123"}
+
+    kwargs = {
+        "module": "graph_cast.util.transform",
+        "foo": "split_keep_part",
+        "fields": "id",
+        "params": {"sep": "/", "keep": -1},
+    }
+    t = Transform(**kwargs)
+    r = t(doc, __return_doc=True)
+    assert r["id"] == "A123"
+
+
+def test_split_keep_part_longer():
+    doc = {"doi": "https://doi.org/10.1007/978-3-123"}
+
+    kwargs = {
+        "module": "graph_cast.util.transform",
+        "foo": "split_keep_part",
+        "fields": "doi",
+        "params": {"sep": "/", "keep": [-2, -1]},
+    }
+    t = Transform(**kwargs)
+    r = t(doc, __return_doc=True)
+    assert r["doi"] == "10.1007/978-3-123"
+
+
+def test_transform_shortcut(schema_obj):
+    schema = schema_obj("oa")
+    doc = {
+        "doi": "https://doi.org/10.1007/978-3-123",
+        "id": "https://openalex.org/A123",
+    }
+    resource = schema.resources.tree_likes[-1]
+    r = resource.apply_doc(doc, vertex_config=schema.vertex_config)
+    assert r["work"][0]["_key"] == "A123"
+    assert r["work"][0]["doi"] == "10.1007/978-3-123"

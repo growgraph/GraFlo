@@ -1,6 +1,6 @@
 entity: 80
 mention: 124
-mention->entity: 98
-mention->mention: 126
+mention->entity->None: 98
+mention->mention->None: 126
 publication: 1
-publication->mention: 41
+publication->mention->None: 41

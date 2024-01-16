@@ -160,8 +160,7 @@ def try_int(x):
 
 def clear_first_level_nones(docs, keys_keep_nones=None):
     docs = [
-        {k: v for k, v in tdict.items() if v or k in keys_keep_nones}
-        for tdict in docs
+        {k: v for k, v in tdict.items() if v or k in keys_keep_nones} for tdict in docs
     ]
     return docs
 
@@ -199,3 +198,11 @@ def pick_unique_dict(docs):
     docs = {json.dumps(d, sort_keys=True) for d in docs}
     docs = [json.loads(t) for t in docs]
     return docs
+
+
+def split_keep_part(s: str, sep="/", keep=-1) -> str:
+    if isinstance(keep, list):
+        items = s.split(sep)
+        return sep.join(items[k] for k in keep)
+    else:
+        return s.split(sep)[keep]

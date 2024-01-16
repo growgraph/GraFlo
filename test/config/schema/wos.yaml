@@ -36,7 +36,7 @@ table:
 vertex_collections:
     collections:
         publication:
-            basename: publications
+            dbname: publications
             fields:
             -   _key
             -   accession_no
@@ -48,9 +48,7 @@ vertex_collections:
             -   year
             -   month
             -   day
-            index:
-            -   _key
-            extra_index:
+            indexes:
             -   type: hash
                 unique: false
                 fields:
@@ -60,7 +58,7 @@ vertex_collections:
                 fields:
                 -   year
         medium:
-            basename: media
+            dbname: media
             fields:
             -   issn
             -   isbn
@@ -71,36 +69,38 @@ vertex_collections:
             -   issn
             -   isbn
             -   title
-            extra_index:
+            indexes:
             -   type: hash
                 unique: false
                 fields:
                 -   issn
         language:
-            basename: languages
+            dbname: languages
             fields:
             -   language
-            index:
-            -   language
+            indexes:
+            -   fields:
+                -   language
         contributor:
-            basename: contributors
+            dbname: contributors
             fields:
             -   first_name
             -   last_name
-            index:
-            -   first_name
-            -   last_name
+            indexes:
+            -   fields:
+                -   first_name
+                -   last_name
         organization:
-            basename: organizations
+            dbname: organizations
             fields:
             -   organization
             -   country
             -   city
-            index:
-            -   organization
-            -   country
-            -   city
-            extra_index:
+            indexes:
+            -   fields:
+                -   organization
+                -   country
+                -   city
             -   type: hash
                 unique: false
                 fields:

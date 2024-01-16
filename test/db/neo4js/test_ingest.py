@@ -1,36 +1,34 @@
-from test.conftest import current_path, ingest_atomic, reset
-from test.db.neo4js.conftest import clean_db, conn_conf, test_db_name
+from test.conftest import ingest_atomic
 
 import pytest
 
 from graph_cast.db import ConnectionManager
-from graph_cast.onto import InputType
 
 
 @pytest.fixture(scope="function")
 def modes():
     return [
+        "review"
         # "wos",
         # "lake_odds",
         # "kg_v3b",
     ]
 
 
-@pytest.fixture(scope="function")
-def table_modes():
-    return ["review"]
-
-
-def test_csv(
-    clean_db, table_modes, conn_conf, current_path, test_db_name, reset
+def test_ingest(
+    clean_db,
+    modes,
+    conn_conf,
+    current_path,
+    test_db_name,
+    reset,
 ):
     _ = clean_db
-    for m in table_modes:
+    for m in modes:
         ingest_atomic(
             conn_conf,
             current_path,
             test_db_name,
-            input_type=InputType.TABLE,
             mode=m,
         )
         if m == "review":
@@ -38,9 +36,7 @@ def test_csv(
             with ConnectionManager(connection_config=conn_conf) as db_client:
                 r = db_client.fetch_docs("Author")
                 assert len(r) == 374
-                r = db_client.fetch_docs(
-                    "Author", filters=["==", "10", "hindex"]
-                )
+                r = db_client.fetch_docs("Author", filters=["==", "10", "hindex"])
                 assert len(r) == 8
                 r = db_client.fetch_docs("Author", limit=1)
                 assert len(r) == 1
@@ -50,12 +46,3 @@ def test_csv(
                     return_keys=["full_name"],
                 )
                 assert len(r[0]) == 1
-
-        # verify(
-        #     conn_conf,
-        #     current_path,
-        #     test_db_name,
-        #     mode=m,
-        #     reset=reset,
-        #     input_type=InputType.TABLE,
-        # )

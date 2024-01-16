@@ -1,0 +1,10 @@
+{
+    "patterns": {
+        "kg": {
+            "sub_path": "dir_a/dir_b"
+        },
+        "communities": {
+            "regex": "^asd"
+        }
+    }
+}

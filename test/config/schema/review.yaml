@@ -1,43 +1,44 @@
 general:
     name: review
-table:
--   tabletype: authors
-    transforms:
-    -   image: author
-        map:
-            author_id: id
-            FullName: full_name
-            HIndex: hindex
-    -   image: research_field
-        map:
-            research_sector: id
-vertex_collections:
+resources:
+    row_likes:
+    -   name: authors
+        transforms:
+        -   image: author
+            map:
+                author_id: id
+                FullName: full_name
+                HIndex: hindex
+        -   image: researchField
+            map:
+                research_sector: id
+vertex_config:
     db_flavor: neo4j
-    collections:
-        author:
-            basename: Author
-            fields:
+    vertices:
+    -   name: author
+        dbname: Author
+        fields:
+        -   id
+        -   full_name
+        -   hindex
+        indexes:
+        -   fields:
             -   id
             -   full_name
-            -   hindex
-            index:
+    -   name: researchField
+        dbname: ResearchField
+        fields:
+        -   id
+        -   name
+        -   level
+        indexes:
+        -   fields:
             -   id
-            -   full_name
-        research_field:
-            basename: ResearchField
-            fields:
-            -   id
-            -   name
-            -   level
-            index:
-            -   id
-edge_collections:
-    main:
+edge_config:
+    edges:
     -   source: author
-        target: research_field
+        target: researchField
         relation: belongsTo
-        index:
+        indexes:
         -   fields:
             -   t_obs
-
-

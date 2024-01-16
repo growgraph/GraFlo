@@ -1,0 +1,13 @@
+communities: 0
+communities->communities->None: 0
+entities: 80
+entities->communities->None: 0
+entities->entities->None: 0
+entities->entities->convolution: 0
+entities->entities->redux: 0
+entities->entities->tmp: 0
+mentions: 124
+mentions->entities->None: 98
+mentions->mentions->None: 126
+publications: 1
+publications->mentions->None: 41

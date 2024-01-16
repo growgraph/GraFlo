@@ -1,170 +1,217 @@
 general:
-    ~name: kg_v3
-json:
-    ~maps:
-    -   ~type: edge
-        ~how: all
-        source:
-            ~name: publication
-        target:
-            ~name: mention
-            ~_anchor: _top_level
-    -   ~type: descend
-        ~key: publication
-        ~maps:
-        -   ~type: dict
-            ~name: publication
-    -   ~type: descend
-        ~key: top_level_mention
-        ~maps:
-        -   ~type: list
-            ~maps:
-            -   ~type: dict
-                ~name: mention
-                ~map:
-                    hash: _key
-                ~_anchor: _top_level
-    -   ~type: descend
-        ~key: map_mention_entity
-        ~maps:
-        -   ~type: list
-            ~maps:
-            -   ~type: edge
-                ~how: all
-                source:
-                    ~name: mention
-                target:
-                    ~name: entity
-            -   ~type: descend
-                ~key: entity
-                ~maps:
-                -   ~type: dict
-                    ~name: entity
-                    ~map:
+    name: kg_v3b
+resources:
+    tree_likes:
+    -   name: kg
+        root:
+            children:
+            -   type: edge
+                edge:
+                    source: publication
+                    target: mention
+                    target_discriminant: _top_level
+            -   key: publication
+                children:
+                -   type: vertex
+                    name: publication
+            -   key: top_level_mention
+                children:
+                -   type: vertex
+                    name: mention
+                    map:
                         hash: _key
-            -   ~type: descend
-                ~key: mention
-                ~maps:
-                -   ~type: dict
-                    ~name: mention
-                    ~map:
-                        hash: _key
-    -   ~type: descend
-        ~key: triples
-        ~maps:
-        -   ~type: list
-            ~maps:
-            -   ~type: descend
-                ~key: triple_index
-                ~maps:
-                -   ~type: dict
-                    ~_anchor: triple_index
-                    ~name: mention
-                    ~map:
-                        hash: _key
-            -   ~type: descend
-                ~key: triple
-                ~maps:
-                -   ~type: list
-                    ~maps:
-                    -   ~type: dict
-                        ~_anchor: core
-                        ~name: mention
-                        ~map:
-                            role: _role
+                    discriminant: _top_level
+            -   key: map_mention_entity
+                children:
+                -   type: edge
+                    edge:
+                        source: mention
+                        target: entity
+                -   key: entity
+                    children:
+                    -   type: vertex
+                        name: entity
+                        map:
                             hash: _key
-            -   ~type: edge
-                ~how: all
-                source:
-                    ~name: mention
-                    ~_anchor: triple_index
-                target:
-                    ~name: mention
-                    ~_anchor: core
-                    ~fields:
-                    -   _role
-                index:
-                -   ~fields:
-                    -   _role
-extra:
-    weights:
-    -   source:
-            ~name: mention
-        target:
-            ~name: entity
-        weight:
-        -   name: publication
-            fields:
-            -   _key
-
-vertex_collections:
-    collections:
-        publication:
-            basename: publications
-            fields:
+                -   key: mention
+                    children:
+                    -   type: vertex
+                        name: mention
+                        map:
+                            hash: _key
+            -   key: triples
+                children:
+                -   key: triple_index
+                    children:
+                    -   type: vertex
+                        discriminant: triple_index
+                        name: mention
+                        map:
+                            hash: _key
+                -   key: triple
+                    children:
+                    -   children:
+                        -   type: vertex
+                            discriminant: core
+                            name: mention
+                            map:
+                                role: _role
+                                hash: _key
+                -   type: edge
+                    edge:
+                        source: mention
+                        source_discriminant: triple_index
+                        target: mention
+                        target_discriminant: core
+                        weights:
+                            target_fields:
+                            -   _role
+                        indexes:
+                        -   fields:
+                            -   _role
+        extra_weights:
+        -   source: mention
+            target: entity
+            weights:
+                vertices:
+                -   name: publication
+                    fields:
+                    -   _id
+    -   name: communities
+        root:
+            children:
+            -   type: edge
+                edge:
+                    source: entity
+                    target: community
+            -   key: entity
+                children:
+                -   type: vertex
+                    name: entity
+            -   key: community
+                children:
+                -   type: vertex
+                    name: community
+vertex_config:
+    vertices:
+    -   name: publication
+        dbname: publications
+        fields:
+        -   arxiv
+        -   doi
+        -   created
+        -   data_source
+        indexes:
+        -   fields:
             -   arxiv
             -   doi
+        -   unique: false
+            fields:
             -   created
-            -   data_source
-            index:
-            -   arxiv
-            -   doi
-            extra_index:
-            -   unique: false
-                fields:
-                -   created
-            -   unique: false
-                fields:
-                -   created
-        entity:
-            basename: entities
+        -   unique: false
             fields:
-            -   linker_type
-            -   ent_db_type
+            -   created
+    -   name: entity
+        dbname: entities
+        fields:
+        -   linker_type
+        -   ent_db_type
+        -   id
+        -   ent_type
+        -   original_form
+        -   description
+        indexes:
+        -   fields:
+            -   _key
+        -   fields:
             -   id
             -   ent_type
-            -   original_form
-            -   description
-            index:
+        -   fields:
+            -   id
+            -   ent_db_type
+    -   name: mention
+        dbname: mentions
+        fields:
+        -   text
+        indexes:
+        -   fields:
             -   _key
-            extra_index:
-            -   fields:
-                -   id
-                -   ent_type
-        mention:
-            basename: mentions
+        -   unique: false
             fields:
             -   text
-            index:
-            -   _key
-            extra_index:
-            -   unique: false
-                fields:
-                -   text
-edge_collections:
-    main:
+    -   name: community
+        dbname: communities
+        fields:
+        -   obs_date
+        -   t_window
+        -   comm_id
+        -   size
+        indexes:
+        -   fields:
+            -   obs_date
+            -   t_window
+            -   comm_id
+edge_config:
+    edges:
     -   source: entity
         target: entity
-        index:
+        indexes:
         -   name: publication
             fields:
-            -   _key
-        -   fields_only: true
-            unique: false
+            -   _id
+        -   name: publication
             fields:
-            -   publication@_key
-    -   ~source: entity
-        ~target: entity
-        ~collection_name_suffix: aux
-        index:
+            -   _id
+            exclude_edge_endpoints: true
+            unique: false
+    -   source: entity
+        target: entity
+        collection_name_suffix: tmp
+        indexes:
+        -   name: publication
+            fields:
+            -   _id
+        -   name: publication
+            fields:
+            -   _id
+            exclude_edge_endpoints: true
+            unique: false
+    -   source: entity
+        target: entity
+        collection_name_suffix: redux
+        indexes:
+        -   name: publication
+            fields:
+            -   _id
+        -   name: publication
+            fields:
+            -   _id
+            exclude_edge_endpoints: true
+            unique: false
+    -   source: entity
+        target: entity
+        collection_name_suffix: convolution
+        indexes:
         -   fields:
-            -   start_date
-            -   end_date
+            -   obs_date
+            -   t_window
         -   fields:
-            -   spec
+            -   obs_date
+            -   t_window
+            exclude_edge_endpoints: true
+            unique: false
     -   source: mention
         target: entity
-        index:
+        indexes:
         -   name: publication
             fields:
-            -   _key
+            -   _id
+        -   name: publication
+            fields:
+            -   _id
+            exclude_edge_endpoints: true
+            unique: false
+    -   source: entity
+        target: community
+    -   source: community
+        target: community

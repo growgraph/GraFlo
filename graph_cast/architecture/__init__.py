@@ -1,3 +1,2 @@
-from .general import Configurator, ConfiguratorType, DataSourceType
-from .json import JConfigurator
-from .table import TConfigurator
+from .onto import DataSourceType, Index  # noqa
+from .schema import Schema  # noqa

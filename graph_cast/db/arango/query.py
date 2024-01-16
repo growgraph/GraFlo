@@ -5,6 +5,9 @@ from os.path import join
 
 from arango import ArangoClient
 
+from graph_cast.filter.onto import Expression
+from graph_cast.onto import DBFlavor
+
 logger = logging.getLogger(__name__)
 
 
@@ -42,9 +45,7 @@ def profile_query(query, nq, profile_times, fpath, limit=None, **kwargs):
             cursor = basic_query(query, profile=True, **kwargs)
             profiling += [cursor.profile()]
             cursor.close()
-        with open(
-            join(fpath, f"query{nq}_profile{limit_str}.json"), "w"
-        ) as fp:
+        with open(join(fpath, f"query{nq}_profile{limit_str}.json"), "w") as fp:
             json.dump(profiling, fp, indent=4)
 
     logger.info(f"starting actual query at {limit}")
@@ -70,13 +71,20 @@ def profile_query(query, nq, profile_times, fpath, limit=None, **kwargs):
             json.dump(chunk, fp, indent=4)
 
 
-def fetch_fields_query(collection_name, docs, match_keys, return_keys):
+def fetch_fields_query(
+    collection_name,
+    docs,
+    match_keys,
+    return_keys,
+    filters: list | dict | None = None,
+):
     """
 
     :param collection_name: collection to look up docs
     :param docs: list of dicts (json-like, ie keys are strings)
     :param match_keys: keys on which to look for document
     :param return_keys: keys which to return
+    :param filters:
     :return:
     """
 
@@ -86,24 +94,22 @@ def fetch_fields_query(collection_name, docs, match_keys, return_keys):
 
     docs_str = json.dumps(docs_)
 
-    match_str = " &&".join(
-        [f" _cdoc['{key}'] == _doc['{key}']" for key in match_keys]
-    )
+    match_str = " &&".join([f" _cdoc['{key}'] == _doc['{key}']" for key in match_keys])
 
     return_vars = [x.replace("@", "_") for x in return_keys]
 
-    keep_clause = (
-        f"KEEP(_x, {list(return_vars)})" if return_vars is not None else "_x"
-    )
+    keep_clause = f"KEEP(_x, {list(return_vars)})" if return_vars is not None else "_x"
 
-    # filter_clause = (
-    #     filter_clause.format(doc="_doc") if filter_clause is not None else ""
-    # )
+    if filters is not None:
+        ff = Expression.from_dict(filters)
+        extrac_filter_clause = f" && {ff(doc_name='_cdoc', kind=DBFlavor.ARANGO)}"
+    else:
+        extrac_filter_clause = ""
 
     q0 = f"""
         FOR _cdoc in {collection_name}
             FOR _doc in {docs_str}
-                FILTER {match_str}             
+                FILTER {match_str} {extrac_filter_clause}      
                 COLLECT i = _doc['__i'] into _group = _cdoc 
                 LET gp = (for _x in _group return {keep_clause})                                
                     RETURN {{'__i' : i, '_group': gp}}"""

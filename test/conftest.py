@@ -1,9 +1,17 @@
+import io
 from os.path import dirname, join, realpath
+from pathlib import Path
 
+import pandas as pd
 import pytest
-from suthing import FileHandle
+import yaml
+from suthing import FileHandle, equals
 
-from graph_cast.main import ingest_files
+from graph_cast.architecture.onto import cast_graph_name_to_triple
+from graph_cast.architecture.schema import Schema
+from graph_cast.caster import Caster
+from graph_cast.onto import InputTypeFileExtensions
+from graph_cast.util.misc import sorted_dicts
 
 
 def pytest_addoption(parser):
@@ -20,16 +28,174 @@ def current_path():
     return dirname(realpath(__file__))
 
 
-def ingest_atomic(conn_conf, current_path, test_db_name, input_type, mode):
-    path = join(current_path, f"data/{input_type}/{mode}")
-    schema = FileHandle.load(f"test.config.schema", f"{mode}.yaml")
+def fetch_schema_dict(mode):
+    schema_dict = FileHandle.load("test.config.schema", f"{mode}.yaml")
+    return schema_dict
+
+
+def fetch_schema_obj(mode):
+    schema_obj = Schema.from_dict(fetch_schema_dict(mode))
+    return schema_obj
+
+
+@pytest.fixture(scope="function")
+def schema():
+    return fetch_schema_dict
+
+
+@pytest.fixture(scope="function")
+def schema_obj():
+    return fetch_schema_obj
+
+
+def ingest_atomic(conn_conf, current_path, test_db_name, mode, n_cores=1):
+    schema_o = fetch_schema_obj(mode)
+    rr = schema_o.fetch_resource()
+    path = Path(
+        join(
+            current_path,
+            f"data/{InputTypeFileExtensions[rr.resource_type][0]}/{mode}",
+        )
+    )
 
     conn_conf.database = test_db_name
-    ingest_files(
-        fpath=path,
-        schema=schema,
-        conn_conf=conn_conf,
-        input_type=input_type,
+
+    caster = Caster(schema_o)
+    caster.ingest_files(
+        n_cores=n_cores,
+        path=path,
         limit_files=None,
         clean_start=True,
+        conn_conf=conn_conf,
     )
+
+
+def verify(sample, current_path, mode, test_type, kind="sizes", reset=False):
+    ext = "yaml"
+    if kind == "sizes":
+        sample_transformed = {
+            cast_graph_name_to_triple(k): v for k, v in sample.items()
+        }
+
+        sample_transformed = {
+            "->".join([f"{x}" for x in k]) if isinstance(k, tuple) else k: v
+            for k, v in sample_transformed.items()
+        }
+    elif kind == "indexes":
+        _ = sample.pop("_fishbowl", None)
+        sample_transformed = sorted_dicts(sample)
+    elif kind == "contents":
+        sample_transformed = sorted_dicts(sample)
+    else:
+        raise ValueError(f"value {kind} not accepted")
+
+    if reset:
+        FileHandle.dump(
+            sample_transformed,
+            join(current_path, f"./ref/{test_type}/{mode}_{kind}.{ext}"),
+        )
+
+    else:
+        sample_ref = FileHandle.load(f"test.ref.{test_type}", f"{mode}_{kind}.{ext}")
+        flag = equals(sample_transformed, sample_ref)
+        if not flag:
+            print(f" mode: {mode}")
+            if isinstance(sample_ref, dict):
+                for k, v in sample_ref.items():
+                    if v != sample_transformed[k]:
+                        print(
+                            f"for {k}\n"
+                            f"expected: {v}\n"
+                            "received:"
+                            f" {sample_transformed[k] if k in sample_transformed else None}"
+                        )
+            elif isinstance(sample_ref, list):
+                for j, (x, y) in enumerate(zip(sample_ref, sample_transformed)):
+                    if x != y:
+                        print(f"for item {j}\nexpected: {x}\nreceived: {y}")
+
+        assert flag
+
+
+@pytest.fixture()
+def df_ibes() -> pd.DataFrame:
+    df0_str = """TICKER,CUSIP,CNAME,OFTIC,ACTDATS,ESTIMID,ANALYST,ERECCD,ETEXT,IRECCD,ITEXT,EMASKCD,AMASKCD,USFIRM,ACTTIMS,REVDATS,REVTIMS,ANNDATS,ANNTIMS
+0000,87482X10,TALMER BANCORP,TLMR,20140310,RBCDOMIN,ARFSTROM      J,2,OUTPERFORM,2,BUY,00000659,00071182,1,8:54:03,20160126,9:35:52,20140310,0:20:00
+0000,87482X10,TALMER BANCORP,TLMR,20140311,JPMORGAN,ALEXOPOULOS   S,,OVERWEIGHT,2,BUY,00001243,00079092,1,17:10:47,20160126,10:09:34,20140310,0:25:00"""
+    return pd.read_csv(
+        io.StringIO(df0_str),
+        sep=",",
+        dtype={"TICKER": str, "ANNDATS": str, "REVDATS": str},
+    )
+
+
+@pytest.fixture()
+def df_ticker() -> pd.DataFrame:
+    df0_str = """Date,Open,High,Low,Close,Volume,Dividends,Stock Splits,__ticker
+2014-04-15,17.899999618530273,17.920000076293945,15.149999618530273,15.350000381469727,3531700,0,0,AAPL
+2014-04-16,15.350000381469727,16.09000015258789,15.210000038146973,15.619999885559082,266500,0,0,AAPL"""
+    return pd.read_csv(
+        io.StringIO(df0_str),
+        sep=",",
+    )
+
+
+@pytest.fixture()
+def df_transform_collision() -> pd.DataFrame:
+    df0_str = """id,name,pet_name
+A0,Joe,Rex"""
+    return pd.read_csv(
+        io.StringIO(df0_str),
+        sep=",",
+    )
+
+
+@pytest.fixture()
+def row_doc_ibes() -> dict[str, list]:
+    return {
+        "agency": [{"aname": "RBCDOMIN"}],
+        "analyst": [{"initial": "J", "last_name": "ARFSTROM"}],
+        "publication": [
+            {"datetime_announce": "2014-03-10T0:20:00Z"},
+            {"datetime_review": "2016-01-26T9:35:52Z"},
+        ],
+        "recommendation": [
+            {"erec": 2.0, "etext": "OUTPERFORM", "irec": 2, "itext": "BUY"}
+        ],
+        "ticker": [{"cname": "TALMER BANCORP", "cusip": "87482X10", "oftic": "TLMR"}],
+    }
+
+
+@pytest.fixture()
+def row_resource_transform_collision():
+    tc = yaml.safe_load(
+        """
+        name: pets
+        transforms:
+        -   image: pet
+            map:
+                pet_name: name
+    """
+    )
+    return tc
+
+
+@pytest.fixture()
+def vertex_config_transform_collision():
+    vc = yaml.safe_load(
+        """
+        vertices:
+        -
+            name: person
+            dbname: people
+            fields:
+            -   id
+            -   name
+        -
+            name: pet
+            dbname: pets
+            fields:
+            -   name
+    """
+    )
+    return vc

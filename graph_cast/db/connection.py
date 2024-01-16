@@ -2,8 +2,10 @@ import abc
 import logging
 from typing import TypeVar
 
-from graph_cast.architecture.general import Configurator
-from graph_cast.db.arango.util import define_extra_edges, update_to_numeric
+from graph_cast.architecture.edge import Edge
+from graph_cast.architecture.schema import Schema
+from graph_cast.architecture.vertex import VertexConfig
+from graph_cast.db.arango.util import define_extra_edges
 from graph_cast.onto import AggregationType
 
 logger = logging.getLogger(__name__)
@@ -30,12 +32,12 @@ class Connection(abc.ABC):
     def close(self):
         pass
 
-    @abc.abstractmethod
-    def define_indices(self, graph_config, vertex_config):
-        pass
+    def define_indexes(self, schema: Schema):
+        self.define_vertex_indices(schema.vertex_config)
+        self.define_edge_indices(schema.edge_config.edges)
 
     @abc.abstractmethod
-    def define_collections(self, graph_config, vertex_config):
+    def define_collections(self, schema: Schema):
         pass
 
     @abc.abstractmethod
@@ -43,7 +45,7 @@ class Connection(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def init_db(self, conf_obj: Configurator, clean_start):
+    def init_db(self, schema: Schema, clean_start):
         pass
 
     @abc.abstractmethod
@@ -57,6 +59,7 @@ class Connection(abc.ABC):
         source_class,
         target_class,
         relation_name,
+        collection_name,
         match_keys_source,
         match_keys_target,
         filter_uniques=True,
@@ -73,12 +76,18 @@ class Connection(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def fetch_docs(self, class_name, filters, limit, return_keys):
+    def fetch_docs(self, class_name, filters, limit, return_keys, unset_keys):
         pass
 
     @abc.abstractmethod
     def fetch_present_documents(
-        self, batch, class_name, match_keys, keep_keys, flatten=False
+        self,
+        batch,
+        class_name,
+        match_keys,
+        keep_keys,
+        flatten=False,
+        filters: list | dict | None = None,
     ):
         pass
 
@@ -94,7 +103,22 @@ class Connection(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def keep_absent_documents(self, batch, class_name, match_keys, keep_keys):
+    def keep_absent_documents(
+        self,
+        batch,
+        class_name,
+        match_keys,
+        keep_keys,
+        filters: list | dict | None = None,
+    ):
+        pass
+
+    @abc.abstractmethod
+    def define_vertex_indices(self, vertex_config: VertexConfig):
+        pass
+
+    @abc.abstractmethod
+    def define_edge_indices(self, edges: list[Edge]):
         pass
 
     # @abc.abstractmethod
@@ -104,29 +128,13 @@ class Connection(abc.ABC):
     # @abc.abstractmethod
     # def define_edge_collections(self, graph_config):
     #     pass
-    #
-    # @abc.abstractmethod
-    # def define_vertex_indices(self, vertex_config):
-    #     pass
-    #
-    # @abc.abstractmethod
-    # def define_edge_indices(self, graph_config):
-    #     pass
-    #
+
     # @abc.abstractmethod
     # def create_collection_if_absent(self, g, vcol, index, unique=True):
     #     pass
 
 
 def concluding_db_transform(db_client: ConnectionType, conf_obj):
-    # TODO this should be made part of atomic etl (not applied to the whole db)
-    for cname in conf_obj.vertex_config.collections:
-        for field in conf_obj.vertex_config.numeric_fields_list(cname):
-            query0 = update_to_numeric(
-                conf_obj.vertex_config.vertex_dbname(cname), field
-            )
-            db_client.execute(query0)
-
     # create edge u -> v from u->w, v->w edges
     # find edge_cols uw and vw
     for ee in conf_obj.graph_config.extra_edges:

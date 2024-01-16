@@ -4,19 +4,20 @@ import logging
 from arango import ArangoClient
 from suthing import ArangoConnectionConfig
 
-from graph_cast.architecture import Configurator
-from graph_cast.architecture.graph import GraphConfig
-from graph_cast.architecture.schema import (
+from graph_cast.architecture.edge import Edge
+from graph_cast.architecture.onto import (
     SOURCE_AUX,
     TARGET_AUX,
-    CollectionIndex,
+    Index,
     IndexType,
-    VertexConfig,
 )
+from graph_cast.architecture.schema import Schema
+from graph_cast.architecture.vertex import VertexConfig
 from graph_cast.db.arango.query import fetch_fields_query
 from graph_cast.db.connection import Connection
 from graph_cast.db.util import get_data_from_cursor
-from graph_cast.onto import AggregationType, DBFlavor, init_filter
+from graph_cast.filter.onto import Expression
+from graph_cast.onto import AggregationType, DBFlavor
 from graph_cast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
@@ -51,31 +52,25 @@ class ArangoConnection(Connection):
         # self.conn.close()
         pass
 
-    def init_db(self, conf_obj: Configurator, clean_start):
+    def init_db(self, schema: Schema, clean_start):
         if clean_start:
             self.delete_collections([], [], delete_all=True)
             #     delete_collections(sys_db, vcollections + ecollections, actual_graphs)
             # elif clean_start == "edges":
             #     delete_collections(sys_db, ecollections, [])
-        self.define_collections(conf_obj.graph_config, conf_obj.vertex_config)
-        self.define_indices(conf_obj.graph_config, conf_obj.vertex_config)
+        self.define_collections(schema)
+        self.define_indexes(schema)
 
-    def define_collections(self, graph_config, vertex_config: VertexConfig):
-        self.define_vertex_collections(graph_config, vertex_config)
-        self.define_edge_collections(graph_config)
+    def define_collections(self, schema: Schema):
+        self.define_vertex_collections(schema)
+        self.define_edge_collections(schema.edge_config.edges)
 
-    def define_indices(self, graph_config, vertex_config: VertexConfig):
-        self.define_vertex_indices(vertex_config)
-        self.define_edge_indices(graph_config)
-
-    def define_vertex_collections(
-        self, graph_config: GraphConfig, vertex_config: VertexConfig
-    ):
-        disconnected_vertex_collections = set(vertex_config.collections) - set(
-            [v for edge in graph_config.all_edges for v in edge]
+    def define_vertex_collections(self, schema: Schema):
+        vertex_config = schema.vertex_config
+        disconnected_vertex_collections = (
+            set(vertex_config.vertex_set) - schema.edge_config.vertices
         )
-        es = list(graph_config.all_edge_definitions())
-        for item in es:
+        for item in schema.edge_config.edges:
             u, v = item.source, item.target
             gname = item.graph_name
             logger.info(f"{item.source}, {item.target}, {gname}")
@@ -84,41 +79,38 @@ class ArangoConnection(Connection):
             else:
                 g = self.conn.create_graph(gname)  # type: ignore
 
-            # TODO create collections without referencing the graph
-            ih = self.create_collection(
+            _ = self.create_collection(
                 vertex_config.vertex_dbname(u), vertex_config.index(u), g
             )
 
-            ih = self.create_collection(
+            _ = self.create_collection(
                 vertex_config.vertex_dbname(v), vertex_config.index(v), g
             )
         for v in disconnected_vertex_collections:
-            ih = self.create_collection(
+            _ = self.create_collection(
                 vertex_config.vertex_dbname(v), vertex_config.index(v), None
             )
 
-    def define_edge_collections(self, graph_config: GraphConfig):
-        es = list(graph_config.all_edge_definitions())
-        for item in es:
+    def define_edge_collections(self, edges: list[Edge]):
+        for item in edges:
             gname = item.graph_name
             if self.conn.has_graph(gname):
                 g = self.conn.graph(gname)
             else:
                 g = self.conn.create_graph(gname)  # type: ignore
-            if not g.has_edge_definition(item.edge_name):
+            if not g.has_edge_definition(item.collection_name):
                 _ = g.create_edge_definition(
-                    edge_collection=item.edge_name,
+                    edge_collection=item.collection_name,
                     from_vertex_collections=[item.source_collection],
                     to_vertex_collections=[item.target_collection],
                 )
 
-    def _add_index(self, general_collection, index: CollectionIndex):
-        data = index.to_dict()
-        # in CollectionIndex "name" is used for vertex collection derived index field
+    def _add_index(self, general_collection, index: Index):
+        data = index.db_form(DBFlavor.ARANGO)
+        # in Index "name" is used for vertex collection derived index field
         # to let arango name her index, we remove "name"
-        data.pop("name")
         if index.type == IndexType.PERSISTENT:
-            # temp fix : inconsistentcy in python-arango
+            # temp fix : inconsistent in python-arango
             ih = general_collection._add_index(data)
         if index.type == IndexType.HASH:
             ih = general_collection._add_index(data)
@@ -135,28 +127,42 @@ class ArangoConnection(Connection):
         return ih
 
     def define_vertex_indices(self, vertex_config: VertexConfig):
-        for c in vertex_config.collections:
-            for index_obj in vertex_config.extra_index_list(c):
-                general_collection = self.conn.collection(
-                    vertex_config.vertex_dbname(c)
-                )
+        for c in vertex_config.vertex_set:
+            general_collection = self.conn.collection(vertex_config.vertex_dbname(c))
+            ixs = general_collection.indexes()
+            field_combinations = [tuple(ix["fields"]) for ix in ixs]
+            for index_obj in vertex_config.indexes(c):
+                if tuple(index_obj.fields) not in field_combinations:
+                    self._add_index(general_collection, index_obj)
+
+    def define_edge_indices(self, edges: list[Edge]):
+        for edge in edges:
+            general_collection = self.conn.collection(edge.collection_name)
+            for index_obj in edge.indexes:
                 self._add_index(general_collection, index_obj)
 
-    def define_edge_indices(self, graph_config: GraphConfig):
-        for item in graph_config.all_edge_definitions():
-            general_collection = self.conn.collection(item.edge_name)
-            for index_obj in item.indices:
-                self._add_index(general_collection, index_obj)
+    def fetch_indexes(self, db_class_name: str | None = None):
+        if db_class_name is None:
+            classes = self.conn.collections()
+        elif self.conn.has_collection(db_class_name):
+            classes = [self.conn.collection(db_class_name)]
+        else:
+            classes = []
 
-    def create_collection(
-        self, collection_name, index: CollectionIndex | None = None, g=None
-    ):
-        if not self.conn.has_collection(collection_name):
+        r = {}
+        for cname in classes:
+            assert isinstance(cname["name"], str)
+            c = self.conn.collection(cname["name"])
+            r[cname["name"]] = c.indexes()
+        return r
+
+    def create_collection(self, db_class_name, index: None | Index = None, g=None):
+        if not self.conn.has_collection(db_class_name):
             if g is not None:
-                _ = g.create_vertex_collection(collection_name)
+                _ = g.create_vertex_collection(db_class_name)
             else:
-                self.conn.create_collection(collection_name)
-            general_collection = self.conn.collection(collection_name)
+                self.conn.create_collection(db_class_name)
+            general_collection = self.conn.collection(db_class_name)
             if index is not None and index.fields != ["_key"]:
                 ih = self._add_index(general_collection, index)
                 return ih
@@ -165,16 +171,10 @@ class ArangoConnection(Connection):
 
     def delete_collections(self, cnames=(), gnames=(), delete_all=False):
         logger.info("collections (non system):")
-        logger.info(
-            [c for c in self.conn.collections() if c["name"][0] != "_"]
-        )
+        logger.info([c for c in self.conn.collections() if c["name"][0] != "_"])
 
         if delete_all:
-            cnames = [
-                c["name"]
-                for c in self.conn.collections()
-                if c["name"][0] != "_"
-            ]
+            cnames = [c["name"] for c in self.conn.collections() if c["name"][0] != "_"]
             gnames = [g["name"] for g in self.conn.graphs()]
 
         for cn in cnames:
@@ -182,9 +182,7 @@ class ArangoConnection(Connection):
                 self.conn.delete_collection(cn)
 
         logger.info("collections (after delete operation):")
-        logger.info(
-            [c for c in self.conn.collections() if c["name"][0] != "_"]
-        )
+        logger.info([c for c in self.conn.collections() if c["name"][0] != "_"])
 
         logger.info("graphs:")
         logger.info(self.conn.graphs())
@@ -231,9 +229,7 @@ class ArangoConnection(Connection):
             upsert_clause = f"UPSERT {{{upsert_clause}}}"
 
             if isinstance(update_keys, list):
-                update_clause = ", ".join(
-                    [f'"{k}": doc.{k}' for k in update_keys]
-                )
+                update_clause = ", ".join([f'"{k}": doc.{k}' for k in update_keys])
                 update_clause = f"{{{update_clause}}}"
             elif update_keys == "doc":
                 update_clause = "doc"
@@ -256,7 +252,8 @@ class ArangoConnection(Connection):
         docs_edges,
         source_class,
         target_class,
-        relation_name,
+        relation_name=None,
+        collection_name=None,
         match_keys_source=("_key",),
         match_keys_target=("_key",),
         filter_uniques=True,
@@ -266,14 +263,15 @@ class ArangoConnection(Connection):
         head=None,
         **kwargs,
     ):
-        f"""
+        """
             using ("_key",) for match_keys_source and match_keys_target saves time
                 (no need to look it up from field discriminants)
 
-        :param docs_edges: in format  [{{ _source_aux: source_doc, _target_aux: target_doc}}]
+        :param docs_edges: in format  [{ _source_aux: source_doc, _target_aux: target_doc}]
         :param source_class,
         :param target_class,
         :param relation_name:
+        :param collection_name:
         :param match_keys_source:
         :param match_keys_target:
         :param filter_uniques:
@@ -338,13 +336,9 @@ class ArangoConnection(Connection):
             ups_to = result_to if target_filter else "doc._to"
 
             weight_fs = []
+            weight_fs += uniq_weight_fields if uniq_weight_fields is not None else []
             weight_fs += (
-                uniq_weight_fields if uniq_weight_fields is not None else []
-            )
-            weight_fs += (
-                uniq_weight_collections
-                if uniq_weight_collections is not None
-                else []
+                uniq_weight_collections if uniq_weight_collections is not None else []
             )
             if weight_fs:
                 weights_clause = ", " + ", ".join(
@@ -353,11 +347,7 @@ class ArangoConnection(Connection):
             else:
                 weights_clause = ""
 
-            upsert = (
-                f"{{'_from': {ups_from}, '_to': {ups_to}"
-                + weights_clause
-                + "}"
-            )
+            upsert = f"{{'_from': {ups_from}, '_to': {ups_to}" + weights_clause + "}"
             logger.debug(f" upsert clause: {upsert}")
             clauses = f"UPSERT {upsert} INSERT doc UPDATE {{}}"
             options = "OPTIONS {exclusive: true}"
@@ -369,7 +359,7 @@ class ArangoConnection(Connection):
             FOR edge in {docs_edges_str} {source_filter} {target_filter}
                 LET doc = {doc_definition}
                 {clauses}
-                in {relation_name} {options}"""
+                in {collection_name} {options}"""
         if not dry:
             self.execute(q_update)
 
@@ -384,8 +374,14 @@ class ArangoConnection(Connection):
         return query0
 
     def fetch_present_documents(
-        self, batch, class_name, match_keys, keep_keys, flatten=False
-    ):
+        self,
+        batch,
+        class_name,
+        match_keys,
+        keep_keys,
+        flatten=False,
+        filters: list | dict | None = None,
+    ) -> list | dict:
         """
             for each jth doc from `docs` matching to docs in `collection_name` by `match_keys`
                 return the list of `return_keys`
@@ -394,6 +390,7 @@ class ArangoConnection(Connection):
         :param match_keys:
         :param keep_keys:
         :param flatten:
+        :param filters: return docs from db satisfying condition
         :return:
         """
         q0 = fetch_fields_query(
@@ -401,6 +398,7 @@ class ArangoConnection(Connection):
             docs=batch,
             match_keys=match_keys,
             return_keys=keep_keys,
+            filters=filters,
         )
         # {"__i": i, "_group": [doc]}
         cursor = self.execute(q0)
@@ -410,13 +408,14 @@ class ArangoConnection(Connection):
             for item in get_data_from_cursor(cursor):
                 group = item.pop("_group", [])
                 rdata += [sub_item for sub_item in group]
+            return rdata
         else:
-            rdata = {}
+            rdata_dict = {}
             for item in get_data_from_cursor(cursor):
                 __i = item.pop("__i")
                 group = item.pop("_group")
-                rdata[__i] = group
-        return rdata
+                rdata_dict[__i] = group
+            return rdata_dict
 
     def fetch_docs(
         self,
@@ -424,6 +423,7 @@ class ArangoConnection(Connection):
         filters: list | dict | None = None,
         limit: int | None = None,
         return_keys: list | None = None,
+        unset_keys: list | None = None,
     ):
         """
 
@@ -432,21 +432,27 @@ class ArangoConnection(Connection):
         :param limit:
             {"AND": [["==", "1", "x"], ["==", "2", "y", "% 2"]]}
         :param return_keys:
+        :param unset_keys:
         :return:
         """
         if filters is not None:
-            ff = init_filter(filters)
-            filter_clause = (
-                f"FILTER {ff.cast_filter(doc_name='d', kind=DBFlavor.ARANGO)}"
-            )
+            ff = Expression.from_dict(filters)
+            filter_clause = f"FILTER {ff(doc_name='d', kind=DBFlavor.ARANGO)}"
         else:
             filter_clause = ""
 
-        if return_keys is not None:
-            keep_clause_ = ", ".join([f'"{item}"' for item in return_keys])
-            keep_clause = f"KEEP(d, {keep_clause_})"
+        if return_keys is None:
+            if unset_keys is None:
+                return_clause = "d"
+            else:
+                tmp_clause = ", ".join([f'"{item}"' for item in unset_keys])
+                return_clause = f"UNSET(d, {tmp_clause})"
         else:
-            keep_clause = "d"
+            if unset_keys is None:
+                tmp_clause = ", ".join([f'"{item}"' for item in return_keys])
+                return_clause = f"KEEP(d, {tmp_clause})"
+            else:
+                raise ValueError("both return_keys and unset_keys are set")
 
         if limit is not None and isinstance(limit, int):
             limit_clause = f"LIMIT {limit}"
@@ -457,7 +463,7 @@ class ArangoConnection(Connection):
             f"FOR d in {class_name}"
             f"  {filter_clause}"
             f"  {limit_clause}"
-            f"  RETURN {keep_clause}"
+            f"  RETURN {return_clause}"
         )
         cursor = self.execute(q)
         return get_data_from_cursor(cursor)
@@ -481,11 +487,8 @@ class ArangoConnection(Connection):
         """
 
         if filters is not None:
-            ff = init_filter(filters)
-            filter_clause = (
-                "FILTER"
-                f" {ff.cast_filter(doc_name='doc', kind=DBFlavor.ARANGO)}"
-            )
+            ff = Expression.from_dict(filters)
+            filter_clause = f"FILTER {ff(doc_name='doc', kind=DBFlavor.ARANGO)}"
         else:
             filter_clause = ""
 
@@ -520,13 +523,22 @@ class ArangoConnection(Connection):
             answer = cursor.batch().pop()
             return answer
 
-    def keep_absent_documents(self, batch, class_name, match_keys, keep_keys):
+    def keep_absent_documents(
+        self,
+        batch,
+        class_name,
+        match_keys,
+        keep_keys,
+        filters: list | dict | None = None,
+    ):
         """
             from `batch` return docs that are not present in `collection` according to `match_keys`
         :param batch:
         :param class_name:
         :param match_keys:
         :param keep_keys:
+        :param filters: filter selects documents, so docs with filter applied will be returned
+                            and not returned as negative docs
         :return:
         """
 
@@ -536,17 +548,25 @@ class ArangoConnection(Connection):
             match_keys=match_keys,
             keep_keys=keep_keys,
             flatten=False,
+            filters=filters,
         )
+
+        assert isinstance(present_docs_keys, dict)
 
         # there were multiple docs return for the same pair of filtering condition
         if any([len(v) > 1 for v in present_docs_keys.values()]):
             logger.warning(
-                f"fetch_present_documents returned multiple docs per filtering"
-                f" condition"
+                "fetch_present_documents returned multiple docs per filtering"
+                " condition"
             )
 
-        absent_indices = sorted(
-            set(range(len(batch))) - set(present_docs_keys.keys())
-        )
+        absent_indices = sorted(set(range(len(batch))) - set(present_docs_keys.keys()))
         batch_absent = [batch[j] for j in absent_indices]
         return batch_absent
+
+    def update_to_numeric(self, collection_name, field):
+        s1 = f"FOR p IN {collection_name} FILTER p.{field} update p with {{"
+        s2 = f"{field}: TO_NUMBER(p.{field}) "
+        s3 = f"}} in {collection_name}"
+        q0 = s1 + s2 + s3
+        return q0

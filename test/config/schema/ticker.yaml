@@ -1,95 +1,97 @@
 general:
     name: ticker_history
-table:
--   tabletype: _all
-    transforms:
-    -   foo: round_str
-        module: graph_cast.util.transform
-        params:
-            ndigits: 3
-        switch:
-            Open:
-            -   name
-            -   value
-    -   foo: round_str
-        module: graph_cast.util.transform
-        params:
-            ndigits: 3
-        switch:
-            Close:
-            -   name
-            -   value
-    -   foo: int
-        module: builtins
-        switch:
-            Volume:
-            -   name
-            -   value
-    -   foo: parse_date_yahoo
-        module: graph_cast.util.transform
-        map:
-            Date: t_obs
-    -   map:
-            __ticker: oftic
-vertex_collections:
-    collections:
-        ticker:
-            basename: tickers
-            fields:
-            -   cusip
-            -   cname
-            -   oftic
-            index:
-            -   cusip
-            -   cname
-            -   oftic
-        feature:
-            basename: features
-            fields:
-            -   name
-            -   value
-            index:
-            -   name
-            -   value
-            extra_index:
-            -   type: hash
-                unique: false
-                fields:
-                -   value
-            -   type: hash
-                unique: false
-                fields:
+resources:
+    row_likes:
+    -   name: history
+        transforms:
+        -   foo: round_str
+            module: graph_cast.util.transform
+            params:
+                ndigits: 3
+            switch:
+                Open:
                 -   name
-            filters:
-            -   or:
-                -   if_then:
-                    -   field: name
-                        foo: __eq__
-                        value: Open
-                    -   field: value
-                        foo: __gt__
-                        value: 0
-                -   if_then:
-                    -   field: name
-                        foo: __eq__
-                        value: Close
-                    -   field: value
-                        foo: __gt__
-                        value: 0
-            -   field: name
-                foo: __ne__
-                value: Volume
-edge_collections:
-    main:
+                -   value
+        -   foo: round_str
+            module: graph_cast.util.transform
+            params:
+                ndigits: 3
+            switch:
+                Close:
+                -   name
+                -   value
+        -   foo: int
+            module: builtins
+            switch:
+                Volume:
+                -   name
+                -   value
+        -   foo: parse_date_yahoo
+            module: graph_cast.util.transform
+            map:
+                Date: t_obs
+        -   map:
+                __ticker: oftic
+vertex_config:
+    vertices:
+    -   name: ticker
+        dbname: tickers
+        fields:
+        -   cusip
+        -   cname
+        -   oftic
+        indexes:
+        -   fields:
+            -   cusip
+            -   cname
+            -   oftic
+    -   name: feature
+        dbname: features
+        fields:
+        -   name
+        -   value
+        indexes:
+        -   fields:
+            -   name
+            -   value
+        -   type: hash
+            unique: false
+            fields:
+            -   value
+        -   type: hash
+            unique: false
+            fields:
+            -   name
+        filters:
+        -   or:
+            -   if_then:
+                -   field: name
+                    foo: __eq__
+                    value: Open
+                -   field: value
+                    foo: __gt__
+                    value: 0
+            -   if_then:
+                -   field: name
+                    foo: __eq__
+                    value: Close
+                -   field: value
+                    foo: __gt__
+                    value: 0
+        -   field: name
+            foo: __ne__
+            value: Volume
+edge_config:
+    edges:
     -   source: ticker
         target: feature
-        weight:
-            fields:
+        weights:
+            direct:
             -   t_obs
-        vertex:
-        -   name: feature
-            fields:
-            -   name
+            vertices:
+            -   name: feature
+                fields:
+                -   name
         index:
         -   fields:
             -   t_obs
