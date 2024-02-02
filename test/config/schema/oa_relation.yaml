@@ -1,0 +1,63 @@
+general:
+    name: openalex
+resources:
+    tree_likes:
+    -   name: institutions
+        root:
+            children:
+            -   type: vertex
+                name: institution
+                transforms:
+                -   name: keep_suffix_id
+                discriminant: _top_level
+            -   key: associated_institutions
+                children:
+                -   type: vertex
+                    name: institution
+                    keep_fields:
+                    -   relationship
+                    transforms:
+                    -   name: keep_suffix_id
+            -   type: edge
+                edge:
+                    source: institution
+                    target: institution
+                    source_discriminant: _top_level
+                    target_relation_field: relationship
+vertex_config:
+    vertices:
+    -   name: institution
+        dbname: institutions
+        fields:
+        -   _key
+        -   display_name
+        -   country
+        -   type
+        -   grid
+        -   wikidata
+        -   mag
+        -   created_date
+        -   updated_date
+        indexes:
+        -   fields:
+            -   _key
+        -   unique: false
+            type: fulltext
+            fields:
+            -   display_name
+        -   unique: false
+            fields:
+            -   type
+edge_config:
+    edges: []
+transforms:
+    keep_suffix_id:
+        foo: split_keep_part
+        module: graph_cast.util.transform
+        params:
+            sep: "/"
+            keep: -1
+        input:
+        -   id
+        output:
+        -   _key

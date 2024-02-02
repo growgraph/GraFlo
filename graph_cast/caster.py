@@ -166,19 +166,21 @@ class Caster:
 
         with ConnectionManager(connection_config=conn_conf) as db_client:
             for edge in self.schema.edge_config.edges:
-                if not self.dry and edge.edge_id in gc.edges:
-                    data = gc.edges[edge.edge_id]
-                    db_client.insert_edges_batch(
-                        docs_edges=data,
-                        source_class=vc.vertex_dbname(edge.source),
-                        target_class=vc.vertex_dbname(edge.target),
-                        relation_name=edge.relation,
-                        collection_name=edge.collection_name,
-                        match_keys_source=vc.index(edge.source).fields,
-                        match_keys_target=vc.index(edge.target).fields,
-                        filter_uniques=False,
-                        dry=self.dry,
-                    )
+                for ee in gc.loop_over_relations(edge.edge_id):
+                    _, _, relation = ee
+                    if not self.dry:
+                        data = gc.edges[ee]
+                        db_client.insert_edges_batch(
+                            docs_edges=data,
+                            source_class=vc.vertex_dbname(edge.source),
+                            target_class=vc.vertex_dbname(edge.target),
+                            relation_name=relation,
+                            collection_name=edge.collection_name,
+                            match_keys_source=vc.index(edge.source).fields,
+                            match_keys_target=vc.index(edge.target).fields,
+                            filter_uniques=False,
+                            dry=self.dry,
+                        )
 
     def process_with_queue(self, tasks: mp.Queue, **kwargs):
         while True:

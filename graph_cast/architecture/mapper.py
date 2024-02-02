@@ -82,6 +82,7 @@ class MapperNode(BaseDataclass):
     edge: Edge = None  # type: ignore
     name: str | None = None
     transforms: list[Transform] = dataclasses.field(default_factory=list)
+    keep_fields: list = dataclasses.field(default_factory=list)
     key: str | None = None
     filter: dict = dataclasses.field(default_factory=dict)
     unfilter: dict = dataclasses.field(default_factory=dict)
@@ -257,6 +258,8 @@ class MapperNode(BaseDataclass):
                 _doc = {self.map[k] if k in self.map else k: v for k, v in _doc.items()}
             if self.discriminant is not None:
                 _doc.update({DISCRIMINANT_KEY: self.discriminant})
+            if self.keep_fields is not None:
+                _doc.update({f: doc[f] for f in self.keep_fields})
             acc[self.name] += [_doc]
         return acc
 
@@ -274,6 +277,7 @@ class MapperNode(BaseDataclass):
         acc: defaultdict[GraphEntity, list],
     ):
         assert self.edge is not None
+
         # get source and target names
         source, target = self.edge.source, self.edge.target
 
@@ -330,6 +334,9 @@ class MapperNode(BaseDataclass):
             iterator: Callable[..., Iterable[Any]] = zip
         else:
             iterator = product
+
+        relation = self.edge.relation
+
         for u, v in iterator(source_items, target_items):
             # adding weight from source or target
             weight = dict()
@@ -344,7 +351,13 @@ class MapperNode(BaseDataclass):
                         weight[field] = v[field]
                         if field not in self.edge.non_exclusive:
                             del v[field]
-            acc[source, target, self.edge.relation] += [
+
+            if self.edge.source_relation_field is not None:
+                relation = u.pop(self.edge.source_relation_field, None)
+            if self.edge.target_relation_field is not None:
+                relation = v.pop(self.edge.target_relation_field, None)
+
+            acc[source, target, relation] += [
                 {
                     **{
                         SOURCE_AUX: project_dict(u, source_index),
