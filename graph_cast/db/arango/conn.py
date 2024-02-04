@@ -119,7 +119,9 @@ class ArangoConnection(Connection):
                 fields=index.fields, unique=index.unique
             )
         elif index.type == IndexType.FULLTEXT:
-            ih = general_collection.add_fulltext_index(fields=index.fields)
+            ih = general_collection.add_fulltext_index(
+                fields=index.fields, unique=index.unique
+            )
         else:
             ih = None
         return ih
@@ -334,13 +336,10 @@ class ArangoConnection(Connection):
             ups_to = result_to if target_filter else "doc._to"
 
             weight_fs = []
-            if uniq_weight_fields is not None:
-                weight_fs += uniq_weight_fields
-            if uniq_weight_collections is not None:
-                weight_fs += uniq_weight_collections
-            if relation_name is not None:
-                weight_fs += ["relation"]
-
+            weight_fs += uniq_weight_fields if uniq_weight_fields is not None else []
+            weight_fs += (
+                uniq_weight_collections if uniq_weight_collections is not None else []
+            )
             if weight_fs:
                 weights_clause = ", " + ", ".join(
                     [f"'{x}' : edge.{x}" for x in weight_fs]
@@ -353,11 +352,7 @@ class ArangoConnection(Connection):
             clauses = f"UPSERT {upsert} INSERT doc UPDATE {{}}"
             options = "OPTIONS {exclusive: true}"
         else:
-            if relation_name is None:
-                doc_clause = "doc"
-            else:
-                doc_clause = f"MERGE(doc, {{'relation': '{relation_name}' }})"
-            clauses = f"INSERT {doc_clause}"
+            clauses = "INSERT doc"
             options = "OPTIONS {exclusive: true, ignoreErrors: true}"
 
         q_update = f"""

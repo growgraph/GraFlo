@@ -33,10 +33,6 @@ class Edge(BaseDataclass):
 
     source_discriminant: str | None = None
     target_discriminant: str | None = None
-
-    source_relation_field: str | None = None
-    target_relation_field: str | None = None
-
     type: EdgeType = EdgeType.DIRECT
     casting_type: EdgeCastingType = EdgeCastingType.PAIR_LIKE
     by: str | None = None
@@ -50,13 +46,6 @@ class Edge(BaseDataclass):
     def __post_init__(self):
         self.source_fields: list[str]
         self.target_fields: list[str]
-        if (
-            self.source_relation_field is not None
-            and self.target_relation_field is not None
-        ):
-            raise ValueError(
-                f"Both source_relation_field and target_relation_field are set for edge ({self.source}, {self.target})"
-            )
 
     def finish_init(
         self, vc: VertexConfig, same_level_vertices: list[str] | None = None
@@ -80,6 +69,8 @@ class Edge(BaseDataclass):
             vc.vertex_dbname(self.source),
             vc.vertex_dbname(self.target),
         ]
+        if self.relation is not None:
+            graph_name += [self.relation]
         if self.collection_name_suffix is not None:
             graph_name += [self.collection_name_suffix]
         self.graph_name = "_".join(graph_name + ["graph"])
