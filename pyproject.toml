@@ -16,6 +16,7 @@ ijson = "^3.2.3"
 neo4j = "^4.4.3"
 networkx = "^2.6"
 pandas = "^2.0.3"
+pygraphviz = {optional = true, version = "^1.11"}
 python = "^3.10"
 python-arango = "^7.5.3"
 strenum = "^0.4.15"
@@ -29,9 +30,6 @@ graphviz = ["pygraphviz"]
 pre-commit = "^3.3.3"
 pylint = "^3.0.3"
 pytest = "^7.4.0"
-
-[tool.poetry.group.graphviz.dependencies]
-pygraphviz = "^1.11"
 
 [tool.poetry.scripts]
 ingest = "graph_cast.cli.ingest:ingest"
