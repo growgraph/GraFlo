@@ -51,11 +51,9 @@ def schema_obj():
 def ingest_atomic(conn_conf, current_path, test_db_name, mode, n_cores=1):
     schema_o = fetch_schema_obj(mode)
     rr = schema_o.fetch_resource()
-    path = Path(
-        join(
-            current_path,
-            f"data/{InputTypeFileExtensions[rr.resource_type][0]}/{mode}",
-        )
+    path = (
+        Path(current_path)
+        / f"data/{InputTypeFileExtensions[rr.resource_type][0]}/{mode}"
     )
 
     conn_conf.database = test_db_name
@@ -196,6 +194,79 @@ def vertex_config_transform_collision():
             dbname: pets
             fields:
             -   name
+    """
+    )
+    return vc
+
+
+@pytest.fixture()
+def resource_with_dynamic_relations():
+    vc = yaml.safe_load(
+        """
+    general:
+        name: openalex
+    resources:
+        tree_likes:
+           -   name: institutions
+            root:
+                children:
+                -   type: vertex
+                    name: institution
+                    transforms:
+                    -   name: keep_suffix_id
+                    -   name: keep_suffix_id
+                        fields:
+                        -   ror
+                -   key: associated_institutions
+                    children:
+                    -   type: vertex
+                        name: institution
+                        transforms:
+                        -   name: keep_suffix_id
+                    -   type: edge
+                        edge:
+                            source: institution
+                            target: institution
+    #                        relation:
+    vertex_config:
+    vertices:
+    -   name: institution
+        dbname: institutions
+        fields:
+        -   _key
+        -   display_name
+        -   country
+        -   type
+        -   ror
+        -   grid
+        -   wikidata
+        -   mag
+        -   created_date
+        -   updated_date
+        indexes:
+        -   fields:
+            -   _key
+        -   unique: false
+            type: fulltext
+            fields:
+            -   display_name
+        -   unique: false
+            fields:
+            -   type
+    edge_config:
+        edges: []
+    transforms:
+        keep_suffix_id:
+            foo: split_keep_part
+            module: graph_cast.util.transform
+            params:
+                sep: "/"
+                keep: -1
+            input:
+            -   id
+            output:
+            -   _key
+
     """
     )
     return vc

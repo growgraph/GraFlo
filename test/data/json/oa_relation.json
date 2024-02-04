@@ -1,0 +1,36 @@
+[
+    {
+        "id": "https://openalex.org/I220871436",
+        "display_name": "Sorbonne Paris Cit\u00e9",
+        "associated_institutions": [
+            {
+                "id": "https://openalex.org/I4210135853",
+                "ror": "https://ror.org/03saykv37",
+                "display_name": "Laboratoire Vision Action Cognition",
+                "country_code": "FR",
+                "type": "facility",
+                "relationship": "child"
+            },
+            {
+                "id": "https://openalex.org/I4210092671",
+                "ror": "https://ror.org/00kneq391",
+                "display_name": "Laboratory Orofacial Pathologies, Imaging and Biotherapies",
+                "country_code": "FR",
+                "type": "facility",
+                "relationship": "child"
+            },
+            {
+                "id": "https://openalex.org/I4210130609",
+                "ror": "https://ror.org/03tyznx60",
+                "display_name": "Neuroimaging and Psychiatry",
+                "country_code": "FR",
+                "type": "facility",
+                "relationship": "child"
+            }
+        ],
+        "works_api_url": "https://api.openalex.org/works?filter=institutions.id:I220871436",
+        "updated_date": "2023-08-13T23:02:40.122052",
+        "created_date": "2016-06-24",
+        "updated": "2023-08-13T23:02:40.122052"
+    }
+]

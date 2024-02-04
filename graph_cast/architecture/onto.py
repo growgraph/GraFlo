@@ -140,6 +140,10 @@ class GraphContainer(BaseDataclass):
         for k, v in self.edges.items():
             self.edges[k] = pick_unique_dict(v)
 
+    def loop_over_relations(self, edge_def: tuple[str, str, str | None]):
+        source, target, _ = edge_def
+        return (ed for ed in self.edges if source == ed[0] and target == ed[1])
+
     @classmethod
     def from_docs_list(
         cls, list_default_dicts: list[defaultdict[GraphEntity, list]]
