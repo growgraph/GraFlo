@@ -97,7 +97,8 @@ class MapperNode(BaseDataclass):
                 f"{NodeType.DESCEND}, {NodeType.TRIVIAL}, {NodeType.VALUE}"
                 f" not provided, for key {self.key} NodeType {self.type} found"
             )
-            self.type = NodeType.DESCEND
+            if self.type is NodeType.TRIVIAL:
+                self.type = NodeType.DESCEND
         self._children: list[MapperNode] = [
             MapperNode.from_dict(oo) for oo in self.children
         ]
