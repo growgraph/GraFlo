@@ -92,11 +92,13 @@ class MapperNode(BaseDataclass):
 
     def __post_init__(self):
         if self.key is not None:
-            assert self.type in {NodeType.DESCEND, NodeType.TRIVIAL}, (
-                f"when key present, NodeType can only be {NodeType.DESCEND} or"
+            assert self.type in {NodeType.DESCEND, NodeType.TRIVIAL, NodeType.VALUE}, (
+                f"when key present, NodeType can only be "
+                f"{NodeType.DESCEND}, {NodeType.TRIVIAL}, {NodeType.VALUE}"
                 f" not provided, for key {self.key} NodeType {self.type} found"
             )
-            self.type = NodeType.DESCEND
+            if self.type is NodeType.TRIVIAL:
+                self.type = NodeType.DESCEND
         self._children: list[MapperNode] = [
             MapperNode.from_dict(oo) for oo in self.children
         ]
