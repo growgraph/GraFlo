@@ -247,7 +247,7 @@ class Caster:
             pattern = (
                 FilePattern(regex=r.name)
                 if r.name not in patterns.patterns
-                else patterns[r.name]
+                else patterns.patterns[r.name]
             )
             files = Caster.discover_files(
                 path, limit_files=limit_files, pattern=pattern
