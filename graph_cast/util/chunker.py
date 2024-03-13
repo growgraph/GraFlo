@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-import csv
 import gc
 import gzip
 import json
@@ -115,21 +114,22 @@ class FileChunker(AbstractChunker):
 
 class TableChunker(FileChunker):
     def __init__(self, **kwargs):
-        self.sep = kwargs.pop("sep", ",")
         super().__init__(**kwargs)
-        self.header: list[str]
+        kwargs_ = dict(kwargs)
+        kwargs_["chunksize"] = kwargs_.pop("batch_size")
+        kwargs_["nrows"] = kwargs_.pop("limit")
+        kwargs_.pop("filename")
+        self.file_obj = pd.read_csv(self.filename, **kwargs_)
 
     def _prepare_iteration(self):
-        super()._prepare_iteration()
-        header = next(self.file_obj)
-        self.header = header.rstrip("\n").split(self.sep)
+        self.header = pd.read_csv(
+            self.filename, index_col=None, nrows=0
+        ).columns.tolist()
 
     def __next__(self):
-        lines = super().__next__()
-        lines2 = [
-            next(csv.reader([line.rstrip()], skipinitialspace=True)) for line in lines
-        ]
-        dressed = [dict(zip(self.header, row)) for row in lines2]
+        item = next(self.file_obj)
+        dressed = item.to_dict("records")
+        self.cnt += len(dressed)
         return dressed
 
 
@@ -207,10 +207,13 @@ class ChunkerFactory:
                 chunker_type is None
                 and any([".csv" in resource.suffixes, ".tsv" in resource.suffixes])
             ):
-                if ".tsv" in resource.suffixes:
-                    return TableChunker(filename=resource, sep="\t", **kwargs)
-                else:
-                    return TableChunker(filename=resource, sep=",", **kwargs)
+                # if ".tsv" in resource.suffixes:
+
+                # return pd.read_csv(resource, **kwargs_)
+                # chunksize=chunksize)
+                return TableChunker(filename=resource, **kwargs)
+                # else:
+                #     return TableChunker(filename=resource, sep=",", **kwargs)
         raise ValueError(
             "Could not determine the type of required Chunker "
             f"for type={chunker_type} and resource={resource}"

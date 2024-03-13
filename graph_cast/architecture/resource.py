@@ -207,7 +207,11 @@ class RowResource(Resource):
         vertex_config: VertexConfig = kwargs.pop("vertex_config")
         edge_config = kwargs.pop("edge_config")
 
-        predocs_transformed = row_to_vertices(doc, vertex_config, self)
+        try:
+            predocs_transformed = row_to_vertices(doc, vertex_config, self)
+        except ValueError as ex:
+            logger.error(f"Transform failure: {doc} for processing. Trace: {ex}")
+            return defaultdict(list)
 
         item = normalize_row(predocs_transformed, vertex_config)
 

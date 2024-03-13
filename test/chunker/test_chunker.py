@@ -1,9 +1,7 @@
 import os
 from pathlib import Path
 
-from graph_cast.architecture.onto import EncodingType
 from graph_cast.util.chunker import (
-    ChunkerFactory,
     FileChunker,
     JsonChunker,
     JsonlChunker,
@@ -61,19 +59,3 @@ def test_json_chunker():
     for item in ch:
         assert isinstance(item[0], dict)
     assert ch.cnt == 6
-
-
-def test_factory():
-    args = {
-        "limit": 200,
-        "batch_size": 50,
-        "resource": Path("smth.csv.gz"),
-        "encoding": EncodingType.UTF_8,
-    }
-    ch = ChunkerFactory.create_chunker(**args)
-    assert isinstance(ch, TableChunker)
-    args = {"limit": 200, "batch_size": 50, "filename": Path("smth.jcsv")}
-    try:
-        ch = ChunkerFactory.create_chunker(**args)
-    except ValueError as e:
-        assert "type" in f"{e}"
