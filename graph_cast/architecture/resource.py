@@ -6,7 +6,7 @@ import logging
 from collections import defaultdict
 from copy import deepcopy
 from itertools import chain, combinations, product
-from typing import Iterator
+from typing import Callable, Iterator
 
 import networkx as nx
 
@@ -41,9 +41,18 @@ class Resource(BaseDataclass):
     #       applied when there are docs without the primary key that are merged to a main doc
     merge_collections: list[str] = dataclasses.field(default_factory=list)
     extra_weights: list[Edge] = dataclasses.field(default_factory=list)
+    types: dict[str, str] = dataclasses.field(default_factory=dict)
 
     def __post_init__(self):
         self.vertex_rep: dict[str, VertexRepresentationHelper] = dict()
+        self._types: dict[str, Callable] = dict()
+        for k, v in self._types.items():
+            try:
+                self._types[k] = eval(v)
+            except Exception as ex:
+                logger.error(
+                    f"For resource {self.name} for field {k} failed to cast type {v} : {ex}"
+                )
 
     def prepare_apply(self, **kwargs):
         self._prepare_apply(**kwargs)
@@ -207,7 +216,19 @@ class RowResource(Resource):
         vertex_config: VertexConfig = kwargs.pop("vertex_config")
         edge_config = kwargs.pop("edge_config")
 
-        predocs_transformed = row_to_vertices(doc, vertex_config, self)
+        try:
+            for k, t in self._types.items():
+                if k in doc:
+                    doc[k] = t(doc[k])
+        except ValueError as ex:
+            logger.error(f"Transform failure: {doc} for processing. Trace: {ex}")
+            return defaultdict(list)
+
+        try:
+            predocs_transformed = row_to_vertices(doc, vertex_config, self)
+        except ValueError as ex:
+            logger.error(f"Transform failure: {doc} for processing. Trace: {ex}")
+            return defaultdict(list)
 
         item = normalize_row(predocs_transformed, vertex_config)
 

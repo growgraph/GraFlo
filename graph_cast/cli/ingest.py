@@ -1,5 +1,6 @@
 import logging.config
 import pathlib
+from os.path import dirname, join, realpath
 
 import click
 from suthing import ConfigFactory, FileHandle
@@ -52,8 +53,11 @@ def ingest(
     fresh_start,
     resource_pattern_config_path,
 ):
-    schema_path.name.split(".")[0]
-    logging.config.fileConfig("logging.conf", disable_existing_loggers=False)
+    cdir = dirname(realpath(__file__))
+
+    logging.config.fileConfig(
+        join(cdir, "../logging.conf"), disable_existing_loggers=False
+    )
 
     logging.basicConfig(level=logging.INFO)
 
@@ -77,6 +81,7 @@ def ingest(
         n_cores=n_cores,
         n_threads=n_threads,
     )
+
     caster.ingest_files(
         path=source_path,
         limit_files=limit_files,

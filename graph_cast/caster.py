@@ -229,6 +229,16 @@ class Caster:
         limit_files = kwargs.pop("limit_files", None)
         patterns = kwargs.pop("patterns", Patterns())
 
+        if conn_conf.database == "_system":
+            db_name = self.schema.general.name
+            try:
+                with ConnectionManager(connection_config=conn_conf) as db_client:
+                    db_client.create_database(db_name)
+            except Exception as exc:
+                logger.error(exc)
+
+            conn_conf.database = db_name
+
         with ConnectionManager(connection_config=conn_conf) as db_client:
             db_client.init_db(self.schema, self.clean_start)
 

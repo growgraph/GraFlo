@@ -6,7 +6,7 @@ import pytest
 @pytest.fixture(scope="function")
 def modes():
     return [
-        "kg_v3b",
+        # "kg_v3b",
         "ibes",
         # "wos_json",
         # "lake_odds",

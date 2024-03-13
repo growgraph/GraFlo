@@ -32,7 +32,6 @@ def test_ingest(
             mode=m,
         )
         if m == "review":
-            # conn_conf.database = test_db_name
             with ConnectionManager(connection_config=conn_conf) as db_client:
                 r = db_client.fetch_docs("Author")
                 assert len(r) == 374
