@@ -46,7 +46,7 @@ class Resource(BaseDataclass):
     def __post_init__(self):
         self.vertex_rep: dict[str, VertexRepresentationHelper] = dict()
         self._types: dict[str, Callable] = dict()
-        for k, v in self._types.items():
+        for k, v in self.types.items():
             try:
                 self._types[k] = eval(v)
             except Exception as ex:
@@ -221,7 +221,7 @@ class RowResource(Resource):
                 if k in doc:
                     doc[k] = t(doc[k])
         except ValueError as ex:
-            logger.error(f"Transform failure: {doc} for processing. Trace: {ex}")
+            logger.error(f"Typecast failure: {doc} for processing. Trace: {ex}")
             return defaultdict(list)
 
         try:
