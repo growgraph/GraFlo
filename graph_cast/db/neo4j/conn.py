@@ -49,10 +49,14 @@ class Neo4jConnection(Connection):
         :param name:
         :return:
         """
+        # try:
+        #     self.execute(f"DROP DATABASE {name}")
+        # except Exception as e:
+        #     logger.error(f"Could not drop database {name}: {e}")
         try:
-            self.execute(f"DROP DATABASE {name}")
+            self.execute("MATCH (n) DETACH DELETE n")
         except Exception as e:
-            logger.error(f"{e}")
+            logger.error(f"Could not clean database : {e}")
 
     def define_vertex_indices(self, vertex_config: VertexConfig):
         for c in vertex_config.vertex_set:
@@ -99,6 +103,8 @@ class Neo4jConnection(Connection):
             self.execute(q)
 
     def init_db(self, schema: Schema, clean_start):
+        if clean_start:
+            self.delete_database("")
         self.define_indexes(schema)
 
     def upsert_docs_batch(self, docs, class_name, match_keys, **kwargs):

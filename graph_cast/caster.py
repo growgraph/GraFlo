@@ -236,7 +236,6 @@ class Caster:
                     db_client.create_database(db_name)
             except Exception as exc:
                 logger.error(exc)
-                # raise DBAccessFailure() from exc
 
             conn_conf.database = db_name
 
