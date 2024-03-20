@@ -42,6 +42,9 @@ logger = logging.getLogger(__name__)
     default=1,
 )
 @click.option("--fresh-start", type=bool, help="wipe existing database")
+@click.option(
+    "--init-only", default=False, is_flag=True, help="skip ingestion; only init the db"
+)
 def ingest(
     db_config_path,
     schema_path,
@@ -51,6 +54,7 @@ def ingest(
     n_cores,
     n_threads,
     fresh_start,
+    init_only,
     resource_pattern_config_path,
 ):
     cdir = dirname(realpath(__file__))
@@ -89,6 +93,7 @@ def ingest(
         batch_size=batch_size,
         conn_conf=conn_conf,
         patterns=patterns,
+        init_only=init_only,
     )
 
 
