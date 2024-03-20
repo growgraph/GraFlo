@@ -1,6 +1,7 @@
 import logging
 import multiprocessing as mp
 import queue
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from pathlib import Path
@@ -220,12 +221,13 @@ class Caster:
         Returns:
 
         """
-        conn_conf: DBConnectionConfig = kwargs.get("conn_conf", None)
+        conn_conf: DBConnectionConfig = kwargs.get("conn_conf")
         self.clean_start = kwargs.pop("clean_start", self.clean_start)
         self.n_cores = kwargs.pop("n_cores", self.n_cores)
         self.max_items = kwargs.pop("max_items", self.max_items)
         self.batch_size = kwargs.pop("batch_size", self.batch_size)
         self.dry = kwargs.pop("dry", self.dry)
+        init_only = kwargs.pop("init_only", False)
         limit_files = kwargs.pop("limit_files", None)
         patterns = kwargs.pop("patterns", Patterns())
 
@@ -241,6 +243,10 @@ class Caster:
 
         with ConnectionManager(connection_config=conn_conf) as db_client:
             db_client.init_db(self.schema, self.clean_start)
+
+        if init_only:
+            logger.info("ingest execution bound to init")
+            sys.exit(0)
 
         tasks: list[tuple[Path, str]] = []
         for r in self.schema.resources:
