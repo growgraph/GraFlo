@@ -4,7 +4,7 @@
 graphviz = ["pygraphviz"]
 
 [metadata]
-content-hash = "feaab1479707e7e10fb24d6c00febdab307aba2f41f8b06c55161ed90821c701"
+content-hash = "75f90eefc28a4f1bbd6db00c27882561b5782184160b4daa6c00f22677ff6c11"
 lock-version = "2.0"
 python-versions = "^3.10"
 
@@ -917,7 +917,7 @@ files = []
 name = "suthing"
 optional = false
 python-versions = "^3.10"
-version = "0.2.7"
+version = "0.2.8"
 
 [package.dependencies]
 dataclass-wizard = "^0.22.2"
@@ -927,8 +927,8 @@ python-dotenv = "^1.0.0"
 pyyaml = ">=3.10"
 
 [package.source]
-reference = "v0.2.7"
-resolved_reference = "6aa46161f5e5d1861b44cd8d7b6a977273edd6bd"
+reference = "v0.2.8"
+resolved_reference = "3373a9917e69d2533f016adb350602e3cdc23641"
 type = "git"
 url = "ssh://git@github.com/growgraph/suthing.git"
 
