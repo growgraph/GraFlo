@@ -402,7 +402,7 @@ class ArangoConnection(Connection):
             collection_name=class_name,
             docs=batch,
             match_keys=match_keys,
-            return_keys=keep_keys,
+            keep_keys=keep_keys,
             filters=filters,
         )
         # {"__i": i, "_group": [doc]}
