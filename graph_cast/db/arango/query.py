@@ -75,7 +75,7 @@ def fetch_fields_query(
     collection_name,
     docs,
     match_keys,
-    return_keys,
+    keep_keys,
     filters: list | dict | None = None,
 ):
     """
@@ -83,7 +83,7 @@ def fetch_fields_query(
     :param collection_name: collection to look up docs
     :param docs: list of dicts (json-like, ie keys are strings)
     :param match_keys: keys on which to look for document
-    :param return_keys: keys which to return
+    :param keep_keys: keys which to return
     :param filters:
     :return:
     """
@@ -96,9 +96,7 @@ def fetch_fields_query(
 
     match_str = " &&".join([f" _cdoc['{key}'] == _doc['{key}']" for key in match_keys])
 
-    return_vars = [x.replace("@", "_") for x in return_keys]
-
-    keep_clause = f"KEEP(_x, {list(return_vars)})" if return_vars is not None else "_x"
+    keep_clause = f"KEEP(_x, {list(keep_keys)})" if keep_keys is not None else "_x"
 
     if filters is not None:
         ff = Expression.from_dict(filters)
