@@ -7,14 +7,14 @@ authors = ["Alexander Belikov <alexander@growgraph.dev>"]
 description = "ETL to cast tabular and json data types into graphs (collections of vertices and edges)"
 name = "graph_cast"
 packages = [{include = "graph_cast"}]
-version = "0.13.11"
+version = "0.13.12"
 
 [tool.poetry.dependencies]
 click = "^8.1.7"
 dataclass-wizard = "^0.22.2"
 ijson = "^3.2.3"
 neo4j = "^4.4.3"
-networkx = "^2.6"
+networkx = "^3.3"
 pandas = "^2.0.3"
 pygraphviz = {optional = true, version = "^1.11"}
 python = "^3.10"
