@@ -69,9 +69,9 @@ def plot_schema(schema_path, figure_output_path, prune_low_degree_nodes):
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
     plotter = SchemaPlotter(schema_path, figure_output_path)
+    plotter.plot_vc2vc(prune_leaves=prune_low_degree_nodes)
     plotter.plot_vc2fields()
     plotter.plot_source2vc()
-    plotter.plot_vc2vc(prune_leaves=prune_low_degree_nodes)
     plotter.plot_source2vc_detailed()
 
 

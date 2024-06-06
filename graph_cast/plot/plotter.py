@@ -109,7 +109,10 @@ def lto_dict(strings):
                             d[k + s[0]] = [s[1:]]
                     else:
                         d[k] = [s]
-    r = {k + v[0]: k for k, v in d.items()}
+    r = {}
+    for k, v in d.items():
+        if v:
+            r[k] = v[0]
     return r
 
 
