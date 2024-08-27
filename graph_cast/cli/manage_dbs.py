@@ -66,10 +66,18 @@ def act_db(
 @click.option("--db-host", type=str)
 @click.option("--db-password", type=str)
 @click.option("--db-user", type=str, default="root")
-@click.option("--db", type=str, multiple=True)
+@click.option(
+    "--db",
+    type=str,
+    multiple=True,
+    required=True,
+    help="filesystem path where to dump db snapshot",
+)
 @click.option(
     "--store-directory-path",
     type=click.Path(exists=True, path_type=pathlib.Path),
+    required=True,
+    help="filesystem path where to dump db snapshot",
 )
 @click.option("--docker-version", type=str, default="3.12.1")
 @click.option("--restore", type=bool, default=False, is_flag=True)
