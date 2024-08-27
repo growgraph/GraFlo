@@ -57,17 +57,36 @@ def act_db(
 
 
 @click.command()
-@click.option("--db-config-path", type=click.Path(exists=True, path_type=pathlib.Path))
-@click.option("--db", type=str, multiple=True)
+@click.option(
+    "--db-config-path",
+    type=click.Path(exists=True, path_type=pathlib.Path),
+    required=False,
+    default=None,
+)
+@click.option("--db-host", type=str)
+@click.option("--db-password", type=str)
+@click.option("--db-user", type=str, default="root")
+@click.option(
+    "--db",
+    type=str,
+    multiple=True,
+    required=True,
+    help="filesystem path where to dump db snapshot",
+)
 @click.option(
     "--store-directory-path",
     type=click.Path(exists=True, path_type=pathlib.Path),
+    required=True,
+    help="filesystem path where to dump db snapshot",
 )
-@click.option("--docker-version", type=str, default="3.10.6")
-@click.option("--restore", type=bool, default=False)
+@click.option("--docker-version", type=str, default="3.12.1")
+@click.option("--restore", type=bool, default=False, is_flag=True)
 @click.option("--use-docker", type=bool, default=True)
 def manage_dbs(
     db_config_path,
+    db_host,
+    db_password,
+    db_user,
     db,
     store_directory_path,
     restore,
@@ -78,8 +97,16 @@ def manage_dbs(
     dump/restore arango databases
     either arangosh or docker should be available in the system
     """
-    conn_conf = FileHandle.load(fpath=db_config_path)
-    db_conf: ArangoConnectionConfig = ConfigFactory.create_config(dict_like=conn_conf)
+
+    if db_config_path is None:
+        db_conf: ArangoConnectionConfig = ArangoConnectionConfig(
+            cred_name=db_user, cred_pass=db_password, hosts=db_host
+        )
+    else:
+        conn_conf = FileHandle.load(fpath=db_config_path)
+        db_conf: ArangoConnectionConfig = ConfigFactory.create_config(
+            dict_like=conn_conf
+        )
 
     action = "restoring" if restore else "dumping"
     if restore:

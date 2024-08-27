@@ -7,20 +7,20 @@ authors = ["Alexander Belikov <alexander@growgraph.dev>"]
 description = "ETL to cast tabular and json data types into graphs (collections of vertices and edges)"
 name = "graph_cast"
 packages = [{include = "graph_cast"}]
-version = "0.13.13"
+version = "0.13.14"
 
 [tool.poetry.dependencies]
 click = "^8.1.7"
 dataclass-wizard = "^0.22.2"
 ijson = "^3.2.3"
-neo4j = "^4.4.3"
+neo4j = "^5.22.0"
 networkx = "^3.3"
 pandas = "^2.0.3"
 pygraphviz = {optional = true, version = "^1.11"}
 python = "^3.10"
 python-arango = "^7.5.3"
 strenum = "^0.4.15"
-suthing = {git = "ssh://git@github.com/growgraph/suthing.git", rev = "v0.2.8"}
+suthing = {git = "ssh://git@github.com/growgraph/suthing.git", rev = "v0.2.9"}
 xmltodict = "^0.12.0"
 
 [tool.poetry.extras]
