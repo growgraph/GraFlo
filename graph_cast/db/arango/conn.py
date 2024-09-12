@@ -17,7 +17,7 @@ from graph_cast.db.arango.query import fetch_fields_query
 from graph_cast.db.arango.util import render_filters
 from graph_cast.db.connection import Connection
 from graph_cast.db.util import get_data_from_cursor
-from graph_cast.filter.onto import Expression
+from graph_cast.filter.onto import Clause
 from graph_cast.onto import AggregationType, DBFlavor
 from graph_cast.util.transform import pick_unique_dict
 
@@ -386,7 +386,7 @@ class ArangoConnection(Connection):
         match_keys,
         keep_keys,
         flatten=False,
-        filters: None | Expression | list | dict = None,
+        filters: None | Clause | list | dict = None,
     ) -> list | dict:
         """
             for each jth doc from `docs` matching to docs in `collection_name` by `match_keys`
@@ -426,7 +426,7 @@ class ArangoConnection(Connection):
     def fetch_docs(
         self,
         class_name,
-        filters: None | Expression | list | dict = None,
+        filters: None | Clause | list | dict = None,
         limit: int | None = None,
         return_keys: list | None = None,
         unset_keys: list | None = None,
@@ -477,7 +477,7 @@ class ArangoConnection(Connection):
         aggregation_function: AggregationType,
         discriminant: str | None = None,
         aggregated_field: str | None = None,
-        filters: None | Expression | list | dict = None,
+        filters: None | Clause | list | dict = None,
     ):
         """
 
@@ -532,7 +532,7 @@ class ArangoConnection(Connection):
         class_name,
         match_keys,
         keep_keys,
-        filters: None | Expression | list | dict = None,
+        filters: None | Clause | list | dict = None,
     ):
         """
             from `batch` return docs that are not present in `collection` according to `match_keys`
