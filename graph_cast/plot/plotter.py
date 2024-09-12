@@ -54,6 +54,7 @@ def get_auxnode_id(ntype: AuxNodeType, label=False, vfield=False, **kwargs):
     resource = kwargs.pop("resource", None)
     vertex_shortcut = kwargs.pop("vertex_sh", None)
     resource_shortcut = kwargs.pop("resource_sh", None)
+    s = "***"
     if ntype == AuxNodeType.RESOURCE:
         resource_type = kwargs.pop("resource_type")
         if label:

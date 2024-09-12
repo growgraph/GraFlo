@@ -175,6 +175,13 @@ class ArangoConnection(Connection):
             cnames = [c["name"] for c in self.conn.collections() if c["name"][0] != "_"]
             gnames = [g["name"] for g in self.conn.graphs()]
 
+        for gn in gnames:
+            if self.conn.has_graph(gn):
+                self.conn.delete_graph(gn)
+
+        logger.info("graphs (after delete operation):")
+        logger.info(self.conn.graphs())
+
         for cn in cnames:
             if self.conn.has_collection(cn):
                 self.conn.delete_collection(cn)
@@ -183,13 +190,6 @@ class ArangoConnection(Connection):
         logger.info([c for c in self.conn.collections() if c["name"][0] != "_"])
 
         logger.info("graphs:")
-        logger.info(self.conn.graphs())
-
-        for gn in gnames:
-            if self.conn.has_graph(gn):
-                self.conn.delete_graph(gn)
-
-        logger.info("graphs (after delete operation):")
         logger.info(self.conn.graphs())
 
     def get_collections(self):
@@ -509,11 +509,19 @@ class ArangoConnection(Connection):
             collect_clause = f"COLLECT value = doc['{discriminant}'] INTO g"
             return_clause = f"""{{ '{discriminant}' : value, '_value' :{aggregation_function}({group_unit})}}"""
         else:
-            collect_clause = (
-                "COLLECT AGGREGATE value ="
-                f" {aggregation_function}(doc['{aggregated_field}'])"
-            )
-            return_clause = "value"
+            if (
+                aggregated_field is None
+                and aggregation_function == AggregationType.COUNT
+            ):
+                collect_clause = (
+                    f"COLLECT AGGREGATE value =  {aggregation_function} (doc)"
+                )
+            else:
+                collect_clause = (
+                    "COLLECT AGGREGATE value ="
+                    f" {aggregation_function}(doc['{aggregated_field}'])"
+                )
+            return_clause = """{ '_value' : value }"""
 
         q = f"""FOR doc IN {class_name} 
                     {filter_clause}
@@ -521,12 +529,8 @@ class ArangoConnection(Connection):
                     RETURN {return_clause}"""
 
         cursor = self.execute(q)
-        if discriminant is not None:
-            data = get_data_from_cursor(cursor)
-            return data
-        else:
-            answer = cursor.batch().pop()
-            return answer
+        data = get_data_from_cursor(cursor)
+        return data
 
     def keep_absent_documents(
         self,

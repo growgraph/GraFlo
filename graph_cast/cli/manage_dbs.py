@@ -75,7 +75,7 @@ def act_db(
 )
 @click.option(
     "--store-directory-path",
-    type=click.Path(exists=True, path_type=pathlib.Path),
+    type=click.Path(path_type=pathlib.Path),
     required=True,
     help="filesystem path where to dump db snapshot",
 )
@@ -116,8 +116,8 @@ def manage_dbs(
             store_directory_path.expanduser().resolve() / date.today().isoformat()
         )
 
-    if not out_path.exists():
-        out_path.mkdir(exist_ok=True)
+        if not out_path.exists():
+            out_path.mkdir(exist_ok=True)
 
     with Timer() as t_all:
         for dbname in db:

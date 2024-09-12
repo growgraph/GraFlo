@@ -14,6 +14,7 @@ def test_average(create_db, conn_conf, test_db_name):
         {"class": "b", "value": 5},
     ]
     with ConnectionManager(connection_config=conn_conf) as db_client:
+        db_client.delete_collections(["samples"])
         db_client.create_collection("samples")
         r = db_client.upsert_docs_batch(docs, "samples")
         r = db_client.aggregate(
@@ -26,3 +27,6 @@ def test_average(create_db, conn_conf, test_db_name):
             {"class": "a", "_value": 2},
             {"class": "b", "_value": 4.5},
         ]
+
+        r = db_client.aggregate("samples", AggregationType.COUNT)
+        assert r == [{"_value": 5}]

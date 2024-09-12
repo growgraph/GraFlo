@@ -1,3 +1,5 @@
+# type: ignore
+
 import gzip
 import logging
 import xml.etree.ElementTree as et
@@ -81,7 +83,7 @@ def parse_simple(fp, good_cf):
 
 
 def convert(
-    source,
+    source: str,
     target,
     chunksize=10000,
     maxchunks=None,
@@ -102,6 +104,8 @@ def convert(
             open_foo = open
         else:
             raise ValueError("Unknown file type")
+    else:
+        raise ValueError("source input should be a string")
 
     with open_foo(source, "rb") if isinstance(source, str) else nullcontext() as fp:
         if pattern:
