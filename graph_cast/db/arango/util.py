@@ -1,6 +1,8 @@
 import logging
 
 from graph_cast.architecture.edge import Edge
+from graph_cast.filter.onto import Expression
+from graph_cast.onto import DBFlavor
 
 logger = logging.getLogger(__name__)
 
@@ -28,3 +30,19 @@ def define_extra_edges(g: Edge):
     s_last = f"IN {ucol}_{vcol}_edges"
     query0 = s + s_ins + s_last
     return query0
+
+
+def render_filters(
+    filters: None | list | dict | Expression = None, doc_name="d"
+) -> str:
+    if filters is not None:
+        if not isinstance(filters, Expression):
+            ff = Expression.from_dict(filters)
+        else:
+            ff = filters
+        literal_condition = ff(doc_name=doc_name, kind=DBFlavor.ARANGO)
+        filter_clause = f"FILTER {literal_condition}"
+    else:
+        filter_clause = ""
+
+    return filter_clause

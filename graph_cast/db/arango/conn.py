@@ -14,6 +14,7 @@ from graph_cast.architecture.onto import (
 from graph_cast.architecture.schema import Schema
 from graph_cast.architecture.vertex import VertexConfig
 from graph_cast.db.arango.query import fetch_fields_query
+from graph_cast.db.arango.util import render_filters
 from graph_cast.db.connection import Connection
 from graph_cast.db.util import get_data_from_cursor
 from graph_cast.filter.onto import Expression
@@ -385,7 +386,7 @@ class ArangoConnection(Connection):
         match_keys,
         keep_keys,
         flatten=False,
-        filters: list | dict | None = None,
+        filters: None | Expression | list | dict = None,
     ) -> list | dict:
         """
             for each jth doc from `docs` matching to docs in `collection_name` by `match_keys`
@@ -425,7 +426,7 @@ class ArangoConnection(Connection):
     def fetch_docs(
         self,
         class_name,
-        filters: list | dict | None = None,
+        filters: None | Expression | list | dict = None,
         limit: int | None = None,
         return_keys: list | None = None,
         unset_keys: list | None = None,
@@ -440,11 +441,8 @@ class ArangoConnection(Connection):
         :param unset_keys:
         :return:
         """
-        if filters is not None:
-            ff = Expression.from_dict(filters)
-            filter_clause = f"FILTER {ff(doc_name='d', kind=DBFlavor.ARANGO)}"
-        else:
-            filter_clause = ""
+
+        filter_clause = render_filters(filters, doc_name="d")
 
         if return_keys is None:
             if unset_keys is None:
@@ -479,7 +477,7 @@ class ArangoConnection(Connection):
         aggregation_function: AggregationType,
         discriminant: str | None = None,
         aggregated_field: str | None = None,
-        filters: list | dict | None = None,
+        filters: None | Expression | list | dict = None,
     ):
         """
 
@@ -491,11 +489,7 @@ class ArangoConnection(Connection):
         :return:
         """
 
-        if filters is not None:
-            ff = Expression.from_dict(filters)
-            filter_clause = f"FILTER {ff(doc_name='doc', kind=DBFlavor.ARANGO)}"
-        else:
-            filter_clause = ""
+        filter_clause = render_filters(filters, doc_name="doc")
 
         if (
             aggregated_field is not None
@@ -538,7 +532,7 @@ class ArangoConnection(Connection):
         class_name,
         match_keys,
         keep_keys,
-        filters: list | dict | None = None,
+        filters: None | Expression | list | dict = None,
     ):
         """
             from `batch` return docs that are not present in `collection` according to `match_keys`
