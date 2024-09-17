@@ -14,9 +14,10 @@ from graph_cast.architecture.onto import (
 from graph_cast.architecture.schema import Schema
 from graph_cast.architecture.vertex import VertexConfig
 from graph_cast.db.arango.query import fetch_fields_query
+from graph_cast.db.arango.util import render_filters
 from graph_cast.db.connection import Connection
 from graph_cast.db.util import get_data_from_cursor
-from graph_cast.filter.onto import Expression
+from graph_cast.filter.onto import Clause
 from graph_cast.onto import AggregationType, DBFlavor
 from graph_cast.util.transform import pick_unique_dict
 
@@ -175,6 +176,13 @@ class ArangoConnection(Connection):
             cnames = [c["name"] for c in self.conn.collections() if c["name"][0] != "_"]
             gnames = [g["name"] for g in self.conn.graphs()]
 
+        for gn in gnames:
+            if self.conn.has_graph(gn):
+                self.conn.delete_graph(gn)
+
+        logger.info("graphs (after delete operation):")
+        logger.info(self.conn.graphs())
+
         for cn in cnames:
             if self.conn.has_collection(cn):
                 self.conn.delete_collection(cn)
@@ -183,13 +191,6 @@ class ArangoConnection(Connection):
         logger.info([c for c in self.conn.collections() if c["name"][0] != "_"])
 
         logger.info("graphs:")
-        logger.info(self.conn.graphs())
-
-        for gn in gnames:
-            if self.conn.has_graph(gn):
-                self.conn.delete_graph(gn)
-
-        logger.info("graphs (after delete operation):")
         logger.info(self.conn.graphs())
 
     def get_collections(self):
@@ -385,7 +386,7 @@ class ArangoConnection(Connection):
         match_keys,
         keep_keys,
         flatten=False,
-        filters: list | dict | None = None,
+        filters: None | Clause | list | dict = None,
     ) -> list | dict:
         """
             for each jth doc from `docs` matching to docs in `collection_name` by `match_keys`
@@ -425,7 +426,7 @@ class ArangoConnection(Connection):
     def fetch_docs(
         self,
         class_name,
-        filters: list | dict | None = None,
+        filters: None | Clause | list | dict = None,
         limit: int | None = None,
         return_keys: list | None = None,
         unset_keys: list | None = None,
@@ -440,11 +441,8 @@ class ArangoConnection(Connection):
         :param unset_keys:
         :return:
         """
-        if filters is not None:
-            ff = Expression.from_dict(filters)
-            filter_clause = f"FILTER {ff(doc_name='d', kind=DBFlavor.ARANGO)}"
-        else:
-            filter_clause = ""
+
+        filter_clause = render_filters(filters, doc_name="d")
 
         if return_keys is None:
             if unset_keys is None:
@@ -479,7 +477,7 @@ class ArangoConnection(Connection):
         aggregation_function: AggregationType,
         discriminant: str | None = None,
         aggregated_field: str | None = None,
-        filters: list | dict | None = None,
+        filters: None | Clause | list | dict = None,
     ):
         """
 
@@ -491,11 +489,7 @@ class ArangoConnection(Connection):
         :return:
         """
 
-        if filters is not None:
-            ff = Expression.from_dict(filters)
-            filter_clause = f"FILTER {ff(doc_name='doc', kind=DBFlavor.ARANGO)}"
-        else:
-            filter_clause = ""
+        filter_clause = render_filters(filters, doc_name="doc")
 
         if (
             aggregated_field is not None
@@ -509,11 +503,19 @@ class ArangoConnection(Connection):
             collect_clause = f"COLLECT value = doc['{discriminant}'] INTO g"
             return_clause = f"""{{ '{discriminant}' : value, '_value' :{aggregation_function}({group_unit})}}"""
         else:
-            collect_clause = (
-                "COLLECT AGGREGATE value ="
-                f" {aggregation_function}(doc['{aggregated_field}'])"
-            )
-            return_clause = "value"
+            if (
+                aggregated_field is None
+                and aggregation_function == AggregationType.COUNT
+            ):
+                collect_clause = (
+                    f"COLLECT AGGREGATE value =  {aggregation_function} (doc)"
+                )
+            else:
+                collect_clause = (
+                    "COLLECT AGGREGATE value ="
+                    f" {aggregation_function}(doc['{aggregated_field}'])"
+                )
+            return_clause = """{ '_value' : value }"""
 
         q = f"""FOR doc IN {class_name} 
                     {filter_clause}
@@ -521,12 +523,8 @@ class ArangoConnection(Connection):
                     RETURN {return_clause}"""
 
         cursor = self.execute(q)
-        if discriminant is not None:
-            data = get_data_from_cursor(cursor)
-            return data
-        else:
-            answer = cursor.batch().pop()
-            return answer
+        data = get_data_from_cursor(cursor)
+        return data
 
     def keep_absent_documents(
         self,
@@ -534,7 +532,7 @@ class ArangoConnection(Connection):
         class_name,
         match_keys,
         keep_keys,
-        filters: list | dict | None = None,
+        filters: None | Clause | list | dict = None,
     ):
         """
             from `batch` return docs that are not present in `collection` according to `match_keys`
