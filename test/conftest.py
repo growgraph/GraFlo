@@ -270,3 +270,9 @@ def resource_with_dynamic_relations():
     """
     )
     return vc
+
+
+@pytest.fixture()
+def batch_edge_index():
+    batch = FileHandle.load("test.data", "kg.batch.edge.index.json")
+    return batch

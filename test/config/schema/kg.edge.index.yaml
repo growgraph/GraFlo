@@ -1,0 +1,61 @@
+general:
+    name: kg
+resources:
+    tree_likes:
+    -   name: metrics_load
+        root:
+            children:
+            -   type: edge
+                edge:
+                    source: publication
+                    target: metric
+                    source_pick:
+                    -   _id
+            -   key: publication
+                children:
+                -   type: vertex
+                    name: publication
+                    map:
+                        pub_id: _id
+            -   key: metric
+                children:
+                -   type: vertex
+                    name: metric
+vertex_config:
+    vertices:
+    -   name: publication
+        dbname: publications
+        fields:
+        -   arxiv
+        -   doi
+        -   created
+        -   data_source
+        -   _id
+        indexes:
+        -   fields:
+            -   arxiv
+            -   doi
+        -   unique: false
+            fields:
+            -   created
+    -   name: metric
+        dbname: metrics
+        fields:
+        -   hash
+        -   name
+        -   type
+        -   version
+        -   obs_date
+        -   data
+        indexes:
+        -   fields:
+            -   hash
+        -   fields:
+            -   version
+        -   fields:
+            -   name
+            -   type
+edge_config:
+    edges:
+    -   source: publication
+        target: metric
