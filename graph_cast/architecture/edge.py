@@ -34,9 +34,6 @@ class Edge(BaseDataclass):
     source_discriminant: str | None = None
     target_discriminant: str | None = None
 
-    source_pick: list[str] = dataclasses.field(default_factory=list)
-    target_pick: list[str] = dataclasses.field(default_factory=list)
-
     source_relation_field: str | None = None
     target_relation_field: str | None = None
 

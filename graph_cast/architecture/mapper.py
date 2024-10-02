@@ -285,12 +285,8 @@ class MapperNode(BaseDataclass):
 
         # get source and target edge fields
         source_index, target_index = (
-            self.edge.source_pick
-            if self.edge.source_pick
-            else vertex_config.index(source),
-            self.edge.target_pick
-            if self.edge.target_pick
-            else vertex_config.index(target),
+            vertex_config.index(source),
+            vertex_config.index(target),
         )
 
         # get source and target items

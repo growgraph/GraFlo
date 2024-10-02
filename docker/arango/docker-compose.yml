@@ -1,3 +1,4 @@
+version: "3"
 services:
     arango:
         image: ${IMAGE_VERSION}
