@@ -120,8 +120,8 @@ class Caster:
                 else:
                     db_client.upsert_docs_batch(
                         data,
-                        vc.vertex_dbname(vcol),
-                        vc.index(vcol),
+                        class_name=vc.vertex_dbname(vcol),
+                        match_keys=vc.index(vcol),
                         update_keys="doc",
                         filter_uniques=True,
                         dry=self.dry,

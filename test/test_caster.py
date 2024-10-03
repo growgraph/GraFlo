@@ -82,4 +82,5 @@ def test_edge_index(batch_edge_index):
     caster = Caster(cschema, n_threads=1, dry=False)
 
     graph = caster.cast_normal_resource(batch_edge_index, resource_name="metrics_load")
+
     assert len(graph.edges[("publication", "metric", None)]) == 5
