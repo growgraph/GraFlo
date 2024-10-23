@@ -112,15 +112,17 @@ class ArangoConnection(Connection):
         # to let arango name her index, we remove "name"
         if index.type == IndexType.PERSISTENT:
             # temp fix : inconsistent in python-arango
-            ih = general_collection._add_index(data)
+            ih = general_collection.add_index(data)
         if index.type == IndexType.HASH:
-            ih = general_collection._add_index(data)
+            ih = general_collection.add_index(data)
         elif index.type == IndexType.SKIPLIST:
             ih = general_collection.add_skiplist_index(
                 fields=index.fields, unique=index.unique
             )
         elif index.type == IndexType.FULLTEXT:
-            ih = general_collection.add_fulltext_index(fields=index.fields)
+            ih = general_collection.add_index(
+                data={"fields": index.fields, "type": "fulltext"}
+            )
         else:
             ih = None
         return ih
