@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum, EnumMeta
+from enum import EnumMeta, StrEnum
 from types import MappingProxyType
 
 from dataclass_wizard import JSONWizard
@@ -16,32 +16,32 @@ class MetaEnum(EnumMeta):
         return True
 
 
-class BaseEnum(Enum, metaclass=MetaEnum):
+class BaseEnum(StrEnum, metaclass=MetaEnum):
     pass
 
 
-class InputType(str, BaseEnum):
+class InputType(BaseEnum):
     JSON = "json"
     CSV = "csv"
 
 
-class ResourceType(str, BaseEnum):
+class ResourceType(BaseEnum):
     ROWLIKE = "row"
     TREELIKE = "tree"
 
 
-class DBFlavor(str, BaseEnum):
+class DBFlavor(BaseEnum):
     ARANGO = "arango"
     NEO4J = "neo4j"
 
 
-class ExpressionFlavor(str, BaseEnum):
+class ExpressionFlavor(BaseEnum):
     ARANGO = "arango"
     NEO4J = "neo4j"
     PYTHON = "python"
 
 
-class AggregationType(str, BaseEnum):
+class AggregationType(BaseEnum):
     COUNT = "COUNT"
     MAX = "MAX"
     MIN = "MIN"

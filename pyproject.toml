@@ -16,9 +16,8 @@ neo4j = "^5.22.0"
 networkx = "^3.3"
 pandas = "^2.0.3"
 pygraphviz = {optional = true, version = "^1.11"}
-python = "^3.10"
+python = "^3.11"
 python-arango = "^8.1.2"
-strenum = "^0.4.15"
 suthing = {git = "ssh://git@github.com/growgraph/suthing.git", rev = "v0.2.11"}
 xmltodict = "^0.14.2"
 

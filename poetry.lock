@@ -4,9 +4,9 @@
 graphviz = ["pygraphviz"]
 
 [metadata]
-content-hash = "0373d3f430c1b263cd1702d7c70157f35cdc288e523287df0965fd3fdd35a96b"
+content-hash = "032b4663484588373bca2949973ba16c12d6bb6ee1caffafa02d471dae9c8093"
 lock-version = "2.0"
-python-versions = "^3.10"
+python-versions = "^3.11"
 
 [[package]]
 description = "An abstract syntax tree for Python with inference support."
@@ -18,9 +18,6 @@ name = "astroid"
 optional = false
 python-versions = ">=3.9.0"
 version = "3.3.5"
-
-[package.dependencies]
-typing-extensions = {markers = "python_version < \"3.11\"", version = ">=4.0.0"}
 
 [[package]]
 description = "Python package for providing Mozilla's CA Bundle."
@@ -224,20 +221,6 @@ name = "distlib"
 optional = false
 python-versions = "*"
 version = "0.3.9"
-
-[[package]]
-description = "Backport of PEP 654 (exception groups)"
-files = [
-  {file = "exceptiongroup-1.2.2-py3-none-any.whl", hash = "sha256:3111b9d131c238bec2f8f516e123e14ba243563fb135d3fe885990585aa7795b"},
-  {file = "exceptiongroup-1.2.2.tar.gz", hash = "sha256:47c2edf7c6738fafb49fd34290706d1a1a2f4d1c6df275526b62cbb4aa5393cc"}
-]
-name = "exceptiongroup"
-optional = false
-python-versions = ">=3.7"
-version = "1.2.2"
-
-[package.extras]
-test = ["pytest (>=6)"]
 
 [[package]]
 description = "A platform independent file lock."
@@ -622,7 +605,6 @@ version = "2.2.3"
 
 [package.dependencies]
 numpy = [
-  {markers = "python_version < \"3.11\"", version = ">=1.22.4"},
   {markers = "python_version == \"3.11\"", version = ">=1.23.2"},
   {markers = "python_version >= \"3.12\"", version = ">=1.26.0"}
 ]
@@ -746,14 +728,12 @@ version = "3.3.1"
 astroid = ">=3.3.4,<=3.4.0-dev0"
 colorama = {markers = "sys_platform == \"win32\"", version = ">=0.4.5"}
 dill = [
-  {markers = "python_version < \"3.11\"", version = ">=0.2"},
   {markers = "python_version >= \"3.11\" and python_version < \"3.12\"", version = ">=0.3.6"},
   {markers = "python_version >= \"3.12\"", version = ">=0.3.7"}
 ]
 isort = ">=4.2.5,<5.13.0 || >5.13.0,<6"
 mccabe = ">=0.6,<0.8"
 platformdirs = ">=2.2.0"
-tomli = {markers = "python_version < \"3.11\"", version = ">=1.1.0"}
 tomlkit = ">=0.10.1"
 
 [package.extras]
@@ -773,11 +753,9 @@ version = "7.4.4"
 
 [package.dependencies]
 colorama = {markers = "sys_platform == \"win32\"", version = "*"}
-exceptiongroup = {markers = "python_version < \"3.11\"", version = ">=1.0.0rc8"}
 iniconfig = "*"
 packaging = "*"
 pluggy = ">=0.12,<2.0"
-tomli = {markers = "python_version < \"3.11\"", version = ">=1.0.0"}
 
 [package.extras]
 testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.7.2)", "requests", "setuptools", "xmlschema"]
@@ -973,22 +951,6 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 version = "1.16.0"
 
 [[package]]
-description = "An Enum that inherits from str."
-files = [
-  {file = "StrEnum-0.4.15-py3-none-any.whl", hash = "sha256:a30cda4af7cc6b5bf52c8055bc4bf4b2b6b14a93b574626da33df53cf7740659"},
-  {file = "StrEnum-0.4.15.tar.gz", hash = "sha256:878fb5ab705442070e4dd1929bb5e2249511c0bcf2b0eeacf3bcd80875c82eff"}
-]
-name = "strenum"
-optional = false
-python-versions = "*"
-version = "0.4.15"
-
-[package.extras]
-docs = ["myst-parser[linkify]", "sphinx", "sphinx-rtd-theme"]
-release = ["twine"]
-test = ["pylint", "pytest", "pytest-black", "pytest-cov", "pytest-pylint"]
-
-[[package]]
 description = "Small Useful Things : python package for convenient primitives"
 develop = false
 files = []
@@ -1005,20 +967,9 @@ pyyaml = ">=3.10"
 
 [package.source]
 reference = "v0.2.11"
-resolved_reference = "73b4d36e59b272424cda3bee4adb309802282054"
+resolved_reference = "520ee0120f2f9652a6fbff986d5b258b08851253"
 type = "git"
 url = "ssh://git@github.com/growgraph/suthing.git"
-
-[[package]]
-description = "A lil' TOML parser"
-files = [
-  {file = "tomli-2.1.0-py3-none-any.whl", hash = "sha256:a5c57c3d1c56f5ccdf89f6523458f60ef716e210fc47c4cfb188c5ba473e0391"},
-  {file = "tomli-2.1.0.tar.gz", hash = "sha256:3f646cae2aec94e17d04973e4249548320197cfabdf130015d023de4b74d8ab8"}
-]
-name = "tomli"
-optional = false
-python-versions = ">=3.8"
-version = "2.1.0"
 
 [[package]]
 description = "Style preserving TOML library"
@@ -1030,17 +981,6 @@ name = "tomlkit"
 optional = false
 python-versions = ">=3.8"
 version = "0.13.2"
-
-[[package]]
-description = "Backported and Experimental Type Hints for Python 3.8+"
-files = [
-  {file = "typing_extensions-4.12.2-py3-none-any.whl", hash = "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d"},
-  {file = "typing_extensions-4.12.2.tar.gz", hash = "sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8"}
-]
-name = "typing-extensions"
-optional = false
-python-versions = ">=3.8"
-version = "4.12.2"
 
 [[package]]
 description = "Provider of IANA time zone data"

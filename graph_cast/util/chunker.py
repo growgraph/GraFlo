@@ -25,7 +25,7 @@ AbstractChunkerType = TypeVar("AbstractChunkerType", bound="AbstractChunker")
 logger = logging.getLogger(__name__)
 
 
-class ChunkerType(str, BaseEnum):
+class ChunkerType(BaseEnum):
     JSON = "json"
     JSONL = "jsonl"
     TABLE = "table"
