@@ -2,7 +2,7 @@ fail_fast: false
 
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.5
+    rev: v0.7.0
     hooks:
     -   id: ruff
         args: [--fix, --ignore, E722]
@@ -21,12 +21,12 @@ repos:
     -   id: isort
         args:
         -   --line-length=79
-#-   repo: https://github.com/pre-commit/mirrors-mypy
-#    rev: v1.11.2
-#    hooks:
-#    -   id: mypy
-#        args: [--show-error-codes]
-#        additional_dependencies: [types-requests, types-python-dateutil, types-waitress, types-PyYAML, pandas-stubs]
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+    -   id: mypy
+        args: [--show-error-codes]
+        additional_dependencies: [types-requests, types-python-dateutil, types-waitress, types-PyYAML, pandas-stubs]
 -   repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
     rev: v2.14.0
     hooks:
@@ -34,7 +34,7 @@ repos:
         args: [--autofix, --indent, '4', --preserve-quotes]
 
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
     -   id: pretty-format-json
         args: [--autofix, --indent, '4', --no-sort-keys]

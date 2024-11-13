@@ -382,7 +382,7 @@ def convert(
     # pylint: disable-next=assignment
     fp: gzip.GzipFile | FPSmart | None
 
-    with open_foo(source, "rb") if isinstance(
+    with open_foo(source, "rb") if isinstance(  # type: ignore
         source, pathlib.Path
     ) else nullcontext() as fp:
         if pattern is not None:
