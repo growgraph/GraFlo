@@ -4,7 +4,7 @@
 graphviz = ["pygraphviz"]
 
 [metadata]
-content-hash = "032b4663484588373bca2949973ba16c12d6bb6ee1caffafa02d471dae9c8093"
+content-hash = "7842684d8c5bfdabd5c554086346cd19bae9cd89e6a4df47fd31f70fb18a82a8"
 lock-version = "2.0"
 python-versions = "^3.11"
 
@@ -183,18 +183,19 @@ version = "0.4.6"
 [[package]]
 description = "Marshal dataclasses to/from JSON. Use field properties with initial values. Construct a dataclass schema with JSON input."
 files = [
-  {file = "dataclass-wizard-0.23.0.tar.gz", hash = "sha256:da29ec19846d46a1eef0692ba7c59c8a86ecd3a9eaddc0511cfc7485ad6d9c50"},
-  {file = "dataclass_wizard-0.23.0-py2.py3-none-any.whl", hash = "sha256:50207dec6d36494421366b49b7a9ba6a4d831e2650c0af25cb4c057103d4a97c"}
+  {file = "dataclass-wizard-0.28.0.tar.gz", hash = "sha256:dd295cff8df6d8167a79048b77e91a3a1287a5905363f8df4de819b50d83b03a"},
+  {file = "dataclass_wizard-0.28.0-py2.py3-none-any.whl", hash = "sha256:996fa46475b9192a48a057c34f04597bc97be5bc2f163b99cb1de6f778ca1f7f"}
 ]
 name = "dataclass-wizard"
 optional = false
 python-versions = "*"
-version = "0.23.0"
+version = "0.28.0"
 
 [package.extras]
-dev = ["Sphinx (==5.3.0)", "bump2version (==1.0.1)", "coverage (>=6.2)", "dataclass-factory (==2.12)", "dataclasses-json (==0.5.6)", "flake8 (>=3)", "jsons (==1.6.1)", "pip (>=21.3.1)", "pytest (==7.0.1)", "pytest-cov (==3.0.0)", "pytest-mock (>=3.6.1)", "pytimeparse (==1.1.8)", "sphinx-issues (==3.0.1)", "sphinx-issues (==4.0.0)", "tox (==3.24.5)", "twine (==3.8.0)", "watchdog[watchmedo] (==2.1.6)", "wheel (==0.37.1)", "wheel (==0.42.0)"]
+dev = ["Sphinx (==7.4.7)", "Sphinx (==8.1.3)", "bump2version (==1.0.1)", "coverage (>=6.2)", "dataclass-factory (==2.16)", "dataclass-wizard[toml]", "dataclasses-json (==0.6.7)", "flake8 (>=3)", "jsons (==1.6.3)", "pip (>=21.3.1)", "pytest (==8.3.3)", "pytest-cov (==6.0.0)", "pytest-mock (>=3.6.1)", "pytimeparse (==1.1.8)", "sphinx-issues (==5.0.0)", "tomli (>=2,<3)", "tomli (>=2,<3)", "tomli-w (>=1,<2)", "tox (==4.23.2)", "twine (==5.1.1)", "watchdog[watchmedo] (==6.0.0)", "wheel (==0.45.0)"]
 timedelta = ["pytimeparse (>=1.1.7)"]
-yaml = ["PyYAML (>=5.3)"]
+toml = ["tomli (>=2,<3)", "tomli (>=2,<3)", "tomli-w (>=1,<2)"]
+yaml = ["PyYAML (>=6,<7)"]
 
 [[package]]
 description = "serialize all of Python"
@@ -957,17 +958,17 @@ files = []
 name = "suthing"
 optional = false
 python-versions = "^3.10"
-version = "0.2.11"
+version = "0.2.12"
 
 [package.dependencies]
-dataclass-wizard = "^0.23.0"
+dataclass-wizard = "^0.28.0"
 pandas = "^2.0.3"
 python-dotenv = "^1.0.0"
 pyyaml = ">=3.10"
 
 [package.source]
-reference = "v0.2.11"
-resolved_reference = "520ee0120f2f9652a6fbff986d5b258b08851253"
+reference = "v0.2.12"
+resolved_reference = "90033b420af680a4146d6f91051e0db7d43f581d"
 type = "git"
 url = "ssh://git@github.com/growgraph/suthing.git"
 
