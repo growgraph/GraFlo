@@ -27,7 +27,7 @@ from graph_cast.util.merge import discriminate
 logger = logging.getLogger(__name__)
 
 
-class NodeType(str, BaseEnum):
+class NodeType(BaseEnum):
     # only refers to other nodes or maps children nodes to a list
     TRIVIAL = "trivial"
     #

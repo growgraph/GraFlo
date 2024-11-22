@@ -503,7 +503,7 @@ class ArangoConnection(Connection):
 
         if discriminant is not None:
             collect_clause = f"COLLECT value = doc['{discriminant}'] INTO g"
-            return_clause = f"""{{ '{discriminant}' : value, '_value' :{aggregation_function}({group_unit})}}"""
+            return_clause = f"""{{ '{discriminant}' : value, '_value': {aggregation_function}({group_unit})}}"""
         else:
             if (
                 aggregated_field is None

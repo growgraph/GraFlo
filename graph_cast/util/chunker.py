@@ -6,12 +6,17 @@ import gc
 import gzip
 import json
 import logging
+import pathlib
 import re
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, TextIO, TypeVar
+from shutil import copyfileobj
+from typing import Any, Callable, TextIO, TypeVar
+from xml.etree import ElementTree as et
 
 import ijson
 import pandas as pd
+import xmltodict
 
 from graph_cast.architecture.onto import BaseEnum, EncodingType
 
@@ -20,7 +25,7 @@ AbstractChunkerType = TypeVar("AbstractChunkerType", bound="AbstractChunker")
 logger = logging.getLogger(__name__)
 
 
-class ChunkerType(str, BaseEnum):
+class ChunkerType(BaseEnum):
     JSON = "json"
     JSONL = "jsonl"
     TABLE = "table"
@@ -230,8 +235,7 @@ class ChunkFlusherMono:
 
     def flush_chunk(self):
         logger.info(
-            f" in flush_chunk: len(self.acc) : {len(self.acc)};"
-            f" self.chunk_count : {self.chunk_count}"
+            f" in flush_chunk: : {len(self.acc)};" f" chunk count : {self.chunk_count}"
         )
         if len(self.acc) > 0:
             filename = f"{self.target_prefix}#{self.suffix}#{self.chunk_count}.json.gz"
@@ -278,3 +282,117 @@ class FPSmart:
 
     def close(self):
         self.fp.close()
+
+
+tag_wos = "REC"
+pattern_wos = r"xmlns=\".*[^\"]\"(?=>)"
+force_list_wos = (
+    "abstract",
+    "address_name",
+    "book_note",
+    "conf_date",
+    "conf_info",
+    "conf_location",
+    "conf_title",
+    "conference",
+    "contributor",
+    "doctype",
+    "grant",
+    "grant_id",
+    "heading",
+    "identifier",
+    "keyword",
+    "language",
+    "name",
+    "organization",
+    "p",
+    "publisher",
+    "reference",
+    "rw_author",
+    "sponsor",
+    "subheading",
+    "subject",
+    "suborganization",
+    "title",
+    "edition",
+    "zip",
+)
+
+
+@contextmanager
+def nullcontext(enter_result=None):
+    yield enter_result
+
+
+def gunzip_file(fname_in, fname_out):
+    with gzip.open(fname_in, "rb") as f_in:
+        with open(fname_out, "wb") as f_out:
+            copyfileobj(f_in, f_out)
+
+
+def parse_simple(fp, good_cf, force_list=None, root_tag=None):
+    """
+    driver func, parse file fp, push good and bad records
+    accordingly to good_cf and bad_cf
+
+    :param fp: filepointer to be parsed
+    :param good_cf: chunk flusher of good records
+    :param force_list:
+    :param root_tag:
+    :return:
+    """
+    events = ("start", "end")
+    tree = et.iterparse(fp, events)
+    context = iter(tree)
+    event, root = next(context)
+    for event, pub in context:
+        if event == "end" and (pub.tag == root_tag if root_tag is not None else True):
+            item = et.tostring(pub, encoding="utf8", method="xml").decode("utf")
+            obj = xmltodict.parse(
+                item,
+                force_cdata=True,
+                force_list=force_list,
+            )
+            good_cf.push(obj)
+            root.clear()
+            if good_cf.stop():
+                break
+
+
+def convert(
+    source: pathlib.Path,
+    target_root: str,
+    chunk_size: int = 10000,
+    max_chunks=None,
+    pattern: str | None = None,
+    force_list=None,
+    root_tag=None,
+):
+    logger.info(f" chunksize : {chunk_size} | maxchunks {max_chunks} ")
+
+    good_cf = ChunkFlusherMono(target_root, chunk_size, max_chunks)
+    bad_cf = ChunkFlusherMono(target_root, chunk_size, max_chunks, suffix="bad")
+
+    if source.suffix == ".gz":
+        open_foo: Callable | gzip.GzipFile = gzip.GzipFile
+    elif source.suffix == ".xml":
+        open_foo = open
+    else:
+        raise ValueError("Unknown file type")
+    # pylint: disable-next=assignment
+    fp: gzip.GzipFile | FPSmart | None
+
+    with open_foo(source, "rb") if isinstance(  # type: ignore
+        source, pathlib.Path
+    ) else nullcontext() as fp:
+        if pattern is not None:
+            fp = FPSmart(fp, pattern)
+        else:
+            fp = fp
+        parse_simple(fp, good_cf, force_list, root_tag)
+
+        good_cf.flush_chunk()
+
+        logger.info(f" {good_cf.items_processed()} good records")
+        bad_cf.flush_chunk()
+        logger.info(f"{bad_cf.items_processed()} bad records")

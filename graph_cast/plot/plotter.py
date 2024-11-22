@@ -8,7 +8,7 @@ from graph_cast.architecture import DataSourceType, Schema
 from graph_cast.onto import BaseEnum
 
 
-class AuxNodeType(str, BaseEnum):
+class AuxNodeType(BaseEnum):
     FIELD = "field"
     FIELD_DEFINITION = "field_definition"
     INDEX = "field"

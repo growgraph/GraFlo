@@ -7,7 +7,7 @@ from types import MappingProxyType
 from graph_cast.onto import BaseDataclass, BaseEnum, ExpressionFlavor
 
 
-class LogicalOperator(str, BaseEnum):
+class LogicalOperator(BaseEnum):
     AND = "AND"
     OR = "OR"
     NOT = "NOT"
@@ -28,7 +28,7 @@ OperatorMapping = MappingProxyType(
 )
 
 
-class ComparisonOperator(str, BaseEnum):
+class ComparisonOperator(BaseEnum):
     NEQ = "!="
     EQ = "=="
     GE = ">="

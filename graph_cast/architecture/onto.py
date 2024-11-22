@@ -21,25 +21,27 @@ GraphEntity = Union[str, tuple[str, str, str | None]]
 
 logger = logging.getLogger(__name__)
 
+DISCRIMINANT_KEY = "__discriminant_key"
 
-class EdgeMapping(str, BaseEnum):
+
+class EdgeMapping(BaseEnum):
     ALL = "all"
     ONE_N = "1-n"
 
 
-class EncodingType(str, BaseEnum):
+class EncodingType(BaseEnum):
     ISO_8859 = "ISO-8859-1"
     UTF_8 = "utf-8"
 
 
-class IndexType(str, BaseEnum):
+class IndexType(BaseEnum):
     PERSISTENT = "persistent"
     HASH = "hash"
     SKIPLIST = "skiplist"
     FULLTEXT = "fulltext"
 
 
-class EdgeType(str, BaseEnum):
+class EdgeType(BaseEnum):
     """
     INDIRECT: defined as a collection, indexes are set up (possibly used after data ingestion)
     DIRECT : in addition to indexes, these edges are generated during ingestion
@@ -106,7 +108,7 @@ class Index(BaseDataclass):
         return r
 
 
-class DataSourceType(str, BaseEnum):
+class DataSourceType(BaseEnum):
     JSON = "json"
     TABLE = "csv"
 
@@ -188,9 +190,6 @@ def cast_graph_name_to_triple(s: GraphEntity):
         return s
 
 
-class EdgeCastingType(str, BaseEnum):
+class EdgeCastingType(BaseEnum):
     PAIR_LIKE = "pair"
     PRODUCT_LIKE = "product"
-
-
-DISCRIMINANT_KEY = "__discriminant_key"
