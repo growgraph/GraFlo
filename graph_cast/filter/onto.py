@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import dataclasses
+import logging
 from abc import ABCMeta, abstractmethod
 from types import MappingProxyType
 
 from graph_cast.onto import BaseDataclass, BaseEnum, ExpressionFlavor
+
+logger = logging.getLogger(__name__)
 
 
 class LogicalOperator(BaseEnum):
@@ -82,7 +85,8 @@ class LeafClause(AbsClause):
         kind: ExpressionFlavor = ExpressionFlavor.ARANGO,
         **kwargs,
     ):
-        assert self.value
+        if not self.value:
+            logger.warning(f"for {self} value is not set : {self.value}")
         if kind == ExpressionFlavor.ARANGO:
             assert self.cmp_operator is not None
             return self._cast_arango(doc_name)
