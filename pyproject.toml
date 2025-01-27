@@ -7,7 +7,7 @@ authors = ["Alexander Belikov <alexander@growgraph.dev>"]
 description = "ETL to cast tabular and json data types into graphs (collections of vertices and edges)"
 name = "graph_cast"
 packages = [{include = "graph_cast"}]
-version = "0.13.18"
+version = "0.13.19"
 
 [tool.poetry.dependencies]
 click = "^8.1.7"
@@ -18,7 +18,7 @@ pandas = "^2.0.3"
 pygraphviz = {optional = true, version = "^1.11"}
 python = "^3.11"
 python-arango = "^8.1.2"
-suthing = {git = "ssh://git@github.com/growgraph/suthing.git", rev = "v0.2.12"}
+suthing = "^0.3.0"
 xmltodict = "^0.14.2"
 
 [tool.poetry.extras]
