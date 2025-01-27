@@ -11,9 +11,23 @@ logger = logging.getLogger(__name__)
 
 
 def standardize(k):
-    # 1. clean period
+    """
+    Standardizes a string key by removing periods and splitting.
+
+    Handles comma and space-separated strings, normalizing their format.
+
+    Args:
+        k (str): Input string to be standardized.
+
+    Returns:
+        str: Cleaned and standardized string.
+
+    Example:
+        "John. Doe, Smith" -> "John,Doe,Smith"
+    """
+
     k = k.translate(str.maketrans({".": ""}))
-    # 2. try to split by ", "
+    # try to split by ", "
     k = k.split(", ")
     if len(k) < 2:
         k = k[0].split(" ")
@@ -24,22 +38,28 @@ def standardize(k):
 
 def parse_date_standard(input_str):
     dt = datetime.strptime(input_str, "%Y-%m-%d")
-    year, month, day = dt.year, dt.month, dt.day
-    return year, month, day
+    return dt.year, dt.month, dt.day
 
 
 def parse_date_conf(input_str):
     dt = datetime.strptime(input_str, "%Y%m%d")
-    year, month, day = dt.year, dt.month, dt.day
-    return year, month, day
+    return dt.year, dt.month, dt.day
 
 
 def parse_date_ibes(date0, time0):
     """
+    Converts IBES date and time to ISO 8601 format datetime.
 
-    :param date0: as "20160126"
-    :param time0: as "9:35:52"
-    :return: datetime as "2013-01-15T14:19:09.522"
+    Args:
+        date0 (str/int): Date in YYYYMMDD format.
+        time0 (str): Time in HH:MM:SS format.
+
+    Returns:
+        str: Datetime in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ).
+
+    Example:
+        parse_date_ibes(20160126, "9:35:52")
+        -> "2016-01-26T09:35:52Z"
     """
     date0 = str(date0)
     year, month, day = date0[:4], date0[4:6], date0[6:]
@@ -74,10 +94,19 @@ def parse_date_standard_to_epoch(input_str):
 
 def cast_ibes_analyst(s):
     """
-        split string like 'ADKINS/NARRA' and 'ARFSTROM      J'
+    Splits and normalizes analyst name strings.
 
-    :param s:
-    :return:
+    Handles various name formats like 'ADKINS/NARRA' or 'ARFSTROM      J'.
+
+    Args:
+        s (str): Analyst name string.
+
+    Returns:
+        tuple: (last_name, first_initial)
+
+    Examples:
+        'ADKINS/NARRA' -> ('ADKINS', 'N')
+        'ARFSTROM      J' -> ('ARFSTROM', 'J')
     """
     if " " in s or "\t" in s:
         r = s.split()[:2]
@@ -103,17 +132,20 @@ def parse_date_reference(input_str):
 
 def _parse_date_reference(input_str):
     """
-    examples:
+    Parses complex, human-written date references.
 
-    "year" : "1923, May 10"
-    "year" : "1923, July"
-    "year" : "1921, Sept"
-    "year" : "1935-36"
-    "year" : "1926, December 24th"
-    "year" : "1923, May 10"
-    "year" : "undated"
-    :param input_str:
-    :return:
+    Handles various date formats like:
+    - "1923, May 10"
+    - "1923, July"
+    - "1921, Sept"
+    - "1935-36"
+    - "1926, December 24th"
+
+    Args:
+        input_str (str): Date string in various formats.
+
+    Returns:
+        dict: Parsed date information with keys 'year', optional 'month', 'day'.
     """
     if "," in input_str:
         if len(input_str.split(" ")) == 3:
@@ -159,6 +191,16 @@ def try_int(x):
 
 
 def clear_first_level_nones(docs, keys_keep_nones=None):
+    """
+    Removes None values from dictionaries, with optional key exceptions.
+
+    Args:
+        docs (list): List of dictionaries to clean.
+        keys_keep_nones (list, optional): Keys to keep even if their value is None.
+
+    Returns:
+        list: Cleaned list of dictionaries.
+    """
     docs = [
         {k: v for k, v in tdict.items() if v or k in keys_keep_nones} for tdict in docs
     ]
@@ -166,6 +208,19 @@ def clear_first_level_nones(docs, keys_keep_nones=None):
 
 
 def parse_multi_item(s, mapper: dict, direct: list):
+    """
+    Parses complex multi-item strings into structured data.
+
+    Supports parsing strings with quoted or bracketed items.
+
+    Args:
+        s (str): Input string to parse.
+        mapper (dict): Mapping of input keys to output keys.
+        direct (list): Direct keys to extract.
+
+    Returns:
+        defaultdict: Parsed items with lists as values.
+    """
     if "'" in s:
         items_str = re.findall(r"\"(.*?)\"", s) + re.findall(r"\'(.*?)\'", s)
     else:
@@ -195,6 +250,18 @@ def parse_multi_item(s, mapper: dict, direct: list):
 
 
 def pick_unique_dict(docs):
+    """
+    Removes duplicate dictionaries from a list.
+
+    Uses JSON serialization to identify unique dictionaries.
+
+    Args:
+        docs (list): List of dictionaries.
+
+    Returns:
+        list: List of unique dictionaries.
+    """
+
     docs = {json.dumps(d, sort_keys=True) for d in docs}
     docs = [json.loads(t) for t in docs]
     return docs
