@@ -561,8 +561,7 @@ class ArangoConnection(Connection):
         # there were multiple docs return for the same pair of filtering condition
         if any([len(v) > 1 for v in present_docs_keys.values()]):
             logger.warning(
-                "fetch_present_documents returned multiple docs per filtering"
-                " condition"
+                "fetch_present_documents returned multiple docs per filtering condition"
             )
 
         absent_indices = sorted(set(range(len(batch))) - set(present_docs_keys.keys()))

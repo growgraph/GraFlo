@@ -77,10 +77,7 @@ class Neo4jConnection(Connection):
         else:
             formula = f"()-[x:{obj_name}]-()"
 
-        q = (
-            f"CREATE INDEX {index_name} IF NOT EXISTS FOR {formula} ON"
-            f" ({fields_str});"
-        )
+        q = f"CREATE INDEX {index_name} IF NOT EXISTS FOR {formula} ON ({fields_str});"
 
         self.execute(q)
 
