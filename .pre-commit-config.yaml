@@ -7,14 +7,6 @@ repos:
     -   id: ruff
         args: [--fix, --ignore, E722]
     -   id: ruff-format
--   repo: local
-    hooks:
-    -   id: pylint
-        name: pylint
-        entry: pylint
-        language: system
-        types: [python]
-        args: ["-rn", "-sn", "--output-format=colorized", "--errors-only", "--jobs", "4", "--rcfile=.pylintrc"]
 -   repo: https://github.com/PyCQA/isort
     rev: 6.0.1
     hooks:
