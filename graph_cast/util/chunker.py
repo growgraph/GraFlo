@@ -235,7 +235,7 @@ class ChunkFlusherMono:
 
     def flush_chunk(self):
         logger.info(
-            f" in flush_chunk: : {len(self.acc)};" f" chunk count : {self.chunk_count}"
+            f" in flush_chunk: : {len(self.acc)}; chunk count : {self.chunk_count}"
         )
         if len(self.acc) > 0:
             filename = f"{self.target_prefix}#{self.suffix}#{self.chunk_count}.json.gz"
@@ -374,7 +374,7 @@ def convert(
     bad_cf = ChunkFlusherMono(target_root, chunk_size, max_chunks, suffix="bad")
 
     if source.suffix == ".gz":
-        open_foo: Callable | gzip.GzipFile = gzip.GzipFile
+        open_foo: Callable = gzip.open
     elif source.suffix == ".xml":
         open_foo = open
     else:
@@ -382,9 +382,13 @@ def convert(
     # pylint: disable-next=assignment
     fp: gzip.GzipFile | FPSmart | None
 
-    with open_foo(source, "rb") if isinstance(  # type: ignore
-        source, pathlib.Path
-    ) else nullcontext() as fp:
+    with (
+        open_foo(source, "rb")
+        if isinstance(  # type: ignore
+            source, pathlib.Path
+        )
+        else nullcontext() as fp
+    ):
         if pattern is not None:
             fp = FPSmart(fp, pattern)
         else:

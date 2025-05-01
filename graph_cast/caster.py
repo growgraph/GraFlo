@@ -271,9 +271,9 @@ class Caster:
                     self.process_with_queue,
                     **kwargs,
                 )
-                assert (
-                    mp.get_start_method() == "fork"
-                ), "Requires 'forking' operating system"
+                assert mp.get_start_method() == "fork", (
+                    "Requires 'forking' operating system"
+                )
 
                 processes = []
 
