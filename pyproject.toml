@@ -24,7 +24,7 @@ dependencies = [
 description = "ETL to cast tabular and json data types into graphs (collections of vertices and edges)"
 name = "graph_cast"
 requires-python = "~=3.11"
-version = "0.13.19"
+version = "0.13.20"
 
 [project.optional-dependencies]
 graphviz = ["pygraphviz~=1.11"]
