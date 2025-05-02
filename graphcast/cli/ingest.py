@@ -5,9 +5,7 @@ from os.path import dirname, join, realpath
 import click
 from suthing import ConfigFactory, FileHandle
 
-from graphcast.architecture.schema import Schema
-from graphcast.caster import Caster
-from graphcast.util.onto import Patterns
+from graphcast import Caster, Patterns, Schema
 
 logger = logging.getLogger(__name__)
 
@@ -65,16 +63,12 @@ def ingest(
 
     logging.basicConfig(level=logging.INFO)
 
-    schema = Schema.from_dict(FileHandle.load(fpath=schema_path))
+    schema = Schema.from_dict(FileHandle.load(schema_path))
 
-    conn_conf = ConfigFactory.create_config(
-        dict_like=FileHandle.load(fpath=db_config_path)
-    )
+    conn_conf = ConfigFactory.create_config(db_config_path)
 
     if resource_pattern_config_path is not None:
-        patterns = Patterns.from_dict(
-            FileHandle.load(fpath=resource_pattern_config_path)
-        )
+        patterns = Patterns.from_dict(FileHandle.load(resource_pattern_config_path))
     else:
         patterns = Patterns()
 

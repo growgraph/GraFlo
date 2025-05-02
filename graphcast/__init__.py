@@ -1,5 +1,19 @@
-from .architecture import DataSourceType, Index, Schema  # noqa
-from .caster import Caster  # noqa
-from .db import ConnectionManager, ConnectionType  # noqa
-from .filter.onto import ComparisonOperator, LogicalOperator  # noqa
-from .onto import AggregationType  # noqa
+from .architecture import DataSourceType, Index, Schema
+from .caster import Caster
+from .db import ConnectionManager, ConnectionType
+from .filter.onto import ComparisonOperator, LogicalOperator
+from .onto import AggregationType
+from .util.onto import Patterns
+
+__all__ = [
+    "Caster",
+    "ConnectionManager",
+    "ConnectionType",
+    "ComparisonOperator",
+    "LogicalOperator",
+    "DataSourceType",
+    "Index",
+    "Schema",
+    "Patterns",
+    "AggregationType",
+]

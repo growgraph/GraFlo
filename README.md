@@ -1,6 +1,6 @@
 # GraphCast <img src="docs/assets/favicon.ico" alt="suthing logo" style="height: 32px; width:32px;"/>
 
-A framework for transforming tabular (csv, xls) and tree structure data (json, xml) into property graphs and ingesting them into graph databases (ArangoDB, Neo4j).
+A framework for transforming tabular (csv) and tree structure data (json, xml) into property graphs and ingesting them into graph databases (ArangoDB, Neo4j).
 
 
 ![Python](https://img.shields.io/badge/python-3.11-blue.svg)
@@ -22,7 +22,7 @@ A framework for transforming tabular (csv, xls) and tree structure data (json, x
 - **Database support**: Ingest into ArangoDB and Neo4j using the same API (database agnostic)
 - **GraphCast Server**: Use a dockerized server to populate your databases
 
-Transparent and Composable configuration, with a clear isolation of transformation from DB settings (indexing).
+<!-- Transparent and Composable configuration, with a clear isolation of transformation from DB settings (indexing). -->
 
 ## Documentation
 Full documentation is available at: [growgraph.github.io/graphcast](https://growgraph.github.io/graphcast)
@@ -38,7 +38,39 @@ pip install graphcast
 ### Simple ingest
 
 ```python
+from suthing import ConfigFactory, FileHandle
 
+from graphcast import Schema, Caster, Patterns
+
+
+schema = Schema.from_dict(FileHandle.load(schema_path))
+
+conn_conf = ConfigFactory.create_config(db_config_path)
+
+if resource_pattern_config_path is not None:
+    patterns = Patterns.from_dict(
+        FileHandle.load(resource_pattern_config_path)
+    )
+else:
+    patterns = Patterns()
+
+schema.fetch_resource()
+
+caster = Caster(
+    schema,
+    n_cores=n_cores,
+    n_threads=n_threads,
+)
+
+caster.ingest_files(
+    path=source_path,
+    limit_files=limit_files,
+    clean_start=fresh_start,
+    batch_size=batch_size,
+    conn_conf=conn_conf,
+    patterns=patterns,
+    init_only=init_only,
+)
 ```
 
 
