@@ -28,7 +28,7 @@ def act_db(
     :param use_docker:
     :return:
     """
-    host = f"tcp://{conf.ip_addr}:{conf.port}"
+    host = f"tcp://{conf.hostname}:{conf.port}"
     db_folder = output_path / db_name
 
     cmd = "arangorestore" if restore else "arangodump"

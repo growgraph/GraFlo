@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def basic_query(
     query,
     port=8529,
-    ip_addr="127.0.0.1",
+    hostname="127.0.0.1",
     cred_name="root",
     cred_pass="123",
     db_name="_system",
@@ -22,7 +22,7 @@ def basic_query(
     batch_size=10000,
     bind_vars=None,
 ):
-    hosts = f"http://{ip_addr}:{port}"
+    hosts = f"http://{hostname}:{port}"
     client = ArangoClient(hosts=hosts)
 
     sys_db = client.db(db_name, username=cred_name, password=cred_pass)

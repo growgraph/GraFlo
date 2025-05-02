@@ -158,7 +158,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.0.3,<3" },
     { name = "pygraphviz", marker = "extra == 'graphviz'", specifier = "~=1.11" },
     { name = "python-arango", specifier = ">=8.1.2,<9" },
-    { name = "suthing", specifier = ">=0.3.0,<0.4" },
+    { name = "suthing", specifier = "==0.4.1" },
     { name = "xmltodict", specifier = ">=0.14.2,<0.15" },
 ]
 provides-extras = ["graphviz"]
@@ -462,11 +462,11 @@ wheels = [
 
 [[package]]
 name = "python-dotenv"
-version = "1.0.1"
+version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/bc/57/e84d88dfe0aec03b7a2d4327012c1627ab5f03652216c63d49846d7a6c58/python-dotenv-1.0.1.tar.gz", hash = "sha256:e324ee90a023d808f1959c46bcbc04446a10ced277783dc6ee09987c37ec10ca", size = 39115, upload-time = "2024-01-23T06:33:00.505Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/88/2c/7bb1416c5620485aa793f2de31d3df393d3686aa8a8506d11e10e13c5baf/python_dotenv-1.1.0.tar.gz", hash = "sha256:41f90bc6f5f177fb41f53e87666db362025010eb28f60a01c9143bfa33a2b2d5", size = 39920, upload-time = "2025-03-25T10:14:56.835Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6a/3e/b68c118422ec867fa7ab88444e1274aa40681c606d59ac27de5a5588f082/python_dotenv-1.0.1-py3-none-any.whl", hash = "sha256:f7b63ef50f1b690dddf550d03497b66d609393b40b564ed0d674909a68ebf16a", size = 19863, upload-time = "2024-01-23T06:32:58.246Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/18/98a99ad95133c6a6e2005fe89faedf294a748bd5dc803008059409ac9b1e/python_dotenv-1.1.0-py3-none-any.whl", hash = "sha256:d7c01d9e2293916c18baf562d95698754b0dbbb5e74d457c45d4f6561fb9d55d", size = 20256, upload-time = "2025-03-25T10:14:55.034Z" },
 ]
 
 [[package]]
@@ -560,7 +560,7 @@ wheels = [
 
 [[package]]
 name = "suthing"
-version = "0.3.0"
+version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dataclass-wizard" },
@@ -568,18 +568,18 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/38/b0/b969e375681bb6cafa1db96f73dccbac9b10e606b4626a197972bc7f1d56/suthing-0.3.0.tar.gz", hash = "sha256:b096b05bc800e0989634819b1de17ccb3bfd9065c39091e986e06e198d048137", size = 8569, upload-time = "2025-01-15T10:43:53.964Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e9/e4/881b2ce2617adc8d0db8629e613bc529bc7efc5bd3c452a317f3ad068c84/suthing-0.4.1.tar.gz", hash = "sha256:144685d9cf9e2c4ab9c022151c52627ab2193c003b4f78b2cbb7262fff68ec54", size = 80282, upload-time = "2025-05-02T08:21:44.393Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5a/9f/722a449cbe8bfb489b6e9a3f687fc7f81ad2bc92a023fdf7075fdfb0e97b/suthing-0.3.0-py3-none-any.whl", hash = "sha256:7e5192495cd9e413993eb590d888cf4f4ff8f7ce960e856e8307a1303777c492", size = 9743, upload-time = "2025-01-15T10:43:51.253Z" },
+    { url = "https://files.pythonhosted.org/packages/6f/42/68085b61f5f247f30b6b04548217a4a98e628c54e649d41d25fb0d5acef3/suthing-0.4.1-py3-none-any.whl", hash = "sha256:bfb3538a9ba380a967b5f555c7bfcde5c112dd7305cb90de818dd3e7ad684e6e", size = 12522, upload-time = "2025-05-02T08:21:43.153Z" },
 ]
 
 [[package]]
 name = "typing-extensions"
-version = "4.12.2"
+version = "4.13.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/df/db/f35a00659bc03fec321ba8bce9420de607a1d37f8342eee1863174c69557/typing_extensions-4.12.2.tar.gz", hash = "sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8", size = 85321, upload-time = "2024-06-07T18:52:15.995Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f6/37/23083fcd6e35492953e8d2aaaa68b860eb422b34627b13f2ce3eb6106061/typing_extensions-4.13.2.tar.gz", hash = "sha256:e6c81219bd689f51865d9e372991c540bda33a0379d5573cddb9a3a23f7caaef", size = 106967, upload-time = "2025-04-10T14:19:05.416Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/26/9f/ad63fc0248c5379346306f8668cda6e2e2e9c95e01216d2b8ffd9ff037d0/typing_extensions-4.12.2-py3-none-any.whl", hash = "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d", size = 37438, upload-time = "2024-06-07T18:52:13.582Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/54/b1ae86c0973cc6f0210b53d508ca3641fb6d0c56823f288d108bc7ab3cc8/typing_extensions-4.13.2-py3-none-any.whl", hash = "sha256:a439e7c04b49fec3e5d3e2beaa21755cadbbdc391694e28ccdd36ca4a1408f8c", size = 45806, upload-time = "2025-04-10T14:19:03.967Z" },
 ]
 
 [[package]]

@@ -20,7 +20,7 @@ class Neo4jConnection(Connection):
     def __init__(self, config: Neo4jConnectionConfig):
         super().__init__()
         driver = GraphDatabase.driver(
-            uri=config.hosts, auth=(config.cred_name, config.cred_pass)
+            uri=config.url, auth=(config.cred_name, config.cred_pass)
         )
         self.conn = driver.session()
 

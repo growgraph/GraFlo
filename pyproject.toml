@@ -17,7 +17,7 @@ dependencies = [
   "networkx~=3.3",
   "pandas>=2.0.3,<3",
   "python-arango>=8.1.2,<9",
-  "suthing>=0.3.0,<0.4",
+  "suthing==0.4.1",
   "xmltodict>=0.14.2,<0.15"
 ]
 description = "ETL to cast tabular and json data types into graphs (collections of vertices and edges)"
