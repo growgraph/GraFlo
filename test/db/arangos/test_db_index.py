@@ -2,7 +2,7 @@ from test.conftest import verify
 
 import pytest
 
-from graph_cast.db import ConnectionManager
+from graphcast.db import ConnectionManager
 
 
 @pytest.fixture(scope="function")

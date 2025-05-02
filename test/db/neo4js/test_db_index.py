@@ -1,4 +1,4 @@
-from graph_cast.db import ConnectionManager
+from graphcast.db import ConnectionManager
 
 
 def test_create_vertex_index(conn_conf, schema_obj):

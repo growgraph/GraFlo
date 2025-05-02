@@ -1,6 +1,6 @@
 import logging
 
-from graph_cast.architecture.schema import Schema
+from graphcast.architecture.schema import Schema
 
 logger = logging.getLogger(__name__)
 

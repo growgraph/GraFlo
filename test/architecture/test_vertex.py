@@ -1,6 +1,6 @@
 import logging
 
-from graph_cast.architecture.vertex import Vertex
+from graphcast.architecture.vertex import Vertex
 
 logger = logging.getLogger(__name__)
 

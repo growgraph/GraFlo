@@ -7,11 +7,11 @@ import pytest
 import yaml
 from suthing import FileHandle, equals
 
-from graph_cast.architecture.onto import cast_graph_name_to_triple
-from graph_cast.architecture.schema import Schema
-from graph_cast.caster import Caster
-from graph_cast.onto import InputTypeFileExtensions
-from graph_cast.util.misc import sorted_dicts
+from graphcast.architecture.onto import cast_graph_name_to_triple
+from graphcast.architecture.schema import Schema
+from graphcast.caster import Caster
+from graphcast.onto import InputTypeFileExtensions
+from graphcast.util.misc import sorted_dicts
 
 
 def pytest_addoption(parser):
@@ -258,7 +258,7 @@ def resource_with_dynamic_relations():
     transforms:
         keep_suffix_id:
             foo: split_keep_part
-            module: graph_cast.util.transform
+            module: graphcast.util.transform
             params:
                 sep: "/"
                 keep: -1

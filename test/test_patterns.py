@@ -1,6 +1,6 @@
 import pathlib
 
-from graph_cast.util.onto import Patterns
+from graphcast.util.onto import Patterns
 
 
 def test_patterns():

@@ -1,4 +1,4 @@
-from graph_cast.util.merge import (
+from graphcast.util.merge import (
     discriminate,
     discriminate_by_key,
     merge_doc_basis,

@@ -240,7 +240,7 @@ json:
                         _anchor: main
                     transforms:
                     -   foo: parse_date_standard
-                        module: graph_cast.util.transform
+                        module: graphcast.util.transform
                         input:
                         -   '@sortdate'
                         output:
@@ -416,7 +416,7 @@ json:
                                 name: date
                                 transforms:
                                 -   foo: parse_date_conf
-                                    module: graph_cast.util.transform
+                                    module: graphcast.util.transform
                                     input:
                                     -   '@conf_start'
                                     output:
@@ -535,7 +535,7 @@ json:
                                 name: date
                                 transforms:
                                 -   foo: parse_date_reference
-                                    module: graph_cast.util.transform
+                                    module: graphcast.util.transform
                                     input:
                                     -   '#text'
                                     output:
@@ -916,7 +916,7 @@ vertex_collections:
                 -   display_name
                 -   wos_standard
             -   foo: standardize
-                module: graph_cast.util.transform
+                module: graphcast.util.transform
                 fields:
                 -   wos_standard
         location:
@@ -1070,7 +1070,7 @@ vertex_collections:
             -   day
             transforms:
             -   foo: try_int
-                module: graph_cast.util.transform
+                module: graphcast.util.transform
                 fields:
                 -   year
                 -   month

@@ -1,6 +1,6 @@
 import pytest
 
-from graph_cast.filter.onto import (
+from graphcast.filter.onto import (
     ComparisonOperator,
     Expression,
     LeafClause,

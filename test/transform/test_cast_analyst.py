@@ -1,6 +1,6 @@
 import pytest
 
-from graph_cast.util.transform import cast_ibes_analyst
+from graphcast.util.transform import cast_ibes_analyst
 
 
 @pytest.fixture()

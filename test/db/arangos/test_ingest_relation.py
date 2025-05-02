@@ -3,7 +3,7 @@ from test.db.arangos.conftest import verify_from_db
 
 from suthing import FileHandle
 
-from graph_cast import Caster, ConnectionManager
+from graphcast import Caster, ConnectionManager
 
 
 def test_ingest(

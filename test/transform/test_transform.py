@@ -2,8 +2,8 @@ import logging
 
 import pytest
 
-from graph_cast.architecture.transform import Transform
-from graph_cast.util.transform import parse_multi_item
+from graphcast.architecture.transform import Transform
+from graphcast.util.transform import parse_multi_item
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +98,7 @@ def test_switch_complete():
     }
 
     kwargs = {
-        "module": "graph_cast.util.transform",
+        "module": "graphcast.util.transform",
         "foo": "round_str",
         "switch": {"Open": ["name", "value"]},
         "params": {"ndigits": 3},
@@ -114,7 +114,7 @@ def test_return_doc_false():
     }
 
     kwargs = {
-        "module": "graph_cast.util.transform",
+        "module": "graphcast.util.transform",
         "foo": "round_str",
         "switch": {"Open": ["name", "value"]},
         "params": {"ndigits": 3},
@@ -128,7 +128,7 @@ def test_split_keep_part():
     doc = {"id": "https://openalex.org/A123"}
 
     kwargs = {
-        "module": "graph_cast.util.transform",
+        "module": "graphcast.util.transform",
         "foo": "split_keep_part",
         "fields": "id",
         "params": {"sep": "/", "keep": -1},
@@ -142,7 +142,7 @@ def test_split_keep_part_longer():
     doc = {"doi": "https://doi.org/10.1007/978-3-123"}
 
     kwargs = {
-        "module": "graph_cast.util.transform",
+        "module": "graphcast.util.transform",
         "foo": "split_keep_part",
         "fields": "doi",
         "params": {"sep": "/", "keep": [-2, -1]},

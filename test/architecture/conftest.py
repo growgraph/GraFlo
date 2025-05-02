@@ -41,7 +41,7 @@ def vertex_pub():
                     value: 0
         transforms:
         -   foo: cast_ibes_analyst
-            module: graph_cast.util.transform
+            module: graphcast.util.transform
             input:
             -   ANALYST
             output:
@@ -308,21 +308,21 @@ def row_resource_ibes():
         encoding: ISO-8859-1
         transforms:
         -   foo: parse_date_ibes
-            module: graph_cast.util.transform
+            module: graphcast.util.transform
             input:
             -   ANNDATS
             -   ANNTIMS
             output:
             -   datetime_announce
         -   foo: parse_date_ibes
-            module: graph_cast.util.transform
+            module: graphcast.util.transform
             input:
             -   REVDATS
             -   REVTIMS
             output:
             -   datetime_review
         -   foo: cast_ibes_analyst
-            module: graph_cast.util.transform
+            module: graphcast.util.transform
             input:
             -   ANALYST
             output:
@@ -352,7 +352,7 @@ def mapper_node_a():
         name: date
         transforms:
         -   foo: parse_date_standard
-            module: graph_cast.util.transform
+            module: graphcast.util.transform
             input:
             -   '@sortdate'
             output:
@@ -449,7 +449,7 @@ def mapper_value():
                 name: concept
                 transforms:
                 -   foo: split_keep_part
-                    module: graph_cast.util.transform
+                    module: graphcast.util.transform
                     params:
                         sep: "/"
                         keep: -1

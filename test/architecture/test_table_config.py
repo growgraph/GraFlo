@@ -1,9 +1,9 @@
 import logging
 from functools import partial
 
-from graph_cast.architecture.edge import EdgeConfig
-from graph_cast.architecture.onto import SOURCE_AUX, TARGET_AUX
-from graph_cast.architecture.resource import (
+from graphcast.architecture.edge import EdgeConfig
+from graphcast.architecture.onto import SOURCE_AUX, TARGET_AUX
+from graphcast.architecture.resource import (
     RowResource,
     add_blank_collections,
     define_edges,
@@ -11,8 +11,8 @@ from graph_cast.architecture.resource import (
     normalize_row,
     row_to_vertices,
 )
-from graph_cast.architecture.schema import Schema
-from graph_cast.architecture.vertex import VertexConfig
+from graphcast.architecture.schema import Schema
+from graphcast.architecture.vertex import VertexConfig
 
 logger = logging.getLogger(__name__)
 

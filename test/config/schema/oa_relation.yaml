@@ -53,7 +53,7 @@ edge_config:
 transforms:
     keep_suffix_id:
         foo: split_keep_part
-        module: graph_cast.util.transform
+        module: graphcast.util.transform
         params:
             sep: "/"
             keep: -1

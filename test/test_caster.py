@@ -7,8 +7,8 @@ from test.conftest import verify
 import pytest
 from suthing import FileHandle
 
-from graph_cast.caster import Caster
-from graph_cast.onto import InputTypeFileExtensions
+from graphcast.caster import Caster
+from graphcast.onto import InputTypeFileExtensions
 
 logger = logging.getLogger(__name__)
 

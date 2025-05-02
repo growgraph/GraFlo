@@ -7,6 +7,11 @@ dev = [
   "pre-commit>=3.3.3,<4",
   "pytest>=7.4.0,<8"
 ]
+docs = [
+  "mkdocs-material>=9.6.12",
+  "mkdocs>=1.6.1",
+  "mkdocstrings[python]>=0.29.1"
+]
 
 [project]
 authors = [{email = "alexander@growgraph.dev", name = "Alexander Belikov"}]
@@ -21,7 +26,7 @@ dependencies = [
   "xmltodict>=0.14.2,<0.15"
 ]
 description = "ETL to cast tabular and json data types into graphs (collections of vertices and edges)"
-name = "graph_cast"
+name = "graphcast"
 requires-python = "~=3.11"
 version = "0.13.19"
 
@@ -29,13 +34,13 @@ version = "0.13.19"
 graphviz = ["pygraphviz~=1.11"]
 
 [project.scripts]
-ingest = "graph_cast.cli.ingest:ingest"
-manage_dbs = "graph_cast.cli.manage_dbs:manage_dbs"
-plot_schema = "graph_cast.cli.plot_schema:plot_schema"
-xml2json = "graph_cast.cli.plot_schema:xml2json"
+ingest = "graphcast.cli.ingest:ingest"
+manage_dbs = "graphcast.cli.manage_dbs:manage_dbs"
+plot_schema = "graphcast.cli.plot_schema:plot_schema"
+xml2json = "graphcast.cli.plot_schema:xml2json"
 
 [tool.hatch.build.targets.sdist]
-include = ["graph_cast"]
+include = ["graphcast"]
 
 [tool.hatch.build.targets.wheel]
-include = ["graph_cast"]
+include = ["graphcast"]

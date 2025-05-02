@@ -1,7 +1,7 @@
 import logging
 
-from graph_cast.architecture.resource import RowResource
-from graph_cast.architecture.vertex import VertexConfig
+from graphcast.architecture.resource import RowResource
+from graphcast.architecture.vertex import VertexConfig
 
 logger = logging.getLogger(__name__)
 

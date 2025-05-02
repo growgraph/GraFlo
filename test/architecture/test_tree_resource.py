@@ -1,9 +1,9 @@
 import logging
 from collections import defaultdict
 
-from graph_cast.architecture.mapper import MapperNode
-from graph_cast.architecture.onto import GraphEntity
-from graph_cast.architecture.resource import TreeResource
+from graphcast.architecture.mapper import MapperNode
+from graphcast.architecture.onto import GraphEntity
+from graphcast.architecture.resource import TreeResource
 
 logger = logging.getLogger(__name__)
 

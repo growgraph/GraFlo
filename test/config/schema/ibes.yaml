@@ -6,21 +6,21 @@ resources:
         encoding: ISO-8859-1
         transforms:
         -   foo: parse_date_ibes
-            module: graph_cast.util.transform
+            module: graphcast.util.transform
             input:
             -   ANNDATS
             -   ANNTIMS
             output:
             -   datetime_announce
         -   foo: parse_date_ibes
-            module: graph_cast.util.transform
+            module: graphcast.util.transform
             input:
             -   REVDATS
             -   REVTIMS
             output:
             -   datetime_review
         -   foo: cast_ibes_analyst
-            module: graph_cast.util.transform
+            module: graphcast.util.transform
             input:
             -   ANALYST
             output:

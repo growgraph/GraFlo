@@ -1,8 +1,8 @@
 import logging
 
-from graph_cast.architecture.edge import Edge, EdgeConfig
-from graph_cast.architecture.onto import Index, VertexHelper, Weight
-from graph_cast.architecture.vertex import VertexConfig
+from graphcast.architecture.edge import Edge, EdgeConfig
+from graphcast.architecture.onto import Index, VertexHelper, Weight
+from graphcast.architecture.vertex import VertexConfig
 
 logger = logging.getLogger(__name__)
 
