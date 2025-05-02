@@ -1,6 +1,7 @@
 import logging
 import multiprocessing as mp
 import queue
+import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
@@ -38,7 +39,11 @@ class Caster:
             f
             for f in (fpath / pattern.sub_path).iterdir()
             if f.is_file()
-            and (True if pattern.regex is None else pattern.regex in f.name)
+            and (
+                True
+                if pattern.regex is None
+                else re.search(pattern.regex, f.name) is not None
+            )
         ]
 
         if limit_files is not None:

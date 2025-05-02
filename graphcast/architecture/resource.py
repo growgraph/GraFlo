@@ -137,6 +137,8 @@ class RowResource(Resource):
                 for c in vertex_config.vertex_set
                 if set(vertex_config.fields(c)) & set(tau.output)
             ]
+            if tau.image:
+                related_vertices += [tau.image]
             for v in related_vertices:
                 if v not in self.vertex_rep:
                     self.vertex_rep[v] = VertexRepresentationHelper(

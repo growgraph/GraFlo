@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
   <!-- White circle background -->
-  <circle cx="48" cy="48" r="42" fill="white"/>
+  <circle cx="48" cy="48" r="45" fill="white"/>
   
   <!-- Original diagram, centered in the white circle -->
   <g transform="translate(5 2)">

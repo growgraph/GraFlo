@@ -1,56 +1,66 @@
-# Welcome to Suthing
+# GraphCast
 
-SUThing /ˈsu.θɪŋ/ or /ˈsʌ.θɪŋ/ (Some Useful Things) is a collection of useful classes and decorators.  
+GraphCast is a powerful Python package for transforming tabular and JSON data into property graphs. It provides a flexible and efficient way to cast various data formats into collections of vertices and edges, making it ideal for graph database operations and data analysis.
 
-A Python utility package providing tools for file handling, timing, profiling, and data comparison.
+![Python](https://img.shields.io/badge/python-3.11-blue.svg) 
+[![License: BSL](https://img.shields.io/badge/license-BSL--1.1-green)](https://github.com/growgraph/graphcast/blob/main/LICENSE)
+[![pre-commit](https://github.com/growgraph/graphcast/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/growgraph/graphcast/actions/workflows/pre-commit.yml)
+[![PyPI version](https://badge.fury.io/py/graphcast.svg)](https://badge.fury.io/py/graphcast)
 
-![Python](https://img.shields.io/badge/python-3.10-blue.svg) 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![pre-commit](https://github.com/growgraph/suthing/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/growgraph/suthing/actions/workflows/pre-commit.yml)
-[![pytest](https://github.com/growgraph/suthing/actions/workflows/pytest.yml/badge.svg)](https://github.com/growgraph/suthing/actions/workflows/pytest.yml)
-[![PyPI version](https://badge.fury.io/py/suthing.svg)](https://badge.fury.io/py/suthing)
-<!-- [![Documentation Status](https://readthedocs.org/projects/suthing/badge/?version=latest)](https://suthing.readthedocs.io/en/latest/?badge=latest) -->
+<!-- [![pytest](https://github.com/growgraph/graphcast/actions/workflows/pytest.yml/badge.svg)](https://github.com/growgraph/graphcast/actions/workflows/pytest.yml) -->
 
-## Features
 
-- **File Handling**: One-line file reading/writing with file format inference from provided extension (YAML, JSON, CSV, pickle, gz etc.)
-- **API/Database Config Class**: Normalized representation of API connection configs
-- **Performance Measurement**: Simple timer utilities and profiling decorators
-- **Data Comparison**: Deep comparison of nested data structures
-- **Error Handling**: Decorators for secure function execution and error tracking
+## Core Concepts
 
-## Quick Start
+### Property Graphs
+GraphCast works with property graphs, which consist of:
 
-```python
-from suthing import FileHandle, Timer, equals
+- **Vertices**: Nodes with properties and optional unique identifiers
+- **Edges**: Relationships between vertices with their own properties
+- **Properties**: Both vertices and edges may have properties
 
-# Read a file
-data = FileHandle.load("config.yaml")
+### Schema
+The Schema defines how your data should be transformed into a graph:
 
-# Time your code
-with Timer() as t:
-    # Your code here
-    pass
-print(f"Execution took {t.elapsed_str}")
+- **Vertex Definitions**: Specify vertex types, their properties, and unique identifiers
+- **Edge Definitions**: Define relationships between vertices and their properties
+- **Resource Mapping**: Link data sources to vertex and edge definitions
+- **Filters**: Apply conditions to data during transformation
+- **Transforms**: Modify data during the casting process
 
-# Compare complex structures
-result = equals(dict1, dict2)
-```
+### Resources
+Resources are your data sources that can be:
 
-## Documentation
+- **Table-like**: CSV files, database tables
+- **JSON-like**: JSON files, nested data structures
 
-Explore the documentation to learn more about Suthing's features:
+## Key Features
 
-- [Getting Started](getting_started/quickstart.md) - Learn how to install and use Suthing
-- [API Reference](reference/index.md) - Complete API documentation
-- [Examples](examples.md) - Code examples and usage patterns
+- **Flexible Schema Definition**: Define complex graph structures with ease
+- **Multiple Data Source Support**: Handle CSV, JSON, XML, and more
+- **Parallel Processing**: Efficient processing with multi-threading
+- **Database Integration**: Seamless integration with Neo4j and ArangoDB
+- **Advanced Filtering**: Powerful filtering capabilities for data transformation
+- **Blank Node Support**: Create intermediate vertices for complex relationships
+
+## Quick Links
+
+- [Installation](getting_started/installation.md)
+- [Quick Start Guide](getting_started/quickstart.md)
+- [API Reference](reference/index.md)
+- [Examples](examples.md)
+
+## Use Cases
+
+- **Data Migration**: Transform relational data into graph structures
+- **Knowledge Graphs**: Build complex knowledge representations
+- **Data Integration**: Combine multiple data sources into a unified graph
 
 ## Requirements
 
-- Python 3.10+
-- pandas
-- PyYAML
-- python-dotenv
+- Python 3.11 or higher
+- Graph database (Neo4j or ArangoDB) for storage
+- Dependencies as specified in pyproject.toml
 
 ## Contributing
 

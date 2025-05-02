@@ -1,0 +1,37 @@
+general:
+    name: enterprise
+resources:
+    row_likes:
+    -   name: people
+        transforms:
+        -   image: person
+    # -   name: placement
+    #     transforms:
+    #     -   image: person
+    #         map:
+    #             person: name
+    #     -   image: company
+    #         map:
+    #             company: name
+vertex_config:
+    vertices:
+    -   name: person
+        fields:
+        -   id
+        -   name
+        -   age
+        indexes:
+        -   fields:
+            -   id
+    -   name: company
+        fields:
+        -   id
+        -   name
+        -   industry
+        indexes:
+        -   fields:
+            -   id
+edge_config:
+    edges:
+    -   source: person
+        target: company
