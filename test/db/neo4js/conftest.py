@@ -27,14 +27,14 @@ def conn_conf(test_db_port, creds):
 
     db_args = {
         "protocol": "bolt",
-        "ip_addr": "localhost",
+        "hostname": "localhost",
         "cred_name": cred_name,
         "cred_pass": cred_pass,
         "port": test_db_port,
         "database": "_system",
         "db_type": "neo4j",
     }
-    conn_conf = ConfigFactory.create_config(dict_like=db_args)
+    conn_conf = ConfigFactory.create_config(db_args)
     return conn_conf
 
 

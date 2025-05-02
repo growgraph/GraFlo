@@ -27,7 +27,7 @@ def conn_conf(test_db_port):
 
     db_args = {
         "protocol": "http",
-        "ip_addr": "localhost",
+        "hostname": "localhost",
         "port": test_db_port,
         "cred_name": "root",
         "cred_pass": cred_pass,
@@ -35,7 +35,7 @@ def conn_conf(test_db_port):
         "db_type": "arango",
     }
 
-    conn_conf = ConfigFactory.create_config(dict_like=db_args)
+    conn_conf = ConfigFactory.create_config(db_args)
     return conn_conf
 
 

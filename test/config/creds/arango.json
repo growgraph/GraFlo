@@ -1,6 +1,6 @@
 {
     "protocol": "http",
-    "ip_addr": "localhost",
+    "hostname": "localhost",
     "port": 8535,
     "cred_name": "root",
     "cred_pass": "123",
