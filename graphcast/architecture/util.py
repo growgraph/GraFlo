@@ -3,6 +3,8 @@ def project_dict(item, keys, how="include"):
         return {k: v for k, v in item.items() if k in keys}
     elif how == "exclude":
         return {k: v for k, v in item.items() if k not in keys}
+    else:
+        return {}
 
 
 def project_dicts(items, keys, how="include"):
@@ -23,6 +25,4 @@ def strip_prefix(dictlike, prefix="~"):
             new_dictlike[k] = strip_prefix(v, prefix)
     elif isinstance(dictlike, list):
         return [strip_prefix(x) for x in dictlike]
-    else:
-        return dictlike
-    return new_dictlike
+    return dictlike
