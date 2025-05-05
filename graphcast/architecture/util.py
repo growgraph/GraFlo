@@ -1,6 +1,3 @@
-from __future__ import annotations
-
-
 def project_dict(item, keys, how="include"):
     if how == "include":
         return {k: v for k, v in item.items() if k in keys}

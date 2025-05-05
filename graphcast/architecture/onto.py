@@ -4,7 +4,7 @@ import dataclasses
 import logging
 from abc import ABCMeta
 from collections import defaultdict
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 from graphcast.onto import BaseDataclass, BaseEnum, DBFlavor
 from graphcast.util.transform import pick_unique_dict
@@ -17,7 +17,7 @@ TARGET_AUX = "__target"
 TypeVE = Union[str, tuple[str, str]]
 
 # type for vertex or edge name (index)
-GraphEntity = Union[str, tuple[str, str, str | None]]
+GraphEntity = Union[str, tuple[str, str, Optional[str]]]
 
 logger = logging.getLogger(__name__)
 
