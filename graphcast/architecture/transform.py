@@ -60,7 +60,7 @@ class Transform(BaseDataclass):
             elif self.switch:
                 self.input = tuple([k for k in self.switch])
                 self.output = tuple(self.switch[self.input[0]])
-            elif not self.image:
+            elif not self.name:
                 raise ValueError(
                     "Either input and output, fields, map or image should be"
                     " provided to Transform constructor."

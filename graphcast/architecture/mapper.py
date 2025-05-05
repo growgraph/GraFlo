@@ -3,9 +3,10 @@ import logging
 from collections import defaultdict
 from itertools import product
 from types import MappingProxyType
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Optional
 
 from graphcast.architecture.edge import Edge, EdgeConfig
+from graphcast.architecture.extra import update_defaultdict
 from graphcast.architecture.onto import (
     DISCRIMINANT_KEY,
     SOURCE_AUX,
@@ -28,8 +29,6 @@ logger = logging.getLogger(__name__)
 class NodeType(BaseEnum):
     # only refers to other nodes or maps children nodes to a list
     TRIVIAL = "trivial"
-    #
-    # LIST = "list"
     # adds a vertex specified by a value; terminal
     VALUE = "value"
     # adds a vertex, directly or via a mapping; terminal
@@ -68,24 +67,18 @@ NodeTypePriority = MappingProxyType(
 )
 
 
-def update_defaultdict(dd_a: defaultdict, dd_b: defaultdict):
-    for k, v in dd_b.items():
-        dd_a[k] += v
-    return dd_a
-
-
 @dataclasses.dataclass
 class MapperNode(BaseDataclass):
     type: NodeType = NodeType.TRIVIAL
-    edge: Edge = None  # type: ignore
-    name: str | None = None
+    edge: Optional[Edge] = None
+    name: Optional[str] = None
     transforms: list[Transform] = dataclasses.field(default_factory=list)
     keep_fields: list = dataclasses.field(default_factory=list)
-    key: str | None = None
+    key: Optional[str] = None
     filter: dict = dataclasses.field(default_factory=dict)
     unfilter: dict = dataclasses.field(default_factory=dict)
     map: dict = dataclasses.field(default_factory=dict)
-    discriminant: str | None = None
+    discriminant: Optional[str] = None
     children: list[dict] = dataclasses.field(default_factory=list)
 
     def __post_init__(self):
@@ -95,7 +88,7 @@ class MapperNode(BaseDataclass):
                 f"{NodeType.DESCEND}, {NodeType.TRIVIAL}, {NodeType.VALUE}"
                 f" not provided, for key {self.key} NodeType {self.type} found"
             )
-            if self.type is NodeType.TRIVIAL:
+            if self.type == NodeType.TRIVIAL:
                 self.type = NodeType.DESCEND
         self._children: list[MapperNode] = [
             MapperNode.from_dict(oo) for oo in self.children
@@ -130,8 +123,9 @@ class MapperNode(BaseDataclass):
             )
 
         if self.type == NodeType.EDGE:
-            self.edge.finish_init(vc, same_level_vertices)
-            edge_config.update_edges(self.edge)
+            if self.edge is not None:
+                self.edge.finish_init(vc, same_level_vertices)
+                edge_config.update_edges(self.edge)
         elif self.type == NodeType.VERTEX or self.type == NodeType.VALUE:
             dummy_transforms = [t for t in self.transforms if t.is_dummy]
             valid_transforms = [t for t in self.transforms if not t.is_dummy]
