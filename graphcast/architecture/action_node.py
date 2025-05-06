@@ -174,6 +174,8 @@ class EdgeNode(ActionNode):
 
         relation = self.edge.relation
 
+        edges = []
+
         for u, v in iterator(source_items, target_items):
             # adding weight from source or target
             weight = dict()
@@ -194,7 +196,7 @@ class EdgeNode(ActionNode):
             if self.edge.target_relation_field is not None:
                 relation = v.pop(self.edge.target_relation_field, None)
 
-            ctx.acc[source, target, relation] += [
+            edges += [
                 {
                     **{
                         SOURCE_AUX: project_dict(u, source_index),
@@ -203,7 +205,60 @@ class EdgeNode(ActionNode):
                     **weight,
                 }
             ]
+        edges = self._add_weights(edges, ctx)
+        ctx.acc[source, target, relation] = self._add_weights(edges, ctx)
         return ctx
+
+    def _add_weights(self, edges, ctx: ActionContextPure):
+        acc = ctx.acc
+        vertices = [] if self.edge.weights is None else self.edge.weights.vertices
+        for weight_conf in vertices:
+            vertices = [doc for doc in acc[weight_conf.name]]
+
+            # find all vertices satisfying condition
+            if weight_conf.filter:
+                vertices = [
+                    doc
+                    for doc in vertices
+                    if all([doc[q] == v in doc for q, v in weight_conf.filter.items()])
+                ]
+            try:
+                doc = next(iter(vertices))
+                weight: dict = {}
+                if weight_conf.fields:
+                    weight = {
+                        **weight,
+                        **{
+                            weight_conf.cfield(field): doc[field]
+                            for field in weight_conf.fields
+                            if field in doc
+                        },
+                    }
+                if weight_conf.map:
+                    weight = {
+                        **weight,
+                        **{q: doc[k] for k, q in weight_conf.map.items()},
+                    }
+
+                if not weight_conf.fields and not weight_conf.map:
+                    try:
+                        weight = {
+                            f"{weight_conf.name}.{k}": doc[k]
+                            for k in self.vertex_config.index(weight_conf.name)
+                            if k in doc
+                        }
+                    except ValueError:
+                        weight = {}
+                        logger.error(
+                            " weights mapper error : weight definition on"
+                            f" {self.edge.source} {self.edge.target} refers to"
+                            f" a non existent vcollection {weight_conf.name}"
+                        )
+            except:
+                weight = {}
+            for edoc in edges:
+                edoc.update(weight)
+        return edges
 
 
 class TransformNode(ActionNode):
@@ -281,7 +336,6 @@ class DescendNode(ActionNode):
 
 _NodeTypePriority = MappingProxyType(
     {
-        # DressNode: 10,
         TransformNode: 20,
         VertexNode: 50,
         DescendNode: 60,
