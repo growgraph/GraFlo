@@ -55,7 +55,7 @@ def resource_cross():
 
 def test_actio_node_wrapper_openalex(resource_cross, schema_cross, sample_cross):
     ctx = ActionContext(doc=sample_cross)
-    anw = ActionNodeWrapper(*resource_cross)
-    ctx = anw(ctx, schema_cross)
+    anw = ActionNodeWrapper(*resource_cross, vertex_config=schema_cross, transforms={})
+    ctx = anw(ctx)
     assert ctx.acc["person"] == [{"id": "John"}, {"id": "Mary"}]
     assert ctx.acc["company"] == [{"id": "Apple"}, {"id": "Oracle"}]

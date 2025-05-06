@@ -4,19 +4,25 @@ import dataclasses
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from itertools import product
 from types import MappingProxyType
-from typing import Optional
+from typing import Any, Callable, Iterable, Optional
 
 from graphcast.architecture.edge import Edge
 from graphcast.architecture.onto import (
     DISCRIMINANT_KEY,
+    SOURCE_AUX,
+    TARGET_AUX,
+    EdgeCastingType,
     GraphEntity,
 )
 from graphcast.architecture.transform import Transform
+from graphcast.architecture.util import project_dict
 from graphcast.architecture.vertex import (
     VertexConfig,
 )
 from graphcast.onto import BaseDataclass
+from graphcast.util.merge import discriminate
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +30,6 @@ logger = logging.getLogger(__name__)
 DESCEND_KEY_VALUES = {"key"}
 DUMMY_KEY = "__dummy_key__"
 DRESSING_TRANSFORMED_VALUE_KEY = "__value__"
-
-# ActionContext = tuple[dict | list, defaultdict[str, GraphEntity]]
-# ActionContextPure = tuple[dict, defaultdict[str, GraphEntity]]
-#
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -63,27 +65,17 @@ class VertexNode(ActionNode):
         vertex: str,
         discriminant: Optional[str] = None,
         keep_fields: Optional[tuple[str]] = None,
+        **kwargs,
     ):
         self.name = vertex
         self.discriminant: Optional[str] = discriminant
         self.keep_fields: Optional[tuple[str]] = keep_fields
-
-        # vertex_rep[self.name] = VertexRepresentationHelper(
-        #     name=self.name, fields=vc.fields(self.name)
-        # )
-        # if self.map:
-        #     vertex_rep[self.name].maps += [dict(self.map)]
-        # for t in self.transforms:
-        #     vertex_rep[self.name].transforms += [(t.input, t.output)]
+        self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
+        self.vertex_config.discriminant_chart[self.name] = True
 
     def __call__(self, ctx: ActionContextPure, **kwargs):
         # take relevant fields from doc if available, otherwise try DRESSING_TRANSFORMED_VALUE_KEY
-
-        vertex_config: Optional[VertexConfig] = kwargs.get("vertex_config", None)
-        if not isinstance(vertex_config, VertexConfig):
-            raise ValueError("vertex_config :VertexConfig is required")
-
-        vertex_keys = vertex_config.fields(self.name)
+        vertex_keys = self.vertex_config.fields(self.name)
 
         cdoc: dict
         if self.name in ctx.vertex_buffer:
@@ -93,9 +85,17 @@ class VertexNode(ActionNode):
         else:
             cdoc = ctx.cdoc
 
-        cdoc.update(
-            {k: v for k, v in ctx.doc.items() if k not in cdoc and k in vertex_keys}
-        )
+        if isinstance(ctx.doc, dict):
+            cdoc.update(
+                {k: v for k, v in ctx.doc.items() if k not in cdoc and k in vertex_keys}
+            )
+        else:
+            # if ctx.doc is not a dict, it is an indication that it is the lowest level, and it was processed as value
+            remap = {
+                f"{DRESSING_TRANSFORMED_VALUE_KEY}#{j}": f
+                for j, f in enumerate(self.vertex_config.index(self.name).fields)
+            }
+            cdoc = {remap[k]: v for k, v in cdoc.items()}
 
         _doc = {k: cdoc[k] for k in vertex_keys if k in cdoc}
         if self.discriminant is not None:
@@ -106,18 +106,136 @@ class VertexNode(ActionNode):
         return ctx
 
 
-class TransformNode(ActionNode):
-    def __init__(self, **kwargs):
-        self.vertex: Optional[str] = kwargs.pop("target_vertex", None)
-        self.t = Transform(**kwargs)
+class EdgeNode(ActionNode):
+    def __init__(
+        self,
+        **kwargs,
+    ):
+        self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
+        self.edge = Edge(**kwargs)
 
     def __call__(self, ctx: ActionContextPure, **kwargs):
+        # get source and target names
+        source, target = self.edge.source, self.edge.target
+
+        # get source and target edge fields
+        source_index, target_index = (
+            self.vertex_config.index(source),
+            self.vertex_config.index(target),
+        )
+
+        # get source and target items
+        source_items, target_items = ctx.acc[source], ctx.acc[target]
+
+        source_items = discriminate(
+            source_items,
+            source_index,
+            DISCRIMINANT_KEY if self.vertex_config.discriminant_chart[source] else None,
+            self.edge.source_discriminant,
+        )
+
+        target_items = discriminate(
+            target_items,
+            target_index,
+            DISCRIMINANT_KEY if self.vertex_config.discriminant_chart[target] else None,
+            self.edge.target_discriminant,
+        )
+
+        if source == target:
+            # in the rare case when the relation is between the vertex types and the discriminant value is not set
+            # for one the groups, we make them disjoint
+
+            if (
+                self.edge.source_discriminant is not None
+                and self.edge.target_discriminant is None
+            ):
+                target_items = [
+                    item
+                    for item in target_items
+                    if DISCRIMINANT_KEY not in item
+                    or item[DISCRIMINANT_KEY] != self.edge.source_discriminant
+                ]
+
+            elif (
+                self.edge.source_discriminant is None
+                and self.edge.target_discriminant is not None
+            ):
+                source_items = [
+                    item
+                    for item in source_items
+                    if DISCRIMINANT_KEY is not item
+                    or item[DISCRIMINANT_KEY] != self.edge.target_discriminant
+                ]
+
+        if self.edge.casting_type == EdgeCastingType.PAIR_LIKE:
+            iterator: Callable[..., Iterable[Any]] = zip
+        else:
+            iterator = product
+
+        relation = self.edge.relation
+
+        for u, v in iterator(source_items, target_items):
+            # adding weight from source or target
+            weight = dict()
+            if self.edge.weights:
+                for field in self.edge.weights.source_fields:
+                    if field in u:
+                        weight[field] = u[field]
+                        if field not in self.edge.non_exclusive:
+                            del u[field]
+                for field in self.edge.weights.target_fields:
+                    if field in v:
+                        weight[field] = v[field]
+                        if field not in self.edge.non_exclusive:
+                            del v[field]
+
+            if self.edge.source_relation_field is not None:
+                relation = u.pop(self.edge.source_relation_field, None)
+            if self.edge.target_relation_field is not None:
+                relation = v.pop(self.edge.target_relation_field, None)
+
+            ctx.acc[source, target, relation] += [
+                {
+                    **{
+                        SOURCE_AUX: project_dict(u, source_index),
+                        TARGET_AUX: project_dict(v, target_index),
+                    },
+                    **weight,
+                }
+            ]
+        return ctx
+
+
+class TransformNode(ActionNode):
+    def __init__(self, **kwargs):
+        kwargs.pop("vertex_config")
+        self.vertex: Optional[str] = kwargs.pop("target_vertex", None)
+        self.transforms: dict = kwargs.pop("transforms", {})
+        self.name = kwargs.get("name", None)
+        self.t = Transform(**kwargs)
+        logging.debug(f"transforms : {id(self.transforms)} {len(self.transforms)}")
+        if self.name is not None and not self.t.is_dummy:
+            self.transforms[self.name] = self.t
+
+    def __call__(self, ctx: ActionContextPure, **kwargs):
+        logging.debug(f"transforms : {id(self.transforms)} {len(self.transforms)}")
+        if self.name is not None:
+            t = self.transforms[self.name]
+        else:
+            t = self.t
+
         _update_doc: dict
         if isinstance(ctx.doc, dict):
-            _update_doc = self.t(ctx.doc, __return_doc=True, **kwargs)
+            _update_doc = t(ctx.doc, __return_doc=True, **kwargs)
         else:
-            value = self.t(ctx.doc, __return_doc=False, **kwargs)
-            _update_doc = {DRESSING_TRANSFORMED_VALUE_KEY: value}
+            value = t(ctx.doc, __return_doc=False, **kwargs)
+            if isinstance(value, tuple):
+                _update_doc = {
+                    f"{DRESSING_TRANSFORMED_VALUE_KEY}#{j}": v
+                    for j, v in enumerate(value)
+                }
+            else:
+                _update_doc = {f"{DRESSING_TRANSFORMED_VALUE_KEY}#0": value}
         if self.vertex is None:
             ctx.cdoc.update(_update_doc)
         else:
@@ -126,11 +244,11 @@ class TransformNode(ActionNode):
 
 
 class DescendNode(ActionNode):
-    def __init__(self, key: Optional[str], descendants_kwargs: list):
+    def __init__(self, key: Optional[str], descendants_kwargs: list, **kwargs):
         self.key = key
         self.descendants: list[ActionNodeWrapper] = []
         for descendant_kwargs in descendants_kwargs:
-            self.descendants += [ActionNodeWrapper(**descendant_kwargs)]
+            self.descendants += [ActionNodeWrapper(**descendant_kwargs, **kwargs)]
 
         self.descendants = sorted(
             self.descendants, key=lambda x: _NodeTypePriority[type(x.action_node)]
@@ -148,18 +266,17 @@ class DescendNode(ActionNode):
     def __call__(self, ctx: ActionContext, **kwargs):
         if isinstance(ctx.doc, dict) and self.key in ctx.doc:
             ctx.doc = ctx.doc[self.key]
-        for anw in self.descendants:
-            ctx = anw(ctx, **kwargs)
+        elif self.key is not None:
+            logging.error(f"doc {ctx.doc} was expected to have level {self.key}")
+
+        doc_level = ctx.doc if isinstance(ctx.doc, list) else [ctx.doc]
+
+        for sub_doc in doc_level:
+            ctx.doc = sub_doc
+            ctx.cdoc = {}
+            for anw in self.descendants:
+                ctx = anw(ctx, **kwargs)
         return ctx
-
-
-# class DressNode(ActionNode):
-#     def __init__(self, **kwargs):
-#         pass
-#
-#     def __call__(self, ctx: ActionContext, **kwargs):
-#         doc = {DUMMY_KEY: doc}
-#         return doc, acc
 
 
 _NodeTypePriority = MappingProxyType(
@@ -168,7 +285,7 @@ _NodeTypePriority = MappingProxyType(
         TransformNode: 20,
         VertexNode: 50,
         DescendNode: 60,
-        Edge: 90,
+        EdgeNode: 90,
     }
 )
 
@@ -176,6 +293,7 @@ _NodeTypePriority = MappingProxyType(
 class ActionNodeWrapper:
     def __init__(self, *args, **kwargs):
         self.action_node: ActionNode
+        self.transforms = kwargs.get("transforms", {})
         if self._try_init_descend_node(*args, **kwargs):
             pass
         elif self._try_init_transform_node(**kwargs):
@@ -184,16 +302,14 @@ class ActionNodeWrapper:
             pass
         elif self._try_init_edge_node(**kwargs):
             pass
-        elif self._try_init_dress_node(**kwargs):
-            pass
         else:
             raise ValueError(f"Not able to init ActionNodeWrapper with {kwargs}")
 
     def _try_init_descend_node(self, *args, **kwargs) -> bool:
-        descend_key_candidates = [kwargs.get(k, None) for k in DESCEND_KEY_VALUES]
+        descend_key_candidates = [kwargs.pop(k, None) for k in DESCEND_KEY_VALUES]
         descend_key_candidates = [x for x in descend_key_candidates if x is not None]
         descend_key = descend_key_candidates[0] if descend_key_candidates else None
-        ds = kwargs.get("apply", None)
+        ds = kwargs.pop("apply", None)
         if ds is not None:
             if isinstance(ds, list):
                 descendants = ds
@@ -203,38 +319,29 @@ class ActionNodeWrapper:
             descendants = list(args)
         else:
             return False
-        action_node = DescendNode(descend_key, descendants_kwargs=descendants)
-        self.action_node = action_node
+        self.action_node = DescendNode(
+            descend_key, descendants_kwargs=descendants, **kwargs
+        )
         return True
 
     def _try_init_transform_node(self, **kwargs) -> bool:
         try:
-            action_node = TransformNode(**kwargs)
-            self.action_node = action_node
+            self.action_node = TransformNode(**kwargs)
             return True
         except Exception:
             return False
 
     def _try_init_vertex_node(self, **kwargs) -> bool:
         try:
-            action_node = VertexNode(**kwargs)
-            self.action_node = action_node
+            self.action_node = VertexNode(**kwargs)
             return True
         except Exception:
             return False
 
     def _try_init_edge_node(self, **kwargs) -> bool:
         try:
-            action_node = Edge(**kwargs)
-            self.action_node = action_node
-            return True
-        except Exception:
-            return False
-
-    def _try_init_dress_node(self, **kwargs) -> bool:
-        try:
-            # action_node = DressNode(**kwargs)
-            # self.action_node = action_node
+            kwargs.pop("transforms")
+            self.action_node = EdgeNode(**kwargs)
             return True
         except Exception:
             return False
@@ -242,17 +349,6 @@ class ActionNodeWrapper:
     def __call__(
         self,
         ctx: ActionContext,
-        vertex_config: VertexConfig,
     ) -> ActionContext:
-        if isinstance(ctx.doc, list):
-            for sub_doc in ctx.doc:
-                ctx.doc = sub_doc
-                ctx.cdoc = {}
-                ctx = self(ctx, vertex_config)
-        else:
-            kwargs = {"vertex_config": vertex_config}
-            if isinstance(self.action_node, (VertexNode, DescendNode)):
-                ctx = self.action_node(ctx, **kwargs)
-            else:
-                ctx = self.action_node(ctx)
+        ctx = self.action_node(ctx)
         return ctx

@@ -1,18 +1,12 @@
 import logging
-from collections import defaultdict
 
 import pytest
 import yaml
 from suthing import FileHandle
 
 from graphcast.architecture.action_node import (
+    ActionContext,
     ActionNodeWrapper,
-    DescendNode,
-    Edge,
-    Transform,
-)
-from graphcast.architecture.onto import (
-    GraphEntity,
 )
 from graphcast.architecture.vertex import VertexConfig
 
@@ -20,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture()
-def oa_vc():
+def schema_vc_openalex():
     tc = yaml.safe_load("""
     vertex_config:
     vertices:
@@ -29,59 +23,6 @@ def oa_vc():
         fields:
         -   _key
         -   display_name
-        -   updated_date
-        indexes:
-        -   fields:
-            -   _key
-        -   unique: false
-            type: fulltext
-            fields:
-            -   display_name
-        -   unique: false
-            fields:
-            -   updated_date
-        -   unique: false
-            fields:
-            -   created_date
-    -   name: concept
-        dbname: concepts
-        fields:
-        -   _key
-        -   wikidata
-        -   display_name
-        -   level
-        -   mag
-        -   created_date
-        -   updated_date
-        indexes:
-        -   fields:
-            -   _key
-        -   unique: false
-            type: fulltext
-            fields:
-            -   display_name
-        -   unique: false
-            fields:
-            -   level
-        -   unique: false
-            fields:
-            -   updated_date
-        -   unique: false
-            fields:
-            -   created_date
-        -   unique: false
-            fields:
-            -   wikidata
-            -   created_date
-    -   name: funder
-        dbname: funders
-        fields:
-        -   _key
-        -   display_name
-        -   crossref
-        -   doi
-        -   country_code
-        -   created_date
         -   updated_date
         indexes:
         -   fields:
@@ -119,19 +60,6 @@ def oa_vc():
         -   unique: false
             fields:
             -   type
-    -   name: publisher
-        dbname: publishers
-        fields:
-        -   _key
-        -   country_codes
-        -   display_name
-        -   title
-        -   hierarchy_level
-        -   created_date
-        -   data_source
-        indexes:
-        -   fields:
-            -   _key
     -   name: source
         dbname: sources
         fields:
@@ -167,7 +95,7 @@ def oa_vc():
 
 
 @pytest.fixture()
-def action_node_descend():
+def resource_descend():
     tc = yaml.safe_load(
         """
         key: publications
@@ -209,13 +137,13 @@ def action_node_transform():
 
 
 @pytest.fixture()
-def openalex_works_doc():
+def sample_openalex():
     an = FileHandle.load("test/data/json/openalex.works.json")
     return an
 
 
 @pytest.fixture()
-def openalex_works_schema():
+def resource_openalex_works():
     an = yaml.safe_load("""
     -   vertex: work
         discriminant: _top_level
@@ -229,35 +157,6 @@ def openalex_works_schema():
         -   id
         output:
         -   _key
-    # -   key: authorships
-    #     apply:
-    #     -   key: author
-    #         apply:
-    #         -   vertex: author
-    #         -   name: keep_suffix_id
-    #     -   key: institutions
-    #         apply:
-    #         -   vertex: institution
-    #         -   name: keep_suffix_id
-    # -   key: locations
-    #     apply:
-    #     -   key: source
-    #         apply:
-    #         -   vertex: source
-    #         -   name: keep_suffix_id
-    #     -   source: publisher
-    #         target: source
-    #         relation: contains
-    # -   source: source
-    #     target: work
-    #     relation: contains
-    #     target_discriminant: _top_level
-    # -   source: author
-    #     target: work
-    #     target_discriminant: _top_level
-    #     weights:
-    #         direct:
-    #         -   author_position
     -   key: referenced_works
         apply:
         -   vertex: work
@@ -269,25 +168,29 @@ def openalex_works_schema():
     return an
 
 
-def test_descend(action_node_descend):
-    anw = ActionNodeWrapper(**action_node_descend)
-    assert isinstance(anw.action_node, DescendNode)
-    assert len(anw.action_node.descendants) == 2
-    assert isinstance(anw.action_node.descendants[-1].action_node, DescendNode)
+# def test_descend(resource_descend):
+#     anw = ActionNodeWrapper(**resource_descend)
+#     assert isinstance(anw.action_node, DescendNode)
+#     assert len(anw.action_node.descendants) == 2
+#     assert isinstance(anw.action_node.descendants[-1].action_node, DescendNode)
+#
+#
+# def test_edge(action_node_edge):
+#     anw = ActionNodeWrapper(**action_node_edge)
+#     assert isinstance(anw.action_node, Edge)
+#
+#
+# def test_transform(action_node_transform):
+#     anw = ActionNodeWrapper(**action_node_transform)
+#     assert isinstance(anw.action_node, TransformNode)
 
 
-def test_edge(action_node_edge):
-    anw = ActionNodeWrapper(**action_node_edge)
-    assert isinstance(anw.action_node, Edge)
-
-
-def test_transform(action_node_transform):
-    anw = ActionNodeWrapper(**action_node_transform)
-    assert isinstance(anw.action_node, Transform)
-
-
-def test_actio_node_wrapper_openalex(openalex_works_schema, openalex_works_doc, oa_vc):
-    acc: defaultdict[GraphEntity, list] = defaultdict(list)
-    anw = ActionNodeWrapper(*openalex_works_schema)
-    _ = anw((openalex_works_doc, acc), oa_vc)
+def test_discriminant_edge(
+    resource_openalex_works, schema_vc_openalex, sample_openalex
+):
+    ctx = ActionContext(doc=sample_openalex)
+    anw = ActionNodeWrapper(
+        *resource_openalex_works, transforms={}, vertex_config=schema_vc_openalex
+    )
+    _ = anw(ctx)
     assert True

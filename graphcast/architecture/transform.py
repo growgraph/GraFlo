@@ -62,8 +62,8 @@ class Transform(BaseDataclass):
                 self.output = tuple(self.switch[self.input[0]])
             elif not self.name:
                 raise ValueError(
-                    "Either input and output, fields, map or image should be"
-                    " provided to Transform constructor."
+                    "Either input and output, fields, map or name should be"
+                    " provided in Transform constructor."
                 )
 
     @staticmethod
@@ -139,7 +139,7 @@ class Transform(BaseDataclass):
 
     @property
     def is_dummy(self):
-        return (self.name is not None) and (not self.map or self._foo is None)
+        return (self.name is not None) and (not self.map and self._foo is None)
 
     def update(self, t: Transform):
         t_copy = deepcopy(t)
