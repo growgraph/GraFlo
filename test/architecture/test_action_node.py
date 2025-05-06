@@ -229,35 +229,35 @@ def openalex_works_schema():
         -   id
         output:
         -   _key
-    -   key: authorships
-        apply:
-        -   key: author
-            apply:
-            -   vertex: author
-            -   name: keep_suffix_id
-        -   key: institutions
-            apply:
-            -   vertex: institution
-            -   name: keep_suffix_id
-    -   key: locations
-        apply:
-        -   key: source
-            apply:
-            -   vertex: source
-            -   name: keep_suffix_id
-        -   source: publisher
-            target: source
-            relation: contains
-    -   source: source
-        target: work
-        relation: contains
-        target_discriminant: _top_level
-    -   source: author
-        target: work
-        target_discriminant: _top_level
-        weights:
-            direct:
-            -   author_position
+    # -   key: authorships
+    #     apply:
+    #     -   key: author
+    #         apply:
+    #         -   vertex: author
+    #         -   name: keep_suffix_id
+    #     -   key: institutions
+    #         apply:
+    #         -   vertex: institution
+    #         -   name: keep_suffix_id
+    # -   key: locations
+    #     apply:
+    #     -   key: source
+    #         apply:
+    #         -   vertex: source
+    #         -   name: keep_suffix_id
+    #     -   source: publisher
+    #         target: source
+    #         relation: contains
+    # -   source: source
+    #     target: work
+    #     relation: contains
+    #     target_discriminant: _top_level
+    # -   source: author
+    #     target: work
+    #     target_discriminant: _top_level
+    #     weights:
+    #         direct:
+    #         -   author_position
     -   key: referenced_works
         apply:
         -   vertex: work

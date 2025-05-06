@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -8,21 +9,46 @@ from typing import Optional
 
 from graphcast.architecture.edge import Edge
 from graphcast.architecture.onto import (
+    DISCRIMINANT_KEY,
     GraphEntity,
 )
 from graphcast.architecture.transform import Transform
 from graphcast.architecture.vertex import (
     VertexConfig,
 )
+from graphcast.onto import BaseDataclass
 
 logger = logging.getLogger(__name__)
 
 
 DESCEND_KEY_VALUES = {"key"}
 DUMMY_KEY = "__dummy_key__"
+DRESSING_TRANSFORMED_VALUE_KEY = "__value__"
+
+# ActionContext = tuple[dict | list, defaultdict[str, GraphEntity]]
+# ActionContextPure = tuple[dict, defaultdict[str, GraphEntity]]
+#
 
 
-ActionContext = tuple[dict | list, defaultdict[str, GraphEntity]]
+@dataclasses.dataclass(kw_only=True)
+class AbsActionContext(BaseDataclass, ABC):
+    acc: defaultdict[GraphEntity, list] = dataclasses.field(
+        default_factory=lambda: defaultdict(list)
+    )
+    vertex_buffer: defaultdict[GraphEntity, dict] = dataclasses.field(
+        default_factory=lambda: defaultdict(dict)
+    )
+    cdoc: dict = dataclasses.field(default_factory=dict)
+
+
+@dataclasses.dataclass
+class ActionContext(AbsActionContext):
+    doc: dict | list
+
+
+@dataclasses.dataclass
+class ActionContextPure(AbsActionContext):
+    doc: dict
 
 
 class ActionNode(ABC):
@@ -32,9 +58,15 @@ class ActionNode(ABC):
 
 
 class VertexNode(ActionNode):
-    def __init__(self, vertex: str, discriminant: Optional[str] = None):
+    def __init__(
+        self,
+        vertex: str,
+        discriminant: Optional[str] = None,
+        keep_fields: Optional[tuple[str]] = None,
+    ):
         self.name = vertex
-        self.discriminant = discriminant
+        self.discriminant: Optional[str] = discriminant
+        self.keep_fields: Optional[tuple[str]] = keep_fields
 
         # vertex_rep[self.name] = VertexRepresentationHelper(
         #     name=self.name, fields=vc.fields(self.name)
@@ -44,9 +76,52 @@ class VertexNode(ActionNode):
         # for t in self.transforms:
         #     vertex_rep[self.name].transforms += [(t.input, t.output)]
 
-    def __call__(self, ctx: ActionContext, **kwargs):
-        _ = kwargs.get("vertex_config", None)
+    def __call__(self, ctx: ActionContextPure, **kwargs):
+        # take relevant fields from doc if available, otherwise try DRESSING_TRANSFORMED_VALUE_KEY
 
+        vertex_config: Optional[VertexConfig] = kwargs.get("vertex_config", None)
+        if not isinstance(vertex_config, VertexConfig):
+            raise ValueError("vertex_config :VertexConfig is required")
+
+        vertex_keys = vertex_config.fields(self.name)
+
+        cdoc: dict
+        if self.name in ctx.vertex_buffer:
+            cdoc = ctx.vertex_buffer[self.name]
+            cdoc.update({k: v for k, v in ctx.cdoc.items() if k not in cdoc})
+            del ctx.vertex_buffer[self.name]
+        else:
+            cdoc = ctx.cdoc
+
+        cdoc.update(
+            {k: v for k, v in ctx.doc.items() if k not in cdoc and k in vertex_keys}
+        )
+
+        _doc = {k: cdoc[k] for k in vertex_keys if k in cdoc}
+        if self.discriminant is not None:
+            _doc.update({DISCRIMINANT_KEY: self.discriminant})
+        if self.keep_fields is not None:
+            _doc.update({f: ctx.doc[f] for f in self.keep_fields if f in ctx.doc})
+        ctx.acc[self.name] += [_doc]
+        return ctx
+
+
+class TransformNode(ActionNode):
+    def __init__(self, **kwargs):
+        self.vertex: Optional[str] = kwargs.pop("target_vertex", None)
+        self.t = Transform(**kwargs)
+
+    def __call__(self, ctx: ActionContextPure, **kwargs):
+        _update_doc: dict
+        if isinstance(ctx.doc, dict):
+            _update_doc = self.t(ctx.doc, __return_doc=True, **kwargs)
+        else:
+            value = self.t(ctx.doc, __return_doc=False, **kwargs)
+            _update_doc = {DRESSING_TRANSFORMED_VALUE_KEY: value}
+        if self.vertex is None:
+            ctx.cdoc.update(_update_doc)
+        else:
+            ctx.vertex_buffer[self.vertex] = _update_doc
         return ctx
 
 
@@ -71,28 +146,26 @@ class DescendNode(ActionNode):
         )
 
     def __call__(self, ctx: ActionContext, **kwargs):
-        doc, acc = ctx
-        if isinstance(doc, dict) and self.key in doc:
-            doc = doc[self.key]
+        if isinstance(ctx.doc, dict) and self.key in ctx.doc:
+            ctx.doc = ctx.doc[self.key]
         for anw in self.descendants:
-            ctx = anw((doc, acc), **kwargs)
+            ctx = anw(ctx, **kwargs)
         return ctx
 
 
-class DressNode(ActionNode):
-    def __init__(self, **kwargs):
-        pass
-
-    def __call__(self, ctx: ActionContext, **kwargs):
-        doc, acc = ctx
-        doc = {DUMMY_KEY: doc}
-        return doc, acc
+# class DressNode(ActionNode):
+#     def __init__(self, **kwargs):
+#         pass
+#
+#     def __call__(self, ctx: ActionContext, **kwargs):
+#         doc = {DUMMY_KEY: doc}
+#         return doc, acc
 
 
 _NodeTypePriority = MappingProxyType(
     {
-        DressNode: 10,
-        Transform: 20,
+        # DressNode: 10,
+        TransformNode: 20,
         VertexNode: 50,
         DescendNode: 60,
         Edge: 90,
@@ -136,7 +209,7 @@ class ActionNodeWrapper:
 
     def _try_init_transform_node(self, **kwargs) -> bool:
         try:
-            action_node = Transform(**kwargs)
+            action_node = TransformNode(**kwargs)
             self.action_node = action_node
             return True
         except Exception:
@@ -160,8 +233,8 @@ class ActionNodeWrapper:
 
     def _try_init_dress_node(self, **kwargs) -> bool:
         try:
-            action_node = DressNode(**kwargs)
-            self.action_node = action_node
+            # action_node = DressNode(**kwargs)
+            # self.action_node = action_node
             return True
         except Exception:
             return False
@@ -171,11 +244,15 @@ class ActionNodeWrapper:
         ctx: ActionContext,
         vertex_config: VertexConfig,
     ) -> ActionContext:
-        doc, acc = ctx
-        if isinstance(doc, list):
-            for sub_doc in doc:
-                doc, acc = self((sub_doc, acc), vertex_config)
+        if isinstance(ctx.doc, list):
+            for sub_doc in ctx.doc:
+                ctx.doc = sub_doc
+                ctx.cdoc = {}
+                ctx = self(ctx, vertex_config)
         else:
-            doc, acc = self.action_node((doc, acc), vertex_config=vertex_config)
-
-        return doc, acc
+            kwargs = {"vertex_config": vertex_config}
+            if isinstance(self.action_node, (VertexNode, DescendNode)):
+                ctx = self.action_node(ctx, **kwargs)
+            else:
+                ctx = self.action_node(ctx)
+        return ctx

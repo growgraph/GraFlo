@@ -109,23 +109,18 @@ class Transform(BaseDataclass):
         return_doc = kwargs.pop("__return_doc", False) or is_mapping
 
         if is_mapping:
-            try:
-                input_doc = nargs[0]
-                if isinstance(input_doc, dict):
-                    output_values = [input_doc[k] for k in self.input]
-                else:
-                    output_values = nargs
-            except Exception as e:
-                raise ValueError(
-                    "For mapping transforms the first argument should be a"
-                    f" dict containing all input keys: {e}"
-                )
+            input_doc = nargs[0]
+            if isinstance(input_doc, dict):
+                output_values = [input_doc[k] for k in self.input]
+            else:
+                output_values = nargs
         else:
             if nargs and isinstance(input_doc := nargs[0], dict):
                 new_args = [input_doc[k] for k in self.input]
                 output_values = self._foo(*new_args, **kwargs, **self.params)
             else:
                 output_values = self._foo(*nargs, **kwargs, **self.params)
+
         if return_doc:
             r = self._dress_as_dict(output_values)
         else:
