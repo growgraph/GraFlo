@@ -7,6 +7,9 @@ from suthing import FileHandle
 from graphcast.architecture.action_node import (
     ActionContext,
     ActionNodeWrapper,
+    DescendNode,
+    EdgeNode,
+    TransformNode,
 )
 from graphcast.architecture.vertex import VertexConfig
 
@@ -168,21 +171,23 @@ def resource_openalex_works():
     return an
 
 
-# def test_descend(resource_descend):
-#     anw = ActionNodeWrapper(**resource_descend)
-#     assert isinstance(anw.action_node, DescendNode)
-#     assert len(anw.action_node.descendants) == 2
-#     assert isinstance(anw.action_node.descendants[-1].action_node, DescendNode)
-#
-#
-# def test_edge(action_node_edge):
-#     anw = ActionNodeWrapper(**action_node_edge)
-#     assert isinstance(anw.action_node, Edge)
-#
-#
-# def test_transform(action_node_transform):
-#     anw = ActionNodeWrapper(**action_node_transform)
-#     assert isinstance(anw.action_node, TransformNode)
+def test_descend(resource_descend, schema_vc_openalex):
+    anw = ActionNodeWrapper(**resource_descend, vertex_config=schema_vc_openalex)
+    assert isinstance(anw.action_node, DescendNode)
+    assert len(anw.action_node.descendants) == 2
+    assert isinstance(anw.action_node.descendants[-1].action_node, DescendNode)
+
+
+def test_edge(action_node_edge, schema_vc_openalex):
+    anw = ActionNodeWrapper(
+        **action_node_edge, transforms={}, vertex_config=schema_vc_openalex
+    )
+    assert isinstance(anw.action_node, EdgeNode)
+
+
+def test_transform(action_node_transform, schema_vc_openalex):
+    anw = ActionNodeWrapper(**action_node_transform, vertex_config=schema_vc_openalex)
+    assert isinstance(anw.action_node, TransformNode)
 
 
 def test_discriminant_edge(

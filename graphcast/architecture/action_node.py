@@ -112,7 +112,7 @@ class EdgeNode(ActionNode):
         **kwargs,
     ):
         self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
-        self.edge = Edge(**kwargs)
+        self.edge = Edge.from_dict(kwargs)
 
     def __call__(self, ctx: ActionContextPure, **kwargs):
         # get source and target names
@@ -179,7 +179,7 @@ class EdgeNode(ActionNode):
         for u, v in iterator(source_items, target_items):
             # adding weight from source or target
             weight = dict()
-            if self.edge.weights:
+            if self.edge.weights is not None:
                 for field in self.edge.weights.source_fields:
                     if field in u:
                         weight[field] = u[field]
@@ -347,7 +347,7 @@ _NodeTypePriority = MappingProxyType(
 class ActionNodeWrapper:
     def __init__(self, *args, **kwargs):
         self.action_node: ActionNode
-        self.transforms = kwargs.get("transforms", {})
+        kwargs["transforms"] = kwargs.get("transforms", {})
         if self._try_init_descend_node(*args, **kwargs):
             pass
         elif self._try_init_transform_node(**kwargs):

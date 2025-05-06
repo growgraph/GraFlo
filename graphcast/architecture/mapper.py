@@ -367,7 +367,8 @@ class MapperNode(BaseDataclass):
         edges = agg[self.edge.source, self.edge.target, self.edge.relation]
 
         # loop over weights for an edge
-        for weight_conf in self.edge.weights.vertices:
+        vertices = self.edge.weights.vertices if self.edge.weights is not None else []
+        for weight_conf in vertices:
             vertices = [doc for doc in agg[weight_conf.name]]
 
             # find all vertices satisfying condition

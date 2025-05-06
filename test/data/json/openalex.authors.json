@@ -1,0 +1,220 @@
+{
+    "id": "https://openalex.org/A4379737106",
+    "orcid": null,
+    "display_name": "Dina Tarek",
+    "display_name_alternatives": [],
+    "works_count": 1,
+    "cited_by_count": 0,
+    "most_cited_work": "LBCC-Hung: A load balancing protocol for cloud computing based on Hungarian method (2023)",
+    "summary_stats": {
+        "2yr_mean_citedness": 0,
+        "h_index": 0,
+        "i10_index": 0,
+        "oa_percent": 0,
+        "works_count": 1,
+        "cited_by_count": 0,
+        "2yr_works_count": 0,
+        "2yr_cited_by_count": 0,
+        "2yr_i10_index": 0,
+        "2yr_h_index": 0
+    },
+    "ids": {
+        "openalex": "https://openalex.org/A4379737106"
+    },
+    "last_known_institution": {
+        "id": "https://openalex.org/I145487455",
+        "ror": "https://ror.org/03q21mh05",
+        "display_name": "Cairo University",
+        "country_code": "EG",
+        "type": "education"
+    },
+    "counts_by_year": [
+        {
+            "year": 2023,
+            "works_count": 1,
+            "oa_works_count": 0,
+            "cited_by_count": 0
+        }
+    ],
+    "x_concepts": [
+        {
+            "id": "https://openalex.org/C2524010",
+            "wikidata": "https://www.wikidata.org/wiki/Q8087",
+            "display_name": "Geometry",
+            "level": 1,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C13280743",
+            "wikidata": "https://www.wikidata.org/wiki/Q131089",
+            "display_name": "Geodesy",
+            "level": 1,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C15744967",
+            "wikidata": "https://www.wikidata.org/wiki/Q9418",
+            "display_name": "Psychology",
+            "level": 0,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C17744445",
+            "wikidata": "https://www.wikidata.org/wiki/Q36442",
+            "display_name": "Political science",
+            "level": 0,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C25344961",
+            "wikidata": "https://www.wikidata.org/wiki/Q192726",
+            "display_name": "Virtual machine",
+            "level": 2,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C33923547",
+            "wikidata": "https://www.wikidata.org/wiki/Q395",
+            "display_name": "Mathematics",
+            "level": 0,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C41008148",
+            "wikidata": "https://www.wikidata.org/wiki/Q21198",
+            "display_name": "Computer science",
+            "level": 0,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C50522688",
+            "wikidata": "https://www.wikidata.org/wiki/Q189833",
+            "display_name": "Economic growth",
+            "level": 1,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C71924100",
+            "wikidata": "https://www.wikidata.org/wiki/Q11190",
+            "display_name": "Medicine",
+            "level": 0,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C76155785",
+            "wikidata": "https://www.wikidata.org/wiki/Q418",
+            "display_name": "Telecommunications",
+            "level": 1,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C77805123",
+            "wikidata": "https://www.wikidata.org/wiki/Q161272",
+            "display_name": "Social psychology",
+            "level": 1,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C79974875",
+            "wikidata": "https://www.wikidata.org/wiki/Q483639",
+            "display_name": "Cloud computing",
+            "level": 2,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C111919701",
+            "wikidata": "https://www.wikidata.org/wiki/Q9135",
+            "display_name": "Operating system",
+            "level": 1,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C120314980",
+            "wikidata": "https://www.wikidata.org/wiki/Q180634",
+            "display_name": "Distributed computing",
+            "level": 1,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C127313418",
+            "wikidata": "https://www.wikidata.org/wiki/Q1069",
+            "display_name": "Geology",
+            "level": 0,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C127413603",
+            "wikidata": "https://www.wikidata.org/wiki/Q11023",
+            "display_name": "Engineering",
+            "level": 0,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C138959212",
+            "wikidata": "https://www.wikidata.org/wiki/Q1806783",
+            "display_name": "Load balancing (electrical power)",
+            "level": 3,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C142724271",
+            "wikidata": "https://www.wikidata.org/wiki/Q7208",
+            "display_name": "Pathology",
+            "level": 1,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C149810388",
+            "wikidata": "https://www.wikidata.org/wiki/Q5374873",
+            "display_name": "Emulation",
+            "level": 2,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C157764524",
+            "wikidata": "https://www.wikidata.org/wiki/Q1383412",
+            "display_name": "Throughput",
+            "level": 3,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C162324750",
+            "wikidata": "https://www.wikidata.org/wiki/Q8134",
+            "display_name": "Economics",
+            "level": 0,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C187691185",
+            "wikidata": "https://www.wikidata.org/wiki/Q2020720",
+            "display_name": "Grid",
+            "level": 2,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C199360897",
+            "wikidata": "https://www.wikidata.org/wiki/Q9143",
+            "display_name": "Programming language",
+            "level": 1,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C199539241",
+            "wikidata": "https://www.wikidata.org/wiki/Q7748",
+            "display_name": "Law",
+            "level": 1,
+            "score": 100
+        },
+        {
+            "id": "https://openalex.org/C204787440",
+            "wikidata": "https://www.wikidata.org/wiki/Q188504",
+            "display_name": "Alternative medicine",
+            "level": 2,
+            "score": 100
+        }
+    ],
+    "works_api_url": "https://api.openalex.org/works?filter=author.id:A4379737106",
+    "updated_date": "2023-06-08",
+    "created_date": "2023-06-08",
+    "updated": "2023-06-08"
+}

@@ -1,4 +1,5 @@
 import dataclasses
+from typing import Optional
 
 from graphcast.architecture.onto import (
     BaseDataclass,
@@ -24,7 +25,7 @@ class Edge(BaseDataclass):
     source: str
     target: str
     indexes: list[Index] = dataclasses.field(default_factory=list)
-    weights: WeightConfig = None  # type: ignore
+    weights: Optional[WeightConfig] = None
 
     non_exclusive: list[str] = dataclasses.field(default_factory=list)
     relation: str | None = None

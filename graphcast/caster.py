@@ -149,6 +149,8 @@ class Caster:
         with ConnectionManager(connection_config=conn_conf) as db_client:
             # currently works only on item level
             for edge in resource.extra_weights:
+                if edge.weights is None:
+                    continue
                 for weight in edge.weights.vertices:
                     assert weight.name is not None
                     index_fields = vc.index(weight.name)
