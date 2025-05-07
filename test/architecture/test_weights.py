@@ -13,30 +13,29 @@ logger = logging.getLogger(__name__)
 @pytest.fixture()
 def schema_openalex():
     tc = yaml.safe_load("""
-        vertex_config:
-        vertices:
-        -   name: author
-            dbname: authors
-            fields:
+    vertices:
+    -   name: author
+        dbname: authors
+        fields:
+        -   _key
+        -   display_name
+        -   updated_date
+        -   created_date
+        indexes:
+        -   fields:
             -   _key
-            -   display_name
-            -   updated_date
-            -   created_date
-            indexes:
-            -   fields:
-                -   _key
-        -   name: institution
-            dbname: institutions
-            fields:
+    -   name: institution
+        dbname: institutions
+        fields:
+        -   _key
+        -   display_name
+        -   country
+        -   type
+        -   created_date
+        -   updated_date
+        indexes:
+        -   fields:
             -   _key
-            -   display_name
-            -   country
-            -   type
-            -   created_date
-            -   updated_date
-            indexes:
-            -   fields:
-                -   _key
     """)
     return VertexConfig.from_dict(tc)
 

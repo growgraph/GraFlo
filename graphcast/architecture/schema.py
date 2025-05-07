@@ -1,6 +1,8 @@
 import dataclasses
 import logging
+from typing import Optional
 
+from graphcast.architecture.action_node import SimpleResource
 from graphcast.architecture.edge import EdgeConfig
 from graphcast.architecture.resource import Resource, ResourceHolder
 from graphcast.architecture.transform import Transform
@@ -48,5 +50,35 @@ class Schema(BaseDataclass):
             elif r.name == name:
                 _current_resource = r
         if _current_resource is None:
+            raise ValueError(f"Resource {name} not found")
+        return _current_resource
+
+
+@dataclasses.dataclass
+class SchemaB(BaseDataclass):
+    general: SchemaMetadata
+    vertex_config: VertexConfig
+    edge_config: EdgeConfig
+    resources: list[SimpleResource]
+    transforms: dict[str, Transform] = dataclasses.field(default_factory=dict)
+
+    def __post_init__(self):
+        self.edge_config.finish_init(self.vertex_config)
+
+        # self.resources.finish_init(
+        #     vc=self.vertex_config, ec=self.edge_config, transforms=self.transforms
+        # )
+
+    def fetch_resource(self, name: Optional[str] = None) -> SimpleResource:
+        _current_resource = None
+
+        if name is not None:
+            try:
+                _current_resource = next(r for r in self.resources if r.name == name)
+            except StopIteration:
+                raise ValueError(f"Resource {name} not found")
+        if self.resources and _current_resource is None:
+            _current_resource = self.resources[0]
+        else:
             raise ValueError(f"Resource {name} not found")
         return _current_resource

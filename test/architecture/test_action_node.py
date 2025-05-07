@@ -172,21 +172,22 @@ def resource_openalex_works():
 
 
 def test_descend(resource_descend, schema_vc_openalex):
-    anw = ActionNodeWrapper(**resource_descend, vertex_config=schema_vc_openalex)
+    anw = ActionNodeWrapper(**resource_descend)
+    anw.finish_init(vertex_config=schema_vc_openalex)
     assert isinstance(anw.action_node, DescendNode)
     assert len(anw.action_node.descendants) == 2
     assert isinstance(anw.action_node.descendants[-1].action_node, DescendNode)
 
 
 def test_edge(action_node_edge, schema_vc_openalex):
-    anw = ActionNodeWrapper(
-        **action_node_edge, transforms={}, vertex_config=schema_vc_openalex
-    )
+    anw = ActionNodeWrapper(**action_node_edge)
+    anw.finish_init(transforms={}, vertex_config=schema_vc_openalex)
     assert isinstance(anw.action_node, EdgeNode)
 
 
 def test_transform(action_node_transform, schema_vc_openalex):
-    anw = ActionNodeWrapper(**action_node_transform, vertex_config=schema_vc_openalex)
+    anw = ActionNodeWrapper(**action_node_transform)
+    anw.finish_init(vertex_config=schema_vc_openalex)
     assert isinstance(anw.action_node, TransformNode)
 
 
@@ -194,8 +195,7 @@ def test_discriminant_edge(
     resource_openalex_works, schema_vc_openalex, sample_openalex
 ):
     ctx = ActionContext(doc=sample_openalex)
-    anw = ActionNodeWrapper(
-        *resource_openalex_works, transforms={}, vertex_config=schema_vc_openalex
-    )
+    anw = ActionNodeWrapper(*resource_openalex_works)
+    anw.finish_init(vertex_config=schema_vc_openalex, transforms={})
     _ = anw(ctx)
     assert True

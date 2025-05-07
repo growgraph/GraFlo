@@ -5,11 +5,13 @@ from graphcast.architecture.edge import EdgeConfig
 from graphcast.architecture.onto import SOURCE_AUX, TARGET_AUX
 from graphcast.architecture.resource import (
     RowResource,
+    extract_weights,
+    row_to_vertices,
+)
+from graphcast.architecture.resource_util import (
     add_blank_collections,
     define_edges,
-    extract_weights,
     normalize_row,
-    row_to_vertices,
 )
 from graphcast.architecture.schema import Schema
 from graphcast.architecture.vertex import VertexConfig

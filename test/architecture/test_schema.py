@@ -1,5 +1,6 @@
 import logging
 
+from graphcast.architecture.action_node import SimpleResource
 from graphcast.architecture.schema import Schema
 
 logger = logging.getLogger(__name__)
@@ -21,3 +22,9 @@ def test_schema_load(schema):
     sch = schema("kg_v3b")
     schema_obj = Schema.from_dict(sch)
     assert len(schema_obj.resources.tree_likes) == 2
+
+
+def test_schema_update(schema):
+    sd = schema("ibes_upd")
+    sr = SimpleResource.from_dict(sd["resources"][0])
+    assert len(sr.root.action_node.descendants) == 10
