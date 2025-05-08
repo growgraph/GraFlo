@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import dataclasses
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from itertools import product
 from types import MappingProxyType
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Callable, Iterable, Optional, Type, TypeVar
 
 from graphcast.architecture.edge import Edge, EdgeConfig
 from graphcast.architecture.onto import (
@@ -14,14 +16,19 @@ from graphcast.architecture.onto import (
     EdgeCastingType,
     GraphEntity,
 )
+from graphcast.architecture.resource_util import (
+    add_blank_collections,
+    apply_filter,
+    define_edges,
+)
 from graphcast.architecture.transform import Transform
 from graphcast.architecture.util import project_dict
 from graphcast.architecture.vertex import (
     VertexConfig,
 )
-from graphcast.architecture.wrapper import ActorWrapper
 from graphcast.onto import BaseDataclass
-from graphcast.util.merge import discriminate
+from graphcast.util.merge import discriminate, merge_doc_basis
+from graphcast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +69,9 @@ class Actor(ABC):
 
     def finish_init(self, **kwargs):
         pass
+
+
+ActorType = TypeVar("ActorType", bound=Actor)
 
 
 class VertexActor(Actor):
@@ -125,9 +135,12 @@ class EdgeActor(Actor):
     def finish_init(self, **kwargs):
         self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
         edge_config: EdgeConfig = kwargs.pop("edge_config")
+
+        # TODO reintroduce same_level_vertices
+        same_level_vertices = []
         if self in edge_config:
-            # TODO add edges
-            pass
+            self.edge.finish_init(self.vertex_config, same_level_vertices)
+            edge_config.update_edges(self.edge)
 
     def __call__(self, ctx: ActionContextPure, **kwargs):
         # get source and target names
@@ -318,26 +331,52 @@ class TransformActor(Actor):
 class DescendActor(Actor):
     def __init__(self, key: Optional[str], descendants_kwargs: list, **kwargs):
         self.key = key
-        self.descendants: list[ActorWrapper] = []
+        self._descendants: list[ActorWrapper] = []
         for descendant_kwargs in descendants_kwargs:
-            self.descendants += [ActorWrapper(**descendant_kwargs, **kwargs)]
-
-        self.descendants = sorted(
-            self.descendants, key=lambda x: _NodeTypePriority[type(x.action_node)]
-        )
+            self._descendants += [ActorWrapper(**descendant_kwargs, **kwargs)]
 
         logger.debug(
             f"""type, priority: {
                 [
                     (t.__name__, _NodeTypePriority[t])
-                    for t in (type(x.action_node) for x in self.descendants)
+                    for t in (type(x.actor) for x in self.descendants)
                 ]
             }"""
         )
 
+    def add_descendant(self, d: ActorWrapper):
+        self._descendants += [d]
+
+    @property
+    def descendants(self) -> list[ActorWrapper]:
+        return sorted(self._descendants, key=lambda x: _NodeTypePriority[type(x.actor)])
+
     def finish_init(self, **kwargs):
+        self.vertex_config: VertexConfig = kwargs.get(
+            "vertex_config", VertexConfig(vertices=[])
+        )
+
         for an in self.descendants:
             an.finish_init(**kwargs)
+
+        # autofill vertices
+        # 1. check all transforms
+        # 2. find matching with vertex fields
+        # 3. add vertices
+
+        available_fields = set()
+        for anw in self.descendants:
+            actor = anw.actor
+            if isinstance(actor, TransformActor):
+                print(actor.t)
+                available_fields |= set(list(actor.t.output))
+
+        for v in self.vertex_config.vertices:
+            intersection = available_fields & set(v.fields)
+            if intersection:
+                new_descendant = ActorWrapper(vertex=v.name)
+                new_descendant.finish_init(**kwargs)
+                self.add_descendant(new_descendant)
 
     def __call__(self, ctx: ActionContext, **kwargs):
         if isinstance(ctx.doc, dict) and self.key in ctx.doc:
@@ -355,7 +394,7 @@ class DescendActor(Actor):
         return ctx
 
 
-_NodeTypePriority = MappingProxyType(
+_NodeTypePriority: MappingProxyType[Type[Actor], int] = MappingProxyType(
     {
         TransformActor: 20,
         VertexActor: 50,
@@ -363,3 +402,112 @@ _NodeTypePriority = MappingProxyType(
         EdgeActor: 90,
     }
 )
+
+
+class ActorWrapper:
+    def __init__(self, *args, **kwargs):
+        self.actor: Actor
+        if self._try_init_descend_node(*args, **kwargs):
+            pass
+        elif self._try_init_transform_node(**kwargs):
+            pass
+        elif self._try_init_vertex_node(**kwargs):
+            pass
+        elif self._try_init_edge_node(**kwargs):
+            pass
+        else:
+            raise ValueError(f"Not able to init ActionNodeWrapper with {kwargs}")
+
+    def finish_init(self, **kwargs):
+        kwargs["transforms"] = kwargs.get("transforms", {})
+        self.vertex_config = kwargs.get("vertex_config", VertexConfig(vertices=[]))
+        kwargs["vertex_config"] = self.vertex_config
+        self.edge_config = kwargs.get("edge_config", EdgeConfig())
+        kwargs["edge_config"] = self.edge_config
+        self.actor.finish_init(**kwargs)
+
+    def _try_init_descend_node(self, *args, **kwargs) -> bool:
+        descend_key_candidates = [kwargs.pop(k, None) for k in DESCEND_KEY_VALUES]
+        descend_key_candidates = [x for x in descend_key_candidates if x is not None]
+        descend_key = descend_key_candidates[0] if descend_key_candidates else None
+        ds = kwargs.pop("apply", None)
+        if ds is not None:
+            if isinstance(ds, list):
+                descendants = ds
+            else:
+                descendants = [ds]
+        elif len(args) > 0:
+            descendants = list(args)
+        else:
+            return False
+        self.actor = DescendActor(descend_key, descendants_kwargs=descendants, **kwargs)
+        return True
+
+    def _try_init_transform_node(self, **kwargs) -> bool:
+        try:
+            self.actor = TransformActor(**kwargs)
+            return True
+        except Exception:
+            return False
+
+    def _try_init_vertex_node(self, **kwargs) -> bool:
+        try:
+            self.actor = VertexActor(**kwargs)
+            return True
+        except Exception:
+            return False
+
+    def _try_init_edge_node(self, **kwargs) -> bool:
+        try:
+            self.actor = EdgeActor(**kwargs)
+            return True
+        except Exception:
+            return False
+
+    def __call__(
+        self,
+        ctx: ActionContext,
+    ) -> ActionContext:
+        ctx = self.actor(ctx)
+        return ctx
+
+    def normalize_unit(
+        self, ctx: ActionContext, edges: list[Edge]
+    ) -> defaultdict[GraphEntity, list]:
+        unit = ctx.acc
+
+        for vertex, v in unit.items():
+            v = pick_unique_dict(v)
+            if vertex in self.vertex_config.vertex_set:
+                v = merge_doc_basis(
+                    v,
+                    tuple(self.vertex_config.index(vertex).fields),
+                    DISCRIMINANT_KEY
+                    if self.vertex_config.discriminant_chart[vertex]
+                    else None,
+                )
+                for item in v:
+                    item.pop(DISCRIMINANT_KEY, None)
+            unit[vertex] = v
+
+        unit = add_blank_collections(unit, self.vertex_config)
+
+        unit = apply_filter(unit, vertex_conf=self.vertex_config)
+
+        # pure_weight = extract_weights(unit_doc, edge_config.edges)
+
+        unit = define_edges(
+            unit=unit,
+            unit_weights=defaultdict(),
+            current_edges=edges,
+            vertex_conf=self.vertex_config,
+        )
+
+        return unit
+
+    @classmethod
+    def from_dict(cls, data: dict | list):
+        if isinstance(data, list):
+            return cls(*data)
+        else:
+            return cls(**data)

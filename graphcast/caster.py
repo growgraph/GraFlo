@@ -285,8 +285,8 @@ class Caster:
                     for p in processes:
                         p.join()
             else:
-                for f, r in tasks:
+                for f, resource_name in tasks:
                     self.process_resource(
-                        resource_instance=f, resource_name=r, **kwargs
+                        resource_instance=f, resource_name=resource_name, **kwargs
                     )
         logger.info(f"Processing took {klepsidra.elapsed:.1f} sec")

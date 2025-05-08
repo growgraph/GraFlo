@@ -9,19 +9,15 @@ from typing import Any, Optional, Union
 from graphcast.onto import BaseDataclass, BaseEnum, DBFlavor
 from graphcast.util.transform import pick_unique_dict
 
-ANCHOR_KEY = "_anchor"
 SOURCE_AUX = "__source"
 TARGET_AUX = "__target"
+DISCRIMINANT_KEY = "__discriminant_key"
 
 # type for vertex or edge name (index)
-TypeVE = Union[str, tuple[str, str]]
-
-# type for vertex or edge name (index)
-GraphEntity = Union[str, tuple[str, str, Optional[str]]]
+EdgeId = tuple[str, str, Optional[str]]
+GraphEntity = Union[str, EdgeId]
 
 logger = logging.getLogger(__name__)
-
-DISCRIMINANT_KEY = "__discriminant_key"
 
 
 class EdgeMapping(BaseEnum):

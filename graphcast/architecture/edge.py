@@ -4,6 +4,7 @@ from typing import Optional
 from graphcast.architecture.onto import (
     BaseDataclass,
     EdgeCastingType,
+    EdgeId,
     EdgeType,
     Index,
     Weight,
@@ -28,22 +29,22 @@ class Edge(BaseDataclass):
     weights: Optional[WeightConfig] = None
 
     non_exclusive: list[str] = dataclasses.field(default_factory=list)
-    relation: str | None = None
+    relation: Optional[str] = None
 
-    source_discriminant: str | None = None
-    target_discriminant: str | None = None
+    source_discriminant: Optional[str] = None
+    target_discriminant: Optional[str] = None
 
-    source_relation_field: str | None = None
-    target_relation_field: str | None = None
+    source_relation_field: Optional[str] = None
+    target_relation_field: Optional[str] = None
 
     type: EdgeType = EdgeType.DIRECT
     casting_type: EdgeCastingType = EdgeCastingType.PAIR_LIKE
-    by: str | None = None
-    collection_name_suffix: str | None = None
-    source_collection: str | None = None
-    target_collection: str | None = None
-    graph_name: str | None = None
-    collection_name: str | None = None
+    by: Optional[str] = None
+    collection_name_suffix: Optional[str] = None
+    source_collection: Optional[str] = None
+    target_collection: Optional[str] = None
+    graph_name: Optional[str] = None
+    collection_name: Optional[str] = None
     db_flavor: DBFlavor = DBFlavor.ARANGO
 
     def __post_init__(self):
@@ -60,6 +61,19 @@ class Edge(BaseDataclass):
     def finish_init(
         self, vc: VertexConfig, same_level_vertices: list[str] | None = None
     ):
+        """
+
+        Args:
+            vc:
+            same_level_vertices: help to decide on how the edge will be defined:
+                product : cartesian product, e.g. relation of a publication to references {id : [id_a, ...]}
+                pairwise:  pairwise, e.g. when data is a list of docs : [{person: a, company: b}, ...]
+
+            discriminant is used to pin docs among a collection of docs of the same vertex type
+
+        Returns:
+
+        """
         if self.type == EdgeType.INDIRECT and self.by is not None:
             self.by = vc.vertex_dbname(self.by)
 
@@ -126,25 +140,34 @@ class Edge(BaseDataclass):
         return self.source, self.target
 
     @property
-    def edge_id(self) -> tuple[str, str, str | None]:
+    def edge_id(self) -> EdgeId:
         return self.source, self.target, self.relation
 
 
 @dataclasses.dataclass
 class EdgeConfig(BaseDataclass):
+    # TODO extra_edges are not used?
     edges: list[Edge] = dataclasses.field(default_factory=list)
     extra_edges: list[Edge] = dataclasses.field(default_factory=list)
 
+    def __post_init__(self):
+        self._map: dict[EdgeId, Edge] = {e.edge_id: e for e in self.edges}
+
     def finish_init(self, vc: VertexConfig):
-        for e in self.edges:
+        for k, e in self._map.items():
             e.finish_init(vc)
+
         for e in self.extra_edges:
             e.finish_init(vc)
 
+    def _reset_edges(self):
+        self.edges = list(self._map.values())
+
     def update_edges(self, edge: Edge):
-        # TODO better update : the incoming edge might complement
-        if all([edge.edge_id != e.edge_id for e in self.edges]):
-            self.edges += [edge]
+        if edge.edge_id in self._map:
+            self._map[edge.edge_id].update(edge)
+        else:
+            self._map[edge.edge_id] = edge
 
     @property
     def vertices(self):

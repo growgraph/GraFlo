@@ -1,9 +1,9 @@
 import logging
 from collections import defaultdict
 
+from graphcast.architecture.actors import ActorWrapper
 from graphcast.architecture.onto import GraphEntity
 from graphcast.architecture.resource import Resource
-from graphcast.architecture.wrapper import ActorWrapper
 
 logger = logging.getLogger(__name__)
 

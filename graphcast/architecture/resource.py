@@ -7,6 +7,7 @@ from dataclass_wizard import JSONWizard
 
 from graphcast.architecture.actors import (
     ActionContext,
+    ActorWrapper,
 )
 from graphcast.architecture.edge import Edge, EdgeConfig
 from graphcast.architecture.onto import (
@@ -18,7 +19,6 @@ from graphcast.architecture.vertex import (
     VertexConfig,
     VertexRepresentationHelper,
 )
-from graphcast.architecture.wrapper import ActorWrapper
 from graphcast.onto import BaseDataclass
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,6 @@ class Resource(BaseDataclass, JSONWizard):
     def __post_init__(self):
         self.root = ActorWrapper(*self.apply)
         self.vertex_rep: dict[str, VertexRepresentationHelper] = dict()
-        self.name = self.resource_name
         self._types: dict[str, Callable] = dict()
         self.vertex_config: VertexConfig
         self.edge_config: EdgeConfig
@@ -47,6 +46,10 @@ class Resource(BaseDataclass, JSONWizard):
                 logger.error(
                     f"For resource {self.name} for field {k} failed to cast type {v} : {ex}"
                 )
+
+    @property
+    def name(self):
+        return self.resource_name
 
     def finish_init(
         self,
