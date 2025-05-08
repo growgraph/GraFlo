@@ -1,97 +1,78 @@
 general:
     name: kg_v3b
 resources:
-    tree_likes:
-    -   name: kg
-        root:
-            children:
-            -   type: edge
-                edge:
-                    source: publication
-                    target: mention
-                    target_discriminant: _top_level
-            -   key: publication
-                children:
-                -   type: vertex
-                    name: publication
-            -   key: top_level_mention
-                children:
-                -   type: vertex
-                    name: mention
-                    map:
-                        hash: _key
-                    discriminant: _top_level
-            -   key: map_mention_entity
-                children:
-                -   type: edge
-                    edge:
-                        source: mention
-                        target: entity
-                -   key: entity
-                    children:
-                    -   type: vertex
-                        name: entity
-                        map:
-                            hash: _key
-                -   key: mention
-                    children:
-                    -   type: vertex
-                        name: mention
-                        map:
-                            hash: _key
-            -   key: triples
-                children:
-                -   key: triple_index
-                    children:
-                    -   type: vertex
-                        discriminant: triple_index
-                        name: mention
-                        map:
-                            hash: _key
-                -   key: triple
-                    children:
-                    -   children:
-                        -   type: vertex
-                            discriminant: core
-                            name: mention
-                            map:
-                                role: _role
-                                hash: _key
-                -   type: edge
-                    edge:
-                        source: mention
-                        source_discriminant: triple_index
-                        target: mention
-                        target_discriminant: core
-                        weights:
-                            target_fields:
-                            -   _role
-                        indexes:
-                        -   fields:
-                            -   _role
-        extra_weights:
+-   resource_name: kg
+    apply:
+    -   source: publication
+        target: mention
+        target_discriminant: _top_level
+    -   key: publication
+        apply:
+        -   vertex_name: publication
+    -   key: top_level_mention
+        apply:
+        -   vertex: mention
+        -   map:
+                hash: _key
+                discriminant: _top_level
+    -   key: map_mention_entity
+        apply:
         -   source: mention
             target: entity
+        -   key: entity
+            apply:
+            -   vertex: entity
+            -   map:
+                    hash: _key
+        -   key: mention
+            apply:
+            -   vertex: mention
+            -   map:
+                    hash: _key
+    -   key: triples
+        apply:
+        -   key: triple_index
+            apply:
+            -   vertex: mention
+                discriminant: triple_index
+            -   map:
+                    hash: _key
+        -   key: triple
+            apply:
+            -   apply:
+                -   vertex: mention
+                    discriminant: core
+                -   map:
+                        role: _role
+                        hash: _key
+        -   source: mention
+            source_discriminant: triple_index
+            target: mention
+            target_discriminant: core
             weights:
-                vertices:
-                -   name: publication
-                    fields:
-                    -   _id
-    -   name: communities
-        root:
-            children:
-            -   type: edge
-                edge:
-                    source: entity
-                    target: community
-            -   key: entity
-                children:
-                -   type: vertex
-                    name: entity
-            -   key: community
-                children:
-                -   type: vertex
-                    name: community
+                target_fields:
+                -   _role
+                indexes:
+                -   fields:
+                    -   _role
+    extra_weights:
+    -   source: mention
+        target: entity
+        weights:
+            vertices:
+            -   name: publication
+                fields:
+                -   _id
+-   resource_name: communities
+    apply:
+    -   source: entity
+        target: community
+    -   key: entity
+        apply:
+        -   vertex: entity
+    -   key: community
+        apply:
+        -   vertex: community
 vertex_config:
     vertices:
     -   name: publication

@@ -44,10 +44,12 @@ def cast(modes, schema_obj, current_path, level, reset, n_threads=1):
 
         if level == 0:
             caster.process_resource(
-                resource=pathlib.Path(fname), resource_name=resource_name
+                resource_instance=pathlib.Path(fname), resource_name=resource_name
             )
         elif level == 1:
-            caster.process_resource(resource=data_obj, resource_name=resource_name)
+            caster.process_resource(
+                resource_instance=data_obj, resource_name=resource_name
+            )
         elif level == 2:
             data_obj = FileHandle.load(
                 f"test.data.{InputTypeFileExtensions[rr.resource_type][0]}.{mode}",

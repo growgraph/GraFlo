@@ -1,52 +1,45 @@
-import abc
 import dataclasses
 import logging
 from collections import defaultdict
-from copy import deepcopy
-from itertools import chain
-from typing import Callable, Iterator
+from typing import Callable
 
-import networkx as nx
+from dataclass_wizard import JSONWizard
 
+from graphcast.architecture.actors import (
+    ActionContext,
+)
 from graphcast.architecture.edge import Edge, EdgeConfig
-from graphcast.architecture.mapper import MapperNode
 from graphcast.architecture.onto import (
-    DISCRIMINANT_KEY,
     EncodingType,
     GraphEntity,
-)
-from graphcast.architecture.resource_util import (
-    add_blank_collections,
-    apply_filter,
-    define_edges,
-    normalize_row,
 )
 from graphcast.architecture.transform import Transform
 from graphcast.architecture.vertex import (
     VertexConfig,
     VertexRepresentationHelper,
 )
-from graphcast.onto import BaseDataclass, ResourceType
-from graphcast.util.merge import merge_doc_basis
-from graphcast.util.transform import pick_unique_dict
+from graphcast.architecture.wrapper import ActorWrapper
+from graphcast.onto import BaseDataclass
 
 logger = logging.getLogger(__name__)
 
 
-@dataclasses.dataclass
-class Resource(BaseDataclass):
-    name: str | None = None
-    resource_type: ResourceType = ResourceType.ROWLIKE
+@dataclasses.dataclass(kw_only=True)
+class Resource(BaseDataclass, JSONWizard):
+    resource_name: str
+    apply: list
     encoding: EncodingType = EncodingType.UTF_8
-    # TODO create a test for merging collection (long term):
-    #       applied when there are docs without the primary key that are merged to a main doc
     merge_collections: list[str] = dataclasses.field(default_factory=list)
     extra_weights: list[Edge] = dataclasses.field(default_factory=list)
     types: dict[str, str] = dataclasses.field(default_factory=dict)
 
     def __post_init__(self):
+        self.root = ActorWrapper(*self.apply)
         self.vertex_rep: dict[str, VertexRepresentationHelper] = dict()
+        self.name = self.resource_name
         self._types: dict[str, Callable] = dict()
+        self.vertex_config: VertexConfig
+        self.edge_config: EdgeConfig
         for k, v in self.types.items():
             try:
                 self._types[k] = eval(v)
@@ -55,285 +48,58 @@ class Resource(BaseDataclass):
                     f"For resource {self.name} for field {k} failed to cast type {v} : {ex}"
                 )
 
-    def prepare_apply(self, **kwargs):
-        self._prepare_apply(**kwargs)
-
-    @abc.abstractmethod
-    def _prepare_apply(self, **kwargs):
-        pass
-
-    @abc.abstractmethod
-    def apply_doc(self, doc: dict, **kwargs):
-        pass
-
-    def normalize_unit(
-        self,
-        unit_doc: defaultdict[GraphEntity, list],
-        vertex_config: VertexConfig,
-    ) -> defaultdict[GraphEntity, list]:
-        """
-
-        Args:
-            unit_doc: generic : ddict
-            vertex_config:
-
-        Returns: defaultdict vertex and edges collections
-
-        """
-
-        for vertex, v in unit_doc.items():
-            v = pick_unique_dict(v)
-            if vertex in vertex_config.vertex_set:
-                assert isinstance(vertex, str)
-                v = merge_doc_basis(
-                    v,
-                    tuple(vertex_config.index(vertex).fields),
-                    DISCRIMINANT_KEY
-                    if vertex_config.discriminant_chart[vertex]
-                    else None,
-                )
-            if vertex in vertex_config.vertex_set:
-                for item in v:
-                    item.pop(DISCRIMINANT_KEY, None)
-            unit_doc[vertex] = v
-
-        return unit_doc
-
-
-@dataclasses.dataclass
-class RowResource(Resource):
-    transforms: list[Transform] = dataclasses.field(default_factory=list)
-
-    def __post_init__(self):
-        super().__post_init__()
-        self._vertex_tau = nx.DiGraph()
-        self._transforms: dict[int, Transform] = {}
-
-        self._vertex_tau_current: nx.DiGraph = nx.DiGraph()
-        self._transforms_current: dict[int, Transform] = {}
-
-    def _prepare_apply(self, **kwargs):
-        columns = kwargs.pop("columns")
-        assert columns is not None
-        vertex_config = kwargs.pop("vertex_config")
-        assert vertex_config is not None
-        self.add_trivial_transformations(vertex_config, columns)
-
     def finish_init(
         self,
         vertex_config: VertexConfig,
-        edge_config: None | EdgeConfig = None,
-        transforms: dict[str, Transform] | None = None,
-    ):
-        if transforms is None:
-            transforms = {}
-
-        for tau in self.transforms:
-            if tau.is_dummy:
-                if tau.name in transforms:
-                    tau.update(transforms[tau.name])
-            self._transforms[id(tau)] = tau
-            related_vertices = [
-                c
-                for c in vertex_config.vertex_set
-                if set(vertex_config.fields(c)) & set(tau.output)
-            ]
-            if tau.image:
-                related_vertices += [tau.image]
-            for v in related_vertices:
-                if v not in self.vertex_rep:
-                    self.vertex_rep[v] = VertexRepresentationHelper(
-                        name=v, fields=vertex_config.fields(v)
-                    )
-
-                if tau.functional_transform:
-                    self.vertex_rep[v].transforms += [(tau.input, tau.output)]
-                if tau.map:
-                    self.vertex_rep[v].maps += [dict(tau.map)]
-
-            if edge_config is not None:
-                related_edges = [
-                    e.edge_id
-                    for e in edge_config.edges
-                    if e.weights is not None
-                    and (set(e.weights.direct) & set(tau.output))
-                ]
-            else:
-                related_edges = []
-
-            if len(related_vertices) > 1:
-                if tau.image is not None and tau.image in vertex_config.vertex_set:
-                    related_vertices = [tau.image]
-                else:
-                    logger.warning(
-                        f"Multiple collections {related_vertices} are"
-                        f" related to transformation {tau}, consider revising"
-                        " your schema"
-                    )
-            self._vertex_tau.add_edges_from(
-                [(c, id(tau)) for c in related_vertices + related_edges]
-            )
-
-    def add_trivial_transformations(
-        self, vertex_config: VertexConfig, header_keys: list[str]
-    ):
-        self._transforms_current = deepcopy(self._transforms)
-        self._vertex_tau_current = self._vertex_tau.copy()
-
-        pre_vertex_fields_map = {
-            vertex: set(header_keys) & set(vertex_config.fields(vertex))
-            for vertex in vertex_config.vertex_set
-        }
-
-        for vertex, fs in pre_vertex_fields_map.items():
-            tau_fields = self.fields(vertex)
-            fields_passthrough = set(fs) - tau_fields
-            if fields_passthrough:
-                tau = Transform(
-                    map=dict(zip(fields_passthrough, fields_passthrough)),
-                    image=vertex,
-                )
-                self._transforms_current[id(tau)] = tau
-                self._vertex_tau_current.add_edges_from([(vertex, id(tau))])
-
-    def fetch_transforms(self, ge: GraphEntity) -> Iterator[Transform]:
-        if ge in self._vertex_tau_current.nodes:
-            neighbours = self._vertex_tau_current.neighbors(ge)
-        else:
-            return iter(())
-        return (self._transforms_current[k] for k in neighbours)
-
-    def fields(self, vertex: str | None = None) -> set[str]:
-        field_sets: Iterator[set[str]]
-        if vertex is None:
-            field_sets = (self.fields(v) for v in self.vertex_rep.keys())
-        elif vertex in self._vertex_tau.nodes:
-            neighbours = self._vertex_tau.neighbors(vertex)
-            field_sets = (set(self._transforms[k].output) for k in neighbours)
-        else:
-            return set()
-        fields: set[str] = set().union(*field_sets)
-        return fields
-
-    def apply_doc(self, doc: dict, **kwargs) -> defaultdict[GraphEntity, list]:
-        vertex_config: VertexConfig = kwargs.pop("vertex_config")
-        edge_config = kwargs.pop("edge_config")
-
-        try:
-            for k, t in self._types.items():
-                if k in doc:
-                    doc[k] = t(doc[k])
-        except ValueError as ex:
-            logger.error(f"Typecast failure: {doc} for processing. Trace: {ex}")
-            return defaultdict(list)
-
-        try:
-            predocs_transformed = row_to_vertices(doc, vertex_config, self)
-        except ValueError as ex:
-            logger.error(f"Transform failure: {doc} for processing. Trace: {ex}")
-            return defaultdict(list)
-
-        item = normalize_row(predocs_transformed, vertex_config)
-
-        item = add_blank_collections(item, vertex_config)
-
-        item = apply_filter(item, vertex_conf=vertex_config)
-
-        pure_weight = extract_weights(doc, self, edge_config.edges)
-
-        item = define_edges(
-            unit=item,
-            unit_weights=pure_weight,
-            current_edges=edge_config.edges,
-            vertex_conf=vertex_config,
-        )
-
-        return item
-
-
-@dataclasses.dataclass(kw_only=True)
-class TreeResource(Resource):
-    root: MapperNode
-
-    def __post_init__(self):
-        super().__post_init__()
-        self.resource_type = ResourceType.TREELIKE
-
-    def finish_init(
-        self,
-        vc: VertexConfig,
         edge_config: EdgeConfig,
         transforms: dict[str, Transform],
     ):
+        self.vertex_config = vertex_config
+        self.edge_config = edge_config
         self.root.finish_init(
-            vc,
-            edge_config=edge_config,
+            vertex_config=vertex_config,
             vertex_rep=self.vertex_rep,
             transforms=transforms,
         )
         for e in self.extra_weights:
-            e.finish_init(vc)
+            e.finish_init(vertex_config)
 
-    def _prepare_apply(self, **kwargs):
-        pass
-
-    def apply_doc(self, doc: dict, **kwargs) -> defaultdict[GraphEntity, list]:
-        vertex_config: VertexConfig = kwargs.pop("vertex_config")
-
-        acc: defaultdict[GraphEntity, list] = defaultdict(list)
-        acc = self.root.apply(
-            doc,
-            vertex_config,
-            acc,
+    def __call__(self, doc: dict) -> defaultdict[GraphEntity, list]:
+        ctx = ActionContext(doc=doc)
+        ctx = self.root(
+            ctx,
         )
-        acc = self.normalize_unit(acc, vertex_config)
+        acc = self.root.normalize_unit(ctx, self.edge_config.edges)
 
         return acc
 
 
-@dataclasses.dataclass
-class ResourceHolder(BaseDataclass):
-    row_likes: list[RowResource] = dataclasses.field(default_factory=list)
-    tree_likes: list[TreeResource] = dataclasses.field(default_factory=list)
-
-    def finish_init(
-        self, vc: VertexConfig, ec: EdgeConfig, transforms: dict[str, Transform]
-    ):
-        for r in self.tree_likes:
-            r.finish_init(vc, edge_config=ec, transforms=transforms)
-        for r in self.row_likes:
-            r.finish_init(vertex_config=vc, edge_config=ec, transforms=transforms)
-
-    def __iter__(self):
-        return chain(self.row_likes, self.tree_likes)
-
-
-def row_to_vertices(
-    doc: dict, vc: VertexConfig, rr: RowResource
-) -> defaultdict[GraphEntity, list]:
-    """
-
-        doc gets transformed and mapped onto vertices
-
-    :param doc: {k: v}
-    :param vc:
-    :param rr:
-    :return: { vertex: [doc]}
-    """
-
-    docs: defaultdict[GraphEntity, list] = defaultdict(list)
-    for vertex in vc.vertices:
-        docs[vertex.name] += [
-            tau(doc, __return_doc=True) for tau in rr.fetch_transforms(vertex.name)
-        ]
-    return docs
-
-
-def extract_weights(
-    doc: dict, row_resource: RowResource, edges: list[Edge]
-) -> defaultdict[GraphEntity, list]:
-    doc_upd: defaultdict[GraphEntity, list] = defaultdict(list)
-    for e in edges:
-        for tau in row_resource.fetch_transforms(e.edge_id):
-            doc_upd[e.edge_id] += [tau(doc, __return_doc=True)]
-    return doc_upd
+# def row_to_vertices(
+#     doc: dict, vc: VertexConfig, rr: RowResource
+# ) -> defaultdict[GraphEntity, list]:
+#     """
+#
+#         doc gets transformed and mapped onto vertices
+#
+#     :param doc: {k: v}
+#     :param vc:
+#     :param rr:
+#     :return: { vertex: [doc]}
+#     """
+#
+#     docs: defaultdict[GraphEntity, list] = defaultdict(list)
+#     for vertex in vc.vertices:
+#         docs[vertex.name] += [
+#             tau(doc, __return_doc=True) for tau in rr.fetch_transforms(vertex.name)
+#         ]
+#     return docs
+#
+#
+# def extract_weights(
+#     doc: dict, row_resource: RowResource, edges: list[Edge]
+# ) -> defaultdict[GraphEntity, list]:
+#     doc_upd: defaultdict[GraphEntity, list] = defaultdict(list)
+#     for e in edges:
+#         for tau in row_resource.fetch_transforms(e.edge_id):
+#             doc_upd[e.edge_id] += [tau(doc, __return_doc=True)]
+#     return doc_upd

@@ -1,6 +1,6 @@
 import logging
 
-from graphcast.architecture.action_node import SimpleResource
+from graphcast.architecture.resource import Resource
 from graphcast.architecture.schema import Schema
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,13 @@ def test_schema_load(schema):
     assert len(schema_obj.resources.tree_likes) == 2
 
 
-def test_schema_update(schema):
+def test_resource(schema):
     sd = schema("ibes_upd")
-    sr = SimpleResource.from_dict(sd["resources"][0])
+    sr = Resource.from_dict(sd["resources"][0])
     assert len(sr.root.action_node.descendants) == 10
+
+
+def test_s(schema):
+    sd = schema("ibes_upd")
+    sr = Schema.from_dict(sd)
+    assert sr.general.name == "ibes"

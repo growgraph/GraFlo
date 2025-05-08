@@ -4,8 +4,9 @@ import pytest
 import yaml
 from suthing import FileHandle
 
-from graphcast.architecture.action_node import ActionContext, ActionNodeWrapper
+from graphcast.architecture.actors import ActionContext
 from graphcast.architecture.vertex import VertexConfig
+from graphcast.architecture.wrapper import ActorWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +79,7 @@ def test_actio_node_wrapper_openalex(
     resource_with_weights, schema_openalex, sample_openalex
 ):
     ctx = ActionContext(doc=sample_openalex)
-    anw = ActionNodeWrapper(
+    anw = ActorWrapper(
         *resource_with_weights, vertex_config=schema_openalex, transforms={}
     )
     ctx = anw(ctx)

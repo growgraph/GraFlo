@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import dataclasses
 import logging
 from abc import ABC, abstractmethod
@@ -8,62 +6,56 @@ from itertools import product
 from types import MappingProxyType
 from typing import Any, Callable, Iterable, Optional
 
-from dataclass_wizard import JSONWizard
-
 from graphcast.architecture.edge import Edge, EdgeConfig
 from graphcast.architecture.onto import (
     DISCRIMINANT_KEY,
     SOURCE_AUX,
     TARGET_AUX,
     EdgeCastingType,
-    EncodingType,
     GraphEntity,
-)
-from graphcast.architecture.resource_util import (
-    add_blank_collections,
-    apply_filter,
-    define_edges,
 )
 from graphcast.architecture.transform import Transform
 from graphcast.architecture.util import project_dict
 from graphcast.architecture.vertex import (
     VertexConfig,
-    VertexRepresentationHelper,
 )
+from graphcast.architecture.wrapper import ActorWrapper
 from graphcast.onto import BaseDataclass
-from graphcast.util.merge import discriminate, merge_doc_basis
-from graphcast.util.transform import pick_unique_dict
+from graphcast.util.merge import discriminate
 
 logger = logging.getLogger(__name__)
 
 
 DESCEND_KEY_VALUES = {"key"}
-DUMMY_KEY = "__dummy_key__"
 DRESSING_TRANSFORMED_VALUE_KEY = "__value__"
 
 
 @dataclasses.dataclass(kw_only=True)
-class AbsActionContext(BaseDataclass, ABC):
+class ActionContextAbstract(BaseDataclass, ABC):
+    # accumulation of vertices and edges
     acc: defaultdict[GraphEntity, list] = dataclasses.field(
         default_factory=lambda: defaultdict(list)
     )
     vertex_buffer: defaultdict[GraphEntity, dict] = dataclasses.field(
         default_factory=lambda: defaultdict(dict)
     )
+    # current doc : the result of application of transformations to the original document
     cdoc: dict = dataclasses.field(default_factory=dict)
 
 
 @dataclasses.dataclass
-class ActionContext(AbsActionContext):
+class ActionContext(ActionContextAbstract):
+    # current level of the document under analysis, either a dict or a list
     doc: dict | list
 
 
 @dataclasses.dataclass
-class ActionContextPure(AbsActionContext):
+class ActionContextPure(ActionContextAbstract):
+    # current level of the document under analysis, a dict
     doc: dict
 
 
-class ActionNode(ABC):
+class Actor(ABC):
     @abstractmethod
     def __call__(self, ctx: ActionContext, **kwargs):
         pass
@@ -72,7 +64,7 @@ class ActionNode(ABC):
         pass
 
 
-class VertexNode(ActionNode):
+class VertexActor(Actor):
     def __init__(
         self,
         vertex: str,
@@ -122,7 +114,7 @@ class VertexNode(ActionNode):
         return ctx
 
 
-class EdgeNode(ActionNode):
+class EdgeActor(Actor):
     def __init__(
         self,
         **kwargs,
@@ -132,6 +124,10 @@ class EdgeNode(ActionNode):
 
     def finish_init(self, **kwargs):
         self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
+        edge_config: EdgeConfig = kwargs.pop("edge_config")
+        if self in edge_config:
+            # TODO add edges
+            pass
 
     def __call__(self, ctx: ActionContextPure, **kwargs):
         # get source and target names
@@ -280,7 +276,7 @@ class EdgeNode(ActionNode):
         return edges
 
 
-class TransformNode(ActionNode):
+class TransformActor(Actor):
     def __init__(self, **kwargs):
         self.vertex: Optional[str] = kwargs.pop("target_vertex", None)
         self.transforms: dict = kwargs.pop("transforms", {})
@@ -319,12 +315,12 @@ class TransformNode(ActionNode):
         return ctx
 
 
-class DescendNode(ActionNode):
+class DescendActor(Actor):
     def __init__(self, key: Optional[str], descendants_kwargs: list, **kwargs):
         self.key = key
-        self.descendants: list[ActionNodeWrapper] = []
+        self.descendants: list[ActorWrapper] = []
         for descendant_kwargs in descendants_kwargs:
-            self.descendants += [ActionNodeWrapper(**descendant_kwargs, **kwargs)]
+            self.descendants += [ActorWrapper(**descendant_kwargs, **kwargs)]
 
         self.descendants = sorted(
             self.descendants, key=lambda x: _NodeTypePriority[type(x.action_node)]
@@ -361,164 +357,9 @@ class DescendNode(ActionNode):
 
 _NodeTypePriority = MappingProxyType(
     {
-        TransformNode: 20,
-        VertexNode: 50,
-        DescendNode: 60,
-        EdgeNode: 90,
+        TransformActor: 20,
+        VertexActor: 50,
+        DescendActor: 60,
+        EdgeActor: 90,
     }
 )
-
-
-class ActionNodeWrapper:
-    def __init__(self, *args, **kwargs):
-        self.action_node: ActionNode
-        if self._try_init_descend_node(*args, **kwargs):
-            pass
-        elif self._try_init_transform_node(**kwargs):
-            pass
-        elif self._try_init_vertex_node(**kwargs):
-            pass
-        elif self._try_init_edge_node(**kwargs):
-            pass
-        else:
-            raise ValueError(f"Not able to init ActionNodeWrapper with {kwargs}")
-
-    def finish_init(self, **kwargs):
-        kwargs["transforms"] = kwargs.get("transforms", {})
-        self.vertex_config = kwargs.get("vertex_config", VertexConfig(vertices=[]))
-        self.action_node.finish_init(**kwargs)
-
-    def _try_init_descend_node(self, *args, **kwargs) -> bool:
-        descend_key_candidates = [kwargs.pop(k, None) for k in DESCEND_KEY_VALUES]
-        descend_key_candidates = [x for x in descend_key_candidates if x is not None]
-        descend_key = descend_key_candidates[0] if descend_key_candidates else None
-        ds = kwargs.pop("apply", None)
-        if ds is not None:
-            if isinstance(ds, list):
-                descendants = ds
-            else:
-                descendants = [ds]
-        elif len(args) > 0:
-            descendants = list(args)
-        else:
-            return False
-        self.action_node = DescendNode(
-            descend_key, descendants_kwargs=descendants, **kwargs
-        )
-        return True
-
-    def _try_init_transform_node(self, **kwargs) -> bool:
-        try:
-            self.action_node = TransformNode(**kwargs)
-            return True
-        except Exception:
-            return False
-
-    def _try_init_vertex_node(self, **kwargs) -> bool:
-        try:
-            self.action_node = VertexNode(**kwargs)
-            return True
-        except Exception:
-            return False
-
-    def _try_init_edge_node(self, **kwargs) -> bool:
-        try:
-            self.action_node = EdgeNode(**kwargs)
-            return True
-        except Exception:
-            return False
-
-    def __call__(
-        self,
-        ctx: ActionContext,
-    ) -> ActionContext:
-        ctx = self.action_node(ctx)
-        return ctx
-
-    def normalize_unit(
-        self, ctx: ActionContext, edges: list[Edge]
-    ) -> defaultdict[GraphEntity, list]:
-        unit_doc = ctx.acc
-
-        for vertex, v in unit_doc.items():
-            v = pick_unique_dict(v)
-            if vertex in self.vertex_config.vertex_set:
-                v = merge_doc_basis(
-                    v,
-                    tuple(self.vertex_config.index(vertex).fields),
-                    DISCRIMINANT_KEY
-                    if self.vertex_config.discriminant_chart[vertex]
-                    else None,
-                )
-                for item in v:
-                    item.pop(DISCRIMINANT_KEY, None)
-            unit_doc[vertex] = v
-
-        unit_doc = add_blank_collections(unit_doc, self.vertex_config)
-
-        unit_doc = apply_filter(unit_doc, vertex_conf=self.vertex_config)
-
-        # pure_weight = extract_weights(unit_doc, edge_config.edges)
-
-        unit_doc = define_edges(
-            unit=unit_doc,
-            unit_weights=defaultdict(),
-            current_edges=edges,
-            vertex_conf=self.vertex_config,
-        )
-
-        return unit_doc
-
-    @classmethod
-    def from_dict(cls, data: dict | list):
-        if isinstance(data, list):
-            return cls(*data)
-        else:
-            return cls(**data)
-
-
-@dataclasses.dataclass(kw_only=True)
-class SimpleResource(BaseDataclass, JSONWizard):
-    resource_name: str
-    apply: list
-    encoding: EncodingType = EncodingType.UTF_8
-    merge_collections: list[str] = dataclasses.field(default_factory=list)
-    extra_weights: list[Edge] = dataclasses.field(default_factory=list)
-    types: dict[str, str] = dataclasses.field(default_factory=dict)
-
-    def __post_init__(self):
-        self.root = ActionNodeWrapper(*self.apply)
-        self.vertex_rep: dict[str, VertexRepresentationHelper] = dict()
-        self.name = self.resource_name
-        self._types: dict[str, Callable] = dict()
-        for k, v in self.types.items():
-            try:
-                self._types[k] = eval(v)
-            except Exception as ex:
-                logger.error(
-                    f"For resource {self.name} for field {k} failed to cast type {v} : {ex}"
-                )
-
-    def finish_init(
-        self,
-        vc: VertexConfig,
-        edge_config: EdgeConfig,
-        transforms: dict[str, Transform],
-    ):
-        self.root.finish_init(
-            vc,
-            edge_config=edge_config,
-            vertex_rep=self.vertex_rep,
-            transforms=transforms,
-        )
-        for e in self.extra_weights:
-            e.finish_init(vc)
-
-    def __call__(self, doc: dict) -> defaultdict[GraphEntity, list]:
-        ctx = ActionContext(doc=doc)
-        ctx = self.root(
-            ctx,
-        )
-        # acc = self.normalize_unit(acc, vertex_config)
-
-        return ctx.acc

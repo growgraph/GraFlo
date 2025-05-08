@@ -345,26 +345,6 @@ def row_resource_ibes():
 
 
 @pytest.fixture()
-def mapper_node_a():
-    mn = yaml.safe_load(
-        """
-        type: vertex
-        name: date
-        transforms:
-        -   foo: parse_date_standard
-            module: graphcast.util.transform
-            input:
-            -   '@sortdate'
-            output:
-            -   year
-            -   month
-            -   day
-    """
-    )
-    return mn
-
-
-@pytest.fixture()
 def mapper_node_edge():
     mn = yaml.safe_load(
         """
@@ -438,13 +418,13 @@ def mapper_value():
     mn = yaml.safe_load(
         """
         key: ids
-        children:
+        apply:
         -   key: mag
-            children:
+            apply:
             -   type: value
                 name: concept
         -   key: wikidata
-            children:
+            apply:
             -   type: value
                 name: concept
                 transforms:

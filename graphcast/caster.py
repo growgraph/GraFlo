@@ -13,7 +13,6 @@ from suthing import DBConnectionConfig, Timer
 from graphcast.architecture.onto import SOURCE_AUX, TARGET_AUX, GraphContainer
 from graphcast.architecture.schema import Schema
 from graphcast.db import ConnectionManager
-from graphcast.onto import ResourceType
 from graphcast.util.chunker import ChunkerFactory
 from graphcast.util.onto import FilePattern, Patterns
 
@@ -54,19 +53,14 @@ class Caster:
     def cast_normal_resource(
         self, data, columns=None, resource_name: str | None = None
     ) -> GraphContainer:
-        vc = self.schema.vertex_config
-        ec = self.schema.edge_config
         rr = self.schema.fetch_resource(resource_name)
-        if rr.resource_type == ResourceType.ROWLIKE and rr and columns is None:
-            columns = list(data[0].keys())
-            rr.prepare_apply(columns=columns, vertex_config=vc)
+        # columns = list(data[0].keys())
+        # rr.prepare_apply(columns=columns, vertex_config=vc)
 
         with ThreadPoolExecutor(max_workers=self.n_threads) as executor:
             docs = list(
                 executor.map(
-                    lambda doc: rr.apply_doc(
-                        doc, vertex_config=vc, edge_config=ec, columns=columns
-                    ),
+                    lambda doc: rr(doc),
                     data,
                 )
             )
@@ -86,14 +80,14 @@ class Caster:
 
     def process_resource(
         self,
-        resource,
+        resource_instance: Path,
         resource_name: str | None,
         conn_conf: None | DBConnectionConfig = None,
     ):
         """
 
         Args:
-            resource: file
+            resource_instance: file
             conn_conf:
             resource_name:
 
@@ -102,7 +96,7 @@ class Caster:
         """
 
         chunker = ChunkerFactory.create_chunker(
-            resource=resource, batch_size=self.batch_size, limit=self.max_items
+            resource=resource_instance, batch_size=self.batch_size, limit=self.max_items
         )
         for batch in chunker:
             self.process_batch(batch, resource_name=resource_name, conn_conf=conn_conf)
@@ -199,7 +193,7 @@ class Caster:
                 break
             else:
                 self.process_resource(
-                    resource=filepath, resource_name=resource_name, **kwargs
+                    resource_instance=filepath, resource_name=resource_name, **kwargs
                 )
 
     @staticmethod
@@ -292,5 +286,7 @@ class Caster:
                         p.join()
             else:
                 for f, r in tasks:
-                    self.process_resource(resource=f, resource_name=r, **kwargs)
+                    self.process_resource(
+                        resource_instance=f, resource_name=r, **kwargs
+                    )
         logger.info(f"Processing took {klepsidra.elapsed:.1f} sec")

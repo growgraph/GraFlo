@@ -3,8 +3,9 @@ import logging
 import pytest
 import yaml
 
-from graphcast.architecture.action_node import ActionContext, ActionNodeWrapper
+from graphcast.architecture.actors import ActionContext
 from graphcast.architecture.vertex import VertexConfig
+from graphcast.architecture.wrapper import ActorWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ def resource_cross():
 
 def test_actio_node_wrapper_openalex(resource_cross, vertex_config_cross, sample_cross):
     ctx = ActionContext(doc=sample_cross)
-    anw = ActionNodeWrapper(*resource_cross)
+    anw = ActorWrapper(*resource_cross)
     anw.finish_init(transforms={}, vertex_config=vertex_config_cross)
     ctx = anw(ctx)
     assert ctx.acc["person"] == [{"id": "John"}, {"id": "Mary"}]
