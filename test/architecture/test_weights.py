@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.fixture()
-def schema_openalex():
+def vc_openalex():
     tc = yaml.safe_load("""
     vertices:
     -   name: author
@@ -42,8 +42,8 @@ def schema_openalex():
 
 @pytest.fixture()
 def sample_openalex():
-    an = FileHandle.load("test/data/json/openalex.authors.json")
-    return an
+    sample = FileHandle.load("test/data/json/openalex.authors.json")
+    return sample
 
 
 @pytest.fixture()
@@ -64,23 +64,20 @@ def resource_with_weights():
         apply:
         -   vertex: institution   
         -   name: keep_suffix_id
-        -   source: author
-            target: institution
-            weights:
-                source_fields:
-                -   updated_date
-                -   created_date
+    -   source: author
+        target: institution
+        weights:
+            source_fields:
+            -   updated_date
+            -   created_date
     """)
     return an
 
 
-def test_actio_node_wrapper_openalex(
-    resource_with_weights, schema_openalex, sample_openalex
-):
+def test_act_openalex(resource_with_weights, vc_openalex, sample_openalex):
     ctx = ActionContext()
-    anw = ActorWrapper(
-        *resource_with_weights, vertex_config=schema_openalex, transforms={}
-    )
+    anw = ActorWrapper(*resource_with_weights)
+    anw.finish_init(vertex_config=vc_openalex, transforms={})
     ctx = anw(ctx, doc=sample_openalex)
     edge = ctx.acc[("author", "institution", None)][0]
     del edge["__source"]

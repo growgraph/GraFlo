@@ -74,33 +74,5 @@ class Resource(BaseDataclass, JSONWizard):
 
         return acc
 
-
-# def row_to_vertices(
-#     doc: dict, vc: VertexConfig, rr: RowResource
-# ) -> defaultdict[GraphEntity, list]:
-#     """
-#
-#         doc gets transformed and mapped onto vertices
-#
-#     :param doc: {k: v}
-#     :param vc:
-#     :param rr:
-#     :return: { vertex: [doc]}
-#     """
-#
-#     docs: defaultdict[GraphEntity, list] = defaultdict(list)
-#     for vertex in vc.vertices:
-#         docs[vertex.name] += [
-#             tau(doc, __return_doc=True) for tau in rr.fetch_transforms(vertex.name)
-#         ]
-#     return docs
-#
-#
-# def extract_weights(
-#     doc: dict, row_resource: RowResource, edges: list[Edge]
-# ) -> defaultdict[GraphEntity, list]:
-#     doc_upd: defaultdict[GraphEntity, list] = defaultdict(list)
-#     for e in edges:
-#         for tau in row_resource.fetch_transforms(e.edge_id):
-#             doc_upd[e.edge_id] += [tau(doc, __return_doc=True)]
-#     return doc_upd
+    def count(self):
+        return self.root.count()

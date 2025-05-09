@@ -41,6 +41,19 @@ def schema_vc_openalex():
         -   unique: false
             fields:
             -   created_date
+    -   name: concept
+        dbname: concepts
+        fields:
+        -   _key
+        -   wikidata
+        -   display_name
+        -   level
+        -   mag
+        -   created_date
+        -   updated_date
+        indexes:
+        -   fields:
+            -   _key
     -   name: institution
         dbname: institutions
         fields:
@@ -107,7 +120,7 @@ def resource_descend():
         - key: abc
           apply:
             name: a
-        - vertex: b
+        - vertex: work
         """
     )
     return tc
@@ -146,32 +159,6 @@ def sample_openalex():
     return an
 
 
-@pytest.fixture()
-def resource_openalex_works():
-    an = yaml.safe_load("""
-    -   vertex: work
-        discriminant: _top_level
-    -   name: keep_suffix_id
-        foo: split_keep_part
-        module: graphcast.util.transform
-        params:
-            sep: "/"
-            keep: -1
-        input:
-        -   id
-        output:
-        -   _key
-    -   key: referenced_works
-        apply:
-        -   vertex: work
-        -   name: keep_suffix_id
-    -   source: work
-        target: work
-        source_discriminant: _top_level
-    """)
-    return an
-
-
 def test_descend(resource_descend, schema_vc_openalex):
     anw = ActorWrapper(**resource_descend)
     anw.finish_init(vertex_config=schema_vc_openalex)
@@ -206,3 +193,27 @@ def test_discriminant_edge(
     acc = ctx.acc
     assert len(acc["work"]) == 6
     assert len(acc[("work", "work", None)]) == 5
+
+
+def test_mapper_value(resource_concept, schema_vc_openalex):
+    test_doc = [{"wikidata": "https://www.wikidata.org/wiki/Q123", "mag": 105794591}]
+    anw = ActorWrapper(*resource_concept)
+    anw.finish_init(vertex_config=schema_vc_openalex, transforms={})
+    ctx = ActionContext()
+    ctx = anw(ctx, doc=test_doc)
+    assert ctx.acc["concept"][0] == {"mag": 105794591, "wikidata": "Q123"}
+    assert len(ctx.acc) == 1
+
+
+def test_transform_shortcut(resource_openalex_works, schema_vc_openalex):
+    doc = {
+        "doi": "https://doi.org/10.1007/978-3-123",
+        "id": "https://openalex.org/A123",
+    }
+    anw = ActorWrapper(*resource_openalex_works)
+    transforms = {}
+    anw.finish_init(vertex_config=schema_vc_openalex, transforms=transforms)
+    ctx = ActionContext()
+    ctx = anw(ctx, doc=doc)
+    assert ctx.acc["work"][0]["_key"] == "A123"
+    assert ctx.acc["work"][0]["doi"] == "10.1007/978-3-123"

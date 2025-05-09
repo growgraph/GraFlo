@@ -53,7 +53,7 @@ def resource_cross():
     return an
 
 
-def test_actio_node_wrapper_openalex(resource_cross, vertex_config_cross, sample_cross):
+def test_wrapper_openalex(resource_cross, vertex_config_cross, sample_cross):
     ctx = ActionContext()
     anw = ActorWrapper(*resource_cross)
     anw.finish_init(transforms={}, vertex_config=vertex_config_cross)

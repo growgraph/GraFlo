@@ -8,7 +8,7 @@ resources:
         target_discriminant: _top_level
     -   key: publication
         apply:
-        -   vertex_name: publication
+        -   vertex: publication
     -   key: top_level_mention
         apply:
         -   vertex: mention

@@ -414,29 +414,19 @@ def mapper_node_edge_weight_config():
 
 
 @pytest.fixture()
-def mapper_value():
+def resource_concept():
     mn = yaml.safe_load(
         """
-        key: ids
-        apply:
-        -   key: mag
-            apply:
-            -   type: value
-                name: concept
-        -   key: wikidata
-            apply:
-            -   type: value
-                name: concept
-                transforms:
-                -   foo: split_keep_part
-                    module: graphcast.util.transform
-                    params:
-                        sep: "/"
-                        keep: -1
-                    input:
-                    -   wikidata
-                    output:
-                    -   wikidata
+        -   vertex: concept
+        -   foo: split_keep_part
+            module: graphcast.util.transform
+            params:
+                sep: "/"
+                keep: -1
+            input:
+            -   wikidata
+            output:
+            -   wikidata
     """
     )
     return mn

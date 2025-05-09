@@ -4,6 +4,7 @@ import dataclasses
 import importlib
 import logging
 from copy import deepcopy
+from typing import Optional
 
 from graphcast.onto import BaseDataclass
 
@@ -16,10 +17,10 @@ class TransformException(BaseException):
 
 @dataclasses.dataclass
 class Transform(BaseDataclass):
-    name: str | None = None
-    module: str | None = None
-    class_name: str | None = None
-    foo: str | None = None
+    name: Optional[str] = None
+    module: Optional[str] = None
+    class_name: Optional[str] = None
+    foo: Optional[str] = None
     fields: tuple[str, ...] = dataclasses.field(default_factory=tuple)
     input: tuple[str, ...] = dataclasses.field(default_factory=tuple)
     output: tuple[str, ...] = dataclasses.field(default_factory=tuple)
@@ -33,7 +34,7 @@ class Transform(BaseDataclass):
         consider vertices va : {name} and vb: {name}
         transformations: t_a: {va_name -> name} and t_b : {vb_name -> name}
     """
-    image: str | None = None
+    image: Optional[str] = None
 
     def __post_init__(self):
         self._foo = None
@@ -106,7 +107,7 @@ class Transform(BaseDataclass):
         """
 
         is_mapping = self._foo is None
-        return_doc = kwargs.pop("__return_doc", False) or is_mapping
+        # return_doc = kwargs.pop("__return_doc", False) or is_mapping
 
         if is_mapping:
             input_doc = nargs[0]
@@ -121,7 +122,7 @@ class Transform(BaseDataclass):
             else:
                 output_values = self._foo(*nargs, **kwargs, **self.params)
 
-        if return_doc:
+        if self.output:
             r = self._dress_as_dict(output_values)
         else:
             r = output_values
@@ -156,3 +157,30 @@ class Transform(BaseDataclass):
         return f"{id(self)} | {self.foo} {self.input} -> {self.output}"
 
     __repr__ = __str__
+
+    def get_barebone(
+        self, other: Optional[Transform]
+    ) -> tuple[Optional[Transform], Optional[Transform]]:
+        """
+
+        Args:
+            other:
+
+        Returns:
+            tuple[updated self transform, transform to store in lib]
+        """
+
+        self_param = self.to_dict(skip_defaults=True)
+        if self.foo is not None:
+            # self will be the lib transform
+            return None, self
+        elif other is not None and other.foo is not None:
+            # init self from other
+            self_param.pop("foo", None)
+            self_param.pop("module", None)
+            self_param.pop("class_name", None)
+            other_param = other.to_dict(skip_defaults=True)
+            other_param.update(self_param)
+            return Transform(**other_param), None
+        else:
+            return None, None

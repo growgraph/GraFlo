@@ -58,6 +58,9 @@ class Actor(ABC):
     def finish_init(self, **kwargs):
         pass
 
+    def count(self):
+        return 1
+
 
 ActorType = TypeVar("ActorType", bound=Actor)
 
@@ -80,36 +83,43 @@ class VertexActor(Actor):
         self.vertex_config.discriminant_chart[self.name] = True
 
     def __call__(self, ctx: ActionContext, *nargs, **kwargs):
-        doc: dict = kwargs.pop("doc", None)
+        doc: dict = kwargs.pop("doc", {})
 
         # take relevant fields from doc if available, otherwise try DRESSING_TRANSFORMED_VALUE_KEY
         vertex_keys = self.vertex_config.fields(self.name)
 
-        cdoc: dict
-        if self.name in ctx.vertex_buffer:
-            cdoc = ctx.vertex_buffer[self.name]
-            cdoc.update({k: v for k, v in ctx.cdoc.items() if k not in cdoc})
-            del ctx.vertex_buffer[self.name]
-        else:
-            cdoc = ctx.cdoc
+        _doc: dict
 
-        if doc is not None and isinstance(doc, dict):
-            cdoc.update(
-                {k: v for k, v in doc.items() if k not in cdoc and k in vertex_keys}
-            )
-        else:
-            # if doc is not a dict, it is an indication that it is the lowest level, and it was processed as value
-            remap = {
-                f"{DRESSING_TRANSFORMED_VALUE_KEY}#{j}": f
-                for j, f in enumerate(self.vertex_config.index(self.name).fields)
-            }
-            cdoc = {remap[k]: v for k, v in cdoc.items()}
+        custom_transform = ctx.vertex_buffer.pop(self.name, {})
 
-        _doc = {k: cdoc[k] for k in vertex_keys if k in cdoc}
+        # 1. exhaust custom_transform
+        _doc = {k: custom_transform[k] for k in vertex_keys if k in custom_transform}
+
+        # 2. exhaust cdoc
+        n_value_keys = len(
+            [k for k in ctx.cdoc if k.startswith(DRESSING_TRANSFORMED_VALUE_KEY)]
+        )
+        for j in range(n_value_keys):
+            vkey = self.vertex_config.index(self.name).fields[j]
+            v = ctx.cdoc.pop(f"{DRESSING_TRANSFORMED_VALUE_KEY}#{j}")
+            _doc[vkey] = v
+
+        for vkey in set(vertex_keys) - set(_doc):
+            v = ctx.cdoc.pop(vkey, None)
+            if v is not None:
+                _doc[vkey] = v
+
+        # 3. exhaust doc
+        for vkey in set(vertex_keys) - set(_doc):
+            v = doc.pop(vkey, None)
+            if v is not None:
+                _doc[vkey] = v
+
         if self.discriminant is not None:
             _doc.update({DISCRIMINANT_KEY: self.discriminant})
-        if self.keep_fields is not None:
-            _doc.update({f: doc[f] for f in self.keep_fields if f in doc})
+        # if self.keep_fields is not None:
+        #     _doc.update({f: doc[f] for f in self.keep_fields if f in doc})
+
         ctx.acc[self.name] += [_doc]
         return ctx
 
@@ -282,6 +292,7 @@ class EdgeActor(Actor):
 
 class TransformActor(Actor):
     def __init__(self, **kwargs):
+        self.__init = kwargs
         self.vertex: Optional[str] = kwargs.pop("target_vertex", None)
         self.transforms: dict
         self.name = kwargs.get("name", None)
@@ -289,8 +300,13 @@ class TransformActor(Actor):
 
     def finish_init(self, **kwargs):
         self.transforms = kwargs.pop("transforms", {})
-        if self.name is not None and not self.t.is_dummy:
-            self.transforms[self.name] = self.t
+        if self.name is not None:
+            other = self.transforms.get(self.name, None)
+            t_self, t_lib = self.t.get_barebone(other)
+            if t_lib is not None:
+                self.transforms[self.name] = t_lib
+            if t_self is not None:
+                self.t = t_self
 
     def __call__(self, ctx: ActionContext, *nargs, **kwargs):
         logging.debug(f"transforms : {id(self.transforms)} {len(self.transforms)}")
@@ -302,26 +318,31 @@ class TransformActor(Actor):
         else:
             raise ValueError(f"{type(self).__name__}: doc should be provided")
 
-        if self.name is not None:
+        if self.t.is_dummy and self.name is not None:
             t = self.transforms[self.name]
         else:
             t = self.t
 
         _update_doc: dict
         if isinstance(doc, dict):
-            _update_doc = t(doc, __return_doc=True)
+            _update_doc = t(doc)
         else:
-            value = t(doc, __return_doc=False)
+            value = t(doc)
             if isinstance(value, tuple):
                 _update_doc = {
                     f"{DRESSING_TRANSFORMED_VALUE_KEY}#{j}": v
                     for j, v in enumerate(value)
                 }
+            elif isinstance(value, dict):
+                _update_doc = value
             else:
                 _update_doc = {f"{DRESSING_TRANSFORMED_VALUE_KEY}#0": value}
+
         if self.vertex is None:
             ctx.cdoc.update(_update_doc)
         else:
+            # prepared for a specifique vertex
+            # useful then two vertices have the same keys, e.g. `id`
             ctx.vertex_buffer[self.vertex] = _update_doc
         return ctx
 
@@ -335,6 +356,9 @@ class DescendActor(Actor):
 
     def add_descendant(self, d: ActorWrapper):
         self._descendants += [d]
+
+    def count(self):
+        return sum(d.count() for d in self.descendants)
 
     @property
     def descendants(self) -> list[ActorWrapper]:
@@ -350,21 +374,24 @@ class DescendActor(Actor):
 
         # autofill vertices
         # 1. check all transforms
-        # 2. find matching with vertex fields
-        # 3. add vertices
-
         available_fields = set()
         for anw in self.descendants:
             actor = anw.actor
             if isinstance(actor, TransformActor):
                 available_fields |= set(list(actor.t.output))
 
+        # 2. find matching with vertex fields
         present_vertices = [
             anw.actor.name
             for anw in self.descendants
             if isinstance(anw.actor, VertexActor)
         ]
 
+        # 3. adjust present vertices: remove fields from present vertices
+        for v in present_vertices:
+            available_fields -= set(self.vertex_config.fields(v))
+
+        # 4. add vertices
         for v in self.vertex_config.vertices:
             intersection = available_fields & set(v.fields)
             if intersection and v.name not in present_vertices:
@@ -392,10 +419,15 @@ class DescendActor(Actor):
         if doc is None:
             raise ValueError(f"{type(self).__name__}: doc should be provided")
 
-        if isinstance(doc, dict) and self.key in doc:
-            doc = doc[self.key]
-        elif self.key is not None:
-            logging.error(f"doc {doc} was expected to have level {self.key}")
+        if not doc:
+            return ctx
+
+        if self.key is not None:
+            if isinstance(doc, dict) and self.key in doc:
+                doc = doc[self.key]
+            else:
+                logging.error(f"doc {doc} was expected to have level {self.key}")
+                return ctx
 
         doc_level = doc if isinstance(doc, list) else [doc]
 
@@ -479,6 +511,9 @@ class ActorWrapper:
             pass
         else:
             raise ValueError(f"Not able to init ActionNodeWrapper with {kwargs}")
+
+    def count(self):
+        return self.actor.count()
 
     def finish_init(self, **kwargs):
         kwargs["transforms"] = kwargs.get("transforms", {})
