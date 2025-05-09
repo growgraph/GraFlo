@@ -11,6 +11,7 @@ from graphcast.architecture.actors import (
     EdgeActor,
     TransformActor,
 )
+from graphcast.architecture.edge import EdgeConfig
 from graphcast.architecture.vertex import VertexConfig
 
 logger = logging.getLogger(__name__)
@@ -175,13 +176,15 @@ def test_descend(resource_descend, schema_vc_openalex):
     anw = ActorWrapper(**resource_descend)
     anw.finish_init(vertex_config=schema_vc_openalex)
     assert isinstance(anw.actor, DescendActor)
-    assert len(anw.actor.descendants) == 2
-    assert isinstance(anw.actor.descendants[-1].actor, DescendActor)
+    assert len(anw.actor.descendants) == 3
+    assert isinstance(anw.actor.descendants[0].actor, DescendActor)
 
 
 def test_edge(action_node_edge, schema_vc_openalex):
     anw = ActorWrapper(**action_node_edge)
-    anw.finish_init(transforms={}, vertex_config=schema_vc_openalex)
+    anw.finish_init(
+        transforms={}, vertex_config=schema_vc_openalex, edge_config=EdgeConfig()
+    )
     assert isinstance(anw.actor, EdgeActor)
     assert anw.actor.edge.target == "work"
 
@@ -195,8 +198,11 @@ def test_transform(action_node_transform, schema_vc_openalex):
 def test_discriminant_edge(
     resource_openalex_works, schema_vc_openalex, sample_openalex
 ):
-    ctx = ActionContext(doc=sample_openalex)
+    ctx = ActionContext()
     anw = ActorWrapper(*resource_openalex_works)
-    anw.finish_init(vertex_config=schema_vc_openalex, transforms={})
-    _ = anw(ctx)
-    assert True
+    ec = EdgeConfig()
+    anw.finish_init(vertex_config=schema_vc_openalex, transforms={}, edge_config=ec)
+    ctx = anw(ctx, doc=sample_openalex)
+    acc = ctx.acc
+    assert len(acc["work"]) == 6
+    assert len(acc[("work", "work", None)]) == 5

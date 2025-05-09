@@ -68,10 +68,8 @@ class Resource(BaseDataclass, JSONWizard):
             e.finish_init(vertex_config)
 
     def __call__(self, doc: dict) -> defaultdict[GraphEntity, list]:
-        ctx = ActionContext(doc=doc)
-        ctx = self.root(
-            ctx,
-        )
+        ctx = ActionContext()
+        ctx = self.root(ctx, doc=doc)
         acc = self.root.normalize_unit(ctx, self.edge_config.edges)
 
         return acc

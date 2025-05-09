@@ -163,6 +163,17 @@ class EdgeConfig(BaseDataclass):
     def _reset_edges(self):
         self.edges = list(self._map.values())
 
+    def __contains__(self, item: EdgeId | Edge):
+        if isinstance(item, Edge):
+            eid = item.edge_id
+        else:
+            eid = item
+
+        if eid in self._map:
+            return True
+        else:
+            return False
+
     def update_edges(self, edge: Edge):
         if edge.edge_id in self._map:
             self._map[edge.edge_id].update(edge)

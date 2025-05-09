@@ -64,10 +64,10 @@ def resource_cross_implicit():
 
 
 def test_actor_wrapper_openalex(resource_cross, vertex_config_cross, sample_cross):
-    ctx = ActionContext(doc=sample_cross)
+    ctx = ActionContext()
     anw = ActorWrapper(*resource_cross)
     anw.finish_init(transforms={}, vertex_config=vertex_config_cross)
-    ctx = anw(ctx)
+    ctx = anw(ctx, doc=sample_cross)
     assert ctx.acc["person"] == [{"id": "John"}, {"id": "Mary"}]
     assert ctx.acc["company"] == [{"name": "Apple"}, {"name": "Oracle"}]
 
@@ -75,9 +75,9 @@ def test_actor_wrapper_openalex(resource_cross, vertex_config_cross, sample_cros
 def test_actor_wrapper_openalex_implicit(
     resource_cross_implicit, vertex_config_cross, sample_cross
 ):
-    ctx = ActionContext(doc=sample_cross)
+    ctx = ActionContext()
     anw = ActorWrapper(*resource_cross_implicit)
     anw.finish_init(transforms={}, vertex_config=vertex_config_cross)
-    ctx = anw(ctx)
+    ctx = anw(ctx, doc=sample_cross)
     assert ctx.acc["person"] == [{"id": "John"}, {"id": "Mary"}]
     assert ctx.acc["company"] == [{"name": "Apple"}, {"name": "Oracle"}]

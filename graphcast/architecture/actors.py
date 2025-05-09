@@ -38,7 +38,7 @@ DRESSING_TRANSFORMED_VALUE_KEY = "__value__"
 
 
 @dataclasses.dataclass(kw_only=True)
-class ActionContextAbstract(BaseDataclass, ABC):
+class ActionContext(BaseDataclass):
     # accumulation of vertices and edges
     acc: defaultdict[GraphEntity, list] = dataclasses.field(
         default_factory=lambda: defaultdict(list)
@@ -50,21 +50,9 @@ class ActionContextAbstract(BaseDataclass, ABC):
     cdoc: dict = dataclasses.field(default_factory=dict)
 
 
-@dataclasses.dataclass
-class ActionContext(ActionContextAbstract):
-    # current level of the document under analysis, either a dict or a list
-    doc: dict | list
-
-
-@dataclasses.dataclass
-class ActionContextPure(ActionContextAbstract):
-    # current level of the document under analysis, a dict
-    doc: dict
-
-
 class Actor(ABC):
     @abstractmethod
-    def __call__(self, ctx: ActionContext, **kwargs):
+    def __call__(self, ctx: ActionContext, *nargs, **kwargs):
         pass
 
     def finish_init(self, **kwargs):
@@ -91,7 +79,9 @@ class VertexActor(Actor):
         self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
         self.vertex_config.discriminant_chart[self.name] = True
 
-    def __call__(self, ctx: ActionContextPure, **kwargs):
+    def __call__(self, ctx: ActionContext, *nargs, **kwargs):
+        doc: dict = kwargs.pop("doc", None)
+
         # take relevant fields from doc if available, otherwise try DRESSING_TRANSFORMED_VALUE_KEY
         vertex_keys = self.vertex_config.fields(self.name)
 
@@ -103,12 +93,12 @@ class VertexActor(Actor):
         else:
             cdoc = ctx.cdoc
 
-        if isinstance(ctx.doc, dict):
+        if doc is not None and isinstance(doc, dict):
             cdoc.update(
-                {k: v for k, v in ctx.doc.items() if k not in cdoc and k in vertex_keys}
+                {k: v for k, v in doc.items() if k not in cdoc and k in vertex_keys}
             )
         else:
-            # if ctx.doc is not a dict, it is an indication that it is the lowest level, and it was processed as value
+            # if doc is not a dict, it is an indication that it is the lowest level, and it was processed as value
             remap = {
                 f"{DRESSING_TRANSFORMED_VALUE_KEY}#{j}": f
                 for j, f in enumerate(self.vertex_config.index(self.name).fields)
@@ -119,7 +109,7 @@ class VertexActor(Actor):
         if self.discriminant is not None:
             _doc.update({DISCRIMINANT_KEY: self.discriminant})
         if self.keep_fields is not None:
-            _doc.update({f: ctx.doc[f] for f in self.keep_fields if f in ctx.doc})
+            _doc.update({f: doc[f] for f in self.keep_fields if f in doc})
         ctx.acc[self.name] += [_doc]
         return ctx
 
@@ -138,11 +128,11 @@ class EdgeActor(Actor):
 
         # TODO reintroduce same_level_vertices
         same_level_vertices = []
-        if self in edge_config:
+        if self.edge not in edge_config:
             self.edge.finish_init(self.vertex_config, same_level_vertices)
             edge_config.update_edges(self.edge)
 
-    def __call__(self, ctx: ActionContextPure, **kwargs):
+    def __call__(self, ctx: ActionContext, *nargs, **kwargs):
         # get source and target names
         source, target = self.edge.source, self.edge.target
 
@@ -170,8 +160,9 @@ class EdgeActor(Actor):
         )
 
         if source == target:
-            # in the rare case when the relation is between the vertex types and the discriminant value is not set
-            # for one the groups, we make them disjoint
+            # in the rare case when relation is an auto relation (instances of the same vertex)
+            # the discriminant value is not set
+            # we make them disjoint
 
             if (
                 self.edge.source_discriminant is not None
@@ -237,7 +228,7 @@ class EdgeActor(Actor):
         ctx.acc[source, target, relation] = self._add_weights(edges, ctx)
         return ctx
 
-    def _add_weights(self, edges, ctx: ActionContextPure):
+    def _add_weights(self, edges, ctx: ActionContext):
         acc = ctx.acc
         vertices = [] if self.edge.weights is None else self.edge.weights.vertices
         for weight_conf in vertices:
@@ -292,28 +283,35 @@ class EdgeActor(Actor):
 class TransformActor(Actor):
     def __init__(self, **kwargs):
         self.vertex: Optional[str] = kwargs.pop("target_vertex", None)
-        self.transforms: dict = kwargs.pop("transforms", {})
+        self.transforms: dict
         self.name = kwargs.get("name", None)
         self.t = Transform(**kwargs)
-        logging.debug(f"transforms : {id(self.transforms)} {len(self.transforms)}")
 
     def finish_init(self, **kwargs):
         self.transforms = kwargs.pop("transforms", {})
         if self.name is not None and not self.t.is_dummy:
             self.transforms[self.name] = self.t
 
-    def __call__(self, ctx: ActionContextPure, **kwargs):
+    def __call__(self, ctx: ActionContext, *nargs, **kwargs):
         logging.debug(f"transforms : {id(self.transforms)} {len(self.transforms)}")
+
+        if kwargs:
+            doc: Optional[dict] = kwargs.get("doc")
+        elif nargs:
+            doc = nargs[0]
+        else:
+            raise ValueError(f"{type(self).__name__}: doc should be provided")
+
         if self.name is not None:
             t = self.transforms[self.name]
         else:
             t = self.t
 
         _update_doc: dict
-        if isinstance(ctx.doc, dict):
-            _update_doc = t(ctx.doc, __return_doc=True, **kwargs)
+        if isinstance(doc, dict):
+            _update_doc = t(doc, __return_doc=True)
         else:
-            value = t(ctx.doc, __return_doc=False, **kwargs)
+            value = t(doc, __return_doc=False)
             if isinstance(value, tuple):
                 _update_doc = {
                     f"{DRESSING_TRANSFORMED_VALUE_KEY}#{j}": v
@@ -334,15 +332,6 @@ class DescendActor(Actor):
         self._descendants: list[ActorWrapper] = []
         for descendant_kwargs in descendants_kwargs:
             self._descendants += [ActorWrapper(**descendant_kwargs, **kwargs)]
-
-        logger.debug(
-            f"""type, priority: {
-                [
-                    (t.__name__, _NodeTypePriority[t])
-                    for t in (type(x.actor) for x in self.descendants)
-                ]
-            }"""
-        )
 
     def add_descendant(self, d: ActorWrapper):
         self._descendants += [d]
@@ -368,37 +357,108 @@ class DescendActor(Actor):
         for anw in self.descendants:
             actor = anw.actor
             if isinstance(actor, TransformActor):
-                print(actor.t)
                 available_fields |= set(list(actor.t.output))
+
+        present_vertices = [
+            anw.actor.name
+            for anw in self.descendants
+            if isinstance(anw.actor, VertexActor)
+        ]
 
         for v in self.vertex_config.vertices:
             intersection = available_fields & set(v.fields)
-            if intersection:
+            if intersection and v.name not in present_vertices:
                 new_descendant = ActorWrapper(vertex=v.name)
                 new_descendant.finish_init(**kwargs)
                 self.add_descendant(new_descendant)
 
+        normalizer = ActorWrapper(normalizer=True)
+        normalizer.finish_init(**kwargs)
+
+        self.add_descendant(normalizer)
+
+        logger.debug(
+            f"""type, priority: {
+                [
+                    (t.__name__, _NodeTypePriority[t])
+                    for t in (type(x.actor) for x in self.descendants)
+                ]
+            }"""
+        )
+
     def __call__(self, ctx: ActionContext, **kwargs):
-        if isinstance(ctx.doc, dict) and self.key in ctx.doc:
-            ctx.doc = ctx.doc[self.key]
+        doc = kwargs.pop("doc")
+
+        if doc is None:
+            raise ValueError(f"{type(self).__name__}: doc should be provided")
+
+        if isinstance(doc, dict) and self.key in doc:
+            doc = doc[self.key]
         elif self.key is not None:
-            logging.error(f"doc {ctx.doc} was expected to have level {self.key}")
+            logging.error(f"doc {doc} was expected to have level {self.key}")
 
-        doc_level = ctx.doc if isinstance(ctx.doc, list) else [ctx.doc]
+        doc_level = doc if isinstance(doc, list) else [doc]
 
-        for sub_doc in doc_level:
-            ctx.doc = sub_doc
+        logger.debug(f"{len(doc_level)}")
+
+        for i, sub_doc in enumerate(doc_level):
+            logger.debug(f"docs: {i + 1}/{len(doc_level)}")
+            if isinstance(sub_doc, dict):
+                nargs: tuple = tuple()
+                kwargs["doc"] = sub_doc
+            else:
+                nargs = (sub_doc,)
             ctx.cdoc = {}
-            for anw in self.descendants:
-                ctx = anw(ctx)
+            for j, anw in enumerate(self.descendants):
+                logger.debug(
+                    f"{type(anw.actor).__name__}: {j + 1}/{len(self.descendants)}"
+                )
+                ctx = anw(ctx, *nargs, **kwargs)
+        ctx.cdoc = {}
+        return ctx
+
+
+class NormalizerActor(Actor):
+    """
+    auxiliary actor, needed to merge docs that represent the same vertex
+    it should be run before EdgeActor to avoid ambiguous edges
+    """
+
+    def __init__(self, normalizer):
+        if normalizer is not True:
+            raise ValueError("Not a normalizer")
+
+    def finish_init(self, **kwargs):
+        self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
+
+    def __call__(self, ctx: ActionContext, *nargs, **kwargs):
+        unit = ctx.acc
+
+        for vertex, v in unit.items():
+            v = pick_unique_dict(v)
+            if isinstance(vertex, str) and vertex in self.vertex_config.vertex_set:
+                v = merge_doc_basis(
+                    v,
+                    tuple(self.vertex_config.index(vertex).fields),
+                    DISCRIMINANT_KEY
+                    if self.vertex_config.discriminant_chart[vertex]
+                    else None,
+                )
+            unit[vertex] = v
+
+        unit = add_blank_collections(unit, self.vertex_config)
+
+        unit = apply_filter(unit, vertex_conf=self.vertex_config)
+        ctx.acc = unit
         return ctx
 
 
 _NodeTypePriority: MappingProxyType[Type[Actor], int] = MappingProxyType(
     {
+        DescendActor: 10,
         TransformActor: 20,
         VertexActor: 50,
-        DescendActor: 60,
+        NormalizerActor: 70,
         EdgeActor: 90,
     }
 )
@@ -407,13 +467,15 @@ _NodeTypePriority: MappingProxyType[Type[Actor], int] = MappingProxyType(
 class ActorWrapper:
     def __init__(self, *args, **kwargs):
         self.actor: Actor
-        if self._try_init_descend_node(*args, **kwargs):
+        if self._try_init_descend(*args, **kwargs):
             pass
-        elif self._try_init_transform_node(**kwargs):
+        elif self._try_init_transform(**kwargs):
             pass
-        elif self._try_init_vertex_node(**kwargs):
+        elif self._try_init_vertex(**kwargs):
             pass
-        elif self._try_init_edge_node(**kwargs):
+        elif self._try_init_edge(**kwargs):
+            pass
+        elif self._try_init_normalizer(**kwargs):
             pass
         else:
             raise ValueError(f"Not able to init ActionNodeWrapper with {kwargs}")
@@ -426,7 +488,7 @@ class ActorWrapper:
         kwargs["edge_config"] = self.edge_config
         self.actor.finish_init(**kwargs)
 
-    def _try_init_descend_node(self, *args, **kwargs) -> bool:
+    def _try_init_descend(self, *args, **kwargs) -> bool:
         descend_key_candidates = [kwargs.pop(k, None) for k in DESCEND_KEY_VALUES]
         descend_key_candidates = [x for x in descend_key_candidates if x is not None]
         descend_key = descend_key_candidates[0] if descend_key_candidates else None
@@ -443,32 +505,36 @@ class ActorWrapper:
         self.actor = DescendActor(descend_key, descendants_kwargs=descendants, **kwargs)
         return True
 
-    def _try_init_transform_node(self, **kwargs) -> bool:
+    def _try_init_transform(self, **kwargs) -> bool:
         try:
             self.actor = TransformActor(**kwargs)
             return True
         except Exception:
             return False
 
-    def _try_init_vertex_node(self, **kwargs) -> bool:
+    def _try_init_normalizer(self, **kwargs) -> bool:
+        try:
+            self.actor = NormalizerActor(**kwargs)
+            return True
+        except Exception:
+            return False
+
+    def _try_init_vertex(self, **kwargs) -> bool:
         try:
             self.actor = VertexActor(**kwargs)
             return True
         except Exception:
             return False
 
-    def _try_init_edge_node(self, **kwargs) -> bool:
+    def _try_init_edge(self, **kwargs) -> bool:
         try:
             self.actor = EdgeActor(**kwargs)
             return True
         except Exception:
             return False
 
-    def __call__(
-        self,
-        ctx: ActionContext,
-    ) -> ActionContext:
-        ctx = self.actor(ctx)
+    def __call__(self, ctx: ActionContext, *nargs, **kwargs) -> ActionContext:
+        ctx = self.actor(ctx, *nargs, **kwargs)
         return ctx
 
     def normalize_unit(

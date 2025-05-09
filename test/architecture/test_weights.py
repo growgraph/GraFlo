@@ -77,11 +77,11 @@ def resource_with_weights():
 def test_actio_node_wrapper_openalex(
     resource_with_weights, schema_openalex, sample_openalex
 ):
-    ctx = ActionContext(doc=sample_openalex)
+    ctx = ActionContext()
     anw = ActorWrapper(
         *resource_with_weights, vertex_config=schema_openalex, transforms={}
     )
-    ctx = anw(ctx)
+    ctx = anw(ctx, doc=sample_openalex)
     edge = ctx.acc[("author", "institution", None)][0]
     del edge["__source"]
     del edge["__target"]
