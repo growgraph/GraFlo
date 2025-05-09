@@ -80,8 +80,8 @@ def test_switch():
         "params": {"ndigits": 3},
     }
     t = Transform(**kwargs)
-    r = t({"Open": 0.1234}, __return_doc=True)
-    assert r["value"] == 0.123
+    r = t({"Open": 0.1234})
+    assert r == {"value": 0.123, "name": "Open"}
 
 
 def test_switch_complete():
@@ -104,7 +104,7 @@ def test_switch_complete():
         "params": {"ndigits": 3},
     }
     t = Transform(**kwargs)
-    r = t(doc, __return_doc=True)
+    r = t(doc)
     assert r["value"] == 17.9
 
 
@@ -132,5 +132,5 @@ def test_split_keep_part_longer():
         "params": {"sep": "/", "keep": [-2, -1]},
     }
     t = Transform(**kwargs)
-    r = t(doc, __return_doc=True)
+    r = t(doc)
     assert r["doi"] == "10.1007/978-3-123"

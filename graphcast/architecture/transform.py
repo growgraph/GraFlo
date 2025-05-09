@@ -28,14 +28,6 @@ class Transform(BaseDataclass):
     map: dict[str, str] = dataclasses.field(default_factory=dict)
     switch: dict[str, str] = dataclasses.field(default_factory=dict)
 
-    """
-        transform image, i.e. the vertex of interest
-        it is used to disambiguate the transformation - vertex relation
-        consider vertices va : {name} and vb: {name}
-        transformations: t_a: {va_name -> name} and t_b : {vb_name -> name}
-    """
-    image: Optional[str] = None
-
     def __post_init__(self):
         self._foo = None
 
@@ -107,7 +99,6 @@ class Transform(BaseDataclass):
         """
 
         is_mapping = self._foo is None
-        # return_doc = kwargs.pop("__return_doc", False) or is_mapping
 
         if is_mapping:
             input_doc = nargs[0]
