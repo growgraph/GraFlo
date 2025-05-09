@@ -19,7 +19,7 @@ def test_init_simple(vertex_config_kg, edge_config_kg):
 
 
 def test_schema_load(schema):
-    sch = schema("kg_v3b")
+    sch = schema("kg")
     schema_obj = Schema.from_dict(sch)
     assert len(schema_obj.resources) == 2
 

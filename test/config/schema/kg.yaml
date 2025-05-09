@@ -1,5 +1,6 @@
 general:
-    name: kg_v3b
+    name: kg
+    version: 3.0.0
 resources:
 -   resource_name: kg
     apply:

@@ -10,7 +10,6 @@ from suthing import FileHandle, equals
 from graphcast.architecture.onto import cast_graph_name_to_triple
 from graphcast.architecture.schema import Schema
 from graphcast.caster import Caster
-from graphcast.onto import InputTypeFileExtensions
 from graphcast.util.misc import sorted_dicts
 
 
@@ -50,11 +49,7 @@ def schema_obj():
 
 def ingest_atomic(conn_conf, current_path, test_db_name, mode, n_cores=1):
     schema_o = fetch_schema_obj(mode)
-    rr = schema_o.fetch_resource()
-    path = (
-        Path(current_path)
-        / f"data/{InputTypeFileExtensions[rr.resource_type][0]}/{mode}"
-    )
+    path = Path(current_path) / f"data/{mode}"
 
     conn_conf.database = test_db_name
 

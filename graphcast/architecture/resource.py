@@ -17,7 +17,6 @@ from graphcast.architecture.onto import (
 from graphcast.architecture.transform import Transform
 from graphcast.architecture.vertex import (
     VertexConfig,
-    VertexRepresentationHelper,
 )
 from graphcast.onto import BaseDataclass
 
@@ -35,7 +34,6 @@ class Resource(BaseDataclass, JSONWizard):
 
     def __post_init__(self):
         self.root = ActorWrapper(*self.apply)
-        self.vertex_rep: dict[str, VertexRepresentationHelper] = dict()
         self._types: dict[str, Callable] = dict()
         self.vertex_config: VertexConfig
         self.edge_config: EdgeConfig
@@ -61,7 +59,14 @@ class Resource(BaseDataclass, JSONWizard):
         self.edge_config = edge_config
         self.root.finish_init(
             vertex_config=vertex_config,
-            vertex_rep=self.vertex_rep,
+            transforms=transforms,
+        )
+
+        # repeating it twice on purpose:
+        # Transform definition is not guaranteed to find non-dummy definitions in ad DFS pass
+
+        self.root.finish_init(
+            vertex_config=vertex_config,
             transforms=transforms,
         )
         for e in self.extra_weights:

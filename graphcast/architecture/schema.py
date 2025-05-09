@@ -1,5 +1,6 @@
 import dataclasses
 import logging
+from collections import Counter
 from typing import Optional
 
 from graphcast.architecture.edge import EdgeConfig
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 @dataclasses.dataclass
 class SchemaMetadata(BaseDataclass):
     name: str
+    version: Optional[str] = None
 
 
 @dataclasses.dataclass
@@ -33,16 +35,26 @@ class Schema(BaseDataclass):
                 transforms=self.transforms,
             )
 
+        names = [r.name for r in self.resources]
+        c = Counter(names)
+        for k, v in c.items():
+            if v > 1:
+                raise ValueError(f"resource name {k} used {v} times")
+        self._resources: dict[str, Resource] = {}
+        for r in self.resources:
+            self._resources[r.name] = r
+
     def fetch_resource(self, name: Optional[str] = None) -> Resource:
         _current_resource = None
 
         if name is not None:
-            try:
-                _current_resource = next(r for r in self.resources if r.name == name)
-            except StopIteration:
+            if name in self._resources:
+                _current_resource = self._resources[name]
+            else:
                 raise ValueError(f"Resource {name} not found")
-        if self.resources and _current_resource is None:
-            _current_resource = self.resources[0]
         else:
-            raise ValueError(f"Resource {name} not found")
+            if self._resources:
+                _current_resource = self.resources[0]
+            else:
+                raise ValueError("Empty resource container 😕")
         return _current_resource

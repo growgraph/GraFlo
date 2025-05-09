@@ -8,7 +8,7 @@ parser.add_argument("-c", "--collection", default="all", help="test setting")
 parser.add_argument(
     "--db",
     # default="_system",
-    default="wos",
+    default="wos_csv",
     help="db for arangodb connection",
 )
 

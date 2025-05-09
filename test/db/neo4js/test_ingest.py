@@ -9,9 +9,9 @@ from graphcast.db import ConnectionManager
 def modes():
     return [
         "review"
-        # "wos",
+        # "wos_csv",
         # "lake_odds",
-        # "kg_v3b",
+        # "kg",
     ]
 
 

@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 @click.option("-m", "--max-chunks", type=int, default=None)
 @click.option("--mode", type=str)
 def do(source_path, chunk_size, max_chunks, mode):
-    if mode == "wos":
+    if mode == "wos_csv":
         pattern = r"xmlns=\".*[^\"]\"(?=>)"
         force_list = force_list_wos
         tag = tag_wos

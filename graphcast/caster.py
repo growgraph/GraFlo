@@ -54,8 +54,6 @@ class Caster:
         self, data, columns=None, resource_name: str | None = None
     ) -> GraphContainer:
         rr = self.schema.fetch_resource(resource_name)
-        # columns = list(data[0].keys())
-        # rr.prepare_apply(columns=columns, vertex_config=vc)
 
         with ThreadPoolExecutor(max_workers=self.n_threads) as executor:
             docs = list(

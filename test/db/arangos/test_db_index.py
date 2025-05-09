@@ -8,11 +8,11 @@ from graphcast.db import ConnectionManager
 @pytest.fixture(scope="function")
 def modes():
     return [
-        "kg_v3b",
+        "kg",
         "ibes",
         # "wos_json",
         # "lake_odds",
-        # "wos",
+        # "wos_csv",
         # "ticker",
     ]
 

@@ -91,13 +91,3 @@ class VertexConfig(BaseDataclass):
             return self._vertices_dict[vertex_name].filters
         else:
             return []
-
-
-@dataclasses.dataclass
-class VertexRepresentationHelper(BaseDataclass):
-    name: str
-    fields: list[str] = dataclasses.field(default_factory=list)
-    maps: list[dict] = dataclasses.field(default_factory=list)
-    transforms: list[tuple[tuple[str, ...], tuple[str, ...]]] = dataclasses.field(
-        default_factory=list
-    )

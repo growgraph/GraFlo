@@ -8,7 +8,6 @@ import pytest
 from suthing import FileHandle
 
 from graphcast.caster import Caster
-from graphcast.onto import InputTypeFileExtensions
 
 logger = logging.getLogger(__name__)
 
@@ -20,55 +19,51 @@ def current_path():
 
 @pytest.fixture(scope="function")
 def modes():
-    return ["kg_v3b", "ibes"]
+    return [("kg", "json"), ("ibes", "csv")]
 
 
 def cast(modes, schema_obj, current_path, level, reset, n_threads=1):
-    for mode in modes:
+    for mode, ext in modes:
         # work with main resource
         resource_name = mode.split("_")[0]
         schema = schema_obj(mode)
 
         caster = Caster(schema, n_threads=n_threads)
-        rr = schema.fetch_resource(name=resource_name)
-        fname = os.path.join(
-            current_path,
-            f"./data/{InputTypeFileExtensions[rr.resource_type][0]}/{mode}",
-            f"{mode}.{InputTypeFileExtensions[rr.resource_type][0]}.gz",
-        )
-
-        data_obj = FileHandle.load(
-            f"test.data.{InputTypeFileExtensions[rr.resource_type][0]}.{mode}",
-            f"{mode}.{InputTypeFileExtensions[rr.resource_type][0]}.gz",
-        )
 
         if level == 0:
+            fname = os.path.join(
+                current_path,
+                f"./data/{mode}",
+                f"{mode}.{ext}.gz",
+            )
+
             caster.process_resource(
                 resource_instance=pathlib.Path(fname), resource_name=resource_name
             )
-        elif level == 1:
-            caster.process_resource(
-                resource_instance=data_obj, resource_name=resource_name
-            )
-        elif level == 2:
+        else:
             data_obj = FileHandle.load(
-                f"test.data.{InputTypeFileExtensions[rr.resource_type][0]}.{mode}",
-                f"{mode}.{InputTypeFileExtensions[rr.resource_type][0]}.gz",
+                f"test.data.{mode}",
+                f"{mode}.{ext}.gz",
             )
 
-            data = caster.normalize_resource(data_obj)
-            graph = caster.cast_normal_resource(data, resource_name=resource_name)
+            if level == 1:
+                caster.process_resource(
+                    resource_instance=data_obj, resource_name=resource_name
+                )
+            elif level == 2:
+                data = caster.normalize_resource(data_obj)
+                graph = caster.cast_normal_resource(data, resource_name=resource_name)
 
-            graph.pick_unique()
+                graph.pick_unique()
 
-            vc = {k: len(v) for k, v in graph.items()}
-            verify(
-                vc,
-                current_path=current_path,
-                mode=mode,
-                test_type="transform",
-                reset=reset,
-            )
+                vc = {k: len(v) for k, v in graph.items()}
+                verify(
+                    vc,
+                    current_path=current_path,
+                    mode=mode,
+                    test_type="transform",
+                    reset=reset,
+                )
 
 
 def test_cast(modes, schema_obj, current_path, reset):

@@ -1,7 +1,6 @@
 import dataclasses
 from copy import deepcopy
 from enum import EnumMeta, StrEnum
-from types import MappingProxyType
 
 from dataclass_wizard import JSONWizard
 from dataclass_wizard.enums import DateTimeTo
@@ -82,11 +81,3 @@ class BaseDataclass(JSONWizard, JSONWizard.Meta):
             else:
                 if current_value is None:
                     setattr(self, name, other_value)
-
-
-InputTypeFileExtensions = MappingProxyType(
-    {
-        ResourceType.TREELIKE: (InputType.JSON,),
-        ResourceType.ROWLIKE: (InputType.CSV,),
-    }
-)

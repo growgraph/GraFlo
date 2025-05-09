@@ -1,5 +1,5 @@
 general:
-    name: wos
+    name: wos_csv
 json:
     type: item
     descend_key: REC
