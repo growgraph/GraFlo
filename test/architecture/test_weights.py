@@ -4,7 +4,7 @@ import pytest
 import yaml
 from suthing import FileHandle
 
-from graphcast.architecture.actors import ActionContext, ActorWrapper
+from graphcast.architecture.actor import ActionContext, ActorWrapper
 from graphcast.architecture.vertex import VertexConfig
 
 logger = logging.getLogger(__name__)
@@ -79,10 +79,10 @@ def test_act_openalex(resource_with_weights, vc_openalex, sample_openalex):
     anw = ActorWrapper(*resource_with_weights)
     anw.finish_init(vertex_config=vc_openalex, transforms={})
     ctx = anw(ctx, doc=sample_openalex)
-    edge = ctx.acc[("author", "institution", None)][0]
+    edge = ctx.level_acc[("author", "institution", None)][0]
     del edge["__source"]
     del edge["__target"]
-    assert ctx.acc[("author", "institution", None)][0] == {
+    assert ctx.level_acc[("author", "institution", None)][0] == {
         "updated_date": "2023-06-08",
         "created_date": "2023-06-08",
     }

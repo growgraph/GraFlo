@@ -4,7 +4,7 @@ import pytest
 import yaml
 from suthing import FileHandle
 
-from graphcast.architecture.actors import (
+from graphcast.architecture.actor import (
     ActionContext,
     ActorWrapper,
     DescendActor,
@@ -190,7 +190,7 @@ def test_discriminant_edge(
     ec = EdgeConfig()
     anw.finish_init(vertex_config=schema_vc_openalex, transforms={}, edge_config=ec)
     ctx = anw(ctx, doc=sample_openalex)
-    acc = ctx.acc
+    acc = ctx.level_acc
     assert len(acc["work"]) == 6
     assert len(acc[("work", "work", None)]) == 5
 
@@ -201,8 +201,8 @@ def test_mapper_value(resource_concept, schema_vc_openalex):
     anw.finish_init(vertex_config=schema_vc_openalex, transforms={})
     ctx = ActionContext()
     ctx = anw(ctx, doc=test_doc)
-    assert ctx.acc["concept"][0] == {"mag": 105794591, "wikidata": "Q123"}
-    assert len(ctx.acc) == 1
+    assert ctx.level_acc["concept"][0] == {"mag": 105794591, "wikidata": "Q123"}
+    assert len(ctx.level_acc) == 1
 
 
 def test_transform_shortcut(resource_openalex_works, schema_vc_openalex):
@@ -215,5 +215,5 @@ def test_transform_shortcut(resource_openalex_works, schema_vc_openalex):
     anw.finish_init(vertex_config=schema_vc_openalex, transforms=transforms)
     ctx = ActionContext()
     ctx = anw(ctx, doc=doc)
-    assert ctx.acc["work"][0]["_key"] == "A123"
-    assert ctx.acc["work"][0]["doi"] == "10.1007/978-3-123"
+    assert ctx.level_acc["work"][0]["_key"] == "A123"
+    assert ctx.level_acc["work"][0]["doi"] == "10.1007/978-3-123"

@@ -4,18 +4,18 @@ general:
 resources:
 -   resource_name: kg
     apply:
-    -   source: publication
-        target: mention
-        target_discriminant: _top_level
     -   key: publication
         apply:
         -   vertex: publication
     -   key: top_level_mention
         apply:
         -   vertex: mention
+            discriminant: _top_level
         -   map:
                 hash: _key
-                discriminant: _top_level
+    -   source: publication
+        target: mention
+        target_discriminant: _top_level
     -   key: map_mention_entity
         apply:
         -   source: mention

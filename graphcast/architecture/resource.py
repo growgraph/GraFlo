@@ -5,7 +5,7 @@ from typing import Callable
 
 from dataclass_wizard import JSONWizard
 
-from graphcast.architecture.actors import (
+from graphcast.architecture.actor import (
     ActionContext,
     ActorWrapper,
 )
@@ -57,10 +57,12 @@ class Resource(BaseDataclass, JSONWizard):
     ):
         self.vertex_config = vertex_config
         self.edge_config = edge_config
+
+        logger.debug(f"total resource actor count : {self.root.count()}")
         self.root.finish_init(
-            vertex_config=vertex_config,
-            transforms=transforms,
+            vertex_config=vertex_config, transforms=transforms, __add_normalizer=True
         )
+        logger.debug(f"total resource actor count (after 1 finit): {self.root.count()}")
 
         # repeating it twice on purpose:
         # Transform definition is not guaranteed to find non-dummy definitions in ad DFS pass
@@ -69,6 +71,9 @@ class Resource(BaseDataclass, JSONWizard):
             vertex_config=vertex_config,
             transforms=transforms,
         )
+
+        logger.debug(f"total resource actor count (after 2 finit): {self.root.count()}")
+
         for e in self.extra_weights:
             e.finish_init(vertex_config)
 

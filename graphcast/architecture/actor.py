@@ -9,6 +9,7 @@ from types import MappingProxyType
 from typing import Any, Callable, Iterable, Optional, Type, TypeVar
 
 from graphcast.architecture.edge import Edge, EdgeConfig
+from graphcast.architecture.extra import update_defaultdict
 from graphcast.architecture.onto import (
     DISCRIMINANT_KEY,
     SOURCE_AUX,
@@ -19,7 +20,6 @@ from graphcast.architecture.onto import (
 from graphcast.architecture.resource_util import (
     add_blank_collections,
     apply_filter,
-    define_edges,
 )
 from graphcast.architecture.transform import Transform
 from graphcast.architecture.util import project_dict
@@ -39,8 +39,12 @@ DRESSING_TRANSFORMED_VALUE_KEY = "__value__"
 
 @dataclasses.dataclass(kw_only=True)
 class ActionContext(BaseDataclass):
-    # accumulation of vertices and edges
-    acc: defaultdict[GraphEntity, list] = dataclasses.field(
+    # accumulation of vertices and edges at the local level
+    level_acc: defaultdict[GraphEntity, list] = dataclasses.field(
+        default_factory=lambda: defaultdict(list)
+    )
+
+    glogal_acc: defaultdict[GraphEntity, list] = dataclasses.field(
         default_factory=lambda: defaultdict(list)
     )
     vertex_buffer: defaultdict[GraphEntity, dict] = dataclasses.field(
@@ -120,7 +124,7 @@ class VertexActor(Actor):
         # if self.keep_fields is not None:
         #     _doc.update({f: doc[f] for f in self.keep_fields if f in doc})
 
-        ctx.acc[self.name] += [_doc]
+        ctx.level_acc[self.name] += [_doc]
         return ctx
 
 
@@ -153,7 +157,7 @@ class EdgeActor(Actor):
         )
 
         # get source and target items
-        source_items, target_items = ctx.acc[source], ctx.acc[target]
+        source_items, target_items = ctx.level_acc[source], ctx.level_acc[target]
 
         source_items = discriminate(
             source_items,
@@ -235,11 +239,11 @@ class EdgeActor(Actor):
                 }
             ]
         edges = self._add_weights(edges, ctx)
-        ctx.acc[source, target, relation] = self._add_weights(edges, ctx)
+        ctx.level_acc[source, target, relation] = self._add_weights(edges, ctx)
         return ctx
 
     def _add_weights(self, edges, ctx: ActionContext):
-        acc = ctx.acc
+        acc = ctx.level_acc
         vertices = [] if self.edge.weights is None else self.edge.weights.vertices
         for weight_conf in vertices:
             vertices = [doc for doc in acc[weight_conf.name]]
@@ -365,6 +369,8 @@ class DescendActor(Actor):
         return sorted(self._descendants, key=lambda x: _NodeTypePriority[type(x.actor)])
 
     def finish_init(self, **kwargs):
+        __add_normalizer = kwargs.get("__add_normalizer", False)
+
         self.vertex_config: VertexConfig = kwargs.get(
             "vertex_config", VertexConfig(vertices=[])
         )
@@ -399,10 +405,10 @@ class DescendActor(Actor):
                 new_descendant.finish_init(**kwargs)
                 self.add_descendant(new_descendant)
 
-        normalizer = ActorWrapper(normalizer=True)
-        normalizer.finish_init(**kwargs)
-
-        self.add_descendant(normalizer)
+        if __add_normalizer:
+            normalizer = ActorWrapper(normalizer=True)
+            normalizer.finish_init(**kwargs)
+            self.add_descendant(normalizer)
 
         logger.debug(
             f"""type, priority: {
@@ -441,11 +447,14 @@ class DescendActor(Actor):
             else:
                 nargs = (sub_doc,)
             ctx.cdoc = {}
+            ctx.level_acc = defaultdict(list)
+
             for j, anw in enumerate(self.descendants):
                 logger.debug(
                     f"{type(anw.actor).__name__}: {j + 1}/{len(self.descendants)}"
                 )
                 ctx = anw(ctx, *nargs, **kwargs)
+            update_defaultdict(ctx.glogal_acc, ctx.level_acc)
         ctx.cdoc = {}
         return ctx
 
@@ -464,24 +473,26 @@ class NormalizerActor(Actor):
         self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
 
     def __call__(self, ctx: ActionContext, *nargs, **kwargs):
-        unit = ctx.acc
+        unit = ctx.level_acc
 
-        for vertex, v in unit.items():
-            v = pick_unique_dict(v)
-            if isinstance(vertex, str) and vertex in self.vertex_config.vertex_set:
-                v = merge_doc_basis(
-                    v,
-                    tuple(self.vertex_config.index(vertex).fields),
-                    DISCRIMINANT_KEY
-                    if self.vertex_config.discriminant_chart[vertex]
-                    else None,
-                )
-            unit[vertex] = v
+        # for vertex, v in unit.items():
+        #     v = pick_unique_dict(v)
+        #     if isinstance(vertex, str) and vertex in self.vertex_config.vertex_set:
+        #         v = merge_doc_basis(
+        #             v,
+        #             tuple(self.vertex_config.index(vertex).fields),
+        #             DISCRIMINANT_KEY
+        #             if self.vertex_config.discriminant_chart[vertex]
+        #             else None,
+        #         )
+        #         for item in v:
+        #             item.pop(DISCRIMINANT_KEY, None)
+        #     unit[vertex] = v
 
         unit = add_blank_collections(unit, self.vertex_config)
 
         unit = apply_filter(unit, vertex_conf=self.vertex_config)
-        ctx.acc = unit
+        ctx.level_acc = unit
         return ctx
 
 
@@ -575,8 +586,7 @@ class ActorWrapper:
     def normalize_unit(
         self, ctx: ActionContext, edges: list[Edge]
     ) -> defaultdict[GraphEntity, list]:
-        unit = ctx.acc
-
+        unit = ctx.glogal_acc
         for vertex, v in unit.items():
             v = pick_unique_dict(v)
             if vertex in self.vertex_config.vertex_set:
@@ -591,18 +601,18 @@ class ActorWrapper:
                     item.pop(DISCRIMINANT_KEY, None)
             unit[vertex] = v
 
-        unit = add_blank_collections(unit, self.vertex_config)
+        # unit = add_blank_collections(unit, self.vertex_config)
 
-        unit = apply_filter(unit, vertex_conf=self.vertex_config)
+        # unit = apply_filter(unit, vertex_conf=self.vertex_config)
 
         # pure_weight = extract_weights(unit_doc, edge_config.edges)
 
-        unit = define_edges(
-            unit=unit,
-            unit_weights=defaultdict(),
-            current_edges=edges,
-            vertex_conf=self.vertex_config,
-        )
+        # unit = define_edges(
+        #     unit=unit,
+        #     unit_weights=defaultdict(),
+        #     current_edges=edges,
+        #     vertex_conf=self.vertex_config,
+        # )
 
         return unit
 

@@ -51,7 +51,7 @@ class Caster:
         return files
 
     def cast_normal_resource(
-        self, data, columns=None, resource_name: str | None = None
+        self, data, resource_name: str | None = None
     ) -> GraphContainer:
         rr = self.schema.fetch_resource(resource_name)
 

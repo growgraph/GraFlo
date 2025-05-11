@@ -3,7 +3,7 @@ import logging
 import pytest
 import yaml
 
-from graphcast.architecture.actors import ActionContext, ActorWrapper
+from graphcast.architecture.actor import ActionContext, ActorWrapper
 from graphcast.architecture.vertex import VertexConfig
 
 logger = logging.getLogger(__name__)
@@ -58,5 +58,5 @@ def test_wrapper_openalex(resource_cross, vertex_config_cross, sample_cross):
     anw = ActorWrapper(*resource_cross)
     anw.finish_init(transforms={}, vertex_config=vertex_config_cross)
     ctx = anw(ctx, doc=sample_cross)
-    assert ctx.acc["person"] == [{"id": "John"}, {"id": "Mary"}]
-    assert ctx.acc["company"] == [{"id": "Apple"}, {"id": "Oracle"}]
+    assert ctx.level_acc["person"] == [{"id": "John"}, {"id": "Mary"}]
+    assert ctx.level_acc["company"] == [{"id": "Apple"}, {"id": "Oracle"}]
