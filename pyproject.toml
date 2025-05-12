@@ -12,6 +12,9 @@ docs = [
   "mkdocs>=1.6.1",
   "mkdocstrings[python]>=0.29.1"
 ]
+plot = [
+  "pygraphviz>=1.14"
+]
 
 [project]
 authors = [{email = "alexander@growgraph.dev", name = "Alexander Belikov"}]
@@ -29,9 +32,6 @@ description = "ETL to cast tabular and json data types into graphs (collections 
 name = "graphcast"
 requires-python = "~=3.11"
 version = "0.13.19"
-
-[project.optional-dependencies]
-graphviz = ["pygraphviz~=1.11"]
 
 [project.scripts]
 ingest = "graphcast.cli.ingest:ingest"

@@ -28,6 +28,7 @@ def cast(modes, schema_obj, current_path, level, reset, n_threads=1):
         resource_name = mode.split("_")[0]
         schema = schema_obj(mode)
 
+        schema.resources[0].root.assemble_tree(f"test/figs/{mode}.pdf")
         caster = Caster(schema, n_threads=n_threads)
 
         if level == 0:

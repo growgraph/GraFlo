@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import pytest
 import yaml
@@ -165,6 +166,11 @@ def test_descend(resource_descend, schema_vc_openalex):
     assert isinstance(anw.actor, DescendActor)
     assert len(anw.actor.descendants) == 3
     assert isinstance(anw.actor.descendants[0].actor, DescendActor)
+    level, cname, label, edges = anw.fetch_actors(0, [])
+    assert len(edges) == 3
+    from pathlib import Path
+
+    anw.assemble_tree(Path("figs/test.pdf"))
 
 
 def test_edge(action_node_edge, schema_vc_openalex):
@@ -189,10 +195,10 @@ def test_discriminant_edge(
     anw = ActorWrapper(*resource_openalex_works)
     ec = EdgeConfig()
     anw.finish_init(vertex_config=schema_vc_openalex, transforms={}, edge_config=ec)
+    anw.assemble_tree(Path("test/figs/discriminate_edge.pdf"))
     ctx = anw(ctx, doc=sample_openalex)
-    acc = ctx.level_acc
-    assert len(acc["work"]) == 6
-    assert len(acc[("work", "work", None)]) == 5
+    assert sum(len(v) for v in ctx.tacc["work"].values()) == 6
+    assert len(ctx.acc[("work", "work", None)]) == 5
 
 
 def test_mapper_value(resource_concept, schema_vc_openalex):
@@ -201,8 +207,8 @@ def test_mapper_value(resource_concept, schema_vc_openalex):
     anw.finish_init(vertex_config=schema_vc_openalex, transforms={})
     ctx = ActionContext()
     ctx = anw(ctx, doc=test_doc)
-    assert ctx.level_acc["concept"][0] == {"mag": 105794591, "wikidata": "Q123"}
-    assert len(ctx.level_acc) == 1
+    assert ctx.tacc["concept"][None][0] == {"mag": 105794591, "wikidata": "Q123"}
+    assert len(ctx.tacc) == 1
 
 
 def test_transform_shortcut(resource_openalex_works, schema_vc_openalex):
@@ -215,5 +221,7 @@ def test_transform_shortcut(resource_openalex_works, schema_vc_openalex):
     anw.finish_init(vertex_config=schema_vc_openalex, transforms=transforms)
     ctx = ActionContext()
     ctx = anw(ctx, doc=doc)
-    assert ctx.level_acc["work"][0]["_key"] == "A123"
-    assert ctx.level_acc["work"][0]["doi"] == "10.1007/978-3-123"
+    assert ctx.tacc["work"]["_top_level"][0] == {
+        "_key": "A123",
+        "doi": "10.1007/978-3-123",
+    }

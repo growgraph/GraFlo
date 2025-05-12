@@ -5,13 +5,12 @@ import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from itertools import product
+from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Callable, Iterable, Optional, Type, TypeVar
 
 from graphcast.architecture.edge import Edge, EdgeConfig
-from graphcast.architecture.extra import update_defaultdict
 from graphcast.architecture.onto import (
-    DISCRIMINANT_KEY,
     SOURCE_AUX,
     TARGET_AUX,
     EdgeCastingType,
@@ -19,7 +18,6 @@ from graphcast.architecture.onto import (
 )
 from graphcast.architecture.resource_util import (
     add_blank_collections,
-    apply_filter,
 )
 from graphcast.architecture.transform import Transform
 from graphcast.architecture.util import project_dict
@@ -27,7 +25,7 @@ from graphcast.architecture.vertex import (
     VertexConfig,
 )
 from graphcast.onto import BaseDataclass
-from graphcast.util.merge import discriminate, merge_doc_basis
+from graphcast.util.merge import merge_doc_basis
 from graphcast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
@@ -37,16 +35,27 @@ DESCEND_KEY_VALUES = {"key"}
 DRESSING_TRANSFORMED_VALUE_KEY = "__value__"
 
 
+def inner_factory_vertex() -> defaultdict[Optional[str], list]:
+    return defaultdict(list)
+
+
+def outer_factory() -> defaultdict[str, defaultdict[Optional[str], list]]:
+    return defaultdict(inner_factory_vertex)
+
+
+def dd_factory() -> defaultdict[GraphEntity, list]:
+    return defaultdict(list)
+
+
 @dataclasses.dataclass(kw_only=True)
 class ActionContext(BaseDataclass):
     # accumulation of vertices and edges at the local level
-    level_acc: defaultdict[GraphEntity, list] = dataclasses.field(
-        default_factory=lambda: defaultdict(list)
+    tacc: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(
+        default_factory=outer_factory
     )
 
-    glogal_acc: defaultdict[GraphEntity, list] = dataclasses.field(
-        default_factory=lambda: defaultdict(list)
-    )
+    acc: defaultdict[GraphEntity, list] = dataclasses.field(default_factory=dd_factory)
+
     vertex_buffer: defaultdict[GraphEntity, dict] = dataclasses.field(
         default_factory=lambda: defaultdict(dict)
     )
@@ -59,11 +68,37 @@ class Actor(ABC):
     def __call__(self, ctx: ActionContext, *nargs, **kwargs):
         pass
 
+    def fetch_important_items(self):
+        return {}
+
     def finish_init(self, **kwargs):
         pass
 
     def count(self):
         return 1
+
+    def _filter_items(self, items):
+        return {k: v for k, v in items.items() if v is not None and v}
+
+    def _stringify_items(self, items):
+        return {
+            k: ", ".join(list(v)) if isinstance(v, (tuple, list)) else v
+            for k, v in items.items()
+        }
+
+    def __str__(self):
+        d = self.fetch_important_items()
+        d = self._filter_items(d)
+        d = self._stringify_items(d)
+        d_list = [[k, d[k]] for k in sorted(d)]
+        d_list_b = [type(self).__name__] + [": ".join(x) for x in d_list]
+        d_list_str = "\n".join(d_list_b)
+        return d_list_str
+
+    __repr__ = __str__
+
+    def fetch_actors(self, level, edges):
+        return level, type(self), str(self), edges
 
 
 ActorType = TypeVar("ActorType", bound=Actor)
@@ -81,6 +116,10 @@ class VertexActor(Actor):
         self.discriminant: Optional[str] = discriminant
         self.keep_fields: Optional[tuple[str]] = keep_fields
         self.vertex_config: VertexConfig
+
+    def fetch_important_items(self):
+        sd = self.__dict__
+        return {k: sd[k] for k in ["name", "discriminant", "keep_fields"]}
 
     def finish_init(self, **kwargs):
         self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
@@ -119,12 +158,11 @@ class VertexActor(Actor):
             if v is not None:
                 _doc[vkey] = v
 
-        if self.discriminant is not None:
-            _doc.update({DISCRIMINANT_KEY: self.discriminant})
         # if self.keep_fields is not None:
         #     _doc.update({f: doc[f] for f in self.keep_fields if f in doc})
+        if all(cfilter(doc) for cfilter in self.vertex_config.filters(self.name)):
+            ctx.tacc[self.name][self.discriminant] += [_doc]
 
-        ctx.level_acc[self.name] += [_doc]
         return ctx
 
 
@@ -135,6 +173,13 @@ class EdgeActor(Actor):
     ):
         self.edge = Edge.from_dict(kwargs)
         self.vertex_config: VertexConfig
+
+    def fetch_important_items(self):
+        sd = self.edge.__dict__
+        return {
+            k: sd[k]
+            for k in ["source", "target", "source_discriminant", "target_discriminant"]
+        }
 
     def finish_init(self, **kwargs):
         self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
@@ -156,49 +201,44 @@ class EdgeActor(Actor):
             self.vertex_config.index(target),
         )
 
+        # self.edge.source_discriminant
         # get source and target items
-        source_items, target_items = ctx.level_acc[source], ctx.level_acc[target]
-
-        source_items = discriminate(
-            source_items,
-            source_index,
-            DISCRIMINANT_KEY if self.vertex_config.discriminant_chart[source] else None,
-            self.edge.source_discriminant,
+        source_items, target_items = (
+            ctx.tacc[source][self.edge.source_discriminant],
+            ctx.tacc[target][self.edge.target_discriminant],
         )
+        source_items = [
+            item for item in source_items if any(k in item for k in source_index)
+        ]
+        target_items = [
+            item for item in target_items if any(k in item for k in target_index)
+        ]
 
-        target_items = discriminate(
-            target_items,
-            target_index,
-            DISCRIMINANT_KEY if self.vertex_config.discriminant_chart[target] else None,
-            self.edge.target_discriminant,
-        )
-
-        if source == target:
-            # in the rare case when relation is an auto relation (instances of the same vertex)
-            # the discriminant value is not set
-            # we make them disjoint
-
-            if (
-                self.edge.source_discriminant is not None
-                and self.edge.target_discriminant is None
-            ):
-                target_items = [
-                    item
-                    for item in target_items
-                    if DISCRIMINANT_KEY not in item
-                    or item[DISCRIMINANT_KEY] != self.edge.source_discriminant
-                ]
-
-            elif (
-                self.edge.source_discriminant is None
-                and self.edge.target_discriminant is not None
-            ):
-                source_items = [
-                    item
-                    for item in source_items
-                    if DISCRIMINANT_KEY is not item
-                    or item[DISCRIMINANT_KEY] != self.edge.target_discriminant
-                ]
+        # if source == target:
+        #     # in the rare case when relation is an auto relation (instances of the same vertex)
+        #     # the discriminant value is not set we make them disjoint
+        #
+        #     if (
+        #         self.edge.source_discriminant is not None
+        #         and self.edge.target_discriminant is None
+        #     ):
+        #         target_items = [
+        #             item
+        #             for item in target_items
+        #             if DISCRIMINANT_KEY not in item
+        #             or item[DISCRIMINANT_KEY] != self.edge.source_discriminant
+        #         ]
+        #
+        #     elif (
+        #         self.edge.source_discriminant is None
+        #         and self.edge.target_discriminant is not None
+        #     ):
+        #         source_items = [
+        #             item
+        #             for item in source_items
+        #             if DISCRIMINANT_KEY is not item
+        #             or item[DISCRIMINANT_KEY] != self.edge.target_discriminant
+        #         ]
 
         if self.edge.casting_type == EdgeCastingType.PAIR_LIKE:
             iterator: Callable[..., Iterable[Any]] = zip
@@ -239,11 +279,11 @@ class EdgeActor(Actor):
                 }
             ]
         edges = self._add_weights(edges, ctx)
-        ctx.level_acc[source, target, relation] = self._add_weights(edges, ctx)
+        ctx.acc[source, target, relation] = edges
         return ctx
 
     def _add_weights(self, edges, ctx: ActionContext):
-        acc = ctx.level_acc
+        acc = ctx.acc
         vertices = [] if self.edge.weights is None else self.edge.weights.vertices
         for weight_conf in vertices:
             vertices = [doc for doc in acc[weight_conf.name]]
@@ -302,6 +342,12 @@ class TransformActor(Actor):
         self.name = kwargs.get("name", None)
         self.t = Transform(**kwargs)
 
+    def fetch_important_items(self):
+        sd = self.__dict__
+        sm = {k: sd[k] for k in ["name", "vertex"]}
+        smb = {"t.input": self.t.input, "t.output": self.t.output}
+        return {**sm, **smb}
+
     def finish_init(self, **kwargs):
         self.transforms = kwargs.pop("transforms", {})
         if self.name is not None:
@@ -358,6 +404,11 @@ class DescendActor(Actor):
         for descendant_kwargs in descendants_kwargs:
             self._descendants += [ActorWrapper(**descendant_kwargs, **kwargs)]
 
+    def fetch_important_items(self):
+        sd = self.__dict__
+        sm = {k: sd[k] for k in ["key"]}
+        return {**sm}
+
     def add_descendant(self, d: ActorWrapper):
         self._descendants += [d]
 
@@ -369,7 +420,7 @@ class DescendActor(Actor):
         return sorted(self._descendants, key=lambda x: _NodeTypePriority[type(x.actor)])
 
     def finish_init(self, **kwargs):
-        __add_normalizer = kwargs.get("__add_normalizer", False)
+        __add_normalizer = kwargs.get("__add_normalizer", True)
 
         self.vertex_config: VertexConfig = kwargs.get(
             "vertex_config", VertexConfig(vertices=[])
@@ -445,18 +496,34 @@ class DescendActor(Actor):
                 nargs: tuple = tuple()
                 kwargs["doc"] = sub_doc
             else:
+                # nargs deal with the case when the same property
+                #   for a vertex class is provided as list of values
+                # e.g. {"ids": ["abc", "abd", "qwe123"]}
                 nargs = (sub_doc,)
             ctx.cdoc = {}
-            ctx.level_acc = defaultdict(list)
 
             for j, anw in enumerate(self.descendants):
                 logger.debug(
                     f"{type(anw.actor).__name__}: {j + 1}/{len(self.descendants)}"
                 )
                 ctx = anw(ctx, *nargs, **kwargs)
-            update_defaultdict(ctx.glogal_acc, ctx.level_acc)
         ctx.cdoc = {}
         return ctx
+
+    def fetch_actors(self, level, edges):
+        label_current = str(self)
+        cname_current = type(self)
+        hash_current = hash((level, cname_current, label_current))
+        logger.info(f"{hash_current}, {level, cname_current, label_current}")
+        props_current = {"label": label_current, "class": cname_current, "level": level}
+        for d in self.descendants:
+            level_a, cname, label_a, edges_a = d.fetch_actors(level + 1, edges)
+            if cname == NormalizerActor:
+                continue
+            hash_a = hash((level_a, cname, label_a))
+            props_a = {"label": label_a, "class": cname, "level": level_a}
+            edges = [(hash_current, hash_a, props_current, props_a)] + edges_a
+        return level, type(self), str(self), edges
 
 
 class NormalizerActor(Actor):
@@ -473,7 +540,7 @@ class NormalizerActor(Actor):
         self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
 
     def __call__(self, ctx: ActionContext, *nargs, **kwargs):
-        unit = ctx.level_acc
+        unit = ctx.acc
 
         # for vertex, v in unit.items():
         #     v = pick_unique_dict(v)
@@ -489,10 +556,7 @@ class NormalizerActor(Actor):
         #             item.pop(DISCRIMINANT_KEY, None)
         #     unit[vertex] = v
 
-        unit = add_blank_collections(unit, self.vertex_config)
-
-        unit = apply_filter(unit, vertex_conf=self.vertex_config)
-        ctx.level_acc = unit
+        ctx.acc = unit
         return ctx
 
 
@@ -586,24 +650,20 @@ class ActorWrapper:
     def normalize_unit(
         self, ctx: ActionContext, edges: list[Edge]
     ) -> defaultdict[GraphEntity, list]:
-        unit = ctx.glogal_acc
-        for vertex, v in unit.items():
-            v = pick_unique_dict(v)
-            if vertex in self.vertex_config.vertex_set:
-                v = merge_doc_basis(
-                    v,
+        for vertex, v in ctx.tacc.items():
+            for discriminant, vv in v.items():
+                vv = pick_unique_dict(vv)
+                vvv = merge_doc_basis(
+                    vv,
                     tuple(self.vertex_config.index(vertex).fields),
-                    DISCRIMINANT_KEY
-                    if self.vertex_config.discriminant_chart[vertex]
-                    else None,
+                    discriminant_key=None,
                 )
-                for item in v:
-                    item.pop(DISCRIMINANT_KEY, None)
-            unit[vertex] = v
 
-        # unit = add_blank_collections(unit, self.vertex_config)
+                ctx.acc[vertex] += vvv
 
-        # unit = apply_filter(unit, vertex_conf=self.vertex_config)
+        unit = ctx.acc
+
+        unit = add_blank_collections(unit, self.vertex_config)
 
         # pure_weight = extract_weights(unit_doc, edge_config.edges)
 
@@ -622,3 +682,49 @@ class ActorWrapper:
             return cls(*data)
         else:
             return cls(**data)
+
+    def assemble_tree(self, fig_path: Optional[Path] = None):
+        _, _, _, edges = self.fetch_actors(0, [])
+        logger.info(f"{len(edges)}")
+        try:
+            import networkx as nx
+        except ImportError as e:
+            logger.error(f"not able to import networks {e}")
+            return None
+        nodes = {}
+        g = nx.MultiDiGraph()
+        for ha, hb, pa, pb in edges:
+            nodes[ha] = pa
+            nodes[hb] = pb
+        from graphcast.plot.plotter import fillcolor_palette
+
+        map_class2color = {
+            NormalizerActor: "grey",
+            DescendActor: fillcolor_palette["green"],
+            VertexActor: "orange",
+            EdgeActor: fillcolor_palette["violet"],
+            TransformActor: fillcolor_palette["blue"],
+        }
+
+        for n, props in nodes.items():
+            nodes[n]["fillcolor"] = map_class2color[props["class"]]
+            nodes[n]["style"] = "filled"
+            nodes[n]["color"] = "brown"
+
+        edges = [(ha, hb) for ha, hb, _, _ in edges]
+        g.add_edges_from(edges)
+        g.add_nodes_from(nodes.items())
+
+        if fig_path is not None:
+            ag = nx.nx_agraph.to_agraph(g)
+            ag.draw(
+                fig_path,
+                "pdf",
+                prog="dot",
+            )
+            return None
+        else:
+            return g
+
+    def fetch_actors(self, level, edges):
+        return self.actor.fetch_actors(level, edges)

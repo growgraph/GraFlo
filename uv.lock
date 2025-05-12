@@ -172,11 +172,6 @@ dependencies = [
     { name = "xmltodict" },
 ]
 
-[package.optional-dependencies]
-graphviz = [
-    { name = "pygraphviz" },
-]
-
 [package.dev-dependencies]
 dev = [
     { name = "pre-commit" },
@@ -187,6 +182,9 @@ docs = [
     { name = "mkdocs-material" },
     { name = "mkdocstrings", extra = ["python"] },
 ]
+plot = [
+    { name = "pygraphviz" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -195,12 +193,10 @@ requires-dist = [
     { name = "neo4j", specifier = ">=5.22.0,<6" },
     { name = "networkx", specifier = "~=3.3" },
     { name = "pandas", specifier = ">=2.0.3,<3" },
-    { name = "pygraphviz", marker = "extra == 'graphviz'", specifier = "~=1.11" },
     { name = "python-arango", specifier = ">=8.1.2,<9" },
     { name = "suthing", specifier = "==0.4.1" },
     { name = "xmltodict", specifier = ">=0.14.2,<0.15" },
 ]
-provides-extras = ["graphviz"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -212,6 +208,7 @@ docs = [
     { name = "mkdocs-material", specifier = ">=9.6.12" },
     { name = "mkdocstrings", extras = ["python"], specifier = ">=0.29.1" },
 ]
+plot = [{ name = "pygraphviz", specifier = ">=1.14" }]
 
 [[package]]
 name = "griffe"

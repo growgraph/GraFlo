@@ -60,7 +60,8 @@ class Resource(BaseDataclass, JSONWizard):
 
         logger.debug(f"total resource actor count : {self.root.count()}")
         self.root.finish_init(
-            vertex_config=vertex_config, transforms=transforms, __add_normalizer=True
+            vertex_config=vertex_config,
+            transforms=transforms,
         )
         logger.debug(f"total resource actor count (after 1 finit): {self.root.count()}")
 
@@ -68,8 +69,7 @@ class Resource(BaseDataclass, JSONWizard):
         # Transform definition is not guaranteed to find non-dummy definitions in ad DFS pass
 
         self.root.finish_init(
-            vertex_config=vertex_config,
-            transforms=transforms,
+            vertex_config=vertex_config, transforms=transforms, __add_normalizer=True
         )
 
         logger.debug(f"total resource actor count (after 2 finit): {self.root.count()}")

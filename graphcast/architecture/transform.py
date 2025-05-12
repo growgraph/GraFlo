@@ -145,7 +145,7 @@ class Transform(BaseDataclass):
         return t_copy
 
     def __str__(self):
-        return f"{id(self)} | {self.foo} {self.input} -> {self.output}"
+        return f"{id(self)} | {self.foo}\n{self.input} -> {self.output}"
 
     __repr__ = __str__
 
