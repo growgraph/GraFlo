@@ -1,42 +1,45 @@
 general:
     name: ibes
 resources:
-    row_likes:
-    -   name: ibes
-        encoding: ISO-8859-1
-        transforms:
-        -   foo: parse_date_ibes
-            module: graphcast.util.transform
-            input:
-            -   ANNDATS
-            -   ANNTIMS
-            output:
-            -   datetime_announce
-        -   foo: parse_date_ibes
-            module: graphcast.util.transform
-            input:
-            -   REVDATS
-            -   REVTIMS
-            output:
-            -   datetime_review
-        -   foo: cast_ibes_analyst
-            module: graphcast.util.transform
-            input:
-            -   ANALYST
-            output:
-            -   last_name
-            -   initial
-        -   map:
-                CUSIP: cusip
-                CNAME: cname
-                OFTIC: oftic
-        -   map:
-                ESTIMID: aname
-        -   map:
-                ERECCD: erec
-                ETEXT: etext
-                IRECCD: irec
-                ITEXT: itext
+-   resource_name: ibes
+    encoding: ISO-8859-1
+    apply:
+    -   vertex: ticker
+    -   vertex: analyst
+    -   vertex: recommendation
+    -   vertex: agency
+    -   foo: parse_date_ibes
+        module: graphcast.util.transform
+        input:
+        -   ANNDATS
+        -   ANNTIMS
+        output:
+        -   datetime_announce
+    -   foo: parse_date_ibes
+        module: graphcast.util.transform
+        input:
+        -   REVDATS
+        -   REVTIMS
+        output:
+        -   datetime_review
+    -   foo: cast_ibes_analyst
+        module: graphcast.util.transform
+        input:
+        -   ANALYST
+        output:
+        -   last_name
+        -   initial
+    -   map:
+            CUSIP: cusip
+            CNAME: cname
+            OFTIC: oftic
+    -   map:
+            ESTIMID: aname
+    -   map:
+            ERECCD: erec
+            ETEXT: etext
+            IRECCD: irec
+            ITEXT: itext
 vertex_config:
     blank_vertices:
     -   publication
@@ -94,9 +97,6 @@ vertex_config:
         indexes:
         -   fields:
             -   irec
-            -   erec
-            -   etext
-            -   itext
 edge_config:
     edges:
     -   source: publication

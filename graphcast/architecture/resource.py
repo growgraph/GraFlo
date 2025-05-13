@@ -63,13 +63,19 @@ class Resource(BaseDataclass, JSONWizard):
             vertex_config=vertex_config,
             transforms=transforms,
         )
-        logger.debug(f"total resource actor count (after 1 finit): {self.root.count()}")
+
+        logger.debug(
+            f"total resource actor count (after 1 finish_init): {self.root.count()}"
+        )
 
         # repeating it twice on purpose:
         # Transform definition is not guaranteed to find non-dummy definitions in ad DFS pass
 
         self.root.finish_init(
-            vertex_config=vertex_config, transforms=transforms, __add_normalizer=True
+            vertex_config=vertex_config,
+            transforms=transforms,
+            __add_normalizer=True,
+            edge_config=edge_config,
         )
 
         logger.debug(f"total resource actor count (after 2 finit): {self.root.count()}")
@@ -80,7 +86,7 @@ class Resource(BaseDataclass, JSONWizard):
     def __call__(self, doc: dict) -> defaultdict[GraphEntity, list]:
         ctx = ActionContext()
         ctx = self.root(ctx, doc=doc)
-        acc = self.root.normalize_unit(ctx, self.edge_config.edges)
+        acc = self.root.normalize_unit(ctx)
 
         return acc
 

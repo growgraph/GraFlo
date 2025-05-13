@@ -79,10 +79,10 @@ def test_act_openalex(resource_with_weights, vc_openalex, sample_openalex):
     anw = ActorWrapper(*resource_with_weights)
     anw.finish_init(vertex_config=vc_openalex, transforms={})
     ctx = anw(ctx, doc=sample_openalex)
-    edge = ctx.acc[("author", "institution", None)][0]
+    edge = ctx.acc_global[("author", "institution", None)][0]
     del edge["__source"]
     del edge["__target"]
-    assert ctx.acc[("author", "institution", None)][0] == {
+    assert ctx.acc_global[("author", "institution", None)][0] == {
         "updated_date": "2023-06-08",
         "created_date": "2023-06-08",
     }

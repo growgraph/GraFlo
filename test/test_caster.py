@@ -28,7 +28,8 @@ def cast(modes, schema_obj, current_path, level, reset, n_threads=1):
         resource_name = mode.split("_")[0]
         schema = schema_obj(mode)
 
-        schema.resources[0].root.assemble_tree(f"test/figs/{mode}.pdf")
+        for r in schema.resources:
+            r.root.assemble_tree(f"test/figs/{mode}.resource-{r.resource_name}.pdf")
         caster = Caster(schema, n_threads=n_threads)
 
         if level == 0:
@@ -62,13 +63,13 @@ def cast(modes, schema_obj, current_path, level, reset, n_threads=1):
                     vc,
                     current_path=current_path,
                     mode=mode,
-                    test_type="transform",
+                    test_type="cast",
                     reset=reset,
                 )
 
 
 def test_cast(modes, schema_obj, current_path, reset):
-    # cast(modes, schema_obj, current_path, level=0, reset=reset)
-    # cast(modes, schema_obj, current_path, level=1, reset=reset)
+    cast(modes, schema_obj, current_path, level=0, reset=reset)
+    cast(modes, schema_obj, current_path, level=1, reset=reset)
     cast(modes, schema_obj, current_path, level=2, reset=reset)
-    # cast(modes, schema_obj, current_path, level=2, reset=reset, n_threads=4)
+    cast(modes, schema_obj, current_path, level=2, reset=reset, n_threads=4)

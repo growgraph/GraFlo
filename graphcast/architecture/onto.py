@@ -55,7 +55,7 @@ class Field(BaseDataclass):
 
 @dataclasses.dataclass
 class ABCFields(BaseDataclass, metaclass=ABCMeta):
-    name: str | None = None
+    name: Optional[str] = None
     fields: list[str] = dataclasses.field(default_factory=list)
 
     def cfield(self, x):
@@ -64,6 +64,7 @@ class ABCFields(BaseDataclass, metaclass=ABCMeta):
 
 @dataclasses.dataclass
 class Weight(ABCFields):
+    discriminant: Optional[str] = None
     map: dict = dataclasses.field(default_factory=dict)
     filter: dict = dataclasses.field(default_factory=dict)
 

@@ -4,23 +4,20 @@ import dataclasses
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from itertools import product
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Callable, Iterable, Optional, Type, TypeVar
+from typing import Optional, Type, TypeVar
 
+from graphcast.architecture.actor_util import (
+    add_blank_collections,
+    render_edge,
+    render_weights,
+)
 from graphcast.architecture.edge import Edge, EdgeConfig
 from graphcast.architecture.onto import (
-    SOURCE_AUX,
-    TARGET_AUX,
-    EdgeCastingType,
     GraphEntity,
 )
-from graphcast.architecture.resource_util import (
-    add_blank_collections,
-)
 from graphcast.architecture.transform import Transform
-from graphcast.architecture.util import project_dict
 from graphcast.architecture.vertex import (
     VertexConfig,
 )
@@ -51,15 +48,18 @@ def dd_factory() -> defaultdict[GraphEntity, list]:
 class ActionContext(BaseDataclass):
     # accumulation of vertices at the local level
     # each local edge actors pushed current acc_vertex_local to acc_vectex
-    acc_vertex_local: defaultdict[str, defaultdict[Optional[str], list]] = (
-        dataclasses.field(default_factory=outer_factory)
+    acc_v_local: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(
+        default_factory=outer_factory
     )
+
     acc_vertex: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(
         default_factory=outer_factory
     )
-    acc: defaultdict[GraphEntity, list] = dataclasses.field(default_factory=dd_factory)
+    acc_global: defaultdict[GraphEntity, list] = dataclasses.field(
+        default_factory=dd_factory
+    )
 
-    vertex_buffer: defaultdict[GraphEntity, dict] = dataclasses.field(
+    buffer_vertex: defaultdict[GraphEntity, dict] = dataclasses.field(
         default_factory=lambda: defaultdict(dict)
     )
     # current doc : the result of application of transformations to the original document
@@ -136,7 +136,7 @@ class VertexActor(Actor):
 
         _doc: dict
 
-        custom_transform = ctx.vertex_buffer.pop(self.name, {})
+        custom_transform = ctx.buffer_vertex.pop(self.name, {})
 
         # 1. exhaust custom_transform
         _doc = {k: custom_transform[k] for k in vertex_keys if k in custom_transform}
@@ -151,20 +151,20 @@ class VertexActor(Actor):
             _doc[vkey] = v
 
         for vkey in set(vertex_keys) - set(_doc):
-            v = ctx.cdoc.pop(vkey, None)
+            v = ctx.cdoc.get(vkey, None)
             if v is not None:
                 _doc[vkey] = v
 
         # 3. exhaust doc
         for vkey in set(vertex_keys) - set(_doc):
-            v = doc.pop(vkey, None)
+            v = doc.get(vkey, None)
             if v is not None:
                 _doc[vkey] = v
 
         # if self.keep_fields is not None:
         #     _doc.update({f: doc[f] for f in self.keep_fields if f in doc})
         if all(cfilter(doc) for cfilter in self.vertex_config.filters(self.name)):
-            ctx.acc_vertex_local[self.name][self.discriminant] += [_doc]
+            ctx.acc_v_local[self.name][self.discriminant] += [_doc]
 
         return ctx
 
@@ -195,124 +195,23 @@ class EdgeActor(Actor):
             edge_config.update_edges(self.edge)
 
     def __call__(self, ctx: ActionContext, *nargs, **kwargs):
-        # get source and target names
-        source, target = self.edge.source, self.edge.target
+        edges = render_edge(self.edge, self.vertex_config, ctx.acc_v_local)
 
-        # get source and target edge fields
-        source_index, target_index = (
-            self.vertex_config.index(source),
-            self.vertex_config.index(target),
+        edges = render_weights(
+            self.edge, self.vertex_config, ctx.acc_v_local, ctx.cdoc, edges
         )
 
-        # self.edge.source_discriminant
-        # get source and target items
-        source_items, target_items = (
-            ctx.acc_vertex_local[source].pop(self.edge.source_discriminant, []),
-            ctx.acc_vertex_local[target].pop(self.edge.target_discriminant, []),
+        for relation, v in edges.items():
+            ctx.acc_global[self.edge.source, self.edge.target, relation] += v
+
+        ctx.acc_vertex[self.edge.source][self.edge.source_discriminant] += (
+            ctx.acc_v_local[self.edge.source].pop(self.edge.source_discriminant, [])
         )
-        source_items = [
-            item for item in source_items if any(k in item for k in source_index)
-        ]
-        target_items = [
-            item for item in target_items if any(k in item for k in target_index)
-        ]
-
-        if self.edge.casting_type == EdgeCastingType.PAIR_LIKE:
-            iterator: Callable[..., Iterable[Any]] = zip
-        else:
-            iterator = product
-
-        relation = self.edge.relation
-
-        edges = []
-
-        for u, v in iterator(source_items, target_items):
-            # adding weight from source or target
-            weight = dict()
-            if self.edge.weights is not None:
-                for field in self.edge.weights.source_fields:
-                    if field in u:
-                        weight[field] = u[field]
-                        if field not in self.edge.non_exclusive:
-                            del u[field]
-                for field in self.edge.weights.target_fields:
-                    if field in v:
-                        weight[field] = v[field]
-                        if field not in self.edge.non_exclusive:
-                            del v[field]
-
-            if self.edge.source_relation_field is not None:
-                relation = u.pop(self.edge.source_relation_field, None)
-            if self.edge.target_relation_field is not None:
-                relation = v.pop(self.edge.target_relation_field, None)
-
-            edges += [
-                {
-                    **{
-                        SOURCE_AUX: project_dict(u, source_index),
-                        TARGET_AUX: project_dict(v, target_index),
-                    },
-                    **weight,
-                }
-            ]
-        edges = self._add_weights(edges, ctx)
-        ctx.acc[source, target, relation] += edges
-
-        ctx.acc_vertex[source][self.edge.source_discriminant] += source_items
-        ctx.acc_vertex[target][self.edge.target_discriminant] += target_items
+        ctx.acc_vertex[self.edge.target][self.edge.target_discriminant] += (
+            ctx.acc_v_local[self.edge.target].pop(self.edge.target_discriminant, [])
+        )
 
         return ctx
-
-    def _add_weights(self, edges, ctx: ActionContext):
-        acc = ctx.acc
-        vertices = [] if self.edge.weights is None else self.edge.weights.vertices
-        for weight_conf in vertices:
-            vertices = [doc for doc in acc[weight_conf.name]]
-
-            # find all vertices satisfying condition
-            if weight_conf.filter:
-                vertices = [
-                    doc
-                    for doc in vertices
-                    if all([doc[q] == v in doc for q, v in weight_conf.filter.items()])
-                ]
-            try:
-                doc = next(iter(vertices))
-                weight: dict = {}
-                if weight_conf.fields:
-                    weight = {
-                        **weight,
-                        **{
-                            weight_conf.cfield(field): doc[field]
-                            for field in weight_conf.fields
-                            if field in doc
-                        },
-                    }
-                if weight_conf.map:
-                    weight = {
-                        **weight,
-                        **{q: doc[k] for k, q in weight_conf.map.items()},
-                    }
-
-                if not weight_conf.fields and not weight_conf.map:
-                    try:
-                        weight = {
-                            f"{weight_conf.name}.{k}": doc[k]
-                            for k in self.vertex_config.index(weight_conf.name)
-                            if k in doc
-                        }
-                    except ValueError:
-                        weight = {}
-                        logger.error(
-                            " weights mapper error : weight definition on"
-                            f" {self.edge.source} {self.edge.target} refers to"
-                            f" a non existent vcollection {weight_conf.name}"
-                        )
-            except:
-                weight = {}
-            for edoc in edges:
-                edoc.update(weight)
-        return edges
 
 
 class TransformActor(Actor):
@@ -374,7 +273,7 @@ class TransformActor(Actor):
         else:
             # prepared for a specifique vertex
             # useful then two vertices have the same keys, e.g. `id`
-            ctx.vertex_buffer[self.vertex] = _update_doc
+            ctx.buffer_vertex[self.vertex] = _update_doc
         return ctx
 
 
@@ -488,7 +387,7 @@ class DescendActor(Actor):
                     f"{type(anw.actor).__name__}: {j + 1}/{len(self.descendants)}"
                 )
                 ctx = anw(ctx, *nargs, **kwargs)
-        ctx.cdoc = {}
+        # ctx.cdoc = {}
         return ctx
 
     def fetch_actors(self, level, edges):
@@ -521,7 +420,7 @@ class NormalizerActor(Actor):
         self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
 
     def __call__(self, ctx: ActionContext, *nargs, **kwargs):
-        unit = ctx.acc
+        unit = ctx.acc_global
 
         # for vertex, v in unit.items():
         #     v = pick_unique_dict(v)
@@ -537,7 +436,7 @@ class NormalizerActor(Actor):
         #             item.pop(DISCRIMINANT_KEY, None)
         #     unit[vertex] = v
 
-        ctx.acc = unit
+        ctx.acc_global = unit
         return ctx
 
 
@@ -555,6 +454,8 @@ _NodeTypePriority: MappingProxyType[Type[Actor], int] = MappingProxyType(
 class ActorWrapper:
     def __init__(self, *args, **kwargs):
         self.actor: Actor
+        self.vertex_config: VertexConfig
+        self.edge_config: EdgeConfig
         if self._try_init_descend(*args, **kwargs):
             pass
         elif self._try_init_transform(**kwargs):
@@ -628,34 +529,48 @@ class ActorWrapper:
         ctx = self.actor(ctx, *nargs, **kwargs)
         return ctx
 
-    def normalize_unit(
-        self, ctx: ActionContext, edges: list[Edge]
-    ) -> defaultdict[GraphEntity, list]:
-        for vertex, v in ctx.acc_vertex.items():
-            for discriminant, vv in v.items():
-                vv = pick_unique_dict(vv)
+    def normalize_unit(self, ctx: ActionContext) -> defaultdict[GraphEntity, list]:
+        # push everything available to acc_vertex
+        for vertex in list(ctx.acc_v_local):
+            discriminant_dd: defaultdict[Optional[str], list] = ctx.acc_v_local.pop(
+                vertex, defaultdict(list)
+            )
+            for discriminant in list(discriminant_dd):
+                vertices = discriminant_dd.pop(discriminant, [])
+                ctx.acc_vertex[vertex][discriminant] += vertices
+
+        for edge in self.edge_config.edges:
+            if (edge.source, edge.target, edge.relation) not in ctx.acc_global:
+                extra_edges = render_edge(
+                    edge=edge,
+                    vertex_config=self.vertex_config,
+                    acc_vertex=ctx.acc_vertex,
+                )
+                extra_edges = render_weights(
+                    edge,
+                    self.vertex_config,
+                    ctx.acc_v_local,
+                    ctx.cdoc,
+                    extra_edges,
+                )
+
+                for relation, v in extra_edges.items():
+                    ctx.acc_global[edge.source, edge.target, relation] += v
+
+        for vertex, dd in ctx.acc_vertex.items():
+            for discriminant, vertex_list in dd.items():
+                vertex_list = pick_unique_dict(vertex_list)
                 vvv = merge_doc_basis(
-                    vv,
+                    vertex_list,
                     tuple(self.vertex_config.index(vertex).fields),
                     discriminant_key=None,
                 )
 
-                ctx.acc[vertex] += vvv
+                ctx.acc_global[vertex] += vvv
 
-        unit = ctx.acc
+        ctx.acc_global = add_blank_collections(ctx.acc_global, self.vertex_config)
 
-        unit = add_blank_collections(unit, self.vertex_config)
-
-        # pure_weight = extract_weights(unit_doc, edge_config.edges)
-
-        # unit = define_edges(
-        #     unit=unit,
-        #     unit_weights=defaultdict(),
-        #     current_edges=edges,
-        #     vertex_conf=self.vertex_config,
-        # )
-
-        return unit
+        return ctx.acc_global
 
     @classmethod
     def from_dict(cls, data: dict | list):

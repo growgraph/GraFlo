@@ -1,4 +1,5 @@
 import io
+import logging
 from os.path import dirname, join, realpath
 from pathlib import Path
 
@@ -11,6 +12,8 @@ from graphcast.architecture.onto import cast_graph_name_to_triple
 from graphcast.architecture.schema import Schema
 from graphcast.caster import Caster
 from graphcast.util.misc import sorted_dicts
+
+logger = logging.getLogger(__name__)
 
 
 def pytest_addoption(parser):
@@ -92,20 +95,18 @@ def verify(sample, current_path, mode, test_type, kind="sizes", reset=False):
         sample_ref = FileHandle.load(f"test.ref.{test_type}", f"{mode}_{kind}.{ext}")
         flag = equals(sample_transformed, sample_ref)
         if not flag:
-            print(f" mode: {mode}")
+            logger.error(f" mode: {mode}")
             if isinstance(sample_ref, dict):
                 for k, v in sample_ref.items():
-                    if v != sample_transformed[k]:
-                        print(
-                            f"for {k}\n"
-                            f"expected: {v}\n"
-                            "received:"
-                            f" {sample_transformed[k] if k in sample_transformed else None}"
+                    if k not in sample_transformed or v != sample_transformed[k]:
+                        logger.error(
+                            f"for {k} expected: {v} received: {sample_transformed[k] if k in sample_transformed else None}"
                         )
+
             elif isinstance(sample_ref, list):
                 for j, (x, y) in enumerate(zip(sample_ref, sample_transformed)):
                     if x != y:
-                        print(f"for item {j}\nexpected: {x}\nreceived: {y}")
+                        logger.error(f"for item {j}\nexpected: {x}\nreceived: {y}")
 
         assert flag
 

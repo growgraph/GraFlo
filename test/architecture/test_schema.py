@@ -25,12 +25,12 @@ def test_schema_load(schema):
 
 
 def test_resource(schema):
-    sd = schema("ibes_upd")
+    sd = schema("ibes")
     sr = Resource.from_dict(sd["resources"][0])
     assert len(sr.root.actor.descendants) == 10
 
 
 def test_s(schema):
-    sd = schema("ibes_upd")
+    sd = schema("ibes")
     sr = Schema.from_dict(sd)
     assert sr.general.name == "ibes"
