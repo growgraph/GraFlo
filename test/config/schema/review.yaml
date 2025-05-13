@@ -1,17 +1,14 @@
 general:
     name: review
 resources:
-    row_likes:
-    -   name: authors
-        transforms:
-        -   image: author
-            map:
-                author_id: id
-                FullName: full_name
-                HIndex: hindex
-        -   image: researchField
-            map:
-                research_sector: id
+-   resource_name: authors
+    apply:
+    -   map:
+            author_id: id
+            FullName: full_name
+            HIndex: hindex
+    -   map:
+            research_sector: id
 vertex_config:
     db_flavor: neo4j
     vertices:

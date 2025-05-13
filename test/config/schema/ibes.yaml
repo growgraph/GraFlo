@@ -97,6 +97,9 @@ vertex_config:
         indexes:
         -   fields:
             -   irec
+            -   erec
+            -   etext
+            -   itext
 edge_config:
     edges:
     -   source: publication
