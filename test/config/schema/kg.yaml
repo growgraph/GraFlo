@@ -137,6 +137,7 @@ edge_config:
     edges:
     -   source: entity
         target: entity
+        aux: true
         indexes:
         -   name: publication
             fields:
@@ -148,7 +149,8 @@ edge_config:
             unique: false
     -   source: entity
         target: entity
-        collection_name_suffix: tmp
+        relation: tmp
+        aux: true
         indexes:
         -   name: publication
             fields:
@@ -160,7 +162,8 @@ edge_config:
             unique: false
     -   source: entity
         target: entity
-        collection_name_suffix: redux
+        relation: redux
+        aux: true
         indexes:
         -   name: publication
             fields:
@@ -172,7 +175,8 @@ edge_config:
             unique: false
     -   source: entity
         target: entity
-        collection_name_suffix: convolution
+        relation: convolution
+        aux: true
         indexes:
         -   fields:
             -   obs_date

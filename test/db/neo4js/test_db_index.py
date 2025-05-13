@@ -18,7 +18,9 @@ def test_create_vertex_index(conn_conf, schema_obj):
 def test_create_edge_index(conn_conf, schema_obj):
     schema_obj = schema_obj("review")
     with ConnectionManager(connection_config=conn_conf) as db_client:
-        db_client.define_edge_indices(schema_obj.edge_config.edges)
+        db_client.define_edge_indices(
+            schema_obj.edge_config.edges_list(include_aux=True)
+        )
     with ConnectionManager(connection_config=conn_conf) as db_client:
         q = "SHOW INDEX;"
         cursor = db_client.execute(q)

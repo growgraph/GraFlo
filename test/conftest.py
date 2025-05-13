@@ -36,7 +36,8 @@ def fetch_schema_dict(mode):
 
 
 def fetch_schema_obj(mode):
-    schema_obj = Schema.from_dict(fetch_schema_dict(mode))
+    schema_dict = fetch_schema_dict(mode)
+    schema_obj = Schema.from_dict(schema_dict)
     return schema_obj
 
 

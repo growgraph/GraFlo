@@ -539,8 +539,8 @@ class ActorWrapper:
                 vertices = discriminant_dd.pop(discriminant, [])
                 ctx.acc_vertex[vertex][discriminant] += vertices
 
-        for edge in self.edge_config.edges:
-            if (edge.source, edge.target, edge.relation) not in ctx.acc_global:
+        for edge_id, edge in self.edge_config.edges_items():
+            if edge_id not in ctx.acc_global:
                 extra_edges = render_edge(
                     edge=edge,
                     vertex_config=self.vertex_config,
@@ -555,7 +555,7 @@ class ActorWrapper:
                 )
 
                 for relation, v in extra_edges.items():
-                    ctx.acc_global[edge.source, edge.target, relation] += v
+                    ctx.acc_global[edge_id] += v
 
         for vertex, dd in ctx.acc_vertex.items():
             for discriminant, vertex_list in dd.items():

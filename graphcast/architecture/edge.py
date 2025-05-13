@@ -38,9 +38,13 @@ class Edge(BaseDataclass):
     target_relation_field: Optional[str] = None
 
     type: EdgeType = EdgeType.DIRECT
+
+    aux: bool = (
+        False  # aux=True edges are init in the db but not considered by graphcast
+    )
+
     casting_type: EdgeCastingType = EdgeCastingType.PAIR_LIKE
     by: Optional[str] = None
-    collection_name_suffix: Optional[str] = None
     source_collection: Optional[str] = None
     target_collection: Optional[str] = None
     graph_name: Optional[str] = None
@@ -93,8 +97,8 @@ class Edge(BaseDataclass):
             vc.vertex_dbname(self.source),
             vc.vertex_dbname(self.target),
         ]
-        if self.collection_name_suffix is not None:
-            graph_name += [self.collection_name_suffix]
+        if self.relation is not None:
+            graph_name += [self.relation]
         self.graph_name = "_".join(graph_name + ["graph"])
         self.collection_name = "_".join(graph_name + ["edges"])
         self.db_flavor = vc.db_flavor
@@ -146,22 +150,25 @@ class Edge(BaseDataclass):
 
 @dataclasses.dataclass
 class EdgeConfig(BaseDataclass):
-    # TODO extra_edges are not used?
     edges: list[Edge] = dataclasses.field(default_factory=list)
-    extra_edges: list[Edge] = dataclasses.field(default_factory=list)
 
     def __post_init__(self):
-        self._map: dict[EdgeId, Edge] = {e.edge_id: e for e in self.edges}
+        self._edges_map: dict[EdgeId, Edge] = {e.edge_id: e for e in self.edges}
 
     def finish_init(self, vc: VertexConfig):
-        for k, e in self._map.items():
-            e.finish_init(vc)
-
-        for e in self.extra_edges:
+        for k, e in self._edges_map.items():
             e.finish_init(vc)
 
     def _reset_edges(self):
-        self.edges = list(self._map.values())
+        self.edges = list(self._edges_map.values())
+
+    def edges_list(self, include_aux=False):
+        return (e for e in self._edges_map.values() if include_aux or not e.aux)
+
+    def edges_items(self, include_aux=False):
+        return (
+            (eid, e) for eid, e in self._edges_map.items() if include_aux or not e.aux
+        )
 
     def __contains__(self, item: EdgeId | Edge):
         if isinstance(item, Edge):
@@ -169,16 +176,16 @@ class EdgeConfig(BaseDataclass):
         else:
             eid = item
 
-        if eid in self._map:
+        if eid in self._edges_map:
             return True
         else:
             return False
 
     def update_edges(self, edge: Edge):
-        if edge.edge_id in self._map:
-            self._map[edge.edge_id].update(edge)
+        if edge.edge_id in self._edges_map:
+            self._edges_map[edge.edge_id].update(edge)
         else:
-            self._map[edge.edge_id] = edge
+            self._edges_map[edge.edge_id] = edge
 
     @property
     def vertices(self):

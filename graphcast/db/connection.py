@@ -5,7 +5,6 @@ from typing import TypeVar
 from graphcast.architecture.edge import Edge
 from graphcast.architecture.schema import Schema
 from graphcast.architecture.vertex import VertexConfig
-from graphcast.db.arango.util import define_extra_edges
 from graphcast.onto import AggregationType
 
 logger = logging.getLogger(__name__)
@@ -34,7 +33,7 @@ class Connection(abc.ABC):
 
     def define_indexes(self, schema: Schema):
         self.define_vertex_indices(schema.vertex_config)
-        self.define_edge_indices(schema.edge_config.edges)
+        self.define_edge_indices(schema.edge_config.edges_list(include_aux=True))
 
     @abc.abstractmethod
     def define_collections(self, schema: Schema):
@@ -132,11 +131,3 @@ class Connection(abc.ABC):
     # @abc.abstractmethod
     # def create_collection_if_absent(self, g, vcol, index, unique=True):
     #     pass
-
-
-def concluding_db_transform(db_client: ConnectionType, conf_obj):
-    # create edge u -> v from u->w, v->w edges
-    # find edge_cols uw and vw
-    for ee in conf_obj.graph_config.extra_edges:
-        query0 = define_extra_edges(ee)
-        db_client.execute(query0)

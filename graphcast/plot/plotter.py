@@ -323,22 +323,22 @@ class SchemaPlotter:
         g = nx.MultiDiGraph()
         nodes = []
         edges = []
-        for e in self.conf.edge_config.edges:
-            if e.relation is not None:
+        for (source, target, relation), e in self.conf.edge_config.edges_items():
+            if relation is not None:
                 ee = (
-                    get_auxnode_id(AuxNodeType.VERTEX, vertex=e.source),
-                    get_auxnode_id(AuxNodeType.VERTEX, vertex=e.target),
+                    get_auxnode_id(AuxNodeType.VERTEX, vertex=source),
+                    get_auxnode_id(AuxNodeType.VERTEX, vertex=target),
                     {"label": e.relation},
                 )
             else:
                 ee = (
-                    get_auxnode_id(AuxNodeType.VERTEX, vertex=e.source),
-                    get_auxnode_id(AuxNodeType.VERTEX, vertex=e.target),
+                    get_auxnode_id(AuxNodeType.VERTEX, vertex=source),
+                    get_auxnode_id(AuxNodeType.VERTEX, vertex=target),
                 )
             edges += [ee]
 
-        for ee in self.conf.edge_config.edges:
-            for v in (ee.source, ee.target):
+        for (source, target, relation), ee in self.conf.edge_config.edges_items():
+            for v in (source, target):
                 nodes += [
                     (
                         get_auxnode_id(AuxNodeType.VERTEX, vertex=v),

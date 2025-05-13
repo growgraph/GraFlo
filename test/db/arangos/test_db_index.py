@@ -22,6 +22,7 @@ def init_db(m, conn_conf, schema, current_path, reset):
         db_client.init_db(schema, clean_start=True)
         ixs = db_client.fetch_indexes()
 
+    ixs = {k: v for k, v in ixs.items() if not k.startswith("_")}
     for k, batch in ixs.items():
         for ix in batch:
             del ix["id"]

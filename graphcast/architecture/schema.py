@@ -28,6 +28,7 @@ class Schema(BaseDataclass):
 
     def __post_init__(self):
         self.edge_config.finish_init(self.vertex_config)
+
         for r in self.resources:
             r.finish_init(
                 vertex_config=self.vertex_config,

@@ -126,12 +126,12 @@ class Caster:
 
             # update edge misc with blank node edges
             for vcol in vc.blank_vertices:
-                for edge in self.schema.edge_config.edges:
-                    vfrom, vto, relation = edge.edge_id
+                for edge_id, edge in self.schema.edge_config.edges_items():
+                    vfrom, vto, relation = edge_id
                     if vcol == vfrom or vcol == vto:
-                        if edge.edge_id not in gc.edges:
-                            gc.edges[edge.edge_id] = []
-                        gc.edges[edge.edge_id].extend(
+                        if edge_id not in gc.edges:
+                            gc.edges[edge_id] = []
+                        gc.edges[edge_id].extend(
                             [
                                 {SOURCE_AUX: x, TARGET_AUX: y}
                                 for x, y in zip(gc.vertices[vfrom], gc.vertices[vto])
@@ -165,8 +165,8 @@ class Caster:
                                 ee.update(weight_collection_attached)
 
         with ConnectionManager(connection_config=conn_conf) as db_client:
-            for edge in self.schema.edge_config.edges:
-                for ee in gc.loop_over_relations(edge.edge_id):
+            for edge_id, edge in self.schema.edge_config.edges_items():
+                for ee in gc.loop_over_relations(edge_id):
                     _, _, relation = ee
                     if not self.dry:
                         data = gc.edges[ee]

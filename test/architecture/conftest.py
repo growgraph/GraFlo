@@ -101,7 +101,7 @@ def edge_indexes():
         """
         source: entity
         target: entity
-        collection_name_suffix: aux
+        relation: aux
         indexes:
         -   
             fields:
@@ -210,7 +210,7 @@ def edge_config_kg():
             -   publication@_key
     -   source: entity
         target: entity
-        collection_name_suffix: aux
+        relation: aux
         index:
         -   fields:
             -   start_date

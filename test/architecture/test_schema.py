@@ -15,7 +15,7 @@ def test_init_simple(vertex_config_kg, edge_config_kg):
     }
     sch = Schema.from_dict(schema)
     assert len(sch.vertex_config.vertices) == 3
-    assert len(sch.edge_config.edges) == 3
+    assert len(list(sch.edge_config.edges_items())) == 3
 
 
 def test_schema_load(schema):

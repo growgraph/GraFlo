@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Optional
 
 from arango import ArangoClient
 from suthing import ArangoConnectionConfig
@@ -62,14 +63,14 @@ class ArangoConnection(Connection):
 
     def define_collections(self, schema: Schema):
         self.define_vertex_collections(schema)
-        self.define_edge_collections(schema.edge_config.edges)
+        self.define_edge_collections(schema.edge_config.edges_list(include_aux=True))
 
     def define_vertex_collections(self, schema: Schema):
         vertex_config = schema.vertex_config
         disconnected_vertex_collections = (
             set(vertex_config.vertex_set) - schema.edge_config.vertices
         )
-        for item in schema.edge_config.edges:
+        for item in schema.edge_config.edges_list():
             u, v = item.source, item.target
             gname = item.graph_name
             logger.info(f"{item.source}, {item.target}, {gname}")
@@ -140,7 +141,7 @@ class ArangoConnection(Connection):
             for index_obj in edge.indexes:
                 self._add_index(general_collection, index_obj)
 
-    def fetch_indexes(self, db_class_name: str | None = None):
+    def fetch_indexes(self, db_class_name: Optional[str] = None):
         if db_class_name is None:
             classes = self.conn.collections()
         elif self.conn.has_collection(db_class_name):
