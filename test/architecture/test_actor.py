@@ -197,7 +197,7 @@ def test_discriminant_edge(
     anw.finish_init(vertex_config=schema_vc_openalex, transforms={}, edge_config=ec)
     anw.assemble_tree(Path("test/figs/discriminate_edge.pdf"))
     ctx = anw(ctx, doc=sample_openalex)
-    assert sum(len(v) for v in ctx.tacc["work"].values()) == 6
+    assert sum(len(v) for v in ctx.acc_vertex["work"].values()) == 6
     assert len(ctx.acc[("work", "work", None)]) == 5
 
 
@@ -207,8 +207,11 @@ def test_mapper_value(resource_concept, schema_vc_openalex):
     anw.finish_init(vertex_config=schema_vc_openalex, transforms={})
     ctx = ActionContext()
     ctx = anw(ctx, doc=test_doc)
-    assert ctx.tacc["concept"][None][0] == {"mag": 105794591, "wikidata": "Q123"}
-    assert len(ctx.tacc) == 1
+    assert ctx.acc_vertex_local["concept"][None][0] == {
+        "mag": 105794591,
+        "wikidata": "Q123",
+    }
+    assert len(ctx.acc_vertex_local) == 1
 
 
 def test_transform_shortcut(resource_openalex_works, schema_vc_openalex):
@@ -221,7 +224,8 @@ def test_transform_shortcut(resource_openalex_works, schema_vc_openalex):
     anw.finish_init(vertex_config=schema_vc_openalex, transforms=transforms)
     ctx = ActionContext()
     ctx = anw(ctx, doc=doc)
-    assert ctx.tacc["work"]["_top_level"][0] == {
+    # we are checking acc_vertex because EdgeActor moved it from acc_vertex_local
+    assert ctx.acc_vertex["work"]["_top_level"][0] == {
         "_key": "A123",
         "doi": "10.1007/978-3-123",
     }

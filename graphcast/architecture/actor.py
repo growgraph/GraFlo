@@ -49,11 +49,14 @@ def dd_factory() -> defaultdict[GraphEntity, list]:
 
 @dataclasses.dataclass(kw_only=True)
 class ActionContext(BaseDataclass):
-    # accumulation of vertices and edges at the local level
-    tacc: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(
+    # accumulation of vertices at the local level
+    # each local edge actors pushed current acc_vertex_local to acc_vectex
+    acc_vertex_local: defaultdict[str, defaultdict[Optional[str], list]] = (
+        dataclasses.field(default_factory=outer_factory)
+    )
+    acc_vertex: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(
         default_factory=outer_factory
     )
-
     acc: defaultdict[GraphEntity, list] = dataclasses.field(default_factory=dd_factory)
 
     vertex_buffer: defaultdict[GraphEntity, dict] = dataclasses.field(
@@ -161,7 +164,7 @@ class VertexActor(Actor):
         # if self.keep_fields is not None:
         #     _doc.update({f: doc[f] for f in self.keep_fields if f in doc})
         if all(cfilter(doc) for cfilter in self.vertex_config.filters(self.name)):
-            ctx.tacc[self.name][self.discriminant] += [_doc]
+            ctx.acc_vertex_local[self.name][self.discriminant] += [_doc]
 
         return ctx
 
@@ -204,8 +207,8 @@ class EdgeActor(Actor):
         # self.edge.source_discriminant
         # get source and target items
         source_items, target_items = (
-            ctx.tacc[source][self.edge.source_discriminant],
-            ctx.tacc[target][self.edge.target_discriminant],
+            ctx.acc_vertex_local[source].pop(self.edge.source_discriminant, []),
+            ctx.acc_vertex_local[target].pop(self.edge.target_discriminant, []),
         )
         source_items = [
             item for item in source_items if any(k in item for k in source_index)
@@ -213,32 +216,6 @@ class EdgeActor(Actor):
         target_items = [
             item for item in target_items if any(k in item for k in target_index)
         ]
-
-        # if source == target:
-        #     # in the rare case when relation is an auto relation (instances of the same vertex)
-        #     # the discriminant value is not set we make them disjoint
-        #
-        #     if (
-        #         self.edge.source_discriminant is not None
-        #         and self.edge.target_discriminant is None
-        #     ):
-        #         target_items = [
-        #             item
-        #             for item in target_items
-        #             if DISCRIMINANT_KEY not in item
-        #             or item[DISCRIMINANT_KEY] != self.edge.source_discriminant
-        #         ]
-        #
-        #     elif (
-        #         self.edge.source_discriminant is None
-        #         and self.edge.target_discriminant is not None
-        #     ):
-        #         source_items = [
-        #             item
-        #             for item in source_items
-        #             if DISCRIMINANT_KEY is not item
-        #             or item[DISCRIMINANT_KEY] != self.edge.target_discriminant
-        #         ]
 
         if self.edge.casting_type == EdgeCastingType.PAIR_LIKE:
             iterator: Callable[..., Iterable[Any]] = zip
@@ -279,7 +256,11 @@ class EdgeActor(Actor):
                 }
             ]
         edges = self._add_weights(edges, ctx)
-        ctx.acc[source, target, relation] = edges
+        ctx.acc[source, target, relation] += edges
+
+        ctx.acc_vertex[source][self.edge.source_discriminant] += source_items
+        ctx.acc_vertex[target][self.edge.target_discriminant] += target_items
+
         return ctx
 
     def _add_weights(self, edges, ctx: ActionContext):
@@ -650,7 +631,7 @@ class ActorWrapper:
     def normalize_unit(
         self, ctx: ActionContext, edges: list[Edge]
     ) -> defaultdict[GraphEntity, list]:
-        for vertex, v in ctx.tacc.items():
+        for vertex, v in ctx.acc_vertex.items():
             for discriminant, vv in v.items():
                 vv = pick_unique_dict(vv)
                 vvv = merge_doc_basis(
