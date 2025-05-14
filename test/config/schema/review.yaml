@@ -3,7 +3,8 @@ general:
 resources:
 -   resource_name: authors
     apply:
-    -   map:
+    -   target_vertex: author
+        map:
             author_id: id
             FullName: full_name
             HIndex: hindex
