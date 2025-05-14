@@ -7,7 +7,7 @@ import pytest
 def modes():
     return [
         "kg",
-        # "ibes",
+        "ibes",
         # "wos_json",
         # "lake_odds",
         # "wos_csv",

@@ -187,7 +187,7 @@ class EdgeActor(Actor):
     def finish_init(self, **kwargs):
         self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
         edge_config: EdgeConfig = kwargs.pop("edge_config")
-
+        logger.debug(f"fi {self.edge.edge_id}: {id(edge_config)}")
         self.edge.finish_init(self.vertex_config)
         edge_config.update_edges(self.edge, vertex_config=self.vertex_config)
 
@@ -475,6 +475,7 @@ class ActorWrapper:
         kwargs["vertex_config"] = self.vertex_config
         self.edge_config = kwargs.get("edge_config", EdgeConfig())
         kwargs["edge_config"] = self.edge_config
+        logger.debug(f"fi : {id(self.edge_config)}")
         self.actor.finish_init(**kwargs)
 
     def _try_init_descend(self, *args, **kwargs) -> bool:

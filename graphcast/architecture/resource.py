@@ -62,6 +62,7 @@ class Resource(BaseDataclass, JSONWizard):
         self.root.finish_init(
             vertex_config=vertex_config,
             transforms=transforms,
+            edge_config=edge_config,
         )
 
         logger.debug(
@@ -69,7 +70,7 @@ class Resource(BaseDataclass, JSONWizard):
         )
 
         # repeating it twice on purpose:
-        # Transform definition is not guaranteed to find non-dummy definitions in ad DFS pass
+        # Transform definition is not guaranteed to find non-dummy definitions in the first DFS pass
 
         self.root.finish_init(
             vertex_config=vertex_config,
