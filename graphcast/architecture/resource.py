@@ -6,11 +6,11 @@ from typing import Callable
 from dataclass_wizard import JSONWizard
 
 from graphcast.architecture.actor import (
-    ActionContext,
     ActorWrapper,
 )
 from graphcast.architecture.edge import Edge, EdgeConfig
 from graphcast.architecture.onto import (
+    ActionContext,
     EncodingType,
     GraphEntity,
 )
@@ -87,7 +87,7 @@ class Resource(BaseDataclass, JSONWizard):
     def __call__(self, doc: dict) -> defaultdict[GraphEntity, list]:
         ctx = ActionContext()
         ctx = self.root(ctx, doc=doc)
-        acc = self.root.normalize_unit(ctx)
+        acc = self.root.normalize_ctx(ctx)
 
         return acc
 

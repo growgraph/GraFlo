@@ -190,3 +190,37 @@ def cast_graph_name_to_triple(s: GraphEntity):
 class EdgeCastingType(BaseEnum):
     PAIR_LIKE = "pair"
     PRODUCT_LIKE = "product"
+
+
+def inner_factory_vertex() -> defaultdict[Optional[str], list]:
+    return defaultdict(list)
+
+
+def outer_factory() -> defaultdict[str, defaultdict[Optional[str], list]]:
+    return defaultdict(inner_factory_vertex)
+
+
+def dd_factory() -> defaultdict[GraphEntity, list]:
+    return defaultdict(list)
+
+
+@dataclasses.dataclass(kw_only=True)
+class ActionContext(BaseDataclass):
+    # accumulation of vertices at the local level
+    # each local edge actors pushed current acc_vertex_local to acc_vectex
+    acc_v_local: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(
+        default_factory=outer_factory
+    )
+
+    acc_vertex: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(
+        default_factory=outer_factory
+    )
+    acc_global: defaultdict[GraphEntity, list] = dataclasses.field(
+        default_factory=dd_factory
+    )
+
+    buffer_vertex: defaultdict[GraphEntity, dict] = dataclasses.field(
+        default_factory=lambda: defaultdict(dict)
+    )
+    # current doc : the result of application of transformations to the original document
+    cdoc: dict = dataclasses.field(default_factory=dict)

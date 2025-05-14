@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -15,13 +14,13 @@ from graphcast.architecture.actor_util import (
 )
 from graphcast.architecture.edge import Edge, EdgeConfig
 from graphcast.architecture.onto import (
+    ActionContext,
     GraphEntity,
 )
 from graphcast.architecture.transform import Transform
 from graphcast.architecture.vertex import (
     VertexConfig,
 )
-from graphcast.onto import BaseDataclass
 from graphcast.util.merge import merge_doc_basis
 from graphcast.util.transform import pick_unique_dict
 
@@ -30,40 +29,6 @@ logger = logging.getLogger(__name__)
 
 DESCEND_KEY_VALUES = {"key"}
 DRESSING_TRANSFORMED_VALUE_KEY = "__value__"
-
-
-def inner_factory_vertex() -> defaultdict[Optional[str], list]:
-    return defaultdict(list)
-
-
-def outer_factory() -> defaultdict[str, defaultdict[Optional[str], list]]:
-    return defaultdict(inner_factory_vertex)
-
-
-def dd_factory() -> defaultdict[GraphEntity, list]:
-    return defaultdict(list)
-
-
-@dataclasses.dataclass(kw_only=True)
-class ActionContext(BaseDataclass):
-    # accumulation of vertices at the local level
-    # each local edge actors pushed current acc_vertex_local to acc_vectex
-    acc_v_local: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(
-        default_factory=outer_factory
-    )
-
-    acc_vertex: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(
-        default_factory=outer_factory
-    )
-    acc_global: defaultdict[GraphEntity, list] = dataclasses.field(
-        default_factory=dd_factory
-    )
-
-    buffer_vertex: defaultdict[GraphEntity, dict] = dataclasses.field(
-        default_factory=lambda: defaultdict(dict)
-    )
-    # current doc : the result of application of transformations to the original document
-    cdoc: dict = dataclasses.field(default_factory=dict)
 
 
 class Actor(ABC):
@@ -417,23 +382,6 @@ class NormalizerActor(Actor):
         self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
 
     def __call__(self, ctx: ActionContext, *nargs, **kwargs):
-        unit = ctx.acc_global
-
-        # for vertex, v in unit.items():
-        #     v = pick_unique_dict(v)
-        #     if isinstance(vertex, str) and vertex in self.vertex_config.vertex_set:
-        #         v = merge_doc_basis(
-        #             v,
-        #             tuple(self.vertex_config.index(vertex).fields),
-        #             DISCRIMINANT_KEY
-        #             if self.vertex_config.discriminant_chart[vertex]
-        #             else None,
-        #         )
-        #         for item in v:
-        #             item.pop(DISCRIMINANT_KEY, None)
-        #     unit[vertex] = v
-
-        ctx.acc_global = unit
         return ctx
 
 
@@ -527,7 +475,7 @@ class ActorWrapper:
         ctx = self.actor(ctx, *nargs, **kwargs)
         return ctx
 
-    def normalize_unit(self, ctx: ActionContext) -> defaultdict[GraphEntity, list]:
+    def normalize_ctx(self, ctx: ActionContext) -> defaultdict[GraphEntity, list]:
         # push everything available to acc_vertex
         for vertex in list(ctx.acc_v_local):
             discriminant_dd: defaultdict[Optional[str], list] = ctx.acc_v_local.pop(
@@ -566,7 +514,7 @@ class ActorWrapper:
 
                 ctx.acc_global[vertex] += vvv
 
-        ctx.acc_global = add_blank_collections(ctx.acc_global, self.vertex_config)
+        ctx = add_blank_collections(ctx, self.vertex_config)
 
         return ctx.acc_global
 

@@ -9,8 +9,8 @@ from graphcast.architecture.edge import Edge
 from graphcast.architecture.onto import (
     SOURCE_AUX,
     TARGET_AUX,
+    ActionContext,
     EdgeCastingType,
-    GraphEntity,
 )
 from graphcast.architecture.util import project_dict
 from graphcast.architecture.vertex import VertexConfig
@@ -19,14 +19,15 @@ logger = logging.getLogger(__name__)
 
 
 def add_blank_collections(
-    unit: defaultdict[GraphEntity, list[dict]], vertex_conf: VertexConfig
-) -> defaultdict[GraphEntity, list[dict]]:
+    ctx: ActionContext, vertex_conf: VertexConfig
+) -> ActionContext:
     # add blank collections
-    for vertex in vertex_conf.blank_vertices:
-        # if blank collection is in batch - add it
-        if vertex not in unit:
-            unit[vertex] = [{}]
-    return unit
+    for vname in vertex_conf.blank_vertices:
+        v = vertex_conf[vname]
+        prep_doc = {f: ctx.cdoc[f] for f in v.fields if f in ctx.cdoc}
+        if vname not in ctx.acc_global:
+            ctx.acc_global[vname] = [prep_doc]
+    return ctx
 
 
 def render_edge(

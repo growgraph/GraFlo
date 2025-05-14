@@ -4,7 +4,8 @@ import pytest
 import yaml
 from suthing import FileHandle
 
-from graphcast.architecture.actor import ActionContext, ActorWrapper
+from graphcast.architecture.actor import ActorWrapper
+from graphcast.architecture.onto import ActionContext
 from graphcast.architecture.vertex import VertexConfig
 
 logger = logging.getLogger(__name__)

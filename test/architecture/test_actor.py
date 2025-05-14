@@ -6,13 +6,13 @@ import yaml
 from suthing import FileHandle
 
 from graphcast.architecture.actor import (
-    ActionContext,
     ActorWrapper,
     DescendActor,
     EdgeActor,
     TransformActor,
 )
 from graphcast.architecture.edge import EdgeConfig
+from graphcast.architecture.onto import ActionContext
 from graphcast.architecture.vertex import VertexConfig
 
 logger = logging.getLogger(__name__)

@@ -74,8 +74,6 @@ class Caster:
     ):
         gc = self.cast_normal_resource(batch, resource_name=resource_name)
 
-        gc.pick_unique()
-
         if conn_conf is not None:
             self.push_db(gc, conn_conf, resource_name=resource_name)
 

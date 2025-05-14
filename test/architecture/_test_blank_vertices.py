@@ -6,7 +6,8 @@ import pytest
 import yaml
 
 from graphcast.architecture import EdgeConfig, VertexConfig
-from graphcast.architecture.actor import ActionContext, ActorWrapper
+from graphcast.architecture.actor import ActorWrapper
+from graphcast.architecture.onto import ActionContext
 
 logger = logging.getLogger(__name__)
 
