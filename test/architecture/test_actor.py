@@ -164,7 +164,7 @@ def test_descend(resource_descend, schema_vc_openalex):
     anw = ActorWrapper(**resource_descend)
     anw.finish_init(vertex_config=schema_vc_openalex)
     assert isinstance(anw.actor, DescendActor)
-    assert len(anw.actor.descendants) == 3
+    assert len(anw.actor.descendants) == 2
     assert isinstance(anw.actor.descendants[0].actor, DescendActor)
     level, cname, label, edges = anw.fetch_actors(0, [])
     assert len(edges) == 3

@@ -17,7 +17,7 @@ from graphcast.architecture.onto import (
     ActionContext,
     GraphEntity,
 )
-from graphcast.architecture.transform import Transform
+from graphcast.architecture.transform import ProtoTransform, Transform
 from graphcast.architecture.vertex import (
     VertexConfig,
 )
@@ -40,6 +40,9 @@ class Actor(ABC):
         return {}
 
     def finish_init(self, **kwargs):
+        pass
+
+    def init_transforms(self, **kwargs):
         pass
 
     def count(self):
@@ -99,12 +102,12 @@ class VertexActor(Actor):
         # take relevant fields from doc if available, otherwise try DRESSING_TRANSFORMED_VALUE_KEY
         vertex_keys = self.vertex_config.fields(self.name, with_aux=True)
 
-        _doc: dict
-
         custom_transform = ctx.buffer_vertex.pop(self.name, {})
 
         # 1. exhaust custom_transform
-        _doc = {k: custom_transform[k] for k in vertex_keys if k in custom_transform}
+        _doc: dict = {
+            k: custom_transform[k] for k in vertex_keys if k in custom_transform
+        }
 
         # 2. exhaust cdoc
         n_value_keys = len(
@@ -151,10 +154,10 @@ class EdgeActor(Actor):
 
     def finish_init(self, **kwargs):
         self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
-        edge_config: EdgeConfig = kwargs.pop("edge_config")
-        logger.debug(f"fi {self.edge.edge_id}: {id(edge_config)}")
-        self.edge.finish_init(self.vertex_config)
-        edge_config.update_edges(self.edge, vertex_config=self.vertex_config)
+        edge_config: Optional[EdgeConfig] = kwargs.pop("edge_config", None)
+        if edge_config is not None and self.vertex_config is not None:
+            self.edge.finish_init(vertex_config=self.vertex_config)
+            edge_config.update_edges(self.edge, vertex_config=self.vertex_config)
 
     def __call__(self, ctx: ActionContext, *nargs, **kwargs):
         edges = render_edge(self.edge, self.vertex_config, ctx.acc_v_local)
@@ -178,11 +181,12 @@ class EdgeActor(Actor):
 
 class TransformActor(Actor):
     def __init__(self, **kwargs):
-        self.__init = kwargs
+        self._kwargs = kwargs
         self.vertex: Optional[str] = kwargs.pop("target_vertex", None)
         self.transforms: dict
         self.name = kwargs.get("name", None)
-        self.t = Transform(**kwargs)
+        self.params = kwargs.get("params", {})
+        self.t: Transform = Transform(**kwargs)
 
     def fetch_important_items(self):
         sd = self.__dict__
@@ -190,15 +194,42 @@ class TransformActor(Actor):
         smb = {"t.input": self.t.input, "t.output": self.t.output}
         return {**sm, **smb}
 
-    def finish_init(self, **kwargs):
+    def init_transforms(self, **kwargs):
         self.transforms = kwargs.pop("transforms", {})
+        try:
+            pt = ProtoTransform(
+                **{
+                    k: self._kwargs[k]
+                    for k in ProtoTransform.get_fields_members()
+                    if k in self._kwargs
+                }
+            )
+            if pt.name is not None and pt._foo is not None:
+                if pt.name not in self.transforms:
+                    self.transforms[pt.name] = pt
+                elif pt.params:
+                    self.transforms[pt.name] = pt
+        except Exception:
+            pass
+
+    def finish_init(self, **kwargs):
+        self.transforms: dict[str, ProtoTransform] = kwargs.pop("transforms", {})
+
         if self.name is not None:
-            other = self.transforms.get(self.name, None)
-            t_self, t_lib = self.t.get_barebone(other)
-            if t_lib is not None:
-                self.transforms[self.name] = t_lib
-            if t_self is not None:
-                self.t = t_self
+            pt = self.transforms.get(self.name, None)
+            if pt is not None:
+                self.t._foo = pt._foo
+                if pt.params and not self.t.params:
+                    self.t.params = pt.params
+                    if (
+                        pt.input
+                        and not self.t.input
+                        and pt.output
+                        and not self.t.output
+                    ):
+                        self.t.input = pt.input
+                        self.t.output = pt.output
+                        self.t.__post_init__()
 
     def __call__(self, ctx: ActionContext, *nargs, **kwargs):
         logging.debug(f"transforms : {id(self.transforms)} {len(self.transforms)}")
@@ -210,16 +241,11 @@ class TransformActor(Actor):
         else:
             raise ValueError(f"{type(self).__name__}: doc should be provided")
 
-        if self.t.is_dummy and self.name is not None:
-            t = self.transforms[self.name]
-        else:
-            t = self.t
-
         _update_doc: dict
         if isinstance(doc, dict):
-            _update_doc = t(doc)
+            _update_doc = self.t(doc)
         else:
-            value = t(doc)
+            value = self.t(doc)
             if isinstance(value, tuple):
                 _update_doc = {
                     f"{DRESSING_TRANSFORMED_VALUE_KEY}#{j}": v
@@ -261,9 +287,11 @@ class DescendActor(Actor):
     def descendants(self) -> list[ActorWrapper]:
         return sorted(self._descendants, key=lambda x: _NodeTypePriority[type(x.actor)])
 
-    def finish_init(self, **kwargs):
-        __add_normalizer = kwargs.get("__add_normalizer", True)
+    def init_transforms(self, **kwargs):
+        for an in self.descendants:
+            an.init_transforms(**kwargs)
 
+    def finish_init(self, **kwargs):
         self.vertex_config: VertexConfig = kwargs.get(
             "vertex_config", VertexConfig(vertices=[])
         )
@@ -297,11 +325,6 @@ class DescendActor(Actor):
                 new_descendant = ActorWrapper(vertex=v.name)
                 new_descendant.finish_init(**kwargs)
                 self.add_descendant(new_descendant)
-
-        if __add_normalizer:
-            normalizer = ActorWrapper(normalizer=True)
-            normalizer.finish_init(**kwargs)
-            self.add_descendant(normalizer)
 
         logger.debug(
             f"""type, priority: {
@@ -349,7 +372,6 @@ class DescendActor(Actor):
                     f"{type(anw.actor).__name__}: {j + 1}/{len(self.descendants)}"
                 )
                 ctx = anw(ctx, *nargs, **kwargs)
-        # ctx.cdoc = {}
         return ctx
 
     def fetch_actors(self, level, edges):
@@ -360,29 +382,10 @@ class DescendActor(Actor):
         props_current = {"label": label_current, "class": cname_current, "level": level}
         for d in self.descendants:
             level_a, cname, label_a, edges_a = d.fetch_actors(level + 1, edges)
-            if cname == NormalizerActor:
-                continue
             hash_a = hash((level_a, cname, label_a))
             props_a = {"label": label_a, "class": cname, "level": level_a}
             edges = [(hash_current, hash_a, props_current, props_a)] + edges_a
         return level, type(self), str(self), edges
-
-
-class NormalizerActor(Actor):
-    """
-    auxiliary actor, needed to merge docs that represent the same vertex
-    it should be run before EdgeActor to avoid ambiguous edges
-    """
-
-    def __init__(self, normalizer):
-        if normalizer is not True:
-            raise ValueError("Not a normalizer")
-
-    def finish_init(self, **kwargs):
-        self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
-
-    def __call__(self, ctx: ActionContext, *nargs, **kwargs):
-        return ctx
 
 
 _NodeTypePriority: MappingProxyType[Type[Actor], int] = MappingProxyType(
@@ -390,7 +393,6 @@ _NodeTypePriority: MappingProxyType[Type[Actor], int] = MappingProxyType(
         DescendActor: 10,
         TransformActor: 20,
         VertexActor: 50,
-        NormalizerActor: 70,
         EdgeActor: 90,
     }
 )
@@ -409,22 +411,24 @@ class ActorWrapper:
             pass
         elif self._try_init_edge(**kwargs):
             pass
-        elif self._try_init_normalizer(**kwargs):
-            pass
         else:
             raise ValueError(f"Not able to init ActionNodeWrapper with {kwargs}")
 
-    def count(self):
-        return self.actor.count()
+    def init_transforms(self, **kwargs):
+        self.actor.init_transforms(**kwargs)
 
     def finish_init(self, **kwargs):
-        kwargs["transforms"] = kwargs.get("transforms", {})
+        kwargs["transforms"]: dict[str, ProtoTransform] = kwargs.get("transforms", {})
+        self.actor.init_transforms(**kwargs)
+
         self.vertex_config = kwargs.get("vertex_config", VertexConfig(vertices=[]))
         kwargs["vertex_config"] = self.vertex_config
         self.edge_config = kwargs.get("edge_config", EdgeConfig())
         kwargs["edge_config"] = self.edge_config
-        logger.debug(f"fi : {id(self.edge_config)}")
         self.actor.finish_init(**kwargs)
+
+    def count(self):
+        return self.actor.count()
 
     def _try_init_descend(self, *args, **kwargs) -> bool:
         descend_key_candidates = [kwargs.pop(k, None) for k in DESCEND_KEY_VALUES]
@@ -446,13 +450,6 @@ class ActorWrapper:
     def _try_init_transform(self, **kwargs) -> bool:
         try:
             self.actor = TransformActor(**kwargs)
-            return True
-        except Exception:
-            return False
-
-    def _try_init_normalizer(self, **kwargs) -> bool:
-        try:
-            self.actor = NormalizerActor(**kwargs)
             return True
         except Exception:
             return False
@@ -541,7 +538,6 @@ class ActorWrapper:
         from graphcast.plot.plotter import fillcolor_palette
 
         map_class2color = {
-            NormalizerActor: "grey",
             DescendActor: fillcolor_palette["green"],
             VertexActor: "orange",
             EdgeActor: fillcolor_palette["violet"],

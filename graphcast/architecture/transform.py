@@ -16,48 +16,23 @@ class TransformException(BaseException):
 
 
 @dataclasses.dataclass
-class Transform(BaseDataclass):
+class ProtoTransform(BaseDataclass):
     name: Optional[str] = None
     module: Optional[str] = None
-    class_name: Optional[str] = None
+    params: dict = dataclasses.field(default_factory=dict)
     foo: Optional[str] = None
-    fields: tuple[str, ...] = dataclasses.field(default_factory=tuple)
     input: tuple[str, ...] = dataclasses.field(default_factory=tuple)
     output: tuple[str, ...] = dataclasses.field(default_factory=tuple)
-    params: dict = dataclasses.field(default_factory=dict)
-    map: dict[str, str] = dataclasses.field(default_factory=dict)
-    switch: dict[str, str] = dataclasses.field(default_factory=dict)
 
     def __post_init__(self):
         self._foo = None
-
         self._init_foo()
-        self.functional_transform = False
-        if self._foo is not None:
-            self.functional_transform = True
 
         self.input = self._tuple_it(self.input)
 
-        self.fields = self._tuple_it(self.fields)
-
-        self.input = self.fields if self.fields and not self.input else self.input
         if not self.output:
             self.output = self.input
         self.output = self._tuple_it(self.output)
-
-        if not self.input and not self.output:
-            if self.map:
-                items = list(self.map.items())
-                self.input = tuple(x for x, _ in items)
-                self.output = tuple(x for _, x in items)
-            elif self.switch:
-                self.input = tuple([k for k in self.switch])
-                self.output = tuple(self.switch[self.input[0]])
-            elif not self.name:
-                raise ValueError(
-                    "Either input and output, fields, map or name should be"
-                    " provided in Transform constructor."
-                )
 
     @staticmethod
     def _tuple_it(x):
@@ -84,11 +59,46 @@ class Transform(BaseDataclass):
                     f"Could not instantiate transform function. Exception: {e}"
                 )
 
-        elif self.class_name is not None:
-            try:
-                eval(self.class_name)
-            except Exception as e:
-                raise Exception(f"Provided class {self.class_name} not valid: {e}")
+    def __lt__(self, other):
+        if self._foo is None and other._foo is not None:
+            return True
+        return False
+
+
+@dataclasses.dataclass
+class Transform(ProtoTransform):
+    fields: tuple[str, ...] = dataclasses.field(default_factory=tuple)
+    map: dict[str, str] = dataclasses.field(default_factory=dict)
+    switch: dict[str, str] = dataclasses.field(default_factory=dict)
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.functional_transform = False
+        if self._foo is not None:
+            self.functional_transform = True
+
+        self.input = self._tuple_it(self.input)
+
+        self.fields = self._tuple_it(self.fields)
+
+        self.input = self.fields if self.fields and not self.input else self.input
+        if not self.output:
+            self.output = self.input
+        self.output = self._tuple_it(self.output)
+
+        if not self.input and not self.output:
+            if self.map:
+                items = list(self.map.items())
+                self.input = tuple(x for x, _ in items)
+                self.output = tuple(x for _, x in items)
+            elif self.switch:
+                self.input = tuple([k for k in self.switch])
+                self.output = tuple(self.switch[self.input[0]])
+            elif not self.name:
+                raise ValueError(
+                    "Either input and output, fields, map or name should be"
+                    " provided in Transform constructor."
+                )
 
     def __call__(self, *nargs, **kwargs):
         """
@@ -144,10 +154,10 @@ class Transform(BaseDataclass):
         t_copy.__post_init__()
         return t_copy
 
-    def __str__(self):
-        return f"{id(self)} | {self.foo}\n{self.input} -> {self.output}"
-
-    __repr__ = __str__
+    # def __str__(self):
+    #     return f"{id(self)} | {self.foo}\n{self.input} -> {self.output}"
+    #
+    # __repr__ = __str__
 
     def get_barebone(
         self, other: Optional[Transform]
@@ -169,7 +179,6 @@ class Transform(BaseDataclass):
             # init self from other
             self_param.pop("foo", None)
             self_param.pop("module", None)
-            self_param.pop("class_name", None)
             other_param = other.to_dict(skip_defaults=True)
             other_param.update(self_param)
             return Transform(**other_param), None

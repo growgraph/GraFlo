@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import pytest
 import yaml
@@ -80,6 +81,7 @@ def test_act_openalex(resource_with_weights, vc_openalex, sample_openalex):
     anw = ActorWrapper(*resource_with_weights)
     anw.finish_init(vertex_config=vc_openalex, transforms={})
     ctx = anw(ctx, doc=sample_openalex)
+    anw.assemble_tree(Path("test/figs/openalex_authors.pdf"))
     edge = ctx.acc_global[("author", "institution", None)][0]
     del edge["__source"]
     del edge["__target"]

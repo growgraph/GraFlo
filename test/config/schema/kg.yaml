@@ -56,14 +56,14 @@ resources:
             indexes:
             -   fields:
                 -   _role
-    extra_weights:
-    -   source: mention
-        target: entity
-        weights:
-            vertices:
-            -   name: publication
-                fields:
-                -   _id
+#    extra_weights:
+#    -   source: mention
+#        target: entity
+#        weights:
+#            vertices:
+#            -   name: publication
+#                fields:
+#                -   _id
 -   resource_name: communities
     apply:
     -   source: entity

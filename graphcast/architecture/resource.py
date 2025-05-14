@@ -14,7 +14,7 @@ from graphcast.architecture.onto import (
     EncodingType,
     GraphEntity,
 )
-from graphcast.architecture.transform import Transform
+from graphcast.architecture.transform import ProtoTransform
 from graphcast.architecture.vertex import (
     VertexConfig,
 )
@@ -53,7 +53,7 @@ class Resource(BaseDataclass, JSONWizard):
         self,
         vertex_config: VertexConfig,
         edge_config: EdgeConfig,
-        transforms: dict[str, Transform],
+        transforms: dict[str, ProtoTransform],
     ):
         self.vertex_config = vertex_config
         self.edge_config = edge_config
@@ -62,20 +62,6 @@ class Resource(BaseDataclass, JSONWizard):
         self.root.finish_init(
             vertex_config=vertex_config,
             transforms=transforms,
-            edge_config=edge_config,
-        )
-
-        logger.debug(
-            f"total resource actor count (after 1 finish_init): {self.root.count()}"
-        )
-
-        # repeating it twice on purpose:
-        # Transform definition is not guaranteed to find non-dummy definitions in the first DFS pass
-
-        self.root.finish_init(
-            vertex_config=vertex_config,
-            transforms=transforms,
-            __add_normalizer=True,
             edge_config=edge_config,
         )
 

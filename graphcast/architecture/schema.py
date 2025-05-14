@@ -5,7 +5,7 @@ from typing import Optional
 
 from graphcast.architecture.edge import EdgeConfig
 from graphcast.architecture.resource import Resource
-from graphcast.architecture.transform import Transform
+from graphcast.architecture.transform import ProtoTransform
 from graphcast.architecture.vertex import VertexConfig
 from graphcast.onto import BaseDataclass
 
@@ -24,7 +24,7 @@ class Schema(BaseDataclass):
     vertex_config: VertexConfig
     edge_config: EdgeConfig
     resources: list[Resource]
-    transforms: dict[str, Transform] = dataclasses.field(default_factory=dict)
+    transforms: dict[str, ProtoTransform] = dataclasses.field(default_factory=dict)
 
     def __post_init__(self):
         self.edge_config.finish_init(self.vertex_config)

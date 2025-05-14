@@ -81,3 +81,7 @@ class BaseDataclass(JSONWizard, JSONWizard.Meta):
             else:
                 if current_value is None:
                     setattr(self, name, other_value)
+
+    @classmethod
+    def get_fields_members(cls):
+        return [k for k in cls.__annotations__ if not k.startswith("_")]
