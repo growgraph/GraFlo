@@ -53,9 +53,9 @@ resources:
             weights:
                 target_fields:
                 -   _role
-                indexes:
-                -   fields:
-                    -   _role
+            indexes:
+            -   fields:
+                -   _role
     extra_weights:
     -   source: mention
         target: entity

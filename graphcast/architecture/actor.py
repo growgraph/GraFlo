@@ -132,7 +132,7 @@ class VertexActor(Actor):
         doc: dict = kwargs.pop("doc", {})
 
         # take relevant fields from doc if available, otherwise try DRESSING_TRANSFORMED_VALUE_KEY
-        vertex_keys = self.vertex_config.fields(self.name)
+        vertex_keys = self.vertex_config.fields(self.name, with_aux=True)
 
         _doc: dict
 
@@ -188,11 +188,8 @@ class EdgeActor(Actor):
         self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
         edge_config: EdgeConfig = kwargs.pop("edge_config")
 
-        # TODO reintroduce same_level_vertices
-        same_level_vertices = []
-        if self.edge not in edge_config:
-            self.edge.finish_init(self.vertex_config, same_level_vertices)
-            edge_config.update_edges(self.edge)
+        self.edge.finish_init(self.vertex_config)
+        edge_config.update_edges(self.edge, vertex_config=self.vertex_config)
 
     def __call__(self, ctx: ActionContext, *nargs, **kwargs):
         edges = render_edge(self.edge, self.vertex_config, ctx.acc_v_local)
@@ -329,7 +326,7 @@ class DescendActor(Actor):
             available_fields -= set(self.vertex_config.fields(v))
 
         # 4. add vertices
-        for v in self.vertex_config.vertices:
+        for v in self.vertex_config.vertex_list:
             intersection = available_fields & set(v.fields)
             if intersection and v.name not in present_vertices:
                 new_descendant = ActorWrapper(vertex=v.name)

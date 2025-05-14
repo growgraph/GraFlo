@@ -52,8 +52,6 @@ class Edge(BaseDataclass):
     db_flavor: DBFlavor = DBFlavor.ARANGO
 
     def __post_init__(self):
-        self.source_fields: list[str]
-        self.target_fields: list[str]
         if (
             self.source_relation_field is not None
             and self.target_relation_field is not None
@@ -62,16 +60,11 @@ class Edge(BaseDataclass):
                 f"Both source_relation_field and target_relation_field are set for edge ({self.source}, {self.target})"
             )
 
-    def finish_init(
-        self, vc: VertexConfig, same_level_vertices: list[str] | None = None
-    ):
+    def finish_init(self, vertex_config: VertexConfig):
         """
 
         Args:
-            vc:
-            same_level_vertices: help to decide on how the edge will be defined:
-                product : cartesian product, e.g. relation of a publication to references {id : [id_a, ...]}
-                pairwise:  pairwise, e.g. when data is a list of docs : [{person: a, company: b}, ...]
+            vertex_config:
 
             discriminant is used to pin docs among a collection of docs of the same vertex type
 
@@ -79,30 +72,35 @@ class Edge(BaseDataclass):
 
         """
         if self.type == EdgeType.INDIRECT and self.by is not None:
-            self.by = vc.vertex_dbname(self.by)
+            self.by = vertex_config.vertex_dbname(self.by)
 
-        same_level_vertices = [] if same_level_vertices is None else same_level_vertices
-        if (
-            self.source in same_level_vertices
-            and self.target in same_level_vertices
-            and self.source_discriminant is None
-            and self.target_discriminant is None
-        ):
+        if self.source_discriminant is None and self.target_discriminant is None:
             self.casting_type = EdgeCastingType.PAIR_LIKE
         else:
             self.casting_type = EdgeCastingType.PRODUCT_LIKE
-        self.source_collection = vc.vertex_dbname(self.source)
-        self.target_collection = vc.vertex_dbname(self.target)
+
+        if self.weights is not None:
+            if self.weights.source_fields:
+                vertex_config[self.source] = vertex_config[
+                    self.source
+                ].update_aux_fields(self.weights.source_fields)
+            if self.weights.target_fields:
+                vertex_config[self.target] = vertex_config[
+                    self.target
+                ].update_aux_fields(self.weights.target_fields)
+
+        self.source_collection = vertex_config.vertex_dbname(self.source)
+        self.target_collection = vertex_config.vertex_dbname(self.target)
         graph_name = [
-            vc.vertex_dbname(self.source),
-            vc.vertex_dbname(self.target),
+            vertex_config.vertex_dbname(self.source),
+            vertex_config.vertex_dbname(self.target),
         ]
         if self.relation is not None:
             graph_name += [self.relation]
         self.graph_name = "_".join(graph_name + ["graph"])
         self.collection_name = "_".join(graph_name + ["edges"])
-        self.db_flavor = vc.db_flavor
-        self._init_indices(vc)
+        self.db_flavor = vertex_config.db_flavor
+        self._init_indices(vertex_config)
 
     def _init_indices(self, vc: VertexConfig):
         """
@@ -181,12 +179,22 @@ class EdgeConfig(BaseDataclass):
         else:
             return False
 
-    def update_edges(self, edge: Edge):
+    def update_edges(self, edge: Edge, vertex_config: VertexConfig):
         if edge.edge_id in self._edges_map:
             self._edges_map[edge.edge_id].update(edge)
         else:
             self._edges_map[edge.edge_id] = edge
+        self._edges_map[edge.edge_id].finish_init(vertex_config=vertex_config)
 
     @property
     def vertices(self):
         return {e.source for e in self.edges} | {e.target for e in self.edges}
+
+    def __getitem__(self, key: EdgeId):
+        if key in self._reset_edges():
+            return self._edges_map[key]
+        else:
+            raise KeyError(f"Vertex {key} absent")
+
+    def __setitem__(self, key: EdgeId, value: Edge):
+        self._edges_map[key] = value
