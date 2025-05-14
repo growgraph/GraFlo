@@ -29,7 +29,12 @@ class Edge(BaseDataclass):
     weights: Optional[WeightConfig] = None
 
     non_exclusive: list[str] = dataclasses.field(default_factory=list)
+
+    # used for specifies an index (neo4j)
     relation: Optional[str] = None
+
+    # used to create extra utility collections between the same type of vertices (A, B)
+    purpose: Optional[str] = None
 
     source_discriminant: Optional[str] = None
     target_discriminant: Optional[str] = None
@@ -95,8 +100,8 @@ class Edge(BaseDataclass):
             vertex_config.vertex_dbname(self.source),
             vertex_config.vertex_dbname(self.target),
         ]
-        if self.relation is not None:
-            graph_name += [self.relation]
+        if self.purpose is not None:
+            graph_name += [self.purpose]
         self.graph_name = "_".join(graph_name + ["graph"])
         self.collection_name = "_".join(graph_name + ["edges"])
         self.db_flavor = vertex_config.db_flavor
@@ -146,7 +151,7 @@ class Edge(BaseDataclass):
 
     @property
     def edge_id(self) -> EdgeId:
-        return self.source, self.target, self.relation
+        return self.source, self.target, self.purpose
 
 
 @dataclasses.dataclass

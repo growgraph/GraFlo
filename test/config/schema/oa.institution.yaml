@@ -1,29 +1,21 @@
 general:
     name: openalex
 resources:
-    tree_likes:
-    -   name: institutions
-        root:
-            children:
-            -   type: vertex
-                name: institution
-                transforms:
-                -   name: keep_suffix_id
-                discriminant: _top_level
-            -   key: associated_institutions
-                children:
-                -   type: vertex
-                    name: institution
-                    keep_fields:
-                    -   relationship
-                    transforms:
-                    -   name: keep_suffix_id
-            -   type: edge
-                edge:
-                    source: institution
-                    target: institution
-                    source_discriminant: _top_level
-                    target_relation_field: relationship
+-   resource_name: institutions
+    apply:
+    -   vertex: institution
+        discriminant: _top_level
+    -   name: keep_suffix_id
+    -   key: associated_institutions
+        apply:
+        -   vertex: institution
+            keep_fields:
+            -   relationship
+        -   name: keep_suffix_id
+    -   source: institution
+        target: institution
+        source_discriminant: _top_level
+        target_relation_field: relationship
 vertex_config:
     vertices:
     -   name: institution
@@ -38,6 +30,8 @@ vertex_config:
         -   mag
         -   created_date
         -   updated_date
+        fields_aux:
+        -   relationship
         indexes:
         -   fields:
             -   _key

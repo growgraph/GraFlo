@@ -15,8 +15,8 @@ def test_ingest(
     reset,
 ):
     _ = create_db
-    schema_o = schema_obj("oa_relation")
-    j_resource = FileHandle.load(Path(current_path) / "data/json/oa_relation.json")
+    schema_o = schema_obj("oa.institution")
+    j_resource = FileHandle.load(Path(current_path) / "data/json/oa.institution.json")
 
     conn_conf.database = test_db_name
 

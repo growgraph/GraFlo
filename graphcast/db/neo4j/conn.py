@@ -66,7 +66,8 @@ class Neo4jConnection(Connection):
     def define_edge_indices(self, edges: list[Edge]):
         for edge in edges:
             for index_obj in edge.indexes:
-                self._add_index(edge.relation, index_obj, is_vertex_index=False)
+                if edge.relation is not None:
+                    self._add_index(edge.relation, index_obj, is_vertex_index=False)
 
     def _add_index(self, obj_name, index: Index, is_vertex_index=True):
         fields_str = ", ".join([f"x.{f}" for f in index.fields])

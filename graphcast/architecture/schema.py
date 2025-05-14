@@ -27,6 +27,9 @@ class Schema(BaseDataclass):
     transforms: dict[str, ProtoTransform] = dataclasses.field(default_factory=dict)
 
     def __post_init__(self):
+        for name, t in self.transforms.items():
+            t.name = name
+
         self.edge_config.finish_init(self.vertex_config)
 
         for r in self.resources:

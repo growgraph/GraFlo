@@ -56,14 +56,6 @@ resources:
             indexes:
             -   fields:
                 -   _role
-#    extra_weights:
-#    -   source: mention
-#        target: entity
-#        weights:
-#            vertices:
-#            -   name: publication
-#                fields:
-#                -   _id
 -   resource_name: communities
     apply:
     -   source: entity
@@ -149,7 +141,7 @@ edge_config:
             unique: false
     -   source: entity
         target: entity
-        relation: tmp
+        purpose: tmp
         aux: true
         indexes:
         -   name: publication
@@ -162,7 +154,7 @@ edge_config:
             unique: false
     -   source: entity
         target: entity
-        relation: redux
+        purpose: redux
         aux: true
         indexes:
         -   name: publication
@@ -175,7 +167,7 @@ edge_config:
             unique: false
     -   source: entity
         target: entity
-        relation: convolution
+        purpose: convolution
         aux: true
         indexes:
         -   fields:

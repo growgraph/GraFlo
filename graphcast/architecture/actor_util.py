@@ -37,7 +37,7 @@ def render_edge(
 ) -> defaultdict[Optional[str], list]:
     # get source and target names
     source, target = edge.source, edge.target
-    relation = edge.relation
+    relation = None
 
     # get source and target edge fields
     source_index, target_index = (

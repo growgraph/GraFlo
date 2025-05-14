@@ -74,7 +74,6 @@ class Resource(BaseDataclass, JSONWizard):
         ctx = ActionContext()
         ctx = self.root(ctx, doc=doc)
         acc = self.root.normalize_ctx(ctx)
-
         return acc
 
     def count(self):

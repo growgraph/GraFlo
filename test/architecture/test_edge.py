@@ -36,7 +36,7 @@ def test_index_a(index_a):
 def test_init_edge_indexes(edge_indexes):
     e = Edge.from_dict(edge_indexes)
     assert len(e.indexes) == 2
-    assert e.relation == "aux"
+    assert e.purpose == "aux"
 
 
 def test_complement_edge_init(edge_indexes, vertex_config_kg):

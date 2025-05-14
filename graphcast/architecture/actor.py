@@ -219,6 +219,8 @@ class TransformActor(Actor):
             pt = self.transforms.get(self.name, None)
             if pt is not None:
                 self.t._foo = pt._foo
+                self.t.module = pt.module
+                self.t.foo = pt.foo
                 if pt.params and not self.t.params:
                     self.t.params = pt.params
                     if (
@@ -259,7 +261,7 @@ class TransformActor(Actor):
         if self.vertex is None:
             ctx.cdoc.update(_update_doc)
         else:
-            # prepared for a specifique vertex
+            # prepared for a specific vertex
             # useful then two vertices have the same keys, e.g. `id`
             ctx.buffer_vertex[self.vertex] = _update_doc
         return ctx
@@ -483,7 +485,9 @@ class ActorWrapper:
                 ctx.acc_vertex[vertex][discriminant] += vertices
 
         for edge_id, edge in self.edge_config.edges_items():
-            if edge_id not in ctx.acc_global:
+            s, t, _ = edge_id
+            edges_ids = [k for k in ctx.acc_global if not isinstance(k, str)]
+            if not any(s == sp and t == tp for sp, tp, _ in edges_ids):
                 extra_edges = render_edge(
                     edge=edge,
                     vertex_config=self.vertex_config,
