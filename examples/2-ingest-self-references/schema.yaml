@@ -1,0 +1,50 @@
+general:
+    name: openalex
+resources:
+-   resource_name: work
+    apply:
+    -   name: keep_suffix_id
+    -   vertex: work
+        discriminant: _top_level
+    -   name: keep_suffix_id
+        params:
+            sep: "/"
+            keep: [-2, -1]
+        input:
+        -   doi
+        output:
+        -   doi
+    -   key: referenced_works
+        apply:
+        -   vertex: work
+        -   name: keep_suffix_id
+    -   source: work
+        target: work
+        source_discriminant: _top_level
+vertex_config:
+    vertices:
+    -   name: work
+        fields:
+        -   _key
+        -   doi
+        -   title
+        -   created_date
+        indexes:
+        -   fields:
+            -   _key
+        -   unique: false
+            fields:
+            -   doi
+edge_config: []
+transforms:
+    keep_suffix_id:
+        foo: split_keep_part
+        module: graphcast.util.transform
+        params:
+            sep: "/"
+            keep: -1
+        input:
+        -   id
+        output:
+        -   _key
+

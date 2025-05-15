@@ -23,9 +23,7 @@ patterns = Patterns.from_dict(
     {
         "patterns": {
             "people": {"regex": "^people.*\.csv$"},
-            # "placement": {
-            #     "regex": "^comp.*\.csv$"
-            # }
+            "departments": {"regex": "^dep.*\.csv$"},
         }
     }
 )

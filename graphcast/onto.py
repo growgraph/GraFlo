@@ -2,7 +2,7 @@ import dataclasses
 from copy import deepcopy
 from enum import EnumMeta, StrEnum
 
-from dataclass_wizard import JSONWizard
+from dataclass_wizard import JSONWizard, YAMLWizard
 from dataclass_wizard.enums import DateTimeTo
 
 
@@ -49,7 +49,7 @@ class AggregationType(BaseEnum):
 
 
 @dataclasses.dataclass
-class BaseDataclass(JSONWizard, JSONWizard.Meta):
+class BaseDataclass(JSONWizard, JSONWizard.Meta, YAMLWizard):
     marshal_date_time_as = DateTimeTo.ISO_FORMAT
     key_transform_with_dump = "SNAKE"
     # skip_defaults = True

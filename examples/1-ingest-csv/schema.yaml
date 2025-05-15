@@ -1,0 +1,34 @@
+general:
+    name: hr
+resources:
+-   resource_name: people
+    apply:
+    -   vertex: person
+-   resource_name: departments
+    apply:
+    -   map:
+            person: name
+            person_id: id
+    -   target_vertex: department
+        map:
+            department: name
+vertex_config:
+    vertices:
+    -   name: person
+        fields:
+        -   id
+        -   name
+        -   age
+        indexes:
+        -   fields:
+            -   id
+    -   name: department
+        fields:
+        -   name
+        indexes:
+        -   fields:
+            -   name
+edge_config:
+    edges:
+    -   source: person
+        target: department

@@ -64,8 +64,6 @@ caster = Caster(
 
 caster.ingest_files(
     path=source_path,
-    limit_files=limit_files,
-    clean_start=fresh_start,
     batch_size=batch_size,
     conn_conf=conn_conf,
     patterns=patterns,
