@@ -11,11 +11,6 @@ def docs_simple_two_doc():
     return [{"id": 0, "a": 2}, {"id": 1, "b": 1}]
 
 
-@pytest.fixture
-def docs_complex_two_doc():
-    return [{"id": 0, "a": 2}, {"b": 1}]
-
-
 @pytest.fixture()
 def merge_input_with_discriminant():
     return [
