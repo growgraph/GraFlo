@@ -231,4 +231,4 @@ schema = Schema({
    - Use filters to clean and transform data
    - Handle missing or invalid data appropriately
 
-For more examples and detailed explanations, refer to the [API Reference](reference/index.md). 
+For more examples and detailed explanations, refer to the [API Reference](../reference/index.md). 

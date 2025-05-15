@@ -2,7 +2,7 @@
     "protocol": "http",
     "hostname": "localhost",
     "port": 8535,
-    "cred_name": "root",
-    "cred_pass": "123",
+    "username": "root",
+    "password": "123",
     "database": "_system"
 }

@@ -1,13 +1,13 @@
 # GraphCast <img src="docs/assets/favicon.ico" alt="suthing logo" style="height: 32px; width:32px;"/>
 
-A framework for transforming tabular (csv) and tree structure data (json, xml) into property graphs and ingesting them into graph databases (ArangoDB, Neo4j).
+A framework for transforming **tabular** data (CSV) and **hierarchical** data (JSON, XML) into property graphs and ingesting them into graph databases (ArangoDB, Neo4j).
 
-
-![Python](https://img.shields.io/badge/python-3.11-blue.svg)
-<!-- [![PyPI version](https://badge.fury.io/py/graphcast.svg)](https://badge.fury.io/py/graphcast) -->
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![Python](https://img.shields.io/badge/python-3.11-blue.svg) 
+[![License: BSL](https://img.shields.io/badge/license-BSL--1.1-green)](https://github.com/growgraph/graphcast/blob/main/LICENSE)
 [![pre-commit](https://github.com/growgraph/graphcast/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/growgraph/graphcast/actions/workflows/pre-commit.yml)
-<!-- [![pytest](https://github.com/growgraph/suthing/actions/workflows/pytest.yml/badge.svg)](https://github.com/growgraph/suthing/actions/workflows/pytest.yml) -->
+[![PyPI version](https://badge.fury.io/py/graphcast.svg)](https://badge.fury.io/py/graphcast)
+
+<!-- [![pytest](https://github.com/growgraph/graphcast/actions/workflows/pytest.yml/badge.svg)](https://github.com/growgraph/graphcast/actions/workflows/pytest.yml) -->
 
 
 ## Features

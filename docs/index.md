@@ -1,6 +1,6 @@
-# GraphCast
+# GraphCast <img src="assets/favicon.ico" alt="suthing logo" style="height: 32px; width:32px;"/>
 
-GraphCast is a powerful Python package for transforming tabular and JSON data into property graphs. It provides a flexible and efficient way to cast various data formats into collections of vertices and edges, making it ideal for graph database operations and data analysis.
+GraphCast is a framework for transforming **tabular** data (CSV) and **hierarchical** data (JSON, XML) into property graphs and ingesting them into graph databases (ArangoDB, Neo4j).
 
 ![Python](https://img.shields.io/badge/python-3.11-blue.svg) 
 [![License: BSL](https://img.shields.io/badge/license-BSL--1.1-green)](https://github.com/growgraph/graphcast/blob/main/LICENSE)
@@ -20,12 +20,11 @@ GraphCast works with property graphs, which consist of:
 - **Properties**: Both vertices and edges may have properties
 
 ### Schema
-The Schema defines how your data should be transformed into a graph:
+The Schema defines how your data should be transformed into a graph and contains:
 
 - **Vertex Definitions**: Specify vertex types, their properties, and unique identifiers
 - **Edge Definitions**: Define relationships between vertices and their properties
-- **Resource Mapping**: Link data sources to vertex and edge definitions
-- **Filters**: Apply conditions to data during transformation
+- **Resource Mapping**: describe how data sources map to vertices and edges
 - **Transforms**: Modify data during the casting process
 
 ### Resources
@@ -48,7 +47,7 @@ Resources are your data sources that can be:
 - [Installation](getting_started/installation.md)
 - [Quick Start Guide](getting_started/quickstart.md)
 - [API Reference](reference/index.md)
-- [Examples](examples.md)
+- [Examples](examples/examples.md)
 
 ## Use Cases
 

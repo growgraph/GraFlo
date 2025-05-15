@@ -31,12 +31,17 @@ class Caster:
 
     @staticmethod
     def discover_files(
-        fpath: Path, pattern: FilePattern, limit_files=None
+        fpath: Path | str, pattern: FilePattern, limit_files=None
     ) -> list[Path]:
         assert pattern.sub_path is not None
+        if isinstance(fpath, str):
+            fpath_pathlib = Path(fpath)
+        else:
+            fpath_pathlib = fpath
+
         files = [
             f
-            for f in (fpath / pattern.sub_path).iterdir()
+            for f in (fpath_pathlib / pattern.sub_path).iterdir()
             if f.is_file()
             and (
                 True
@@ -211,7 +216,7 @@ class Caster:
         rows_dressed = [{k: v for k, v in zip(columns, item)} for item in _data]
         return rows_dressed
 
-    def ingest_files(self, path: Path, **kwargs):
+    def ingest_files(self, path: Path | str, **kwargs):
         """
 
         Args:

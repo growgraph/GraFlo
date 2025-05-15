@@ -4,114 +4,54 @@ This guide will help you get started with GraphCast by showing you how to transf
 
 ## Basic Concepts
 
-GraphCast works with three main components:
-1. **Data Sources**: Your input data (CSV, JSON, XML)
-2. **Schema**: Defines how to transform the data into vertices and edges
-3. **Caster**: The main class that performs the transformation
+- GraphCast uses `Caster` class to cast data into a property graph representation and eventually graph database. 
+- Class `Schema` encodes the representation of vertices, and edges (relations), the transformations the original data undergoes to become a graph and how data sources are mapped onto graph definition.
+- `Resource` class managed.
+- In case the data is provided as files, class `Patterns` manages the mapping of the resources to files. 
+- `ConfigFactory` is used to created database connections used by `Caster`.
 
 ## Basic Example
 
-Here's a simple example of transforming a CSV file into a graph:
+Here's a simple example of transforming CSV files of two types, `people` and `department` into a graph:
 
 ```python
-from pathlib import Path
-from graphcast import Caster, Schema, ConnectionManager, ConnectionType
+from suthing import ConfigFactory, FileHandle
+from graphcast import Caster, Patterns, Schema
 
-# Define your schema
-schema = Schema({
-    "vertices": {
-        "Person": {
-            "source": "people.csv",
-            "properties": ["name", "age"]
-        }
-    },
-    "edges": {
-        "KNOWS": {
-            "source": "relationships.csv",
-            "from": "Person",
-            "to": "Person",
-            "properties": ["since"]
-        }
-    }
-})
+schema = Schema.from_dict(FileHandle.load("schema.yaml"))
 
-# Initialize the caster
 caster = Caster(schema)
 
-# Process your data
-caster.ingest_files(Path("data/"))
-```
+conn_conf = ConfigFactory.create_config(
+    {
+        "protocol": "http",
+        "hostname": "localhost",
+        "port": 8535,
+        "username": "root",
+        "password": "123",
+        "database": "_system",
+    }
+)
 
-## Working with Different Data Sources
-
-### CSV Files
-
-```python
-# Example with CSV data
-schema = Schema({
-    "vertices": {
-        "Product": {
-            "source": "products.csv",
-            "properties": ["id", "name", "price"]
+patterns = Patterns.from_dict(
+    {
+        "patterns": {
+            "people": {"regex": "^people.*\.csv$"},
+            "departments": {"regex": "^dep.*\.csv$"},
         }
     }
-})
-```
-
-### JSON Data
-
-```python
-# Example with JSON data
-schema = Schema({
-    "vertices": {
-        "User": {
-            "source": "users.json",
-            "properties": ["id", "username", "email"]
-        }
-    }
-})
-```
-
-## Database Integration
-
-To store your graph in a database:
-
-```python
-# Configure database connection
-conn_config = ConnectionManager(
-    connection_type=ConnectionType.NEO4J,
-    host="localhost",
-    port=7687,
-    username="neo4j",
-    password="password"
 )
 
-# Process and store data
-caster.ingest_files(Path("data/"), conn_conf=conn_config)
-```
-
-## Advanced Features
-
-### Parallel Processing
-
-```python
-# Enable parallel processing
-caster = Caster(
-    schema,
-    n_cores=4,  # Number of CPU cores to use
-    n_threads=8  # Number of threads per core
+caster.ingest_files(
+    path=".",
+    conn_conf=conn_conf,
+    patterns=patterns,
 )
 ```
 
-### Batch Processing
+Here `schema` defines the graph and the mapping the sources to vertices and edges (refer to [Schema](concepts/schema) for details on schema and its components).
+In `patterns` the keys `"people"` and `"departments"` correspond to source types (`Resource`) from `Schema`, while `"regex"` contain regex patterns to find the corresponding files. 
 
-```python
-# Configure batch size
-caster = Caster(
-    schema,
-    batch_size=10000  # Process 10,000 items at a time
-)
-```
 
 ## Next Steps
 

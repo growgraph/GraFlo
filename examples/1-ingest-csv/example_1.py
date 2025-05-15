@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from suthing import ConfigFactory, FileHandle
 
 from graphcast import Caster, Patterns, Schema
@@ -13,8 +11,8 @@ conn_conf = ConfigFactory.create_config(
         "protocol": "http",
         "hostname": "localhost",
         "port": 8535,
-        "cred_name": "root",
-        "cred_pass": "123",
+        "username": "root",
+        "password": "123",
         "database": "_system",
     }
 )
@@ -29,7 +27,7 @@ patterns = Patterns.from_dict(
 )
 
 caster.ingest_files(
-    path=Path("."),
+    path=".",
     conn_conf=conn_conf,
     patterns=patterns,
 )

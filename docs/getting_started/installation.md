@@ -2,10 +2,8 @@
 
 ## Prerequisites
 
-Before installing GraphCast, ensure you have:
-- Python 3.11 or higher
+- Python 3.11+
 - A graph database (Neo4j or ArangoDB) if you plan to use database features
-- Basic understanding of Python and graph databases
 
 ## Installation Methods
 
@@ -31,15 +29,15 @@ cd graphcast
 
 2. Install with development dependencies:
 ```bash
-uv sync --dev
+uv sync --group dev
 ```
 
 ## Optional Dependencies
 
-GraphCast has some optional dependencies that can be installed based on your needs:
+GraphCast has some optional dependencies that can be installed based on your needs.
+In order to be able to generate schema visualizations, add graphviz deps (you will need `graphviz` package installed on your computer, e.g. `apt install graphviz-dev`)
 
 ```bash
-# For graph visualization
 pip install graphcast[graphviz]
 ```
 
@@ -55,14 +53,5 @@ print(graphcast.__version__)
 ## Configuration
 
 After installation, you may need to configure your graph database connection. See the [Quick Start Guide](quickstart.md) for details on setting up your environment.
-
-## Troubleshooting
-
-If you encounter any issues during installation:
-
-1. Ensure you have the correct Python version (3.11+)
-2. Check if all required system dependencies are installed
-3. Verify your virtual environment is properly activated
-4. Check the error messages for specific package conflicts
 
 For more detailed troubleshooting, refer to the [API Reference](reference/index.md) or open an issue on GitHub. 
