@@ -1,11 +1,12 @@
 # GraphCast <img src="docs/assets/favicon.ico" alt="suthing logo" style="height: 32px; width:32px;"/>
 
-A framework for transforming **tabular** data (CSV) and **hierarchical** data (JSON, XML) into property graphs and ingesting them into graph databases (ArangoDB, Neo4j).
+A framework for transforming **tabular** data (CSV, SQL) and **hierarchical** data (JSON, XML) into property graphs and ingesting them into graph databases (ArangoDB, Neo4j).
 
 ![Python](https://img.shields.io/badge/python-3.11-blue.svg) 
 [![License: BSL](https://img.shields.io/badge/license-BSL--1.1-green)](https://github.com/growgraph/graphcast/blob/main/LICENSE)
 [![pre-commit](https://github.com/growgraph/graphcast/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/growgraph/graphcast/actions/workflows/pre-commit.yml)
 [![PyPI version](https://badge.fury.io/py/graphcast.svg)](https://badge.fury.io/py/graphcast)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15446131.svg)](https://zenodo.org/badge/DOI/10.5281/zenodo.15446131.svg)
 
 ## Core Concepts
 
