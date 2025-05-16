@@ -1,3 +1,23 @@
+"""Data transformation utilities for graph operations.
+
+This module provides utility functions for transforming and standardizing data
+in various formats, particularly for graph database operations. It includes
+functions for date parsing, string standardization, and data cleaning.
+
+Key Functions:
+    - standardize: Standardize string keys and names
+    - parse_date_*: Various date parsing functions for different formats
+    - cast_ibes_analyst: Parse and standardize analyst names
+    - clear_first_level_nones: Clean dictionaries by removing None values
+    - parse_multi_item: Parse complex multi-item strings
+    - pick_unique_dict: Remove duplicate dictionaries
+
+Example:
+    >>> name = standardize("John. Doe, Smith")
+    >>> date = parse_date_standard("2023-01-01")
+    >>> analyst = cast_ibes_analyst("ADKINS/NARRA")
+"""
+
 import json
 import logging
 import re
@@ -11,8 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def standardize(k):
-    """
-    Standardizes a string key by removing periods and splitting.
+    """Standardizes a string key by removing periods and splitting.
 
     Handles comma and space-separated strings, normalizing their format.
 
@@ -23,9 +42,11 @@ def standardize(k):
         str: Cleaned and standardized string.
 
     Example:
-        "John. Doe, Smith" -> "John,Doe,Smith"
+        >>> standardize("John. Doe, Smith")
+        'John,Doe,Smith'
+        >>> standardize("John Doe Smith")
+        'John,Doe,Smith'
     """
-
     k = k.translate(str.maketrans({".": ""}))
     # try to split by ", "
     k = k.split(", ")
@@ -37,18 +58,41 @@ def standardize(k):
 
 
 def parse_date_standard(input_str):
+    """Parse a date string in YYYY-MM-DD format.
+
+    Args:
+        input_str (str): Date string in YYYY-MM-DD format.
+
+    Returns:
+        tuple: (year, month, day) as integers.
+
+    Example:
+        >>> parse_date_standard("2023-01-01")
+        (2023, 1, 1)
+    """
     dt = datetime.strptime(input_str, "%Y-%m-%d")
     return dt.year, dt.month, dt.day
 
 
 def parse_date_conf(input_str):
+    """Parse a date string in YYYYMMDD format.
+
+    Args:
+        input_str (str): Date string in YYYYMMDD format.
+
+    Returns:
+        tuple: (year, month, day) as integers.
+
+    Example:
+        >>> parse_date_conf("20230101")
+        (2023, 1, 1)
+    """
     dt = datetime.strptime(input_str, "%Y%m%d")
     return dt.year, dt.month, dt.day
 
 
 def parse_date_ibes(date0, time0):
-    """
-    Converts IBES date and time to ISO 8601 format datetime.
+    """Converts IBES date and time to ISO 8601 format datetime.
 
     Args:
         date0 (str/int): Date in YYYYMMDD format.
@@ -58,8 +102,8 @@ def parse_date_ibes(date0, time0):
         str: Datetime in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ).
 
     Example:
-        parse_date_ibes(20160126, "9:35:52")
-        -> "2016-01-26T09:35:52Z"
+        >>> parse_date_ibes(20160126, "9:35:52")
+        '2016-01-26T09:35:52Z'
     """
     date0 = str(date0)
     year, month, day = date0[:4], date0[4:6], date0[6:]
@@ -69,32 +113,59 @@ def parse_date_ibes(date0, time0):
 
 
 def parse_date_yahoo(date0):
-    """
+    """Convert Yahoo Finance date to ISO 8601 format.
 
-    :param date0: as "2016-01-26"
-    :return: datetime as "2016-01-26T14:19:09.522"
+    Args:
+        date0 (str): Date in YYYY-MM-DD format.
+
+    Returns:
+        str: Datetime in ISO 8601 format with noon time.
+
+    Example:
+        >>> parse_date_yahoo("2023-01-01")
+        '2023-01-01T12:00:00Z'
     """
     full_datetime = f"{date0}T12:00:00Z"
-    # dt = datetime.strptime(date0, "%Y-%m-%d").timetuple()
-
-    # timestamp = time.mktime(dt)
-    # return (timestamp,)
     return full_datetime
 
 
 def round_str(x, **kwargs):
+    """Round a string number to specified precision.
+
+    Args:
+        x (str): String representation of a number.
+        **kwargs: Additional arguments for round() function.
+
+    Returns:
+        float: Rounded number.
+
+    Example:
+        >>> round_str("3.14159", ndigits=2)
+        3.14
+    """
     return round(float(x), **kwargs)
 
 
 def parse_date_standard_to_epoch(input_str):
+    """Convert standard date string to Unix epoch timestamp.
+
+    Args:
+        input_str (str): Date string in YYYY-MM-DD format.
+
+    Returns:
+        float: Unix epoch timestamp.
+
+    Example:
+        >>> parse_date_standard_to_epoch("2023-01-01")
+        1672531200.0
+    """
     dt = datetime.strptime(input_str, "%Y-%m-%d").timetuple()
     timestamp = time.mktime(dt)
     return timestamp
 
 
 def cast_ibes_analyst(s):
-    """
-    Splits and normalizes analyst name strings.
+    """Splits and normalizes analyst name strings.
 
     Handles various name formats like 'ADKINS/NARRA' or 'ARFSTROM      J'.
 
@@ -105,8 +176,10 @@ def cast_ibes_analyst(s):
         tuple: (last_name, first_initial)
 
     Examples:
-        'ADKINS/NARRA' -> ('ADKINS', 'N')
-        'ARFSTROM      J' -> ('ARFSTROM', 'J')
+        >>> cast_ibes_analyst('ADKINS/NARRA')
+        ('ADKINS', 'N')
+        >>> cast_ibes_analyst('ARFSTROM      J')
+        ('ARFSTROM', 'J')
     """
     if " " in s or "\t" in s:
         r = s.split()[:2]
@@ -127,12 +200,23 @@ def cast_ibes_analyst(s):
 
 
 def parse_date_reference(input_str):
+    """Extract year from a date reference string.
+
+    Args:
+        input_str (str): Date reference string.
+
+    Returns:
+        int: Year from the date reference.
+
+    Example:
+        >>> parse_date_reference("1923, May 10")
+        1923
+    """
     return _parse_date_reference(input_str)["year"]
 
 
 def _parse_date_reference(input_str):
-    """
-    Parses complex, human-written date references.
+    """Parse complex, human-written date references.
 
     Handles various date formats like:
     - "1923, May 10"
@@ -146,6 +230,10 @@ def _parse_date_reference(input_str):
 
     Returns:
         dict: Parsed date information with keys 'year', optional 'month', 'day'.
+
+    Example:
+        >>> _parse_date_reference("1923, May 10")
+        {'year': 1923, 'month': 5, 'day': 10}
     """
     if "," in input_str:
         if len(input_str.split(" ")) == 3:
@@ -183,6 +271,20 @@ def _parse_date_reference(input_str):
 
 
 def try_int(x):
+    """Attempt to convert a value to integer.
+
+    Args:
+        x: Value to convert.
+
+    Returns:
+        int or original value: Integer if conversion successful, original value otherwise.
+
+    Example:
+        >>> try_int("123")
+        123
+        >>> try_int("abc")
+        'abc'
+    """
     try:
         x = int(x)
         return x
@@ -191,8 +293,7 @@ def try_int(x):
 
 
 def clear_first_level_nones(docs, keys_keep_nones=None):
-    """
-    Removes None values from dictionaries, with optional key exceptions.
+    """Removes None values from dictionaries, with optional key exceptions.
 
     Args:
         docs (list): List of dictionaries to clean.
@@ -200,6 +301,11 @@ def clear_first_level_nones(docs, keys_keep_nones=None):
 
     Returns:
         list: Cleaned list of dictionaries.
+
+    Example:
+        >>> docs = [{"a": 1, "b": None}, {"a": None, "b": 2}]
+        >>> clear_first_level_nones(docs, keys_keep_nones=["a"])
+        [{"a": 1}, {"a": None, "b": 2}]
     """
     docs = [
         {k: v for k, v in tdict.items() if v or k in keys_keep_nones} for tdict in docs
@@ -208,8 +314,7 @@ def clear_first_level_nones(docs, keys_keep_nones=None):
 
 
 def parse_multi_item(s, mapper: dict, direct: list):
-    """
-    Parses complex multi-item strings into structured data.
+    """Parses complex multi-item strings into structured data.
 
     Supports parsing strings with quoted or bracketed items.
 
@@ -220,6 +325,13 @@ def parse_multi_item(s, mapper: dict, direct: list):
 
     Returns:
         defaultdict: Parsed items with lists as values.
+
+    Example:
+        >>> s = '[name: John, age: 30] [name: Jane, age: 25]'
+        >>> mapper = {"name": "full_name"}
+        >>> direct = ["age"]
+        >>> parse_multi_item(s, mapper, direct)
+        defaultdict(list, {'full_name': ['John', 'Jane'], 'age': ['30', '25']})
     """
     if "'" in s:
         items_str = re.findall(r"\"(.*?)\"", s) + re.findall(r"\'(.*?)\'", s)
@@ -250,8 +362,7 @@ def parse_multi_item(s, mapper: dict, direct: list):
 
 
 def pick_unique_dict(docs):
-    """
-    Removes duplicate dictionaries from a list.
+    """Removes duplicate dictionaries from a list.
 
     Uses JSON serialization to identify unique dictionaries.
 
@@ -260,14 +371,34 @@ def pick_unique_dict(docs):
 
     Returns:
         list: List of unique dictionaries.
-    """
 
+    Example:
+        >>> docs = [{"a": 1}, {"a": 1}, {"b": 2}]
+        >>> pick_unique_dict(docs)
+        [{"a": 1}, {"b": 2}]
+    """
     docs = {json.dumps(d, sort_keys=True) for d in docs}
     docs = [json.loads(t) for t in docs]
     return docs
 
 
 def split_keep_part(s: str, sep="/", keep=-1) -> str:
+    """Split a string and keep specified parts.
+
+    Args:
+        s (str): String to split.
+        sep (str): Separator to split on.
+        keep (int or list): Index or indices to keep.
+
+    Returns:
+        str: Joined string of kept parts.
+
+    Example:
+        >>> split_keep_part("a/b/c", keep=0)
+        'a'
+        >>> split_keep_part("a/b/c", keep=[0, 2])
+        'a/c'
+    """
     if isinstance(keep, list):
         items = s.split(sep)
         return sep.join(items[k] for k in keep)

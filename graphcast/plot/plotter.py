@@ -1,3 +1,22 @@
+"""Graph visualization utilities for schema and data structures.
+
+This module provides utilities for visualizing graph database schemas, relationships,
+and data structures using NetworkX and Graphviz. It includes functionality for
+plotting vertex collections, resources, and their relationships.
+
+Key Components:
+    - SchemaPlotter: Main class for schema visualization
+    - AuxNodeType: Enum for different node types in visualizations
+    - Color and shape mappings for different node types
+    - Tree assembly and graph generation utilities
+
+Example:
+    >>> plotter = SchemaPlotter("config.json", "output/")
+    >>> plotter.plot_vc2fields()  # Plot vertex collections and their fields
+    >>> plotter.plot_resources()  # Plot resource relationships
+    >>> plotter.plot_vc2vc()      # Plot vertex collection relationships
+"""
+
 import logging
 import os
 from itertools import product
@@ -21,6 +40,21 @@ logger = logging.getLogger(__name__)
 
 
 class AuxNodeType(BaseEnum):
+    """Node types for graph visualization.
+
+    This enum defines the different types of nodes that can appear in the
+    visualization graphs, each with specific visual properties.
+
+    Attributes:
+        FIELD: Regular field node
+        FIELD_DEFINITION: Field definition node
+        INDEX: Index field node
+        RESOURCE: Resource node
+        TRANSFORM: Transform node
+        VERTEX: Vertex node
+        VERTEX_BLANK: Empty vertex node
+    """
+
     FIELD = "field"
     FIELD_DEFINITION = "field_definition"
     INDEX = "field"
@@ -30,6 +64,7 @@ class AuxNodeType(BaseEnum):
     VERTEX_BLANK = "vertex_blank"
 
 
+# Color palette for node fill colors
 fillcolor_palette = {
     "violet": "#DDD0E5",
     "green": "#BEDFC8",
@@ -37,6 +72,8 @@ fillcolor_palette = {
     "red": "#EBA59E",
     "peach": "#FFE5B4",
 }
+
+# Mapping of node types to shapes
 map_type2shape = {
     AuxNodeType.RESOURCE: "box",
     AuxNodeType.VERTEX_BLANK: "box",
@@ -47,9 +84,9 @@ map_type2shape = {
     AuxNodeType.FIELD: "octagon",
 }
 
+# Mapping of node types to colors
 map_type2color = {
     AuxNodeType.RESOURCE: fillcolor_palette["blue"],
-    # "tree": fillcolor_palette["peach"],
     AuxNodeType.FIELD_DEFINITION: fillcolor_palette["red"],
     AuxNodeType.VERTEX_BLANK: "white",
     AuxNodeType.VERTEX: fillcolor_palette["green"],
@@ -58,7 +95,7 @@ map_type2color = {
     AuxNodeType.FIELD: fillcolor_palette["violet"],
 }
 
-
+# Mapping of actor classes to colors
 map_class2color = {
     DescendActor: fillcolor_palette["green"],
     VertexActor: "orange",
@@ -66,11 +103,26 @@ map_class2color = {
     TransformActor: fillcolor_palette["blue"],
 }
 
-
+# Edge style mapping
 edge_status = {AuxNodeType.VERTEX: "solid"}
 
 
 def get_auxnode_id(ntype: AuxNodeType, label=False, vfield=False, **kwargs):
+    """Generate a unique identifier for an auxiliary node.
+
+    Args:
+        ntype: Type of the auxiliary node
+        label: Whether to generate a label instead of an ID
+        vfield: Whether this is a vertex field
+        **kwargs: Additional parameters for node identification
+
+    Returns:
+        str: Node identifier or label
+
+    Example:
+        >>> get_auxnode_id(AuxNodeType.VERTEX, vertex="user", label=True)
+        'user'
+    """
     vertex = kwargs.pop("vertex", None)
     resource = kwargs.pop("resource", None)
     vertex_shortcut = kwargs.pop("vertex_sh", None)
@@ -114,6 +166,18 @@ def get_auxnode_id(ntype: AuxNodeType, label=False, vfield=False, **kwargs):
 
 
 def lto_dict(strings):
+    """Create a dictionary of string prefixes for shortening labels.
+
+    Args:
+        strings: List of strings to process
+
+    Returns:
+        dict: Mapping of shortened prefixes to original prefixes
+
+    Example:
+        >>> lto_dict(["user", "user_profile", "user_settings"])
+        {'user': 'user', 'user_p': 'user_', 'user_s': 'user_'}
+    """
     strings = list(set(strings))
     d = {"": strings}
     while any([len(v) > 1 for v in d.values()]):
@@ -141,6 +205,19 @@ def lto_dict(strings):
 
 
 def assemble_tree(aw: ActorWrapper, fig_path: Optional[Path | str] = None):
+    """Assemble a tree visualization from an actor wrapper.
+
+    Args:
+        aw: Actor wrapper containing the tree structure
+        fig_path: Optional path to save the visualization
+
+    Returns:
+        Optional[nx.MultiDiGraph]: The assembled graph if fig_path is None
+
+    Example:
+        >>> graph = assemble_tree(actor_wrapper)
+        >>> assemble_tree(actor_wrapper, "output/tree.pdf")
+    """
     _, _, _, edges = aw.fetch_actors(0, [])
     logger.info(f"{len(edges)}")
     nodes = {}
@@ -171,7 +248,26 @@ def assemble_tree(aw: ActorWrapper, fig_path: Optional[Path | str] = None):
 
 
 class SchemaPlotter:
+    """Main class for schema visualization.
+
+    This class provides methods to visualize different aspects of a graph database
+    schema, including vertex collections, resources, and their relationships.
+
+    Attributes:
+        fig_path: Path to save visualizations
+        config: Schema configuration
+        schema: Schema instance
+        name: Schema name
+        prefix: Prefix for output files
+    """
+
     def __init__(self, config_filename, fig_path):
+        """Initialize the schema plotter.
+
+        Args:
+            config_filename: Path to schema configuration file
+            fig_path: Path to save visualizations
+        """
         self.fig_path = fig_path
 
         self.config = FileHandle.load(fpath=config_filename)
@@ -182,6 +278,12 @@ class SchemaPlotter:
         self.prefix = self.name
 
     def plot_vc2fields(self):
+        """Plot vertex collections and their fields.
+
+        Creates a visualization showing the relationship between vertex collections
+        and their fields, including index fields. The visualization is saved as
+        a PDF file.
+        """
         g = nx.DiGraph()
         nodes = []
         edges = []
@@ -247,25 +349,6 @@ class SchemaPlotter:
                 g.edges[s, t][k] = v
 
         ag = nx.nx_agraph.to_agraph(g)
-        # ccs = list(nx.weakly_connected_components(g))
-        # ccs_sizes = [len(cc) - 1 for cc in ccs]
-        # clusters = knapsack(ccs_sizes, 7)
-        #
-        # vclusters = [[x for i in c for x in ccs[i]] for c in clusters]
-        #
-        # index_vertices = [
-        #     f"{k}:{item}"
-        #     for k, props in self.config["vertex_collections"].items()
-        #     for item in props["index"]
-        # ]
-        #
-        # vclusters_index = [sorted([v for v in g if v in index_vertices]) for g in vclusters]
-        #
-        # if any([len(item) == 0 for item in vclusters_index]):
-        #     raise "Some cluster has no index fields"
-        #
-        # level_one = [x[0] for x in vclusters_index]
-        # ag.add_subgraph(level_one, rank='same')
 
         for k in vconf.vertex_set:
             level_index = [
@@ -290,10 +373,11 @@ class SchemaPlotter:
         )
 
     def plot_resources(self):
-        """
-        draw map of source vertices (nodes of json or csv files) to vertex collections
+        """Plot resource relationships.
 
-
+        Creates visualizations for each resource in the schema, showing their
+        internal structure and relationships. Each resource is saved as a
+        separate PDF file.
         """
         resource_prefix_dict = lto_dict(
             [resource.name for resource in self.schema.resources]
@@ -303,7 +387,6 @@ class SchemaPlotter:
 
         for resource in self.schema.resources:
             kwargs["resource"] = resource.name
-            # g = assemble_tree(resource.root)
             assemble_tree(
                 resource.root,
                 os.path.join(
@@ -313,10 +396,10 @@ class SchemaPlotter:
             )
 
     def plot_source2vc(self):
-        """
-        draw map of source vertices (nodes of json or csv files) to vertex collections
+        """Plot source to vertex collection mappings.
 
-
+        Creates a visualization showing the relationship between source resources
+        and vertex collections. The visualization is saved as a PDF file.
         """
         nodes = []
         g = nx.MultiDiGraph()
@@ -332,7 +415,6 @@ class SchemaPlotter:
 
             g = assemble_tree(resource.root)
 
-            # vertices = list(resource.vertex_rep.keys())
             vertices = []
             nodes_resource = [
                 (
@@ -389,9 +471,16 @@ class SchemaPlotter:
         )
 
     def plot_vc2vc(self, prune_leaves=False):
-        """
-            vc -> vc
-        :return:
+        """Plot vertex collection relationships.
+
+        Creates a visualization showing the relationships between vertex collections.
+        Optionally prunes leaf nodes from the visualization.
+
+        Args:
+            prune_leaves: Whether to remove leaf nodes from the visualization
+
+        Example:
+            >>> plotter.plot_vc2vc(prune_leaves=True)
         """
         g = nx.MultiDiGraph()
         nodes = []
@@ -460,7 +549,6 @@ class SchemaPlotter:
                 g.edges[s, t, ix][k] = v
 
         ag = nx.nx_agraph.to_agraph(g)
-        # ['neato' | 'dot' | 'twopi' | 'circo' | 'fdp' | 'nop']
         ag.draw(
             os.path.join(self.fig_path, f"{self.prefix}_vc2vc.pdf"),
             "pdf",

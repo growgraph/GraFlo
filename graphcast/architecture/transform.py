@@ -1,3 +1,31 @@
+"""Data transformation and mapping system for graph databases.
+
+This module provides a flexible system for transforming and mapping data in graph
+databases. It supports both functional transformations and declarative mappings,
+with support for field switching and parameter configuration.
+
+Key Components:
+    - ProtoTransform: Base class for transform definitions
+    - Transform: Concrete transform implementation
+    - TransformException: Custom exception for transform errors
+
+The transform system supports:
+    - Functional transformations through imported modules
+    - Field mapping and switching
+    - Parameter configuration
+    - Input/output field specification
+    - Transform composition and inheritance
+
+Example:
+    >>> transform = Transform(
+    ...     module="my_module",
+    ...     foo="process_data",
+    ...     input=("field1", "field2"),
+    ...     output=("result1", "result2")
+    ... )
+    >>> result = transform({"field1": 1, "field2": 2})
+"""
+
 from __future__ import annotations
 
 import dataclasses
@@ -12,11 +40,28 @@ logger = logging.getLogger(__name__)
 
 
 class TransformException(BaseException):
+    """Base exception for transform-related errors."""
+
     pass
 
 
 @dataclasses.dataclass
 class ProtoTransform(BaseDataclass):
+    """Base class for transform definitions.
+
+    This class provides the foundation for data transformations, supporting both
+    functional transformations and declarative mappings.
+
+    Attributes:
+        name: Optional name of the transform
+        module: Optional module containing the transform function
+        params: Dictionary of transform parameters
+        foo: Optional name of the transform function
+        input: Tuple of input field names
+        output: Tuple of output field names
+        _foo: Internal reference to the transform function
+    """
+
     name: Optional[str] = None
     module: Optional[str] = None
     params: dict = dataclasses.field(default_factory=dict)
@@ -25,6 +70,10 @@ class ProtoTransform(BaseDataclass):
     output: tuple[str, ...] = dataclasses.field(default_factory=tuple)
 
     def __post_init__(self):
+        """Initialize the transform after dataclass initialization.
+
+        Sets up the transform function and input/output field specifications.
+        """
         self._foo = None
         self._init_foo()
 
@@ -36,6 +85,14 @@ class ProtoTransform(BaseDataclass):
 
     @staticmethod
     def _tuple_it(x):
+        """Convert input to tuple format.
+
+        Args:
+            x: Input to convert (string, list, or tuple)
+
+        Returns:
+            tuple: Converted tuple
+        """
         if isinstance(x, str):
             x = [x]
         if isinstance(x, list):
@@ -43,9 +100,13 @@ class ProtoTransform(BaseDataclass):
         return x
 
     def _init_foo(self):
-        """
-        if module and foo are not None - try to init them
-        :return:
+        """Initialize the transform function from module.
+
+        Imports the specified module and gets the transform function.
+
+        Raises:
+            TypeError: If module import fails
+            ValueError: If function lookup fails
         """
         if self.module is not None:
             try:
@@ -60,6 +121,14 @@ class ProtoTransform(BaseDataclass):
                 )
 
     def __lt__(self, other):
+        """Compare transforms for ordering.
+
+        Args:
+            other: Other transform to compare with
+
+        Returns:
+            bool: True if this transform should be ordered before other
+        """
         if self._foo is None and other._foo is not None:
             return True
         return False
@@ -67,11 +136,30 @@ class ProtoTransform(BaseDataclass):
 
 @dataclasses.dataclass
 class Transform(ProtoTransform):
+    """Concrete transform implementation.
+
+    This class extends ProtoTransform with additional functionality for
+    field mapping, switching, and transform composition.
+
+    Attributes:
+        fields: Tuple of fields to transform
+        map: Dictionary mapping input fields to output fields
+        switch: Dictionary for field switching logic
+        functional_transform: Whether this is a functional transform
+    """
+
     fields: tuple[str, ...] = dataclasses.field(default_factory=tuple)
     map: dict[str, str] = dataclasses.field(default_factory=dict)
     switch: dict[str, str] = dataclasses.field(default_factory=dict)
 
     def __post_init__(self):
+        """Initialize the transform after dataclass initialization.
+
+        Sets up field specifications and validates transform configuration.
+
+        Raises:
+            ValueError: If transform configuration is invalid
+        """
         super().__post_init__()
         self.functional_transform = False
         if self._foo is not None:
@@ -101,13 +189,15 @@ class Transform(ProtoTransform):
                 )
 
     def __call__(self, *nargs, **kwargs):
-        """
+        """Execute the transform.
 
-        :param nargs:
-        :param kwargs:
-        :return:
-        """
+        Args:
+            *nargs: Positional arguments for the transform
+            **kwargs: Keyword arguments for the transform
 
+        Returns:
+            dict: Transformed data
+        """
         is_mapping = self._foo is None
 
         if is_mapping:
@@ -130,6 +220,14 @@ class Transform(ProtoTransform):
         return r
 
     def _dress_as_dict(self, transform_result):
+        """Convert transform result to dictionary format.
+
+        Args:
+            transform_result: Result of the transform
+
+        Returns:
+            dict: Dictionary representation of the result
+        """
         if isinstance(transform_result, (list, tuple)) and not self.switch:
             upd = {k: v for k, v in zip(self.output, transform_result)}
         else:
@@ -141,9 +239,22 @@ class Transform(ProtoTransform):
 
     @property
     def is_dummy(self):
+        """Check if this is a dummy transform.
+
+        Returns:
+            bool: True if this is a dummy transform
+        """
         return (self.name is not None) and (not self.map and self._foo is None)
 
     def update(self, t: Transform):
+        """Update this transform with another transform's configuration.
+
+        Args:
+            t: Transform to update from
+
+        Returns:
+            Transform: Updated transform
+        """
         t_copy = deepcopy(t)
         if self.input:
             t_copy.input = self.input
@@ -154,23 +265,18 @@ class Transform(ProtoTransform):
         t_copy.__post_init__()
         return t_copy
 
-    # def __str__(self):
-    #     return f"{id(self)} | {self.foo}\n{self.input} -> {self.output}"
-    #
-    # __repr__ = __str__
-
     def get_barebone(
         self, other: Optional[Transform]
     ) -> tuple[Optional[Transform], Optional[Transform]]:
-        """
+        """Get the barebone transform configuration.
 
         Args:
-            other:
+            other: Optional transform to use as base
 
         Returns:
-            tuple[updated self transform, transform to store in lib]
+            tuple[Optional[Transform], Optional[Transform]]: Updated self transform
+            and transform to store in library
         """
-
         self_param = self.to_dict(skip_defaults=True)
         if self.foo is not None:
             # self will be the lib transform

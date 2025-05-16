@@ -1,3 +1,26 @@
+"""ArangoDB connection implementation for graph database operations.
+
+This module implements the Connection interface for ArangoDB, providing
+specific functionality for graph operations in ArangoDB. It handles:
+- Graph and collection management
+- Document and edge operations
+- Index creation and management
+- AQL query execution
+- Batch operations with upsert support
+
+Key Features:
+    - Graph-based document organization
+    - Edge collection management
+    - Persistent, hash, skiplist, and fulltext indices
+    - Batch document and edge operations
+    - AQL query generation and execution
+
+Example:
+    >>> conn = ArangoConnection(config)
+    >>> conn.init_db(schema, clean_start=True)
+    >>> conn.upsert_docs_batch(docs, "users", match_keys=["email"])
+"""
+
 import json
 import logging
 from typing import Optional
@@ -26,7 +49,23 @@ logger = logging.getLogger(__name__)
 
 
 class ArangoConnection(Connection):
+    """ArangoDB-specific implementation of the Connection interface.
+
+    This class provides ArangoDB-specific implementations for all database
+    operations, including graph management, document operations, and query
+    execution. It uses the ArangoDB Python driver for all operations.
+
+    Attributes:
+        conn: ArangoDB database connection instance
+    """
+
     def __init__(self, config: ArangoConnectionConfig):
+        """Initialize ArangoDB connection.
+
+        Args:
+            config: ArangoDB connection configuration containing URL, credentials,
+                and database name
+        """
         super().__init__()
         client = ArangoClient(hosts=config.url, request_timeout=config.request_timeout)
 
@@ -37,35 +76,71 @@ class ArangoConnection(Connection):
         )
 
     def create_database(self, name: str):
+        """Create a new ArangoDB database.
+
+        Args:
+            name: Name of the database to create
+        """
         if not self.conn.has_database(name):
             self.conn.create_database(name)
 
     def delete_database(self, name: str):
+        """Delete an ArangoDB database.
+
+        Args:
+            name: Name of the database to delete
+        """
         if not self.conn.has_database(name):
             self.conn.delete_database(name)
 
     def execute(self, query, **kwargs):
+        """Execute an AQL query.
+
+        Args:
+            query: AQL query string to execute
+            **kwargs: Additional query parameters
+
+        Returns:
+            Cursor: ArangoDB cursor for the query results
+        """
         cursor = self.conn.aql.execute(query)
         return cursor
 
     def close(self):
+        """Close the ArangoDB connection."""
         # self.conn.close()
         pass
 
     def init_db(self, schema: Schema, clean_start):
+        """Initialize ArangoDB with the given schema.
+
+        Args:
+            schema: Schema containing graph structure definitions
+            clean_start: If True, delete all existing collections before initialization
+        """
         if clean_start:
             self.delete_collections([], [], delete_all=True)
-            #     delete_collections(sys_db, vcollections + ecollections, actual_graphs)
-            # elif clean_start == "edges":
-            #     delete_collections(sys_db, ecollections, [])
         self.define_collections(schema)
         self.define_indexes(schema)
 
     def define_collections(self, schema: Schema):
+        """Define ArangoDB collections based on schema.
+
+        Args:
+            schema: Schema containing collection definitions
+        """
         self.define_vertex_collections(schema)
         self.define_edge_collections(schema.edge_config.edges_list(include_aux=True))
 
     def define_vertex_collections(self, schema: Schema):
+        """Define vertex collections in ArangoDB.
+
+        Creates vertex collections for both connected and disconnected vertices,
+        organizing them into appropriate graphs.
+
+        Args:
+            schema: Schema containing vertex definitions
+        """
         vertex_config = schema.vertex_config
         disconnected_vertex_collections = (
             set(vertex_config.vertex_set) - schema.edge_config.vertices
@@ -92,6 +167,13 @@ class ArangoConnection(Connection):
             )
 
     def define_edge_collections(self, edges: list[Edge]):
+        """Define edge collections in ArangoDB.
+
+        Creates edge collections and their definitions in the appropriate graphs.
+
+        Args:
+            edges: List of edge configurations to create
+        """
         for item in edges:
             gname = item.graph_name
             if self.conn.has_graph(gname):
@@ -106,11 +188,19 @@ class ArangoConnection(Connection):
                 )
 
     def _add_index(self, general_collection, index: Index):
+        """Add an index to an ArangoDB collection.
+
+        Supports persistent, hash, skiplist, and fulltext indices.
+
+        Args:
+            general_collection: ArangoDB collection to add index to
+            index: Index configuration to create
+
+        Returns:
+            IndexHandle: Handle to the created index
+        """
         data = index.db_form(DBFlavor.ARANGO)
-        # in Index "name" is used for vertex collection derived index field
-        # to let arango name her index, we remove "name"
         if index.type == IndexType.PERSISTENT:
-            # temp fix : inconsistent in python-arango
             ih = general_collection.add_index(data)
         if index.type == IndexType.HASH:
             ih = general_collection.add_index(data)
@@ -127,6 +217,13 @@ class ArangoConnection(Connection):
         return ih
 
     def define_vertex_indices(self, vertex_config: VertexConfig):
+        """Define indices for vertex collections.
+
+        Creates indices for each vertex collection based on the configuration.
+
+        Args:
+            vertex_config: Vertex configuration containing index definitions
+        """
         for c in vertex_config.vertex_set:
             general_collection = self.conn.collection(vertex_config.vertex_dbname(c))
             ixs = general_collection.indexes()
@@ -136,12 +233,27 @@ class ArangoConnection(Connection):
                     self._add_index(general_collection, index_obj)
 
     def define_edge_indices(self, edges: list[Edge]):
+        """Define indices for edge collections.
+
+        Creates indices for each edge collection based on the configuration.
+
+        Args:
+            edges: List of edge configurations containing index definitions
+        """
         for edge in edges:
             general_collection = self.conn.collection(edge.collection_name)
             for index_obj in edge.indexes:
                 self._add_index(general_collection, index_obj)
 
     def fetch_indexes(self, db_class_name: Optional[str] = None):
+        """Fetch all indices from the database.
+
+        Args:
+            db_class_name: Optional collection name to fetch indices for
+
+        Returns:
+            dict: Mapping of collection names to their indices
+        """
         if db_class_name is None:
             classes = self.conn.collections()
         elif self.conn.has_collection(db_class_name):
@@ -157,6 +269,16 @@ class ArangoConnection(Connection):
         return r
 
     def create_collection(self, db_class_name, index: None | Index = None, g=None):
+        """Create a new ArangoDB collection.
+
+        Args:
+            db_class_name: Name of the collection to create
+            index: Optional index to create on the collection
+            g: Optional graph to create the collection in
+
+        Returns:
+            IndexHandle: Handle to the created index if one was created
+        """
         if not self.conn.has_collection(db_class_name):
             if g is not None:
                 _ = g.create_vertex_collection(db_class_name)
@@ -170,6 +292,13 @@ class ArangoConnection(Connection):
                 return None
 
     def delete_collections(self, cnames=(), gnames=(), delete_all=False):
+        """Delete collections and graphs from ArangoDB.
+
+        Args:
+            cnames: Collection names to delete
+            gnames: Graph names to delete
+            delete_all: If True, delete all non-system collections and graphs
+        """
         logger.info("collections (non system):")
         logger.info([c for c in self.conn.collections() if c["name"][0] != "_"])
 
@@ -195,6 +324,11 @@ class ArangoConnection(Connection):
         logger.info(self.conn.graphs())
 
     def get_collections(self):
+        """Get all collections in the database.
+
+        Returns:
+            list: List of collection information dictionaries
+        """
         return self.conn.collections()
 
     def upsert_docs_batch(
@@ -204,14 +338,19 @@ class ArangoConnection(Connection):
         match_keys: list[str] | None = None,
         **kwargs,
     ):
-        """
+        """Upsert a batch of documents using AQL.
 
-        :param docs: list of dicts (json-like, ie keys are strings)
-        :param class_name: collection where to upsert
-        :param match_keys: keys on which to look for document
-        :param update_keys: keys which to update if doc in the collection, if update_keys='doc', update all
-        :param filter_uniques:
-        :return:
+        Performs an upsert operation on a batch of documents, using the specified
+        match keys to determine whether to update existing documents or insert new ones.
+
+        Args:
+            docs: List of documents to upsert
+            class_name: Collection name to upsert into
+            match_keys: Keys to match for upsert operation
+            **kwargs: Additional options:
+                - dry: If True, don't execute the query
+                - update_keys: Keys to update on match
+                - filter_uniques: If True, filter duplicate documents
         """
         dry = kwargs.pop("dry", False)
         update_keys = kwargs.pop("update_keys", None)
@@ -263,26 +402,27 @@ class ArangoConnection(Connection):
         head=None,
         **kwargs,
     ):
+        """Insert a batch of edges using AQL.
+
+        Creates edges between source and target vertices, with support for
+        weight fields and unique constraints.
+
+        Args:
+            docs_edges: List of edge documents in format [{_source_aux: source_doc, _target_aux: target_doc}]
+            source_class: Source vertex collection name
+            target_class: Target vertex collection name
+            relation_name: Optional relation name for the edges
+            collection_name: Edge collection name
+            match_keys_source: Keys to match source vertices
+            match_keys_target: Keys to match target vertices
+            filter_uniques: If True, filter duplicate edges
+            uniq_weight_fields: Fields to consider for uniqueness
+            uniq_weight_collections: Collections to consider for uniqueness
+            upsert_option: If True, use upsert instead of insert
+            head: Optional limit on number of edges to insert
+            **kwargs: Additional options:
+                - dry: If True, don't execute the query
         """
-            using ("_key",) for match_keys_source and match_keys_target saves time
-                (no need to look it up from field discriminants)
-
-        :param docs_edges: in format  [{ _source_aux: source_doc, _target_aux: target_doc}]
-        :param source_class,
-        :param target_class,
-        :param relation_name:
-        :param collection_name:
-        :param match_keys_source:
-        :param match_keys_target:
-        :param filter_uniques:
-        :param uniq_weight_fields
-        :param uniq_weight_collections
-        :param upsert_option
-        :param head: keep head docs
-
-        :return:
-        """
-
         dry = kwargs.pop("dry", False)
 
         if isinstance(docs_edges, list):
@@ -371,6 +511,15 @@ class ArangoConnection(Connection):
             self.execute(q_update)
 
     def insert_return_batch(self, docs, class_name):
+        """Insert documents and return their keys.
+
+        Args:
+            docs: Documents to insert
+            class_name: Collection to insert into
+
+        Returns:
+            str: AQL query string for the operation
+        """
         docs = json.dumps(docs)
         query0 = f"""FOR doc in {docs}
               INSERT doc
@@ -389,16 +538,19 @@ class ArangoConnection(Connection):
         flatten=False,
         filters: None | Clause | list | dict = None,
     ) -> list | dict:
-        """
-            for each jth doc from `docs` matching to docs in `collection_name` by `match_keys`
-                return the list of `return_keys`
-        :param batch:
-        :param class_name:
-        :param match_keys:
-        :param keep_keys:
-        :param flatten:
-        :param filters: return docs from db satisfying condition
-        :return:
+        """Fetch documents that exist in the database.
+
+        Args:
+            batch: Batch of documents to check
+            class_name: Collection to check in
+            match_keys: Keys to match documents
+            keep_keys: Keys to keep in result
+            flatten: If True, flatten the result into a list
+            filters: Additional query filters
+
+        Returns:
+            Union[list, dict]: Documents that exist in the database, either as a
+                flat list or a dictionary mapping batch indices to documents
         """
         q0 = fetch_fields_query(
             collection_name=class_name,
@@ -432,17 +584,18 @@ class ArangoConnection(Connection):
         return_keys: list | None = None,
         unset_keys: list | None = None,
     ):
-        """
+        """Fetch documents from a collection.
 
-        :param class_name:
-        :param filters:
-        :param limit:
-            {"AND": [["==", "1", "x"], ["==", "2", "y", "% 2"]]}
-        :param return_keys:
-        :param unset_keys:
-        :return:
-        """
+        Args:
+            class_name: Collection to fetch from
+            filters: Query filters
+            limit: Maximum number of documents to return
+            return_keys: Keys to return
+            unset_keys: Keys to unset
 
+        Returns:
+            list: Fetched documents
+        """
         filter_clause = render_filters(filters, doc_name="d")
 
         if return_keys is None:
@@ -480,16 +633,18 @@ class ArangoConnection(Connection):
         aggregated_field: str | None = None,
         filters: None | Clause | list | dict = None,
     ):
-        """
+        """Perform aggregation on a collection.
 
-        :param class_name:
-        :param aggregation_function:
-        :param discriminant:
-        :param aggregated_field:
-        :param filters:
-        :return:
-        """
+        Args:
+            class_name: Collection to aggregate
+            aggregation_function: Type of aggregation to perform
+            discriminant: Field to group by
+            aggregated_field: Field to aggregate
+            filters: Query filters
 
+        Returns:
+            list: Aggregation results
+        """
         filter_clause = render_filters(filters, doc_name="doc")
 
         if (
@@ -535,17 +690,18 @@ class ArangoConnection(Connection):
         keep_keys,
         filters: None | Clause | list | dict = None,
     ):
-        """
-            from `batch` return docs that are not present in `collection` according to `match_keys`
-        :param batch:
-        :param class_name:
-        :param match_keys:
-        :param keep_keys:
-        :param filters: filter selects documents, so docs with filter applied will be returned
-                            and not returned as negative docs
-        :return:
-        """
+        """Keep documents that don't exist in the database.
 
+        Args:
+            batch: Batch of documents to check
+            class_name: Collection to check in
+            match_keys: Keys to match documents
+            keep_keys: Keys to keep in result
+            filters: Additional query filters
+
+        Returns:
+            list: Documents that don't exist in the database
+        """
         present_docs_keys = self.fetch_present_documents(
             batch=batch,
             class_name=class_name,
@@ -557,7 +713,6 @@ class ArangoConnection(Connection):
 
         assert isinstance(present_docs_keys, dict)
 
-        # there were multiple docs return for the same pair of filtering condition
         if any([len(v) > 1 for v in present_docs_keys.values()]):
             logger.warning(
                 "fetch_present_documents returned multiple docs per filtering condition"
@@ -568,6 +723,15 @@ class ArangoConnection(Connection):
         return batch_absent
 
     def update_to_numeric(self, collection_name, field):
+        """Update a field to numeric type in all documents.
+
+        Args:
+            collection_name: Collection to update
+            field: Field to convert to numeric
+
+        Returns:
+            str: AQL query string for the operation
+        """
         s1 = f"FOR p IN {collection_name} FILTER p.{field} update p with {{"
         s2 = f"{field}: TO_NUMBER(p.{field}) "
         s3 = f"}} in {collection_name}"

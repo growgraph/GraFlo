@@ -38,6 +38,8 @@ plugins:
             python:
                 options:
                     extra:
+                        show_root_full_path: true
+                        show_docstring: true
                         show_source: true
                         show_root_toc_entry: false
                         docstring_style: google
