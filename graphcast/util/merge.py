@@ -1,47 +1,32 @@
-from collections import ChainMap
+"""Document merging and discrimination utilities.
 
+This module provides functions for merging and discriminating between documents
+based on various criteria. It supports merging documents with common keys,
+discriminating based on specific values, and handling different document structures.
 
-def discriminate(
-    items, indexes, discriminant_key, discriminant_value: str | None = None, fast=False
-):
-    """
+Key Functions:
+    - discriminate_by_key: Filter documents based on index fields and key presence
+    - merge_doc_basis: Merge documents based on common index keys
 
-    :param items: list of documents (dict)
-    :param indexes:
-    :param discriminant_key:
-    :param discriminant_value:
-    :param fast:
-    :return: items
-    """
-
-    # pick items that have any of index field present
-    _items = [item for item in items if any(k in item for k in indexes)]
-
-    if discriminant_key is not None:
-        result = []
-        if discriminant_value is not None:
-            for item in _items:
-                if (
-                    discriminant_key in item
-                    and item[discriminant_key] == discriminant_value
-                ):
-                    result += [item]
-                    if fast:
-                        break
-            return result
-    return _items
+"""
 
 
 def discriminate_by_key(items, indexes, discriminant_key, fast=False):
-    """
+    """Filter documents based on index fields and key presence.
 
-    :param items: list of documents (dict)
-    :param indexes:
-    :param discriminant_key:
-    :param fast:
-    :return: items
-    """
+    This function filters a list of documents based on the presence of index fields
+    and a specific key. It can operate in fast mode to return after finding the
+    first match.
 
+    Args:
+        items: List of documents (dictionaries) to filter
+        indexes: List of index field names to check for presence
+        discriminant_key: Key to check for presence
+        fast: Whether to return after first match (default: False)
+
+    Returns:
+        list[dict]: Filtered list of documents
+    """
     # pick items that have any of index field present
     _items = [item for item in items if any(k in item for k in indexes)]
 
@@ -62,18 +47,25 @@ def merge_doc_basis(
     discriminant_key=None,
     # discriminant_value=None,
 ) -> list[dict]:
-    """
-        TODO so far this function works well when there are only two groups of docs:
-            with discriminant_key and without
-            but it should be made to work when there are groups with different discriminant_value's of discriminant_key
+    """Merge documents based on common index keys.
 
-    :param docs:
-    :param index_keys:
-    :param discriminant_key:
-    # :param discriminant_value:
-    :return:
-    """
+    This function merges documents that share common index key-value combinations.
+    Documents without index keys are merged with the first relevant document that
+    has the discriminant key.
 
+    Note:
+        Currently works best with two groups of documents: those with and without
+        the discriminant key. Future versions will support multiple discriminant
+        value groups.
+
+    Args:
+        docs: List of documents to merge
+        index_keys: Tuple of key names to use for merging
+        discriminant_key: Optional key to use for merging documents without index keys
+
+    Returns:
+        list[dict]: Merged documents
+    """
     docs_tuplezied = [
         tuple(sorted((k, v) for k, v in item.items() if k in index_keys))
         for item in docs
@@ -98,33 +90,3 @@ def merge_doc_basis(
             bearing_docs[tuple_ix].update(bearing_docs.pop(()))
 
     return list(bearing_docs.values())
-
-
-def merge_documents(docs: list[dict], main_key, discriminant_key, discriminant_value):
-    """
-    docs contain documents with main_key and documents without
-    all docs without main_key should be merged with the doc that has doc[anchor_key] == anchor_value
-    :param docs:
-    :param main_key:
-    :param discriminant_key:
-    :param discriminant_value:
-    :return: list of docs, each of which contains main_key
-    """
-    mains_: list = []
-    mains: list = []
-    auxs: list = []
-    anchors: list = []
-    # split docs into two groups with and without main_key
-    for item in docs:
-        (mains_ if main_key in item else auxs).append(item)
-
-    for item in mains_:
-        (
-            anchors
-            if discriminant_key in item and item[discriminant_key] == discriminant_value
-            else mains
-        ).append(item)
-
-    auxs += anchors
-    r = [dict(ChainMap(*auxs))] + mains
-    return r

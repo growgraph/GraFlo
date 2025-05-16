@@ -1,3 +1,22 @@
+"""Database management utilities for ArangoDB.
+
+This module provides command-line tools for managing ArangoDB databases, including
+backup and restore operations. It supports both local and Docker-based operations.
+
+Key Features:
+    - Database backup and restore
+    - Docker and local execution modes
+    - Configurable connection settings
+    - Batch processing of multiple databases
+
+Example:
+    $ uv run manage_dbs \\
+        --db-config-path config/db.yaml \\
+        --db mydb1 mydb2 \\
+        --store-directory-path /backups \\
+        --use-docker
+"""
+
 import logging
 import pathlib
 import subprocess
@@ -18,15 +37,25 @@ def act_db(
     docker_version: str,
     use_docker: bool,
 ):
-    """
+    """Execute database backup or restore operation.
 
-    :param conf: conf to use for connecting
-    :param db_name: db to dump
-    :param output_path: eg /root/dumps/arango/
-    :param restore: restore
-    :param docker_version:
-    :param use_docker:
-    :return:
+    This function performs either a backup (arangodump) or restore (arangorestore)
+    operation on an ArangoDB database. It can use either the local arangodump/arangorestore
+    tools or run them in a Docker container.
+
+    Args:
+        conf: Database connection configuration
+        db_name: Name of the database to backup/restore
+        output_path: Path where backup will be stored or restored from
+        restore: Whether to restore (True) or backup (False)
+        docker_version: Version of ArangoDB Docker image to use
+        use_docker: Whether to use Docker for the operation
+
+    Returns:
+        None
+
+    Raises:
+        subprocess.CalledProcessError: If the backup/restore operation fails
     """
     host = f"tcp://{conf.hostname}:{conf.port}"
     db_folder = output_path / db_name
@@ -93,11 +122,31 @@ def manage_dbs(
     docker_version,
     use_docker=True,
 ):
-    """
-    dump/restore arango databases
-    either arangosh or docker should be available in the system
-    """
+    """Manage ArangoDB database backups and restores.
 
+    This command provides functionality to backup and restore ArangoDB databases.
+    It supports both local execution and Docker-based operations. The command can
+    process multiple databases in sequence and provides timing information for
+    each operation.
+
+    Args:
+        db_config_path: Path to database configuration file (optional)
+        db_host: Database host address (if not using config file)
+        db_password: Database password (if not using config file)
+        db_user: Database username (default: root)
+        db: List of database names to process
+        store_directory_path: Path where backups will be stored/restored
+        restore: Whether to restore (True) or backup (False)
+        docker_version: Version of ArangoDB Docker image (default: 3.12.1)
+        use_docker: Whether to use Docker for operations (default: True)
+
+    Example:
+        $ uv run manage_dbs \\
+            --db-config-path config/db.yaml \\
+            --db mydb1 mydb2 \\
+            --store-directory-path /backups \\
+            --use-docker
+    """
     if db_config_path is None:
         db_conf: ArangoConnectionConfig = ArangoConnectionConfig(
             cred_name=db_user, cred_pass=db_password, hosts=db_host

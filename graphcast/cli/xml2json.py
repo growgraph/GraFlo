@@ -1,3 +1,23 @@
+"""XML to JSON conversion tool for data preprocessing.
+
+This module provides a command-line tool for converting XML files to JSON format,
+with support for different data sources and chunking options. It's particularly
+useful for preprocessing scientific literature data from sources like Web of Science
+and PubMed.
+
+Key Features:
+    - Support for Web of Science and PubMed XML formats
+    - Configurable chunking for large files
+    - Batch processing of multiple files
+    - Customizable output format
+
+Example:
+    $ uv run xml2json \\
+        --source-path data/wos.xml \\
+        --chunk-size 1000 \\
+        --mode wos_csv
+"""
+
 import logging
 import pathlib
 import sys
@@ -20,6 +40,23 @@ logger = logging.getLogger(__name__)
 @click.option("-m", "--max-chunks", type=int, default=None)
 @click.option("--mode", type=str)
 def do(source_path, chunk_size, max_chunks, mode):
+    """Convert XML files to JSON format.
+
+    This command processes XML files and converts them to JSON format, with support
+    for different data sources and chunking options.
+
+    Args:
+        source_path: Path to source XML file or directory
+        chunk_size: Number of records per output file (default: 1000)
+        max_chunks: Maximum number of chunks to process (default: None)
+        mode: Data source mode ('wos_csv' or 'pubmed')
+
+    Example:
+        $ uv run xml2json \\
+            --source-path data/wos.xml \\
+            --chunk-size 1000 \\
+            --mode wos_csv
+    """
     if mode == "wos_csv":
         pattern = r"xmlns=\".*[^\"]\"(?=>)"
         force_list = force_list_wos
