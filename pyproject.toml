@@ -28,7 +28,7 @@ dependencies = [
   "suthing>=0.4.1,<0.5",
   "xmltodict>=0.14.2,<0.15"
 ]
-description = "ETL to cast tabular and json data types into graphs (collections of vertices and edges)"
+description = "ETL to cast tabular and hierarchical data (json) types into graphs and graph databases (ArangoDB, Neo4j)"
 name = "graphcast"
 requires-python = "~=3.11"
 version = "0.14.0"

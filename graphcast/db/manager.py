@@ -36,6 +36,8 @@ class ConnectionManager:
 
     def close(self):
         self.conn.close()
+        if self.config.connection_type == ConnectionKind.NEO4J:
+            self.conn.conn.close()
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.close()

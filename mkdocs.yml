@@ -20,6 +20,7 @@ theme:
         toggle:
             icon: material/toggle-switch
             name: Switch to light mode
+    logo: assets/project_logo.png
     icon:
         repo: fontawesome/brands/github
     favicon: assets/favicon.ico
@@ -51,16 +52,15 @@ nav:
 -   Getting Started:
     -   Installation: getting_started/installation.md
     -   Quick Start: getting_started/quickstart.md
-  # - Features:
-  #   - File Handling: features/file_handling.md
-  #   - Performance Measurement: features/performance.md
-  #   - Data Comparison: features/comparison.md
-  #   - Error Handling: features/error_handling.md
+-   Concepts:
+    -   Introduction: concepts/index.md
+-   Examples:
+    -   1 - Ingest csv files: examples/example-1.md
+    -   2 - Ingest jsons with self-references: examples/example-2.md
 -   API Reference:
     -   Overview: reference/index.md
     -   Core: reference/core.md
     -   Connection: reference/connection.md
--   Examples: examples.md
 -   Contributing: contributing.md
 
 markdown_extensions:

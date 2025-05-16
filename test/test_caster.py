@@ -8,6 +8,7 @@ import pytest
 from suthing import FileHandle
 
 from graphcast.caster import Caster
+from graphcast.plot.plotter import assemble_tree
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ def cast(modes, schema_obj, current_path, level, reset, n_threads=1):
         schema = schema_obj(mode)
 
         for r in schema.resources:
-            r.root.assemble_tree(f"test/figs/{mode}.resource-{r.resource_name}.pdf")
+            assemble_tree(r.root, f"test/figs/{mode}.resource-{r.resource_name}.pdf")
         caster = Caster(schema, n_threads=n_threads)
 
         if level == 0:

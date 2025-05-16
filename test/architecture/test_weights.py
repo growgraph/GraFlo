@@ -8,6 +8,7 @@ from suthing import FileHandle
 from graphcast.architecture.actor import ActorWrapper
 from graphcast.architecture.onto import ActionContext
 from graphcast.architecture.vertex import VertexConfig
+from graphcast.plot.plotter import assemble_tree
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ def test_act_openalex(resource_with_weights, vc_openalex, sample_openalex):
     anw = ActorWrapper(*resource_with_weights)
     anw.finish_init(vertex_config=vc_openalex, transforms={})
     ctx = anw(ctx, doc=sample_openalex)
-    anw.assemble_tree(Path("test/figs/openalex_authors.pdf"))
+    assemble_tree(anw, Path("test/figs/openalex_authors.pdf"))
     edge = ctx.acc_global[("author", "institution", None)][0]
     del edge["__source"]
     del edge["__target"]

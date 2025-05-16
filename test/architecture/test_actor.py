@@ -14,6 +14,7 @@ from graphcast.architecture.actor import (
 from graphcast.architecture.edge import EdgeConfig
 from graphcast.architecture.onto import ActionContext
 from graphcast.architecture.vertex import VertexConfig
+from graphcast.plot.plotter import assemble_tree
 
 logger = logging.getLogger(__name__)
 
@@ -168,9 +169,8 @@ def test_descend(resource_descend, schema_vc_openalex):
     assert isinstance(anw.actor.descendants[0].actor, DescendActor)
     level, cname, label, edges = anw.fetch_actors(0, [])
     assert len(edges) == 3
-    from pathlib import Path
 
-    anw.assemble_tree(Path("figs/test.pdf"))
+    assemble_tree(anw, Path("test/figs/test.pdf"))
 
 
 def test_edge(action_node_edge, schema_vc_openalex):
@@ -195,7 +195,7 @@ def test_discriminant_edge(
     anw = ActorWrapper(*resource_openalex_works)
     ec = EdgeConfig()
     anw.finish_init(vertex_config=schema_vc_openalex, transforms={}, edge_config=ec)
-    anw.assemble_tree(Path("test/figs/discriminate_edge.pdf"))
+    assemble_tree(anw, Path("test/figs/discriminate_edge.pdf"))
     ctx = anw(ctx, doc=sample_openalex)
     assert sum(len(v) for v in ctx.acc_vertex["work"].values()) == 6
     assert len(ctx.acc_global[("work", "work", None)]) == 5

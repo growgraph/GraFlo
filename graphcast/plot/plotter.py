@@ -1,11 +1,23 @@
+import logging
 import os
 from itertools import product
+from pathlib import Path
+from typing import Optional
 
 import networkx as nx
 from suthing import FileHandle
 
 from graphcast.architecture import DataSourceType, Schema
+from graphcast.architecture.actor import (
+    ActorWrapper,
+    DescendActor,
+    EdgeActor,
+    TransformActor,
+    VertexActor,
+)
 from graphcast.onto import BaseEnum
+
+logger = logging.getLogger(__name__)
 
 
 class AuxNodeType(BaseEnum):
@@ -45,6 +57,15 @@ map_type2color = {
     AuxNodeType.TRANSFORM: "grey",
     AuxNodeType.FIELD: fillcolor_palette["violet"],
 }
+
+
+map_class2color = {
+    DescendActor: fillcolor_palette["green"],
+    VertexActor: "orange",
+    EdgeActor: fillcolor_palette["violet"],
+    TransformActor: fillcolor_palette["blue"],
+}
+
 
 edge_status = {AuxNodeType.VERTEX: "solid"}
 
@@ -119,6 +140,36 @@ def lto_dict(strings):
     return r
 
 
+def assemble_tree(aw: ActorWrapper, fig_path: Optional[Path | str] = None):
+    _, _, _, edges = aw.fetch_actors(0, [])
+    logger.info(f"{len(edges)}")
+    nodes = {}
+    g = nx.MultiDiGraph()
+    for ha, hb, pa, pb in edges:
+        nodes[ha] = pa
+        nodes[hb] = pb
+
+    for n, props in nodes.items():
+        nodes[n]["fillcolor"] = map_class2color[props["class"]]
+        nodes[n]["style"] = "filled"
+        nodes[n]["color"] = "brown"
+
+    edges = [(ha, hb) for ha, hb, _, _ in edges]
+    g.add_edges_from(edges)
+    g.add_nodes_from(nodes.items())
+
+    if fig_path is not None:
+        ag = nx.nx_agraph.to_agraph(g)
+        ag.draw(
+            fig_path,
+            "pdf",
+            prog="dot",
+        )
+        return None
+    else:
+        return g
+
+
 class SchemaPlotter:
     def __init__(self, config_filename, fig_path):
         self.fig_path = fig_path
@@ -127,18 +178,17 @@ class SchemaPlotter:
 
         self.type: DataSourceType
 
-        self.conf = Schema.from_dict(self.config)
+        self.schema = Schema.from_dict(self.config)
 
-        self.name = self.conf.general.name
-        # self.prefix = f"{self.name}_{self.type}"
+        self.name = self.schema.general.name
         self.prefix = self.name
 
     def plot_vc2fields(self):
         g = nx.DiGraph()
         nodes = []
         edges = []
-        vconf = self.conf.vertex_config
-        vertex_prefix_dict = lto_dict([v for v in self.conf.vertex_config.vertex_set])
+        vconf = self.schema.vertex_config
+        vertex_prefix_dict = lto_dict([v for v in self.schema.vertex_config.vertex_set])
 
         kwargs = {"vfield": True, "vertex_sh": vertex_prefix_dict}
         for k in vconf.vertex_set:
@@ -241,6 +291,29 @@ class SchemaPlotter:
             prog="dot",
         )
 
+    def plot_resources(self):
+        """
+        draw map of source vertices (nodes of json or csv files) to vertex collections
+
+
+        """
+        resource_prefix_dict = lto_dict(
+            [resource.name for resource in self.schema.resources]
+        )
+        vertex_prefix_dict = lto_dict([v for v in self.schema.vertex_config.vertex_set])
+        kwargs = {"vertex_sh": vertex_prefix_dict, "resource_sh": resource_prefix_dict}
+
+        for resource in self.schema.resources:
+            kwargs["resource"] = resource.name
+            # g = assemble_tree(resource.root)
+            assemble_tree(
+                resource.root,
+                os.path.join(
+                    self.fig_path,
+                    f"{self.schema.general.name}.resource-{resource.resource_name}.pdf",
+                ),
+            )
+
     def plot_source2vc(self):
         """
         draw map of source vertices (nodes of json or csv files) to vertex collections
@@ -251,16 +324,18 @@ class SchemaPlotter:
         g = nx.MultiDiGraph()
         edges = []
         resource_prefix_dict = lto_dict(
-            [resource.name for resource in self.conf.resources]
+            [resource.name for resource in self.schema.resources]
         )
-        vertex_prefix_dict = lto_dict([v for v in self.conf.vertex_config.vertex_set])
+        vertex_prefix_dict = lto_dict([v for v in self.schema.vertex_config.vertex_set])
         kwargs = {"vertex_sh": vertex_prefix_dict, "resource_sh": resource_prefix_dict}
 
-        for resource in self.conf.resources:
+        for resource in self.schema.resources:
             kwargs["resource"] = resource.name
-            kwargs["resource_type"] = resource.resource_type
 
-            vertices = list(resource.vertex_rep.keys())
+            g = assemble_tree(resource.root)
+
+            # vertices = list(resource.vertex_rep.keys())
+            vertices = []
             nodes_resource = [
                 (
                     get_auxnode_id(AuxNodeType.RESOURCE, **kwargs),
@@ -323,7 +398,7 @@ class SchemaPlotter:
         g = nx.MultiDiGraph()
         nodes = []
         edges = []
-        for (source, target, relation), e in self.conf.edge_config.edges_items():
+        for (source, target, relation), e in self.schema.edge_config.edges_items():
             if relation is not None:
                 ee = (
                     get_auxnode_id(AuxNodeType.VERTEX, vertex=source),
@@ -337,7 +412,7 @@ class SchemaPlotter:
                 )
             edges += [ee]
 
-        for (source, target, relation), ee in self.conf.edge_config.edges_items():
+        for (source, target, relation), ee in self.schema.edge_config.edges_items():
             for v in (source, target):
                 nodes += [
                     (
@@ -405,13 +480,13 @@ class SchemaPlotter:
         nodes = []
         edges = []
         resource_prefix_dict = lto_dict(
-            [resource.name for resource in self.conf.resources]
+            [resource.name for resource in self.schema.resources]
         )
-        vertex_prefix_dict = lto_dict([v for v in self.conf.vertex_config.vertex_set])
+        vertex_prefix_dict = lto_dict([v for v in self.schema.vertex_config.vertex_set])
         kwargs = {"vertex_sh": vertex_prefix_dict, "resource_sh": resource_prefix_dict}
-        for resource in self.conf.resources:
+        for resource in self.schema.resources:
             kwargs["resource"] = resource.name
-            kwargs["resource_type"] = resource.resource_type
+            # kwargs["resource_type"] = resource.resource_type
 
             nodes_table = [
                 (
@@ -426,7 +501,7 @@ class SchemaPlotter:
             ]
             for vertex, rep in resource.vertex_rep.items():
                 kwargs["vertex"] = vertex
-                index = self.conf.vertex_config.index(vertex)
+                index = self.schema.vertex_config.index(vertex)
                 node_collection = (
                     get_auxnode_id(AuxNodeType.VERTEX, **kwargs),
                     {
@@ -668,8 +743,8 @@ class SchemaPlotter:
 
         ag = nx.nx_agraph.to_agraph(g)
 
-        for vertex in self.conf.vertex_config.vertex_set:
-            index = self.conf.vertex_config.index(vertex).fields
+        for vertex in self.schema.vertex_config.vertex_set:
+            index = self.schema.vertex_config.index(vertex).fields
             level_index = [f"collection:field:{item}" for item in index]
             index_subgraph = ag.add_subgraph(
                 level_index, name=f"cluster_{vertex[:3]}:def"
