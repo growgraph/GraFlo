@@ -1,20 +1,10 @@
 import logging
 
-from graph_cast.architecture.edge import Edge, EdgeConfig
-from graph_cast.architecture.onto import Index, VertexHelper, Weight
-from graph_cast.architecture.vertex import VertexConfig
+from graphcast.architecture.edge import Edge, EdgeConfig
+from graphcast.architecture.onto import Index, Weight
+from graphcast.architecture.vertex import VertexConfig
 
 logger = logging.getLogger(__name__)
-
-
-def test_vertex_helper(vertex_helper):
-    vh = VertexHelper(**vertex_helper)
-    assert vh.name == "analyst"
-
-
-def test_vertex_helper_b(vertex_helper_b):
-    vh = VertexHelper(**vertex_helper_b)
-    assert len(vh.fields) == 2
 
 
 def test_weight_config_b(vertex_helper_b):
@@ -36,7 +26,7 @@ def test_index_a(index_a):
 def test_init_edge_indexes(edge_indexes):
     e = Edge.from_dict(edge_indexes)
     assert len(e.indexes) == 2
-    assert e.collection_name_suffix == "aux"
+    assert e.purpose == "aux"
 
 
 def test_complement_edge_init(edge_indexes, vertex_config_kg):

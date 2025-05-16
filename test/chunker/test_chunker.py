@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from graph_cast.util.chunker import (
+from graphcast.util.chunker import (
     FileChunker,
     JsonChunker,
     JsonlChunker,
@@ -20,7 +20,7 @@ def test_trivial():
 
 def test_file_chunker():
     filename = Path(
-        os.path.join(os.path.dirname(__file__), "../data/csv/ticker/ticker.csv.gz")
+        os.path.join(os.path.dirname(__file__), "../data/ticker/ticker.csv.gz")
     )
     ch = FileChunker(batch_size=5, limit=6, filename=filename)
     for _ in ch:
@@ -34,7 +34,7 @@ def test_file_chunker():
 
 def test_table_chunker():
     filename = Path(
-        os.path.join(os.path.dirname(__file__), "../data/csv/ticker/ticker.csv.gz")
+        os.path.join(os.path.dirname(__file__), "../data/ticker/ticker.csv.gz")
     )
     ch = TableChunker(batch_size=5, limit=6, filename=filename)
     for item in ch:
@@ -52,9 +52,7 @@ def test_jsonl_chunker():
 
 
 def test_json_chunker():
-    filename = Path(
-        os.path.join(os.path.dirname(__file__), "../data/json/wos/wos.json.gz")
-    )
+    filename = Path(os.path.join(os.path.dirname(__file__), "../data/wos/wos.json.gz"))
     ch = JsonChunker(batch_size=5, limit=6, filename=filename)
     for item in ch:
         assert isinstance(item[0], dict)

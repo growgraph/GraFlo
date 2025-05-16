@@ -3,7 +3,7 @@ from test.db.arangos.conftest import verify_from_db
 
 from suthing import FileHandle
 
-from graph_cast import Caster, ConnectionManager
+from graphcast import Caster, ConnectionManager
 
 
 def test_ingest(
@@ -15,8 +15,8 @@ def test_ingest(
     reset,
 ):
     _ = create_db
-    schema_o = schema_obj("oa_relation")
-    j_resource = FileHandle.load(Path(current_path) / "data/json/oa_relation.json")
+    schema_o = schema_obj("oa.institution")
+    j_resource = FileHandle.load(Path(current_path) / "data/json/oa.institution.json")
 
     conn_conf.database = test_db_name
 

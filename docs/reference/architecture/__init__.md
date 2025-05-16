@@ -1,0 +1,3 @@
+# `graphcast.architecture`
+
+::: graphcast.architecture

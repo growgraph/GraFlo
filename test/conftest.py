@@ -1,4 +1,5 @@
 import io
+import logging
 from os.path import dirname, join, realpath
 from pathlib import Path
 
@@ -7,11 +8,12 @@ import pytest
 import yaml
 from suthing import FileHandle, equals
 
-from graph_cast.architecture.onto import cast_graph_name_to_triple
-from graph_cast.architecture.schema import Schema
-from graph_cast.caster import Caster
-from graph_cast.onto import InputTypeFileExtensions
-from graph_cast.util.misc import sorted_dicts
+from graphcast.architecture.schema import Schema
+from graphcast.architecture.util import cast_graph_name_to_triple
+from graphcast.caster import Caster
+from graphcast.util.misc import sorted_dicts
+
+logger = logging.getLogger(__name__)
 
 
 def pytest_addoption(parser):
@@ -34,7 +36,8 @@ def fetch_schema_dict(mode):
 
 
 def fetch_schema_obj(mode):
-    schema_obj = Schema.from_dict(fetch_schema_dict(mode))
+    schema_dict = fetch_schema_dict(mode)
+    schema_obj = Schema.from_dict(schema_dict)
     return schema_obj
 
 
@@ -50,11 +53,7 @@ def schema_obj():
 
 def ingest_atomic(conn_conf, current_path, test_db_name, mode, n_cores=1):
     schema_o = fetch_schema_obj(mode)
-    rr = schema_o.fetch_resource()
-    path = (
-        Path(current_path)
-        / f"data/{InputTypeFileExtensions[rr.resource_type][0]}/{mode}"
-    )
+    path = Path(current_path) / f"data/{mode}"
 
     conn_conf.database = test_db_name
 
@@ -97,20 +96,18 @@ def verify(sample, current_path, mode, test_type, kind="sizes", reset=False):
         sample_ref = FileHandle.load(f"test.ref.{test_type}", f"{mode}_{kind}.{ext}")
         flag = equals(sample_transformed, sample_ref)
         if not flag:
-            print(f" mode: {mode}")
+            logger.error(f" mode: {mode}")
             if isinstance(sample_ref, dict):
                 for k, v in sample_ref.items():
-                    if v != sample_transformed[k]:
-                        print(
-                            f"for {k}\n"
-                            f"expected: {v}\n"
-                            "received:"
-                            f" {sample_transformed[k] if k in sample_transformed else None}"
+                    if k not in sample_transformed or v != sample_transformed[k]:
+                        logger.error(
+                            f"for {k} expected: {v} received: {sample_transformed[k] if k in sample_transformed else None}"
                         )
+
             elif isinstance(sample_ref, list):
                 for j, (x, y) in enumerate(zip(sample_ref, sample_transformed)):
                     if x != y:
-                        print(f"for item {j}\nexpected: {x}\nreceived: {y}")
+                        logger.error(f"for item {j}\nexpected: {x}\nreceived: {y}")
 
         assert flag
 
@@ -258,7 +255,7 @@ def resource_with_dynamic_relations():
     transforms:
         keep_suffix_id:
             foo: split_keep_part
-            module: graph_cast.util.transform
+            module: graphcast.util.transform
             params:
                 sep: "/"
                 keep: -1
@@ -270,3 +267,37 @@ def resource_with_dynamic_relations():
     """
     )
     return vc
+
+
+@pytest.fixture()
+def resource_openalex_works():
+    an = yaml.safe_load("""
+    -   vertex: work
+        discriminant: _top_level
+    -   name: keep_suffix_id
+        foo: split_keep_part
+        module: graphcast.util.transform
+        params:
+            sep: "/"
+            keep: -1
+        input:
+        -   id
+        output:
+        -   _key
+    -   name: keep_suffix_id
+        params:
+            sep: "/"
+            keep: [-2, -1]
+        input:
+        -   doi
+        output:
+        -   doi
+    -   key: referenced_works
+        apply:
+        -   vertex: work
+        -   name: keep_suffix_id
+    -   source: work
+        target: work
+        source_discriminant: _top_level
+    """)
+    return an

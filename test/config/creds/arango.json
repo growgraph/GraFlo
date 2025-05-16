@@ -1,9 +1,0 @@
-{
-    "protocol": "http",
-    "hostname": "localhost",
-    "port": 8535,
-    "cred_name": "root",
-    "cred_pass": "123",
-    "database": "_system",
-    "db_type": "arango"
-}

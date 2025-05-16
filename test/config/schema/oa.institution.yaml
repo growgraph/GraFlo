@@ -1,0 +1,57 @@
+general:
+    name: openalex
+resources:
+-   resource_name: institutions
+    apply:
+    -   vertex: institution
+        discriminant: _top_level
+    -   name: keep_suffix_id
+    -   key: associated_institutions
+        apply:
+        -   vertex: institution
+            keep_fields:
+            -   relationship
+        -   name: keep_suffix_id
+    -   source: institution
+        target: institution
+        source_discriminant: _top_level
+        target_relation_field: relationship
+vertex_config:
+    vertices:
+    -   name: institution
+        dbname: institutions
+        fields:
+        -   _key
+        -   display_name
+        -   country
+        -   type
+        -   grid
+        -   wikidata
+        -   mag
+        -   created_date
+        -   updated_date
+        fields_aux:
+        -   relationship
+        indexes:
+        -   fields:
+            -   _key
+        -   unique: false
+            type: fulltext
+            fields:
+            -   display_name
+        -   unique: false
+            fields:
+            -   type
+edge_config:
+    edges: []
+transforms:
+    keep_suffix_id:
+        foo: split_keep_part
+        module: graphcast.util.transform
+        params:
+            sep: "/"
+            keep: -1
+        input:
+        -   id
+        output:
+        -   _key

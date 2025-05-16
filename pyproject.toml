@@ -4,38 +4,46 @@ requires = ["hatchling"]
 
 [dependency-groups]
 dev = [
-  "pre-commit>=3.3.3,<4",
-  "pytest>=7.4.0,<8"
+  "pre-commit>=4.2.0",
+  "pytest>=8.0.0,<9"
+]
+docs = [
+  "mkdocs-gen-files>=0.5.0",
+  "mkdocs-glightbox>=0.4.0",
+  "mkdocs-literate-nav>=0.6.2",
+  "mkdocs-material>=9.6.12",
+  "mkdocs>=1.6.1",
+  "mkdocstrings[python]>=0.29.1"
+]
+plot = [
+  "pygraphviz>=1.14"
 ]
 
 [project]
 authors = [{email = "alexander@growgraph.dev", name = "Alexander Belikov"}]
 dependencies = [
-  "click>=8.1.7,<9",
+  "click>=8.2.0,<9",
   "ijson>=3.2.3,<4",
   "neo4j>=5.22.0,<6",
   "networkx~=3.3",
   "pandas>=2.0.3,<3",
   "python-arango>=8.1.2,<9",
-  "suthing==0.4.1",
+  "suthing>=0.4.1,<0.5",
   "xmltodict>=0.14.2,<0.15"
 ]
-description = "ETL to cast tabular and json data types into graphs (collections of vertices and edges)"
-name = "graph_cast"
+description = "ETL to cast tabular and hierarchical data (json) types into graphs and graph databases (ArangoDB, Neo4j)"
+name = "graphcast"
 requires-python = "~=3.11"
-version = "0.13.19"
-
-[project.optional-dependencies]
-graphviz = ["pygraphviz~=1.11"]
+version = "0.14.0"
 
 [project.scripts]
-ingest = "graph_cast.cli.ingest:ingest"
-manage_dbs = "graph_cast.cli.manage_dbs:manage_dbs"
-plot_schema = "graph_cast.cli.plot_schema:plot_schema"
-xml2json = "graph_cast.cli.plot_schema:xml2json"
+ingest = "graphcast.cli.ingest:ingest"
+manage_dbs = "graphcast.cli.manage_dbs:manage_dbs"
+plot_schema = "graphcast.cli.plot_schema:plot_schema"
+xml2json = "graphcast.cli.plot_schema:xml2json"
 
 [tool.hatch.build.targets.sdist]
-include = ["graph_cast"]
+include = ["graphcast"]
 
 [tool.hatch.build.targets.wheel]
-include = ["graph_cast"]
+include = ["graphcast"]

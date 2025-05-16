@@ -73,6 +73,7 @@ target/
 .mypy_cache
 
 *.log.*
-*/**/*png
+#*/**/*png
 */**/*pdf
 
+site/

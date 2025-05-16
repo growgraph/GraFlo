@@ -2,8 +2,8 @@ import logging
 
 import pytest
 
-from graph_cast.architecture.transform import Transform
-from graph_cast.util.transform import parse_multi_item
+from graphcast.architecture.transform import Transform
+from graphcast.util.transform import parse_multi_item
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ def test_to_int():
         "output": "y",
     }
     t = Transform(**kwargs)
-    assert t("12345") == 12345
+    assert t("12345") == {"y": 12345}
 
 
 def test_round():
@@ -43,7 +43,7 @@ def test_round():
     }
     t = Transform(**kwargs)
     r = t(0.1234)
-    assert r == 0.123
+    assert r == {"y": 0.123}
 
 
 def test_map():
@@ -80,8 +80,8 @@ def test_switch():
         "params": {"ndigits": 3},
     }
     t = Transform(**kwargs)
-    r = t({"Open": 0.1234}, __return_doc=True)
-    assert r["value"] == 0.123
+    r = t({"Open": 0.1234})
+    assert r == {"value": 0.123, "name": "Open"}
 
 
 def test_switch_complete():
@@ -98,67 +98,39 @@ def test_switch_complete():
     }
 
     kwargs = {
-        "module": "graph_cast.util.transform",
+        "module": "graphcast.util.transform",
         "foo": "round_str",
         "switch": {"Open": ["name", "value"]},
         "params": {"ndigits": 3},
     }
     t = Transform(**kwargs)
-    r = t(doc, __return_doc=True)
+    r = t(doc)
     assert r["value"] == 17.9
-
-
-def test_return_doc_false():
-    doc = {
-        "Open": "17.899999618530273",
-    }
-
-    kwargs = {
-        "module": "graph_cast.util.transform",
-        "foo": "round_str",
-        "switch": {"Open": ["name", "value"]},
-        "params": {"ndigits": 3},
-    }
-    t = Transform(**kwargs)
-    r = t(doc, __return_doc=False)
-    assert r == 17.9
 
 
 def test_split_keep_part():
     doc = {"id": "https://openalex.org/A123"}
 
     kwargs = {
-        "module": "graph_cast.util.transform",
+        "module": "graphcast.util.transform",
         "foo": "split_keep_part",
         "fields": "id",
         "params": {"sep": "/", "keep": -1},
     }
     t = Transform(**kwargs)
-    r = t(doc, __return_doc=True)
-    assert r["id"] == "A123"
+    r = t(doc)
+    assert r == {"id": "A123"}
 
 
 def test_split_keep_part_longer():
     doc = {"doi": "https://doi.org/10.1007/978-3-123"}
 
     kwargs = {
-        "module": "graph_cast.util.transform",
+        "module": "graphcast.util.transform",
         "foo": "split_keep_part",
         "fields": "doi",
         "params": {"sep": "/", "keep": [-2, -1]},
     }
     t = Transform(**kwargs)
-    r = t(doc, __return_doc=True)
+    r = t(doc)
     assert r["doi"] == "10.1007/978-3-123"
-
-
-def test_transform_shortcut(schema_obj):
-    schema = schema_obj("oa")
-    doc = {
-        "doi": "https://doi.org/10.1007/978-3-123",
-        "id": "https://openalex.org/A123",
-    }
-    resource = schema.resources.tree_likes[-1]
-    r = resource.apply_doc(doc, vertex_config=schema.vertex_config)
-    assert r["work"][0]["_key"] == "A123"
-    assert r["work"][0]["doi"] == "10.1007/978-3-123"

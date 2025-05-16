@@ -41,7 +41,7 @@ def vertex_pub():
                     value: 0
         transforms:
         -   foo: cast_ibes_analyst
-            module: graph_cast.util.transform
+            module: graphcast.util.transform
             input:
             -   ANALYST
             output:
@@ -101,7 +101,7 @@ def edge_indexes():
         """
         source: entity
         target: entity
-        collection_name_suffix: aux
+        purpose: aux
         indexes:
         -   
             fields:
@@ -210,7 +210,7 @@ def edge_config_kg():
             -   publication@_key
     -   source: entity
         target: entity
-        collection_name_suffix: aux
+        purpose: aux
         index:
         -   fields:
             -   start_date
@@ -229,234 +229,19 @@ def edge_config_kg():
 
 
 @pytest.fixture()
-def vertex_config_ibes():
-    vc = yaml.safe_load(
+def resource_concept():
+    mn = yaml.safe_load(
         """
-        blanks:
-        -   publication
-        vertices:
-            -
-                name: publication
-                dbname: publications
-                fields:
-                -   datetime_review
-                -   datetime_announce
-                indexes:
-                -   type: hash
-                    unique: false
-                    fields:
-                    -   datetime_review
-                -   type: hash
-                    unique: false
-                    fields:
-                    -   datetime_announce
-            -   
-                name: ticker
-                dbname: tickers
-                fields:
-                -   cusip
-                -   cname
-                -   oftic
-                indexes:
-                -
-                    fields:
-                    -   cusip
-                    -   cname
-                    -   oftic
-            - 
-                name: agency
-                dbname: agencies
-                fields:
-                -   aname
-                indexes:
-                -
-                    fields:                
-                    -   aname
-            -
-                name: analyst
-                dbname: analysts
-                fields:
-                -   last_name
-                -   initial
-                indexes:
-                -
-                    fields:
-                    -   last_name
-                    -   initial
-            -
-                name: recommendation
-                dbname: recommendations
-                fields:
-                -   erec
-                -   etext
-                -   irec
-                -   itext
-                indexes:
-                -
-                    fields:
-                    -   irec
-    """
-    )
-    return vc
-
-
-@pytest.fixture()
-def row_resource_ibes():
-    tc = yaml.safe_load(
-        """
-        type: ibes
-        encoding: ISO-8859-1
-        transforms:
-        -   foo: parse_date_ibes
-            module: graph_cast.util.transform
+        -   vertex: concept
+        -   foo: split_keep_part
+            module: graphcast.util.transform
+            params:
+                sep: "/"
+                keep: -1
             input:
-            -   ANNDATS
-            -   ANNTIMS
+            -   wikidata
             output:
-            -   datetime_announce
-        -   foo: parse_date_ibes
-            module: graph_cast.util.transform
-            input:
-            -   REVDATS
-            -   REVTIMS
-            output:
-            -   datetime_review
-        -   foo: cast_ibes_analyst
-            module: graph_cast.util.transform
-            input:
-            -   ANALYST
-            output:
-            -   last_name
-            -   initial
-        -   map:
-                CUSIP: cusip
-                CNAME: cname
-                OFTIC: oftic
-        -   map:
-                ESTIMID: aname
-        -   map:
-                ERECCD: erec
-                ETEXT: etext
-                IRECCD: irec
-                ITEXT: itext
-    """
-    )
-    return tc
-
-
-@pytest.fixture()
-def mapper_node_a():
-    mn = yaml.safe_load(
-        """
-        type: vertex
-        name: date
-        transforms:
-        -   foo: parse_date_standard
-            module: graph_cast.util.transform
-            input:
-            -   '@sortdate'
-            output:
-            -   year
-            -   month
-            -   day
-    """
-    )
-    return mn
-
-
-@pytest.fixture()
-def mapper_node_edge():
-    mn = yaml.safe_load(
-        """
-        type: edge
-        edge:
-            how: all
-            source: mention
-            target: entity
-    """
-    )
-    return mn
-
-
-@pytest.fixture()
-def mapper_node_tree():
-    mn = yaml.safe_load(
-        """
-        type: descend
-        key: map_mention_entity
-        children:
-        -   children:
-            -   type: edge
-                how: all
-                edge:
-                    source: mention
-                    target: entity
-            -   type: descend
-                key: entity
-                children:
-                -   type: vertex
-                    name: entity
-                    map:
-                        hash: _key
-            -   type: descend
-                key: mention
-                children:
-                -   type: vertex
-                    name: mention
-                    map:
-                        hash: _key
-    """
-    )
-    return mn
-
-
-@pytest.fixture()
-def mapper_node_edge_weight_config():
-    mn = yaml.safe_load(
-        """
-        type: edge
-        edge:
-            how: all
-            source: mention
-            target: entity
-            weights:
-                source_fields:
-                - a
-                target_fields:
-                - a
-                vertices:
-                -
-                    fields:
-                    -   a
-    """
-    )
-    return mn
-
-
-@pytest.fixture()
-def mapper_value():
-    mn = yaml.safe_load(
-        """
-        key: ids
-        children:
-        -   key: mag
-            children:
-            -   type: value
-                name: concept
-        -   key: wikidata
-            children:
-            -   type: value
-                name: concept
-                transforms:
-                -   foo: split_keep_part
-                    module: graph_cast.util.transform
-                    params:
-                        sep: "/"
-                        keep: -1
-                    input:
-                    -   wikidata
-                    output:
-                    -   wikidata
+            -   wikidata
     """
     )
     return mn

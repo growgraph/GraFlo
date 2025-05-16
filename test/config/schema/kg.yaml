@@ -1,0 +1,195 @@
+general:
+    name: kg
+    version: 3.0.0
+resources:
+-   resource_name: kg
+    apply:
+    -   key: publication
+        apply:
+        -   vertex: publication
+    -   key: top_level_mention
+        apply:
+        -   vertex: mention
+            discriminant: _top_level
+        -   map:
+                hash: _key
+    -   source: publication
+        target: mention
+        target_discriminant: _top_level
+    -   key: map_mention_entity
+        apply:
+        -   source: mention
+            target: entity
+        -   key: entity
+            apply:
+            -   vertex: entity
+            -   map:
+                    hash: _key
+        -   key: mention
+            apply:
+            -   vertex: mention
+            -   map:
+                    hash: _key
+    -   key: triples
+        apply:
+        -   key: triple_index
+            apply:
+            -   vertex: mention
+                discriminant: triple_index
+            -   map:
+                    hash: _key
+        -   key: triple
+            apply:
+            -   apply:
+                -   vertex: mention
+                    discriminant: core
+                -   map:
+                        role: _role
+                        hash: _key
+        -   source: mention
+            source_discriminant: triple_index
+            target: mention
+            target_discriminant: core
+            weights:
+                target_fields:
+                -   _role
+            indexes:
+            -   fields:
+                -   _role
+-   resource_name: communities
+    apply:
+    -   source: entity
+        target: community
+    -   key: entity
+        apply:
+        -   vertex: entity
+    -   key: community
+        apply:
+        -   vertex: community
+vertex_config:
+    vertices:
+    -   name: publication
+        dbname: publications
+        fields:
+        -   arxiv
+        -   doi
+        -   created
+        -   data_source
+        indexes:
+        -   fields:
+            -   arxiv
+            -   doi
+        -   unique: false
+            fields:
+            -   created
+        -   unique: false
+            fields:
+            -   created
+    -   name: entity
+        dbname: entities
+        fields:
+        -   linker_type
+        -   ent_db_type
+        -   id
+        -   ent_type
+        -   original_form
+        -   description
+        indexes:
+        -   fields:
+            -   _key
+        -   fields:
+            -   id
+            -   ent_type
+        -   fields:
+            -   id
+            -   ent_db_type
+    -   name: mention
+        dbname: mentions
+        fields:
+        -   text
+        indexes:
+        -   fields:
+            -   _key
+        -   unique: false
+            fields:
+            -   text
+    -   name: community
+        dbname: communities
+        fields:
+        -   obs_date
+        -   t_window
+        -   comm_id
+        -   size
+        indexes:
+        -   fields:
+            -   obs_date
+            -   t_window
+            -   comm_id
+edge_config:
+    edges:
+    -   source: entity
+        target: entity
+        aux: true
+        indexes:
+        -   name: publication
+            fields:
+            -   _id
+        -   name: publication
+            fields:
+            -   _id
+            exclude_edge_endpoints: true
+            unique: false
+    -   source: entity
+        target: entity
+        purpose: tmp
+        aux: true
+        indexes:
+        -   name: publication
+            fields:
+            -   _id
+        -   name: publication
+            fields:
+            -   _id
+            exclude_edge_endpoints: true
+            unique: false
+    -   source: entity
+        target: entity
+        purpose: redux
+        aux: true
+        indexes:
+        -   name: publication
+            fields:
+            -   _id
+        -   name: publication
+            fields:
+            -   _id
+            exclude_edge_endpoints: true
+            unique: false
+    -   source: entity
+        target: entity
+        purpose: convolution
+        aux: true
+        indexes:
+        -   fields:
+            -   obs_date
+            -   t_window
+        -   fields:
+            -   obs_date
+            -   t_window
+            exclude_edge_endpoints: true
+            unique: false
+    -   source: mention
+        target: entity
+        indexes:
+        -   name: publication
+            fields:
+            -   _id
+        -   name: publication
+            fields:
+            -   _id
+            exclude_edge_endpoints: true
+            unique: false
+    -   source: entity
+        target: community
+    -   source: community
+        target: community

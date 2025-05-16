@@ -2,7 +2,7 @@ import logging
 
 import pytest
 
-from graph_cast.db import ConnectionManager
+from graphcast.db import ConnectionManager
 
 logger = logging.getLogger(__name__)
 

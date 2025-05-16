@@ -2,17 +2,17 @@ from test.conftest import verify
 
 import pytest
 
-from graph_cast.db import ConnectionManager
+from graphcast.db import ConnectionManager
 
 
 @pytest.fixture(scope="function")
 def modes():
     return [
-        "kg_v3b",
+        "kg",
         "ibes",
         # "wos_json",
         # "lake_odds",
-        # "wos",
+        # "wos_csv",
         # "ticker",
     ]
 
@@ -22,6 +22,7 @@ def init_db(m, conn_conf, schema, current_path, reset):
         db_client.init_db(schema, clean_start=True)
         ixs = db_client.fetch_indexes()
 
+    ixs = {k: v for k, v in ixs.items() if not k.startswith("_")}
     for k, batch in ixs.items():
         for ix in batch:
             del ix["id"]

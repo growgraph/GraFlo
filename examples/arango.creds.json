@@ -1,0 +1,8 @@
+{
+    "protocol": "http",
+    "hostname": "localhost",
+    "port": 8535,
+    "username": "root",
+    "password": "123",
+    "database": "_system"
+}

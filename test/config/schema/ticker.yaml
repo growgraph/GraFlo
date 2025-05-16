@@ -5,7 +5,7 @@ resources:
     -   name: history
         transforms:
         -   foo: round_str
-            module: graph_cast.util.transform
+            module: graphcast.util.transform
             params:
                 ndigits: 3
             switch:
@@ -13,7 +13,7 @@ resources:
                 -   name
                 -   value
         -   foo: round_str
-            module: graph_cast.util.transform
+            module: graphcast.util.transform
             params:
                 ndigits: 3
             switch:
@@ -27,7 +27,7 @@ resources:
                 -   name
                 -   value
         -   foo: parse_date_yahoo
-            module: graph_cast.util.transform
+            module: graphcast.util.transform
             map:
                 Date: t_obs
         -   map:
