@@ -31,9 +31,8 @@ dependencies = [
   "suthing>=0.4.1,<0.5",
   "xmltodict>=0.14.2,<0.15"
 ]
-description = "A framework for transforming tabular (CSV, SQL) and hierarchical data (JSON, XML) into property graphs and ingesting them into graph databases (ArangoDB, Neo4j)"
+description = "ETL to cast tabular and hierarchical data (json) types into graphs and graph databases (ArangoDB, Neo4j)"
 name = "graphcast"
-readme = "README.md"
 requires-python = "~=3.11"
 version = "0.14.1"
 
@@ -48,4 +47,3 @@ include = ["graphcast"]
 
 [tool.hatch.build.targets.wheel]
 include = ["graphcast"]
-readme = "README.md"
