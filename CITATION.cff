@@ -1,0 +1,15 @@
+abstract: <p><span>A framework for transforming</span><span>&nbsp;</span><strong>tabular</strong><span>&nbsp;</span><span>data</span><span>&nbsp;(</span><span>CSV,</span><span>&nbsp;</span><span>SQL</span><span>)&nbsp;</span><span>and</span><span>&nbsp;</span><strong>hierarchical</strong><span>&nbsp;</span><span>data</span><span>&nbsp;(</span><span>JSON,</span><span>&nbsp;</span><span>XML</span><span>)&nbsp;</span><span>into
+  property graphs and ingesting them into graph databases</span><span>&nbsp;(</span><span>ArangoDB,</span><span>&nbsp;</span><span>Neo4j</span><span>)</span><span>.</span></p>
+authors:
+- affiliation: GrowGraph
+  family-names: Belikov
+  given-names: Alexander
+  orcid: 0000-0002-5649-0913
+cff-version: 1.2.0
+date-released: '2025-05-16'
+doi: 10.5281/zenodo.15446131
+license: []
+license-url: https://github.com/growgraph/graphcast/blob/main/LICENSE
+message: If you use this software, please cite it using the metadata from this file.
+title: GraphCast
+type: software

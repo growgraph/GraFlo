@@ -6,6 +6,7 @@ GraphCast is a framework for transforming **tabular** data (CSV) and **hierarchi
 [![License: BSL](https://img.shields.io/badge/license-BSL--1.1-green)](https://github.com/growgraph/graphcast/blob/main/LICENSE)
 [![pre-commit](https://github.com/growgraph/graphcast/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/growgraph/graphcast/actions/workflows/pre-commit.yml)
 [![PyPI version](https://badge.fury.io/py/graphcast.svg)](https://badge.fury.io/py/graphcast)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15446131.svg)](https://zenodo.org/badge/DOI/10.5281/zenodo.15446131.svg)
 
 <!-- [![pytest](https://github.com/growgraph/graphcast/actions/workflows/pytest.yml/badge.svg)](https://github.com/growgraph/graphcast/actions/workflows/pytest.yml) -->
 
@@ -35,8 +36,12 @@ Resources are your data sources that can be:
 
 ## Key Features
 
-- **Flexible Schema Definition**: Define complex graph structures with ease
-- **Multiple Data Source Support**: Handles tabuler data (SQL, CSV) and hierarchical data (mongoDB, JSON, XML) and more
+- **Graph Transformation Meta-language**: A powerful declarative language to describe how your data becomes a property graph:
+    - Define vertex and edge structures
+    - Set compound indexes for vertices and edges
+    - Use blank vertices for complex relationships
+    - Specify edge constraints and properties
+    - Apply advanced filtering and transformations
 - **Parallel Processing**: Efficient processing with multi-threading
 - **Database Integration**: Seamless integration with Neo4j and ArangoDB
 - **Advanced Filtering**: Powerful filtering capabilities for data transformation
