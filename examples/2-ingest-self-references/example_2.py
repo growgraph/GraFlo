@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from suthing import ConfigFactory, FileHandle
 
 from graphcast import Caster, Patterns, Schema
@@ -18,6 +16,4 @@ patterns = Patterns.from_dict(
     }
 )
 
-caster.ingest_files(
-    path=Path("."), conn_conf=conn_conf, patterns=patterns, clean_start=True
-)
+caster.ingest_files(path=".", conn_conf=conn_conf, patterns=patterns, clean_start=True)

@@ -47,7 +47,7 @@ Resources are your data sources that can be:
 - [Installation](getting_started/installation.md)
 - [Quick Start Guide](getting_started/quickstart.md)
 - [API Reference](reference/index.md)
-- [Examples](examples/examples.md)
+- [Examples](examples/index.md)
 
 ## Use Cases
 

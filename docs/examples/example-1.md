@@ -1,7 +1,7 @@
 # Example 1: Multiple Tabular Sources
 
 
-Suppose you have a table that represent people:
+Suppose we have a table that represent people:
 
 ```csv
 # people.csv
@@ -81,7 +81,7 @@ People Resource
 ![People Resource Image](../assets/1-ingest-csv/figs/hr.resource-people.png){ width="200" }
 
 
-Transforming the data and ingesting it into an ArangoDB would take a few lines of code
+Transforming the data and ingesting it into an ArangoDB takes a few lines of code:
 
 ```python
 from suthing import ConfigFactory, FileHandle
@@ -109,7 +109,6 @@ patterns = Patterns.from_dict(
     }
 )
 
-# Initialize caster and process data
 caster = Caster(schema)
 caster.ingest_files(
     path=".",

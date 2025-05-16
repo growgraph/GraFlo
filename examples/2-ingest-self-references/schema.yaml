@@ -4,8 +4,6 @@ resources:
 -   resource_name: work
     apply:
     -   name: keep_suffix_id
-    -   vertex: work
-        discriminant: _top_level
     -   name: keep_suffix_id
         params:
             sep: "/"
@@ -18,6 +16,8 @@ resources:
         apply:
         -   vertex: work
         -   name: keep_suffix_id
+    -   vertex: work
+        discriminant: _top_level
     -   source: work
         target: work
         source_discriminant: _top_level
