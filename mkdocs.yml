@@ -53,15 +53,14 @@ nav:
 -   Getting Started:
     -   Installation: getting_started/installation.md
     -   Quick Start: getting_started/quickstart.md
--   Concepts:
-    -   Introduction: concepts/index.md
+-   Concepts: concepts/index.md
 -   Examples:
     -   1 - Ingest csv files: examples/example-1.md
     -   2 - Ingest jsons with self-references: examples/example-2.md
--   API Reference:
-    -   Overview: reference/index.md
-    -   Core: reference/core.md
-    -   Connection: reference/connection.md
+#-   API Reference:
+#    -   Overview: reference/index.md
+#    -   Core: reference/core.md
+#    -   Connection: reference/connection.md
 -   Contributing: contributing.md
 
 markdown_extensions:

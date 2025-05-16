@@ -36,7 +36,7 @@ Resources are your data sources that can be:
 ## Key Features
 
 - **Flexible Schema Definition**: Define complex graph structures with ease
-- **Multiple Data Source Support**: Handle CSV, JSON, XML, and more
+- **Multiple Data Source Support**: Handles tabuler data (SQL, CSV) and hierarchical data (mongoDB, JSON, XML) and more
 - **Parallel Processing**: Efficient processing with multi-threading
 - **Database Integration**: Seamless integration with Neo4j and ArangoDB
 - **Advanced Filtering**: Powerful filtering capabilities for data transformation

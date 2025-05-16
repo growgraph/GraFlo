@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from pathlib import Path
 from types import MappingProxyType
-from typing import Optional, Type, TypeVar
+from typing import Optional, Type
 
 from graphcast.architecture.actor_util import (
     add_blank_collections,
@@ -70,9 +70,6 @@ class Actor(ABC):
 
     def fetch_actors(self, level, edges):
         return level, type(self), str(self), edges
-
-
-ActorType = TypeVar("ActorType", bound=Actor)
 
 
 class VertexActor(Actor):
