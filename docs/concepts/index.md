@@ -2,10 +2,18 @@
 
 Here we introduce the main concepts of GraphCast, a framework for transforming data into property graphs.
 
+## System Overview
+
+GraphCast transforms data sources into property graphs through a pipeline of components:
+
+1. **Data Sources** → **Resources** → **Actors** → **Vertices/Edges** → **Graph Database**
+
+Each component plays a specific role in this transformation process.
+
 ## Core Components
 
 ### Schema
-The `Schema` encapsulates a set of rules required to cast data sources to graph databases. It defines:
+The `Schema` is the central configuration that defines how data sources are transformed into a property graph. It encapsulates:
 - Vertex and edge definitions
 - Resource mappings
 - Data transformations
@@ -26,7 +34,7 @@ An `Edge` describes edges and their database indexes. It allows:
 - Uniqueness constraints with respect to `source`, `target`, and `weight` fields
 
 ### Resource
-A `Resource` is a set of mappings and transformations of a data source to vertices and edges, defined as a hierarchical structure (basically a tree of `Actors`). It supports:
+A `Resource` is a set of mappings and transformations of a data source to vertices and edges, defined as a hierarchical structure of `Actors`. It supports:
 - Table-like data (CSV, SQL)
 - Tree-like data (JSON, XML)
 - Complex nested structures
@@ -46,7 +54,7 @@ A `Transform` defines data transforms, from renaming and type-casting to arbitra
 
 ## Key Features
 
-### Schema Design
+### Schema Features
 - **Flexible Indexing**: Support for compound indexes on vertices and edges
 - **Hierarchical Edge Definition**: Define edges at any level of nested documents
 - **Weighted Edges**: Configure edge weights from document fields or vertex properties

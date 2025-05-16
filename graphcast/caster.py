@@ -160,6 +160,7 @@ class Caster:
         resource_instance: Path,
         resource_name: str | None,
         conn_conf: None | DBConnectionConfig = None,
+        **kwargs,
     ):
         """Process a resource instance.
 
@@ -169,7 +170,10 @@ class Caster:
             conn_conf: Optional database connection configuration
         """
         chunker = ChunkerFactory.create_chunker(
-            resource=resource_instance, batch_size=self.batch_size, limit=self.max_items
+            resource=resource_instance,
+            batch_size=self.batch_size,
+            limit=self.max_items,
+            **kwargs,
         )
         for batch in chunker:
             self.process_batch(batch, resource_name=resource_name, conn_conf=conn_conf)
