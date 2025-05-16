@@ -35,7 +35,7 @@ description = "A framework for transforming tabular (CSV, SQL) and hierarchical 
 name = "graphcast"
 readme = "README.md"
 requires-python = "~=3.11"
-version = "0.14.0"
+version = "0.14.1"
 
 [project.scripts]
 ingest = "graphcast.cli.ingest:ingest"
