@@ -1,3 +1,20 @@
+"""Edge configuration and management for graph databases.
+
+This module provides classes and utilities for managing edges in graph databases.
+It handles edge configuration, weight management, indexing, and relationship operations.
+The module supports both ArangoDB and Neo4j through the DBFlavor enum.
+
+Key Components:
+    - Edge: Represents an edge with its source, target, and configuration
+    - EdgeConfig: Manages collections of edges and their configurations
+    - WeightConfig: Configuration for edge weights and relationships
+
+Example:
+    >>> edge = Edge(source="user", target="post")
+    >>> config = EdgeConfig(edges=[edge])
+    >>> edge.finish_init(vertex_config=vertex_config)
+"""
+
 import dataclasses
 from typing import Optional
 
@@ -15,6 +32,18 @@ from graphcast.onto import DBFlavor
 
 @dataclasses.dataclass
 class WeightConfig(BaseDataclass):
+    """Configuration for edge weights and relationships.
+
+    This class manages the configuration of weights and relationships for edges,
+    including source and target field mappings.
+
+    Attributes:
+        source_fields: List of source vertex fields
+        target_fields: List of target vertex fields
+        vertices: List of weight configurations
+        direct: List of direct field mappings
+    """
+
     source_fields: list[str] = dataclasses.field(default_factory=list)
     target_fields: list[str] = dataclasses.field(default_factory=list)
     vertices: list[Weight] = dataclasses.field(default_factory=list)
@@ -23,6 +52,34 @@ class WeightConfig(BaseDataclass):
 
 @dataclasses.dataclass
 class Edge(BaseDataclass):
+    """Represents an edge in the graph database.
+
+    An edge connects two vertices and can have various configurations for
+    indexing, weights, and relationship types.
+
+    Attributes:
+        source: Source vertex name
+        target: Target vertex name
+        indexes: List of indexes for the edge
+        weights: Optional weight configuration
+        non_exclusive: List of non-exclusive fields
+        relation: Optional relation name (for Neo4j)
+        purpose: Optional purpose for utility collections
+        source_discriminant: Optional source discriminant field
+        target_discriminant: Optional target discriminant field
+        source_relation_field: Optional source relation field
+        target_relation_field: Optional target relation field
+        type: Edge type (DIRECT or INDIRECT)
+        aux: Whether this is an auxiliary edge
+        casting_type: Type of edge casting
+        by: Optional vertex name for indirect edges
+        source_collection: Optional source collection name
+        target_collection: Optional target collection name
+        graph_name: Optional graph name
+        collection_name: Optional collection name
+        db_flavor: Database flavor (ARANGO or NEO4J)
+    """
+
     source: str
     target: str
     indexes: list[Index] = dataclasses.field(default_factory=list)
@@ -57,6 +114,13 @@ class Edge(BaseDataclass):
     db_flavor: DBFlavor = DBFlavor.ARANGO
 
     def __post_init__(self):
+        """Initialize the edge after dataclass initialization.
+
+        Validates that source and target relation fields are not both set.
+
+        Raises:
+            ValueError: If both source and target relation fields are set
+        """
         if (
             self.source_relation_field is not None
             and self.target_relation_field is not None
@@ -66,15 +130,17 @@ class Edge(BaseDataclass):
             )
 
     def finish_init(self, vertex_config: VertexConfig):
-        """
+        """Complete edge initialization with vertex configuration.
+
+        Sets up edge collections, graph names, and initializes indices based on
+        the vertex configuration.
 
         Args:
-            vertex_config:
+            vertex_config: Configuration for vertices
 
-            discriminant is used to pin docs among a collection of docs of the same vertex type
-
-        Returns:
-
+        Note:
+            Discriminant is used to pin documents among a collection of documents
+            of the same vertex type.
         """
         if self.type == EdgeType.INDIRECT and self.by is not None:
             self.by = vertex_config.vertex_dbname(self.by)
@@ -108,21 +174,27 @@ class Edge(BaseDataclass):
         self._init_indices(vertex_config)
 
     def _init_indices(self, vc: VertexConfig):
-        """
-        index should be consistent with weight
-        :param vc:
-        :return:
+        """Initialize indices for the edge.
+
+        Args:
+            vc: Vertex configuration
         """
         self.indexes = [self._init_index(index, vc) for index in self.indexes]
 
     def _init_index(self, index: Index, vc: VertexConfig) -> Index:
-        """
-        default behavior for edge indices : add ["_from", "_to"] for uniqueness
-        :param index:
-        :param vc:
-        :return:
-        """
+        """Initialize a single index for the edge.
 
+        Args:
+            index: Index to initialize
+            vc: Vertex configuration
+
+        Returns:
+            Index: Initialized index
+
+        Note:
+            Default behavior for edge indices: adds ["_from", "_to"] for uniqueness
+            in ArangoDB.
+        """
         index_fields = []
 
         # "@" is reserved : quick hack - do not reinit the index twice
@@ -147,36 +219,89 @@ class Edge(BaseDataclass):
 
     @property
     def edge_name_dyad(self):
+        """Get the edge name as a dyad (source, target).
+
+        Returns:
+            tuple[str, str]: Source and target vertex names
+        """
         return self.source, self.target
 
     @property
     def edge_id(self) -> EdgeId:
+        """Get the edge ID.
+
+        Returns:
+            EdgeId: Tuple of (source, target, purpose)
+        """
         return self.source, self.target, self.purpose
 
 
 @dataclasses.dataclass
 class EdgeConfig(BaseDataclass):
+    """Configuration for managing collections of edges.
+
+    This class manages a collection of edges, providing methods for accessing
+    and manipulating edge configurations.
+
+    Attributes:
+        edges: List of edge configurations
+    """
+
     edges: list[Edge] = dataclasses.field(default_factory=list)
 
     def __post_init__(self):
+        """Initialize the edge configuration.
+
+        Creates internal mapping of edge IDs to edge configurations.
+        """
         self._edges_map: dict[EdgeId, Edge] = {e.edge_id: e for e in self.edges}
 
     def finish_init(self, vc: VertexConfig):
+        """Complete initialization of all edges with vertex configuration.
+
+        Args:
+            vc: Vertex configuration
+        """
         for k, e in self._edges_map.items():
             e.finish_init(vc)
 
     def _reset_edges(self):
+        """Reset edges list from internal mapping."""
         self.edges = list(self._edges_map.values())
 
     def edges_list(self, include_aux=False):
+        """Get list of edges.
+
+        Args:
+            include_aux: Whether to include auxiliary edges
+
+        Returns:
+            generator: Generator yielding edge configurations
+        """
         return (e for e in self._edges_map.values() if include_aux or not e.aux)
 
     def edges_items(self, include_aux=False):
+        """Get items of edges.
+
+        Args:
+            include_aux: Whether to include auxiliary edges
+
+        Returns:
+            generator: Generator yielding (edge_id, edge) tuples
+        """
         return (
             (eid, e) for eid, e in self._edges_map.items() if include_aux or not e.aux
         )
 
     def __contains__(self, item: EdgeId | Edge):
+        """Check if edge exists in configuration.
+
+        Args:
+            item: Edge ID or Edge instance to check
+
+        Returns:
+            bool: True if edge exists, False otherwise
+        """
         if isinstance(item, Edge):
             eid = item.edge_id
         else:
@@ -188,6 +313,12 @@ class EdgeConfig(BaseDataclass):
             return False
 
     def update_edges(self, edge: Edge, vertex_config: VertexConfig):
+        """Update edge configuration.
+
+        Args:
+            edge: Edge configuration to update
+            vertex_config: Vertex configuration
+        """
         if edge.edge_id in self._edges_map:
             self._edges_map[edge.edge_id].update(edge)
         else:
@@ -196,6 +327,11 @@ class EdgeConfig(BaseDataclass):
 
     @property
     def vertices(self):
+        """Get set of vertex names involved in edges.
+
+        Returns:
+            set[str]: Set of vertex names
+        """
         return {e.source for e in self.edges} | {e.target for e in self.edges}
 
     # def __getitem__(self, key: EdgeId):

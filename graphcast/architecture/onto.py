@@ -1,3 +1,31 @@
+"""Core ontology and data structures for graph database operations.
+
+This module defines the fundamental data structures and types used throughout the graphcast
+package for working with graph databases. It provides:
+
+- Core data types for vertices and edges
+- Database index configurations
+- Graph container implementations
+- Edge mapping and casting utilities
+- Action context for graph transformations
+
+The module is designed to be database-agnostic, supporting both ArangoDB and Neo4j through
+the DBFlavor enum. It provides a unified interface for working with graph data structures
+while allowing for database-specific optimizations and features.
+
+Key Components:
+    - EdgeMapping: Defines how edges are mapped between vertices
+    - IndexType: Supported database index types
+    - EdgeType: Types of edge handling in the graph database
+    - GraphContainer: Main container for graph data
+    - ActionContext: Context for graph transformation operations
+
+Example:
+    >>> container = GraphContainer(vertices={}, edges={}, linear=[])
+    >>> index = Index(fields=["name", "age"], type=IndexType.PERSISTENT)
+    >>> context = ActionContext()
+"""
+
 from __future__ import annotations
 
 import dataclasses
@@ -21,16 +49,32 @@ logger = logging.getLogger(__name__)
 
 
 class EdgeMapping(BaseEnum):
+    """Defines how edges are mapped between vertices.
+
+    ALL: Maps all vertices to all vertices
+    ONE_N: Maps one vertex to many vertices
+    """
+
     ALL = "all"
     ONE_N = "1-n"
 
 
 class EncodingType(BaseEnum):
+    """Supported character encodings for data input/output."""
+
     ISO_8859 = "ISO-8859-1"
     UTF_8 = "utf-8"
 
 
 class IndexType(BaseEnum):
+    """Types of database indexes supported.
+
+    PERSISTENT: Standard persistent index
+    HASH: Hash-based index for fast lookups
+    SKIPLIST: Sorted index using skip list data structure
+    FULLTEXT: Index optimized for text search
+    """
+
     PERSISTENT = "persistent"
     HASH = "hash"
     SKIPLIST = "skiplist"
@@ -38,9 +82,10 @@ class IndexType(BaseEnum):
 
 
 class EdgeType(BaseEnum):
-    """
-    INDIRECT: defined as a collection, indexes are set up (possibly used after data ingestion)
-    DIRECT : in addition to indexes, these edges are generated during ingestion
+    """Defines how edges are handled in the graph database.
+
+    INDIRECT: Defined as a collection with indexes, may be used after data ingestion
+    DIRECT: In addition to indexes, these edges are generated during ingestion
     """
 
     INDIRECT = "indirect"
@@ -48,39 +93,58 @@ class EdgeType(BaseEnum):
 
 
 @dataclasses.dataclass
-class Field(BaseDataclass):
-    name: str
-    exclusive: bool = True
-
-
-@dataclasses.dataclass
 class ABCFields(BaseDataclass, metaclass=ABCMeta):
+    """Abstract base class for entities that have fields.
+
+    Attributes:
+        name: Optional name of the entity
+        fields: List of field names
+    """
+
     name: Optional[str] = None
     fields: list[str] = dataclasses.field(default_factory=list)
 
-    def cfield(self, x):
+    def cfield(self, x: str) -> str:
+        """Creates a composite field name by combining the entity name with a field name.
+
+        Args:
+            x: Field name to combine with entity name
+
+        Returns:
+            Composite field name in format "entity@field"
+        """
         return f"{self.name}@{x}"
 
 
 @dataclasses.dataclass
 class Weight(ABCFields):
+    """Defines weight configuration for edges.
+
+    Attributes:
+        discriminant: Optional field used to discriminate between weights
+        map: Dictionary mapping field values to weights
+        filter: Dictionary of filter conditions for weights
+    """
+
     discriminant: Optional[str] = None
     map: dict = dataclasses.field(default_factory=dict)
     filter: dict = dataclasses.field(default_factory=dict)
 
 
 @dataclasses.dataclass
-class VertexHelper(ABCFields):
-    # pre-select only vertices with anchor value
-    # the value of _anchor_key
-    _anchor: str | bool = False
-
-    # create edges between vertices that have the same value of selector field is key
-    selector: str | bool = False
-
-
-@dataclasses.dataclass
 class Index(BaseDataclass):
+    """Configuration for database indexes.
+
+    Attributes:
+        name: Optional name of the index
+        fields: List of fields to index
+        unique: Whether the index enforces uniqueness
+        type: Type of index to create
+        deduplicate: Whether to deduplicate index entries
+        sparse: Whether to create a sparse index
+        exclude_edge_endpoints: Whether to exclude edge endpoints from index
+    """
+
     name: str | None = None
     fields: list[str] = dataclasses.field(default_factory=list)
     unique: bool = True
@@ -90,9 +154,21 @@ class Index(BaseDataclass):
     exclude_edge_endpoints: bool = False
 
     def __iter__(self):
+        """Iterate over the indexed fields."""
         return iter(self.fields)
 
-    def db_form(self, db_type: DBFlavor):
+    def db_form(self, db_type: DBFlavor) -> dict:
+        """Convert index configuration to database-specific format.
+
+        Args:
+            db_type: Type of database (ARANGO or NEO4J)
+
+        Returns:
+            Dictionary of index configuration in database-specific format
+
+        Raises:
+            ValueError: If db_type is not supported
+        """
         r = self.to_dict()
         if db_type == DBFlavor.ARANGO:
             _ = r.pop("name")
@@ -105,16 +181,14 @@ class Index(BaseDataclass):
         return r
 
 
-class DataSourceType(BaseEnum):
-    JSON = "json"
-    TABLE = "csv"
-
-
 class ItemsView:
+    """View class for iterating over vertices and edges in a GraphContainer."""
+
     def __init__(self, gc: GraphContainer):
         self._dictlike = gc
 
     def __iter__(self):
+        """Iterate over vertices and edges in the container."""
         for key in self._dictlike.vertices:
             yield key, self._dictlike.vertices[key]
         for key in self._dictlike.edges:
@@ -123,6 +197,14 @@ class ItemsView:
 
 @dataclasses.dataclass
 class GraphContainer(BaseDataclass):
+    """Container for graph data including vertices and edges.
+
+    Attributes:
+        vertices: Dictionary mapping vertex names to lists of vertex data
+        edges: Dictionary mapping edge IDs to lists of edge data
+        linear: List of default dictionaries containing linear data
+    """
+
     vertices: dict[str, list]
     edges: dict[tuple[str, str, str | None], list]
     linear: list[defaultdict[str | tuple[str, str, str | None], list[Any]]]
@@ -131,15 +213,25 @@ class GraphContainer(BaseDataclass):
         pass
 
     def items(self):
+        """Get an ItemsView of the container's contents."""
         return ItemsView(self)
 
     def pick_unique(self):
+        """Remove duplicate entries from vertices and edges."""
         for k, v in self.vertices.items():
             self.vertices[k] = pick_unique_dict(v)
         for k, v in self.edges.items():
             self.edges[k] = pick_unique_dict(v)
 
     def loop_over_relations(self, edge_def: tuple[str, str, str | None]):
+        """Iterate over edges matching the given edge definition.
+
+        Args:
+            edge_def: Tuple of (source, target, optional_purpose)
+
+        Returns:
+            Generator yielding matching edge IDs
+        """
         source, target, _ = edge_def
         return (ed for ed in self.edges if source == ed[0] and target == ed[1])
 
@@ -147,6 +239,17 @@ class GraphContainer(BaseDataclass):
     def from_docs_list(
         cls, list_default_dicts: list[defaultdict[GraphEntity, list]]
     ) -> GraphContainer:
+        """Create a GraphContainer from a list of default dictionaries.
+
+        Args:
+            list_default_dicts: List of default dictionaries containing vertex and edge data
+
+        Returns:
+            New GraphContainer instance
+
+        Raises:
+            AssertionError: If edge IDs are not properly formatted
+        """
         vdict: defaultdict[str, list] = defaultdict(list)
         edict: defaultdict[tuple[str, str, str | None], list] = defaultdict(list)
 
@@ -168,59 +271,54 @@ class GraphContainer(BaseDataclass):
         )
 
 
-def cast_graph_name_to_triple(s: GraphEntity):
-    if isinstance(s, str):
-        s2 = s.split("_")
-        if len(s2) < 2:
-            return s2[0]
-        elif len(s2) == 2:
-            return *s2[:-1], None
-        elif len(s2) == 3:
-            if s2[-1] in ["graph", "edges"]:
-                return *s2[:-1], None
-            else:
-                return tuple(s2)
-        elif len(s2) == 4 and s2[-1] in ["graph", "edges"]:
-            return tuple(s2[:-1])
-        raise ValueError(f"Invalid graph_name {s} : can not be cast to GraphEntity")
-    else:
-        return s
-
-
 class EdgeCastingType(BaseEnum):
+    """Types of edge casting supported.
+
+    PAIR_LIKE: Edges are cast as pairs of vertices
+    PRODUCT_LIKE: Edges are cast as products of vertex sets
+    """
+
     PAIR_LIKE = "pair"
     PRODUCT_LIKE = "product"
 
 
 def inner_factory_vertex() -> defaultdict[Optional[str], list]:
+    """Create a default dictionary for vertex data."""
     return defaultdict(list)
 
 
 def outer_factory() -> defaultdict[str, defaultdict[Optional[str], list]]:
+    """Create a nested default dictionary for vertex data."""
     return defaultdict(inner_factory_vertex)
 
 
 def dd_factory() -> defaultdict[GraphEntity, list]:
+    """Create a default dictionary for graph entity data."""
     return defaultdict(list)
 
 
 @dataclasses.dataclass(kw_only=True)
 class ActionContext(BaseDataclass):
-    # accumulation of vertices at the local level
-    # each local edge actors pushed current acc_vertex_local to acc_vectex
+    """Context for graph transformation actions.
+
+    Attributes:
+        acc_v_local: Local accumulation of vertices
+        acc_vertex: Global accumulation of vertices
+        acc_global: Global accumulation of graph entities
+        buffer_vertex: Buffer for vertex data
+        cdoc: Current document being processed
+    """
+
     acc_v_local: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(
         default_factory=outer_factory
     )
-
     acc_vertex: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(
         default_factory=outer_factory
     )
     acc_global: defaultdict[GraphEntity, list] = dataclasses.field(
         default_factory=dd_factory
     )
-
     buffer_vertex: defaultdict[GraphEntity, dict] = dataclasses.field(
         default_factory=lambda: defaultdict(dict)
     )
-    # current doc : the result of application of transformations to the original document
     cdoc: dict = dataclasses.field(default_factory=dict)

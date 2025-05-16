@@ -1,3 +1,34 @@
+"""Edge creation and weight management utilities for graph actors.
+
+This module provides core functionality for creating and managing edges in the graph
+database system. It handles edge rendering, weight management, and blank collection
+creation. The module is central to the graph construction process, implementing the
+logic for connecting vertices and managing their relationships.
+
+Key Components:
+    - add_blank_collections: Creates blank collections for vertices
+    - render_edge: Core edge creation logic, handling different edge types and weights
+    - render_weights: Manages edge weights and their relationships
+
+Edge Creation Process:
+    1. Edge rendering (render_edge):
+       - Handles both PAIR_LIKE and PRODUCT_LIKE edge types
+       - Manages source and target vertex relationships
+       - Processes edge weights and relation fields
+       - Creates edge documents with proper source/target mappings
+
+    2. Weight management (render_weights):
+       - Processes vertex-based weights
+       - Handles direct field mappings
+       - Manages weight filtering and transformation
+       - Applies weights to edge documents
+
+Example:
+    >>> edge = Edge(source="user", target="post")
+    >>> edges = render_edge(edge, vertex_config, acc_vertex)
+    >>> edges = render_weights(edge, vertex_config, acc_vertex, cdoc, edges)
+"""
+
 from __future__ import annotations
 
 import logging
@@ -21,6 +52,24 @@ logger = logging.getLogger(__name__)
 def add_blank_collections(
     ctx: ActionContext, vertex_conf: VertexConfig
 ) -> ActionContext:
+    """Add blank collections for vertices that require them.
+
+    This function creates blank collections for vertices marked as blank in the
+    vertex configuration. It copies relevant fields from the current document
+    to create the blank vertex documents.
+
+    Args:
+        ctx: Current action context containing document and accumulator
+        vertex_conf: Vertex configuration containing blank vertex definitions
+
+    Returns:
+        ActionContext: Updated context with new blank collections
+
+    Example:
+        >>> ctx = add_blank_collections(ctx, vertex_config)
+        >>> print(ctx.acc_global['blank_vertex'])
+        [{'field1': 'value1', 'field2': 'value2'}]
+    """
     # add blank collections
     for vname in vertex_conf.blank_vertices:
         v = vertex_conf[vname]
@@ -35,6 +84,27 @@ def render_edge(
     vertex_config: VertexConfig,
     acc_vertex: defaultdict[str, defaultdict[Optional[str], list]],
 ) -> defaultdict[Optional[str], list]:
+    """Create edges between source and target vertices.
+
+    This is the core edge creation function that handles different edge types
+    (PAIR_LIKE and PRODUCT_LIKE) and manages edge weights. It processes source
+    and target vertices, their discriminants, and creates appropriate edge
+    documents with proper source/target mappings.
+
+    Args:
+        edge: Edge configuration defining the relationship
+        vertex_config: Vertex configuration for source and target
+        acc_vertex: Accumulated vertex documents organized by vertex name and discriminant
+
+    Returns:
+        defaultdict[Optional[str], list]: Created edges organized by relation type
+
+    Note:
+        - PAIR_LIKE edges create one-to-one relationships
+        - PRODUCT_LIKE edges create cartesian product relationships
+        - Edge weights are extracted from source and target vertices
+        - Relation fields can be specified in either source or target
+    """
     # get source and target names
     source, target = edge.source, edge.target
     relation = None
@@ -103,6 +173,31 @@ def render_weights(
     cdoc: dict,
     edges: defaultdict[Optional[str], list],
 ):
+    """Process and apply weights to edge documents.
+
+    This function handles the complex weight management system, including:
+    - Vertex-based weights from related vertices
+    - Direct field mappings from the current document
+    - Weight filtering and transformation
+    - Application of weights to edge documents
+
+    Args:
+        edge: Edge configuration containing weight definitions
+        vertex_config: Vertex configuration for weight processing
+        acc_vertex: Accumulated vertex documents
+        cdoc: Current document being processed
+        edges: Edge documents to apply weights to
+
+    Returns:
+        defaultdict[Optional[str], list]: Updated edge documents with applied weights
+
+    Note:
+        Weights can come from:
+        1. Related vertices (vertex_classes)
+        2. Direct field mappings (direct)
+        3. Field transformations (map)
+        4. Default index fields
+    """
     vertex_classes = [] if edge.weights is None else edge.weights.vertices
     weight: dict = {}
 

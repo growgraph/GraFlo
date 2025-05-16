@@ -28,6 +28,10 @@ theme:
 plugins:
 -   search
 -   glightbox
+-   gen-files:
+        scripts:
+        -   docs/gen_pages.py
+-   literate-nav
 -   mkdocstrings:
         default_handler: python
         handlers:
@@ -43,10 +47,6 @@ plugins:
                         setup_commands:
                         -   "import sys"
                         -   "sys.path.append('.')"
-          # selection:
-          #   docstring_style: google
-          #   inherited_members: true
-          #   filters: ["!^_"]
 
 nav:
 -   Home: index.md
@@ -57,10 +57,7 @@ nav:
 -   Examples:
     -   1 - Ingest csv files: examples/example-1.md
     -   2 - Ingest jsons with self-references: examples/example-2.md
-#-   API Reference:
-#    -   Overview: reference/index.md
-#    -   Core: reference/core.md
-#    -   Connection: reference/connection.md
+-   API Reference: reference/
 -   Contributing: contributing.md
 
 markdown_extensions:

@@ -1,3 +1,19 @@
+"""Data casting and ingestion system for graph databases.
+
+This module provides functionality for casting and ingesting data into graph databases.
+It handles batch processing, file discovery, and database operations for both ArangoDB
+and Neo4j.
+
+Key Components:
+    - Caster: Main class for data casting and ingestion
+    - FilePattern: Pattern matching for file discovery
+    - Patterns: Collection of file patterns for different resources
+
+Example:
+    >>> caster = Caster(schema=schema)
+    >>> caster.ingest_files(path="data/", conn_conf=db_config)
+"""
+
 import logging
 import multiprocessing as mp
 import queue
@@ -20,7 +36,35 @@ logger = logging.getLogger(__name__)
 
 
 class Caster:
+    """Main class for data casting and ingestion.
+
+    This class handles the process of casting data into graph structures and
+    ingesting them into the database. It supports batch processing, parallel
+    execution, and various data formats.
+
+    Attributes:
+        clean_start: Whether to clean the database before ingestion
+        n_cores: Number of CPU cores to use for parallel processing
+        max_items: Maximum number of items to process
+        batch_size: Size of batches for processing
+        n_threads: Number of threads for parallel processing
+        dry: Whether to perform a dry run (no database changes)
+        schema: Schema configuration for the graph
+    """
+
     def __init__(self, schema: Schema, **kwargs):
+        """Initialize the caster with schema and configuration.
+
+        Args:
+            schema: Schema configuration for the graph
+            **kwargs: Additional configuration options:
+                - clean_start: Whether to clean the database before ingestion
+                - n_cores: Number of CPU cores to use
+                - max_items: Maximum number of items to process
+                - batch_size: Size of batches for processing
+                - n_threads: Number of threads for parallel processing
+                - dry: Whether to perform a dry run
+        """
         self.clean_start: bool = False
         self.n_cores = kwargs.pop("n_cores", 1)
         self.max_items = kwargs.pop("max_items", None)
@@ -33,6 +77,19 @@ class Caster:
     def discover_files(
         fpath: Path | str, pattern: FilePattern, limit_files=None
     ) -> list[Path]:
+        """Discover files matching a pattern in a directory.
+
+        Args:
+            fpath: Path to search in
+            pattern: Pattern to match files against
+            limit_files: Optional limit on number of files to return
+
+        Returns:
+            list[Path]: List of matching file paths
+
+        Raises:
+            AssertionError: If pattern.sub_path is None
+        """
         assert pattern.sub_path is not None
         if isinstance(fpath, str):
             fpath_pathlib = Path(fpath)
@@ -58,6 +115,15 @@ class Caster:
     def cast_normal_resource(
         self, data, resource_name: str | None = None
     ) -> GraphContainer:
+        """Cast data into a graph container using a resource.
+
+        Args:
+            data: Data to cast
+            resource_name: Optional name of the resource to use
+
+        Returns:
+            GraphContainer: Container with cast graph data
+        """
         rr = self.schema.fetch_resource(resource_name)
 
         with ThreadPoolExecutor(max_workers=self.n_threads) as executor:
@@ -77,6 +143,13 @@ class Caster:
         resource_name: str | None,
         conn_conf: None | DBConnectionConfig = None,
     ):
+        """Process a batch of data.
+
+        Args:
+            batch: Batch of data to process
+            resource_name: Optional name of the resource to use
+            conn_conf: Optional database connection configuration
+        """
         gc = self.cast_normal_resource(batch, resource_name=resource_name)
 
         if conn_conf is not None:
@@ -88,17 +161,13 @@ class Caster:
         resource_name: str | None,
         conn_conf: None | DBConnectionConfig = None,
     ):
-        """
+        """Process a resource instance.
 
         Args:
-            resource_instance: file
-            conn_conf:
-            resource_name:
-
-        Returns:
-
+            resource_instance: Path to the resource file
+            resource_name: Optional name of the resource
+            conn_conf: Optional database connection configuration
         """
-
         chunker = ChunkerFactory.create_chunker(
             resource=resource_instance, batch_size=self.batch_size, limit=self.max_items
         )
@@ -111,6 +180,13 @@ class Caster:
         conn_conf: DBConnectionConfig,
         resource_name: str | None,
     ):
+        """Push graph container data to the database.
+
+        Args:
+            gc: Graph container with data to push
+            conn_conf: Database connection configuration
+            resource_name: Optional name of the resource
+        """
         vc = self.schema.vertex_config
         resource = self.schema.fetch_resource(resource_name)
         with ConnectionManager(connection_config=conn_conf) as db_client:
@@ -189,6 +265,12 @@ class Caster:
                         )
 
     def process_with_queue(self, tasks: mp.Queue, **kwargs):
+        """Process tasks from a queue.
+
+        Args:
+            tasks: Queue of tasks to process
+            **kwargs: Additional keyword arguments
+        """
         while True:
             try:
                 task = tasks.get_nowait()
@@ -204,6 +286,18 @@ class Caster:
     def normalize_resource(
         data: pd.DataFrame | list[list] | list[dict], columns=None
     ) -> list[dict]:
+        """Normalize resource data into a list of dictionaries.
+
+        Args:
+            data: Data to normalize (DataFrame, list of lists, or list of dicts)
+            columns: Optional column names for list data
+
+        Returns:
+            list[dict]: Normalized data as list of dictionaries
+
+        Raises:
+            ValueError: If columns is not provided for list data
+        """
         if isinstance(data, pd.DataFrame):
             columns = data.columns.tolist()
             _data = data.values.tolist()
@@ -217,14 +311,20 @@ class Caster:
         return rows_dressed
 
     def ingest_files(self, path: Path | str, **kwargs):
-        """
+        """Ingest files from a directory.
 
         Args:
-            path:
-            **kwargs:
-
-        Returns:
-
+            path: Path to directory containing files
+            **kwargs: Additional keyword arguments:
+                - conn_conf: Database connection configuration
+                - clean_start: Whether to clean the database before ingestion
+                - n_cores: Number of CPU cores to use
+                - max_items: Maximum number of items to process
+                - batch_size: Size of batches for processing
+                - dry: Whether to perform a dry run
+                - init_only: Whether to only initialize the database
+                - limit_files: Optional limit on number of files to process
+                - patterns: Optional file patterns to match
         """
         conn_conf: DBConnectionConfig = kwargs.get("conn_conf")
         self.clean_start = kwargs.pop("clean_start", self.clean_start)

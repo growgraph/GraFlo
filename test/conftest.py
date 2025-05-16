@@ -8,8 +8,8 @@ import pytest
 import yaml
 from suthing import FileHandle, equals
 
-from graphcast.architecture.onto import cast_graph_name_to_triple
 from graphcast.architecture.schema import Schema
+from graphcast.architecture.util import cast_graph_name_to_triple
 from graphcast.caster import Caster
 from graphcast.util.misc import sorted_dicts
 

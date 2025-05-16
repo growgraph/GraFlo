@@ -1,3 +1,25 @@
+"""Data ingestion command-line interface for graph databases.
+
+This module provides a CLI tool for ingesting data into graph databases. It supports
+batch processing, parallel execution, and various data formats. The tool can handle
+both initial database setup and incremental data ingestion.
+
+Key Features:
+    - Configurable batch processing
+    - Multi-core and multi-threaded execution
+    - Support for custom resource patterns
+    - Database initialization and cleanup options
+    - Flexible file discovery and processing
+
+Example:
+    $ uv run ingest \\
+        --db-config-path config/db.yaml \\
+        --schema-path config/schema.yaml \\
+        --source-path data/ \\
+        --batch-size 5000 \\
+        --n-cores 4
+"""
+
 import logging.config
 import pathlib
 from os.path import dirname, join, realpath
@@ -55,6 +77,33 @@ def ingest(
     init_only,
     resource_pattern_config_path,
 ):
+    """Ingest data into a graph database.
+
+    This command processes data files and ingests them into a graph database according
+    to the provided schema. It supports various configuration options for controlling
+    the ingestion process.
+
+    Args:
+        db_config_path: Path to database configuration file
+        schema_path: Path to schema configuration file
+        source_path: Path to source data directory
+        limit_files: Optional limit on number of files to process
+        batch_size: Number of items to process in each batch (default: 5000)
+        n_cores: Number of CPU cores to use for parallel processing (default: 1)
+        n_threads: Number of threads per core for parallel processing (default: 1)
+        fresh_start: Whether to wipe existing database before ingestion
+        init_only: Whether to only initialize the database without ingestion
+        resource_pattern_config_path: Optional path to resource pattern configuration
+
+    Example:
+        $ uv run ingest \\
+            --db-config-path config/db.yaml \\
+            --schema-path config/schema.yaml \\
+            --source-path data/ \\
+            --batch-size 5000 \\
+            --n-cores 4 \\
+            --fresh-start
+    """
     cdir = dirname(realpath(__file__))
 
     logging.config.fileConfig(

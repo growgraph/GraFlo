@@ -1,0 +1,3 @@
+# `graphcast.cli`
+
+::: graphcast.cli

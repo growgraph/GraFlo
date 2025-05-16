@@ -1,0 +1,3 @@
+# `graphcast.plot`
+
+::: graphcast.plot
