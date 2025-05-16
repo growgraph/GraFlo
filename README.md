@@ -7,22 +7,39 @@ A framework for transforming **tabular** data (CSV) and **hierarchical** data (J
 [![pre-commit](https://github.com/growgraph/graphcast/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/growgraph/graphcast/actions/workflows/pre-commit.yml)
 [![PyPI version](https://badge.fury.io/py/graphcast.svg)](https://badge.fury.io/py/graphcast)
 
-<!-- [![pytest](https://github.com/growgraph/graphcast/actions/workflows/pytest.yml/badge.svg)](https://github.com/growgraph/graphcast/actions/workflows/pytest.yml) -->
+## Core Concepts
 
+### Property Graphs
+GraphCast works with property graphs, which consist of:
+
+- **Vertices**: Nodes with properties and optional unique identifiers
+- **Edges**: Relationships between vertices with their own properties
+- **Properties**: Both vertices and edges may have properties
+
+### Schema
+The Schema defines how your data should be transformed into a graph and contains:
+
+- **Vertex Definitions**: Specify vertex types, their properties, and unique identifiers
+- **Edge Definitions**: Define relationships between vertices and their properties
+- **Resource Mapping**: describe how data sources map to vertices and edges
+- **Transforms**: Modify data during the casting process
+
+### Resources
+Resources are your data sources that can be:
+
+- **Table-like**: CSV files, database tables
+- **JSON-like**: JSON files, nested data structures
 
 ## Features
 
-- **Data Transformation Meta-language**: Describe how your data becomes a property graph with a support of numerous features:
-    - compound index for vertices and nodes
-    - blank 
-    - edge constraints
-    - egde properties
-    - filter vertices and edges
+- **Graph Transformation Meta-language**: A powerful declarative language to describe how your data becomes a property graph:
+    - Define vertex and edge structures
+    - Set compound indexes for vertices and edges
+    - Use blank vertices for complex relationships
+    - Specify edge constraints and properties
+    - Apply advanced filtering and transformations
 - **Parallel processing**: Use as many cores as you have
 - **Database support**: Ingest into ArangoDB and Neo4j using the same API (database agnostic)
-- **GraphCast Server**: Use a dockerized server to populate your databases
-
-<!-- Transparent and Composable configuration, with a clear isolation of transformation from DB settings (indexing). -->
 
 ## Documentation
 Full documentation is available at: [growgraph.github.io/graphcast](https://growgraph.github.io/graphcast)
@@ -43,34 +60,38 @@ from suthing import ConfigFactory, FileHandle
 from graphcast import Schema, Caster, Patterns
 
 
-schema = Schema.from_dict(FileHandle.load(schema_path))
+schema = Schema.from_dict(FileHandle.load("schema.yaml"))
 
-conn_conf = ConfigFactory.create_config(db_config_path)
+conn_conf = ConfigFactory.create_config({
+        "protocol": "http",
+        "hostname": "localhost",
+        "port": 8535,
+        "username": "root",
+        "password": "123",
+        "database": "_system",
+}
+)
 
-if resource_pattern_config_path is not None:
-    patterns = Patterns.from_dict(
-        FileHandle.load(resource_pattern_config_path)
-    )
-else:
-    patterns = Patterns()
+patterns = Patterns.from_dict(
+    {
+        "patterns": {
+            "work": {"regex": "\Sjson$"},
+        }
+    }
+)
 
 schema.fetch_resource()
 
 caster = Caster(
     schema,
-    n_cores=n_cores,
-    n_threads=n_threads,
 )
 
 caster.ingest_files(
-    path=source_path,
-    batch_size=batch_size,
+    path="./data",
     conn_conf=conn_conf,
     patterns=patterns,
-    init_only=init_only,
 )
 ```
-
 
 ## Development
 
@@ -80,7 +101,6 @@ To install requirements
 git clone git@github.com:growgraph/graphcast.git && cd graphcast
 uv sync --dev
 ```
-
 
 ### Tests
 
@@ -102,7 +122,6 @@ To run unit tests
 ```shell
 pytest test
 ```
-
 
 ## Requirements
 

@@ -35,8 +35,12 @@ Resources are your data sources that can be:
 
 ## Key Features
 
-- **Flexible Schema Definition**: Define complex graph structures with ease
-- **Multiple Data Source Support**: Handles tabuler data (SQL, CSV) and hierarchical data (mongoDB, JSON, XML) and more
+- **Graph Transformation Meta-language**: A powerful declarative language to describe how your data becomes a property graph:
+    - Define vertex and edge structures
+    - Set compound indexes for vertices and edges
+    - Use blank vertices for complex relationships
+    - Specify edge constraints and properties
+    - Apply advanced filtering and transformations
 - **Parallel Processing**: Efficient processing with multi-threading
 - **Database Integration**: Seamless integration with Neo4j and ArangoDB
 - **Advanced Filtering**: Powerful filtering capabilities for data transformation
