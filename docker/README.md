@@ -3,29 +3,27 @@
 # to run containers from docker compose
 
 ```shell
-docker compose --env-file .env up <container_a> <container_b> -d
+docker compose --env-file .env up <container_spec> -d
 ```
 
 # to stop containers from docker compose
 
 ```shell
-docker compose stop <container_a> <container_b>
+docker compose stop <container_name> 
 ```
 
 # to bash into a container
 
 ```shell
-docker exec -it <container_hash> bash
+docker exec -it <containter_name sh
 ```
 
 
 ## arangoshell
 
-```shell
-arangosh --server.endpoint tcp://127.0.0.1:8529 --server.username <name> --server.database <db_name>
-```
+Arango web interface [http://localhost:ARANGO_PORT](http://localhost:8535). NB: the standard arango port is 8529, `.env` config in graphcast uses 8535.
 
 
 ## neo4j shell
 
-`cypher-shell` is available in docker, but it is easier to work with [http://localhost:7475](http://localhost:7475). NB: standard neo4j port is `7474`.
+Neo4j web interface [http://localhost:NEO4J_PORT](http://localhost:7475). NB: the standard neo4j port is 7474, `.env` config in graphcast uses 7475.

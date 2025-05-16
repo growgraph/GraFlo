@@ -4,8 +4,6 @@ from graphcast import Caster, Patterns, Schema
 
 schema = Schema.from_dict(FileHandle.load("schema.yaml"))
 
-caster = Caster(schema)
-
 conn_conf = ConfigFactory.create_config(
     {
         "protocol": "http",
@@ -25,6 +23,8 @@ patterns = Patterns.from_dict(
         }
     }
 )
+
+caster = Caster(schema)
 
 caster.ingest_files(
     path=".",

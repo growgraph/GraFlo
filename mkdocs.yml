@@ -27,6 +27,7 @@ theme:
 
 plugins:
 -   search
+-   glightbox
 -   mkdocstrings:
         default_handler: python
         handlers:
@@ -77,6 +78,27 @@ markdown_extensions:
 -   codehilite
 -   footnotes
 -   meta
+-   pymdownx.blocks.caption
+-   admonition
+-   pymdownx.superfences
+-   pymdownx.details
+-   pymdownx.tabbed
+-   pymdownx.highlight
+-   pymdownx.emoji
+-   pymdownx.tasklist
+-   pymdownx.keys
+-   pymdownx.snippets
+-   pymdownx.magiclink
+-   pymdownx.betterem
+-   pymdownx.caret
+-   pymdownx.tilde
+-   pymdownx.mark
+-   pymdownx.smartsymbols
+-   pymdownx.arithmatex
+-   pymdownx.progressbar
+-   pymdownx.escapeall
+
+
 -   toc:
         permalink: true
 

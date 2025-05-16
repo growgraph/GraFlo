@@ -50,6 +50,11 @@ import graphcast
 print(graphcast.__version__)
 ```
 
+
+## Spinning up databases
+
+Instructions on how spin up `ArangoDB` and `neo4j` as docker images using `docker compose` are provided here [github.com/growgraph/graphcast/docker](https://github.com/growgraph/graphcast/tree/main/docker) 
+
 ## Configuration
 
 After installation, you may need to configure your graph database connection. See the [Quick Start Guide](quickstart.md) for details on setting up your environment.

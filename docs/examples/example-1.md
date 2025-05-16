@@ -1,7 +1,5 @@
-# Example 1: multiple types of csv files
+# Example 1: Multiple Tabular Sources
 
-
-## Basic Data Transformation
 
 Suppose you have a table that represent people:
 
@@ -23,11 +21,44 @@ person_id,person,department
 3,Sid Mei,Customer Service
 ```
 
+We want to define vertices `Person` and `Department` and set up the rules of how to map tables to vertex key-value pairs.
+
+Let's define vertices as
+
 ```yaml
-# schema.yaml
-general:
-    name: hr
-resources:
+ vertices:
+ -   name: person
+     fields:
+     -   id
+     -   name
+     -   age
+     indexes:
+     -   fields:
+         -   id
+ -   name: department
+     fields:
+     -   name
+     indexes:
+     -   fields:
+         -   name
+```
+
+and edges as 
+
+```yaml
+ edges:
+ -   source: person
+     target: department
+```
+
+The graph structure is quite simple:
+
+![People Resource Image](../assets/1-ingest-csv/figs/hr_vc2vc.png){ width="200" }
+
+
+Let's define the mappings: we want to rename the fields `person`, `person_id` and `department` and specify explicitly `target_vertex` to avoid the collision, since both `Person` and `Department` have a field called `name`.  
+
+```yaml
 -   resource_name: people
     apply:
     -   vertex: person
@@ -39,88 +70,55 @@ resources:
     -   target_vertex: department
         map:
             department: name
-vertex_config:
-    vertices:
-    -   name: person
-        fields:
-        -   id
-        -   name
-        -   age
-        indexes:
-        -   fields:
-            -   id
-    -   name: department
-        fields:
-        -   name
-        indexes:
-        -   fields:
-            -   name
-edge_config:
-    edges:
-    -   source: person
-        target: department
 ```
 
+Department Resource
+
+![Department Resource Image](../assets/1-ingest-csv/figs/hr.resource-departments.png){ width="700" }
+
+People Resource
+
+![People Resource Image](../assets/1-ingest-csv/figs/hr.resource-people.png){ width="200" }
+
+
+Transforming the data and ingesting it into an ArangoDB would take a few lines of code
 
 ```python
-from pathlib import Path
-from graphcast import Caster, Schema
+from suthing import ConfigFactory, FileHandle
+from graphcast import Caster, Patterns, Schema
 
-schema = Schema("company.yaml")
+schema = Schema.from_dict(FileHandle.load("schema.yaml"))
+
+conn_conf = ConfigFactory.create_config(
+    {
+        "protocol": "http",
+        "hostname": "localhost",
+        "port": 8535,
+        "username": "root",
+        "password": "123",
+        "database": "_system",
+    }
+)
+
+patterns = Patterns.from_dict(
+    {
+        "patterns": {
+            "people": {"regex": "^people.*\.csv$"},
+            "departments": {"regex": "^dep.*\.csv$"},
+        }
+    }
+)
 
 # Initialize caster and process data
 caster = Caster(schema)
-caster.ingest_files(Path("data/"))
+caster.ingest_files(
+    path=".",
+    conn_conf=conn_conf,
+    patterns=patterns,
+)
+
 ```
 
-### JSON to Graph
-
-```python
-from graphcast import Caster, Schema
-
-# Define schema for JSON data
-schema = Schema({
-    "vertices": {
-        "User": {
-            "source": "users.json",
-            "properties": ["id", "username", "email"]
-        },
-        "Post": {
-            "source": "posts.json",
-            "properties": ["id", "title", "content"]
-        }
-    },
-    "edges": {
-        "CREATED": {
-            "source": "posts.json",
-            "from": "User",
-            "to": "Post",
-            "properties": ["created_at"]
-        }
-    }
-})
-
-# Process JSON data
-caster = Caster(schema)
-caster.ingest_files(Path("data/"))
-```
-
-
-## Best Practices
-
-1. **Schema Design**
-   - Keep vertex and edge types meaningful and consistent
-   - Use appropriate property types for your data
-   - Consider indexing frequently queried properties
-
-2. **Performance Optimization**
-   - Use batch processing for large datasets
-   - Enable parallel processing when possible
-   - Monitor memory usage during transformation
-
-3. **Data Quality**
-   - Implement data validation in your schema
-   - Use filters to clean and transform data
-   - Handle missing or invalid data appropriately
+Please refer to [examples](https://github.com/growgraph/graphcast/tree/main/examples/1-ingest-csv)
 
 For more examples and detailed explanations, refer to the [API Reference](../reference/index.md). 
