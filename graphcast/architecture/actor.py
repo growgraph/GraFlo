@@ -251,7 +251,7 @@ class VertexActor(Actor):
                 agg += [_doc]
 
         for item in buffer_vertex:
-            _doc = {k: item[k] for k in vertex_keys if k in buffer_vertex}
+            _doc = {k: item[k] for k in vertex_keys if k in item}
 
             if all(cfilter(doc) for cfilter in self.vertex_config.filters(self.name)):
                 agg += [_doc]
@@ -263,7 +263,7 @@ class VertexActor(Actor):
         if passthrough_doc:
             agg += [passthrough_doc]
 
-        ctx.acc_v_local[self.name][self.discriminant] += agg
+        ctx.acc_vertex_local[self.name][self.discriminant] += agg
         return ctx
 
 
@@ -325,20 +325,28 @@ class EdgeActor(Actor):
         Returns:
             Updated action context
         """
-        edges = render_edge(self.edge, self.vertex_config, ctx.acc_v_local)
+        edges = render_edge(self.edge, self.vertex_config, ctx.acc_vertex_local)
 
         edges = render_weights(
-            self.edge, self.vertex_config, ctx.acc_v_local, ctx.buffer_transforms, edges
+            self.edge,
+            self.vertex_config,
+            ctx.acc_vertex_local,
+            ctx.buffer_transforms,
+            edges,
         )
 
         for relation, v in edges.items():
             ctx.acc_global[self.edge.source, self.edge.target, relation] += v
 
         ctx.acc_vertex[self.edge.source][self.edge.source_discriminant] += (
-            ctx.acc_v_local[self.edge.source].pop(self.edge.source_discriminant, [])
+            ctx.acc_vertex_local[self.edge.source].pop(
+                self.edge.source_discriminant, []
+            )
         )
         ctx.acc_vertex[self.edge.target][self.edge.target_discriminant] += (
-            ctx.acc_v_local[self.edge.target].pop(self.edge.target_discriminant, [])
+            ctx.acc_vertex_local[self.edge.target].pop(
+                self.edge.target_discriminant, []
+            )
         )
 
         return ctx
@@ -639,7 +647,7 @@ class DescendActor(Actor):
 
         # clean up after descent
         ctx.buffer_transforms = []
-        ctx.buffer_vertex = defaultdict(list)
+        # ctx.buffer_vertex = defaultdict(list)
         return ctx
 
     def fetch_actors(self, level, edges):
@@ -836,9 +844,9 @@ class ActorWrapper:
         Returns:
             defaultdict[GraphEntity, list]: Normalized context
         """
-        for vertex in list(ctx.acc_v_local):
-            discriminant_dd: defaultdict[Optional[str], list] = ctx.acc_v_local.pop(
-                vertex, defaultdict(list)
+        for vertex in list(ctx.acc_vertex_local):
+            discriminant_dd: defaultdict[Optional[str], list] = (
+                ctx.acc_vertex_local.pop(vertex, defaultdict(list))
             )
             for discriminant in list(discriminant_dd):
                 vertices = discriminant_dd.pop(discriminant, [])
@@ -856,7 +864,7 @@ class ActorWrapper:
                 extra_edges = render_weights(
                     edge,
                     self.vertex_config,
-                    ctx.acc_v_local,
+                    ctx.acc_vertex_local,
                     ctx.buffer_transforms,
                     extra_edges,
                 )

@@ -390,3 +390,47 @@ def action_node_transform():
 def sample_openalex():
     an = FileHandle.load("test/data/json/openalex.works.json")
     return an
+
+
+@pytest.fixture()
+def vertex_config_cross():
+    tc = yaml.safe_load("""
+    vertex_config:
+    vertices:
+    -   name: person
+        fields:
+        -   id
+        indexes:
+        -   fields:
+            -   id
+    -   name: company
+        fields:
+        -   id
+        indexes:
+        -   fields:
+            -   id
+    """)
+    return VertexConfig.from_dict(tc)
+
+
+@pytest.fixture()
+def sample_cross():
+    an = yaml.safe_load("""
+    -   name: John
+        id: Apple
+    -   name: Mary
+        id: Oracle
+    """)
+    return an
+
+
+@pytest.fixture()
+def resource_cross():
+    an = yaml.safe_load("""
+    -   vertex: person
+    -   vertex: company 
+    -   target_vertex: person
+        map:
+            name: id
+    """)
+    return an

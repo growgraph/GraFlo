@@ -302,15 +302,15 @@ class ActionContext(BaseDataclass):
     """Context for graph transformation actions.
 
     Attributes:
-        acc_v_local: Local accumulation of vertices
+        acc_vertex_local: Local accumulation of vertices
         acc_vertex: Global accumulation of vertices
         acc_global: Global accumulation of graph entities
         buffer_vertex: Buffer for vertex data
-        buffer_transforms: Current document being processed
+        buffer_transforms: Buffer for transforms data
     """
 
-    acc_v_local: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(
-        default_factory=outer_factory
+    acc_vertex_local: defaultdict[str, defaultdict[Optional[str], list]] = (
+        dataclasses.field(default_factory=outer_factory)
     )
     acc_vertex: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(
         default_factory=outer_factory

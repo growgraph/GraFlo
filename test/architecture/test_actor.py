@@ -47,11 +47,11 @@ def test_mapper_value(resource_concept, schema_vc_openalex):
     anw.finish_init(vertex_config=schema_vc_openalex, transforms={})
     ctx = ActionContext()
     ctx = anw(ctx, doc=test_doc)
-    assert ctx.acc_v_local["concept"][None] == [
+    assert ctx.acc_vertex_local["concept"][None] == [
         {"wikidata": "Q123"},
         {"mag": 105794591},
     ]
-    assert len(ctx.acc_v_local) == 1
+    assert len(ctx.acc_vertex_local) == 1
 
 
 def test_transform_shortcut(resource_openalex_works, schema_vc_openalex):

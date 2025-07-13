@@ -69,8 +69,11 @@ def test_actor_wrapper_openalex(resource_cross, vertex_config_cross, sample_cros
     anw = ActorWrapper(*resource_cross)
     anw.finish_init(transforms={}, vertex_config=vertex_config_cross)
     ctx = anw(ctx, doc=sample_cross)
-    assert ctx.acc_v_local["person"][None] == [{"id": "John"}, {"id": "Mary"}]
-    assert ctx.acc_v_local["company"][None] == [{"name": "Apple"}, {"name": "Oracle"}]
+    assert ctx.acc_vertex_local["person"][None] == [{"id": "John"}, {"id": "Mary"}]
+    assert ctx.acc_vertex_local["company"][None] == [
+        {"name": "Apple"},
+        {"name": "Oracle"},
+    ]
 
 
 def test_actor_wrapper_openalex_implicit(
@@ -80,5 +83,8 @@ def test_actor_wrapper_openalex_implicit(
     anw = ActorWrapper(*resource_cross_implicit)
     anw.finish_init(transforms={}, vertex_config=vertex_config_cross)
     ctx = anw(ctx, doc=sample_cross)
-    assert ctx.acc_v_local["person"][None] == [{"id": "John"}, {"id": "Mary"}]
-    assert ctx.acc_v_local["company"][None] == [{"name": "Apple"}, {"name": "Oracle"}]
+    assert ctx.acc_vertex_local["person"][None] == [{"id": "John"}, {"id": "Mary"}]
+    assert ctx.acc_vertex_local["company"][None] == [
+        {"name": "Apple"},
+        {"name": "Oracle"},
+    ]
