@@ -73,7 +73,9 @@ def add_blank_collections(
     # add blank collections
     for vname in vertex_conf.blank_vertices:
         v = vertex_conf[vname]
-        prep_doc = {f: ctx.cdoc[f] for f in v.fields if f in ctx.cdoc}
+        prep_doc = {
+            f: ctx.buffer_transforms[f] for f in v.fields if f in ctx.buffer_transforms
+        }
         if vname not in ctx.acc_global:
             ctx.acc_global[vname] = [prep_doc]
     return ctx
@@ -170,7 +172,7 @@ def render_weights(
     edge: Edge,
     vertex_config: VertexConfig,
     acc_vertex: defaultdict[str, defaultdict[Optional[str], list]],
-    cdoc: dict,
+    buffer_transforms: list[dict],
     edges: defaultdict[Optional[str], list],
 ):
     """Process and apply weights to edge documents.
@@ -185,7 +187,7 @@ def render_weights(
         edge: Edge configuration containing weight definitions
         vertex_config: Vertex configuration for weight processing
         acc_vertex: Accumulated vertex documents
-        cdoc: Current document being processed
+        buffer_transforms: Current document being processed
         edges: Edge documents to apply weights to
 
     Returns:
@@ -251,10 +253,13 @@ def render_weights(
                         f" a non existent vcollection {vertex_weight_conf.name}"
                     )
     if edge.weights is not None:
-        weight = {
-            **weight,
-            **{k: cdoc[k] for k in edge.weights.direct if k in cdoc},
+        acc = {
+            k: item[k]
+            for k in edge.weights.direct
+            for item in buffer_transforms
+            if k in item
         }
+        weight.update(acc)
 
     if weight:
         for r, edocs in edges.items():

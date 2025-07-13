@@ -1,7 +1,7 @@
 # Example 1: Multiple Tabular Sources
 
 
-Suppose we have a table that represent people:
+Suppose we have a table that represents people:
 
 ```csv
 # people.csv

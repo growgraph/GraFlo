@@ -24,6 +24,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from functools import reduce
 from pathlib import Path
 from types import MappingProxyType
 from typing import Optional, Type
@@ -227,33 +228,42 @@ class VertexActor(Actor):
         doc: dict = kwargs.pop("doc", {})
 
         vertex_keys = self.vertex_config.fields(self.name, with_aux=True)
-        custom_transform = ctx.buffer_vertex.pop(self.name, {})
+        buffer_vertex = ctx.buffer_vertex.pop(self.name, [])
 
-        _doc: dict = {
-            k: custom_transform[k] for k in vertex_keys if k in custom_transform
-        }
+        agg = []
 
-        n_value_keys = len(
-            [k for k in ctx.cdoc if k.startswith(DRESSING_TRANSFORMED_VALUE_KEY)]
+        for item in ctx.buffer_transforms:
+            _doc: dict = dict()
+            n_value_keys = len(
+                [k for k in item if k.startswith(DRESSING_TRANSFORMED_VALUE_KEY)]
+            )
+            for j in range(n_value_keys):
+                vkey = self.vertex_config.index(self.name).fields[j]
+                v = item.pop(f"{DRESSING_TRANSFORMED_VALUE_KEY}#{j}")
+                _doc[vkey] = v
+
+            for vkey in set(vertex_keys) - set(_doc):
+                v = item.get(vkey, None)
+                if v is not None:
+                    _doc[vkey] = v
+
+            if all(cfilter(doc) for cfilter in self.vertex_config.filters(self.name)):
+                agg += [_doc]
+
+        for item in buffer_vertex:
+            _doc = {k: item[k] for k in vertex_keys if k in buffer_vertex}
+
+            if all(cfilter(doc) for cfilter in self.vertex_config.filters(self.name)):
+                agg += [_doc]
+
+        remaining_keys = set(vertex_keys) - reduce(
+            lambda acc, d: acc | d.keys(), agg, set()
         )
-        for j in range(n_value_keys):
-            vkey = self.vertex_config.index(self.name).fields[j]
-            v = ctx.cdoc.pop(f"{DRESSING_TRANSFORMED_VALUE_KEY}#{j}")
-            _doc[vkey] = v
+        passthrough_doc = {k: doc[k] for k in remaining_keys if k in doc}
+        if passthrough_doc:
+            agg += [passthrough_doc]
 
-        for vkey in set(vertex_keys) - set(_doc):
-            v = ctx.cdoc.get(vkey, None)
-            if v is not None:
-                _doc[vkey] = v
-
-        for vkey in set(vertex_keys) - set(_doc):
-            v = doc.get(vkey, None)
-            if v is not None:
-                _doc[vkey] = v
-
-        if all(cfilter(doc) for cfilter in self.vertex_config.filters(self.name)):
-            ctx.acc_v_local[self.name][self.discriminant] += [_doc]
-
+        ctx.acc_v_local[self.name][self.discriminant] += agg
         return ctx
 
 
@@ -318,7 +328,7 @@ class EdgeActor(Actor):
         edges = render_edge(self.edge, self.vertex_config, ctx.acc_v_local)
 
         edges = render_weights(
-            self.edge, self.vertex_config, ctx.acc_v_local, ctx.cdoc, edges
+            self.edge, self.vertex_config, ctx.acc_v_local, ctx.buffer_transforms, edges
         )
 
         for relation, v in edges.items():
@@ -461,9 +471,9 @@ class TransformActor(Actor):
                 _update_doc = {f"{DRESSING_TRANSFORMED_VALUE_KEY}#0": value}
 
         if self.vertex is None:
-            ctx.cdoc.update(_update_doc)
+            ctx.buffer_transforms += [_update_doc]
         else:
-            ctx.buffer_vertex[self.vertex] = _update_doc
+            ctx.buffer_vertex[self.vertex] += [_update_doc]
         return ctx
 
 
@@ -618,13 +628,18 @@ class DescendActor(Actor):
                 kwargs["doc"] = sub_doc
             else:
                 nargs = (sub_doc,)
-            ctx.cdoc = {}
+
+            ctx.buffer_transforms = []
 
             for j, anw in enumerate(self.descendants):
                 logger.debug(
                     f"{type(anw.actor).__name__}: {j + 1}/{len(self.descendants)}"
                 )
                 ctx = anw(ctx, *nargs, **kwargs)
+
+        # clean up after descent
+        ctx.buffer_transforms = []
+        ctx.buffer_vertex = defaultdict(list)
         return ctx
 
     def fetch_actors(self, level, edges):
@@ -842,7 +857,7 @@ class ActorWrapper:
                     edge,
                     self.vertex_config,
                     ctx.acc_v_local,
-                    ctx.cdoc,
+                    ctx.buffer_transforms,
                     extra_edges,
                 )
 

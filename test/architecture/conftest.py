@@ -1,5 +1,8 @@
 import pytest
 import yaml
+from suthing import FileHandle
+
+from graphcast.architecture import VertexConfig
 
 
 @pytest.fixture()
@@ -245,3 +248,145 @@ def resource_concept():
     """
     )
     return mn
+
+
+@pytest.fixture()
+def schema_vc_openalex():
+    tc = yaml.safe_load("""
+    vertex_config:
+    vertices:
+    -   name: author
+        dbname: authors
+        fields:
+        -   _key
+        -   display_name
+        -   updated_date
+        indexes:
+        -   fields:
+            -   _key
+        -   unique: false
+            type: fulltext
+            fields:
+            -   display_name
+        -   unique: false
+            fields:
+            -   updated_date
+        -   unique: false
+            fields:
+            -   created_date
+    -   name: concept
+        dbname: concepts
+        fields:
+        -   _key
+        -   wikidata
+        -   display_name
+        -   level
+        -   mag
+        -   created_date
+        -   updated_date
+        indexes:
+        -   fields:
+            -   _key
+    -   name: institution
+        dbname: institutions
+        fields:
+        -   _key
+        -   display_name
+        -   country
+        -   type
+        -   ror
+        -   grid
+        -   wikidata
+        -   mag
+        -   created_date
+        -   updated_date
+        indexes:
+        -   fields:
+            -   _key
+        -   unique: false
+            type: fulltext
+            fields:
+            -   display_name
+        -   unique: false
+            fields:
+            -   type
+    -   name: source
+        dbname: sources
+        fields:
+        -   _key
+        -   issn_l
+        -   type
+        -   display_name
+        -   created_date
+        -   updated_date
+        -   country_code
+        indexes:
+        -   fields:
+            -   _key
+        -   fields:
+            -   issn_l
+    -   name: work
+        dbname: works
+        fields:
+        -   _key
+        -   doi
+        -   title
+        -   created_date
+        -   updated_date
+        -   publication_date
+        -   publication_year
+        indexes:
+        -   fields:
+            -   _key
+        -   fields:
+            -   doi
+    """)
+    return VertexConfig.from_dict(tc)
+
+
+@pytest.fixture()
+def resource_descend():
+    tc = yaml.safe_load(
+        """
+        key: publications
+        apply:
+        - key: abc
+          apply:
+            name: a
+        - vertex: work
+        """
+    )
+    return tc
+
+
+@pytest.fixture()
+def action_node_edge():
+    tc = yaml.safe_load(
+        """
+        source: source
+        target: work
+        relation: contains
+        target_discriminant: _top_level
+        """
+    )
+    return tc
+
+
+@pytest.fixture()
+def action_node_transform():
+    an = yaml.safe_load("""
+        foo: parse_date_ibes
+        module: graphcast.util.transform
+        input:
+        -   ANNDATS
+        -   ANNTIMS
+        output:
+        -   datetime_announce
+    """)
+    return an
+
+
+@pytest.fixture()
+def sample_openalex():
+    an = FileHandle.load("test/data/json/openalex.works.json")
+    return an

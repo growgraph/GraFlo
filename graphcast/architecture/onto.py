@@ -306,7 +306,7 @@ class ActionContext(BaseDataclass):
         acc_vertex: Global accumulation of vertices
         acc_global: Global accumulation of graph entities
         buffer_vertex: Buffer for vertex data
-        cdoc: Current document being processed
+        buffer_transforms: Current document being processed
     """
 
     acc_v_local: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(
@@ -318,7 +318,7 @@ class ActionContext(BaseDataclass):
     acc_global: defaultdict[GraphEntity, list] = dataclasses.field(
         default_factory=dd_factory
     )
-    buffer_vertex: defaultdict[GraphEntity, dict] = dataclasses.field(
-        default_factory=lambda: defaultdict(dict)
+    buffer_vertex: defaultdict[GraphEntity, list] = dataclasses.field(
+        default_factory=lambda: defaultdict(list)
     )
-    cdoc: dict = dataclasses.field(default_factory=dict)
+    buffer_transforms: list[dict] = dataclasses.field(default_factory=list)

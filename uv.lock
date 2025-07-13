@@ -159,7 +159,7 @@ wheels = [
 
 [[package]]
 name = "graphcast"
-version = "0.14.0"
+version = "0.14.2"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -170,6 +170,11 @@ dependencies = [
     { name = "python-arango" },
     { name = "suthing" },
     { name = "xmltodict" },
+]
+
+[package.optional-dependencies]
+plot = [
+    { name = "pygraphviz" },
 ]
 
 [package.dev-dependencies]
@@ -196,10 +201,12 @@ requires-dist = [
     { name = "neo4j", specifier = ">=5.22.0,<6" },
     { name = "networkx", specifier = "~=3.3" },
     { name = "pandas", specifier = ">=2.0.3,<3" },
+    { name = "pygraphviz", marker = "extra == 'plot'", specifier = ">=1.14" },
     { name = "python-arango", specifier = ">=8.1.2,<9" },
     { name = "suthing", specifier = ">=0.4.1,<0.5" },
     { name = "xmltodict", specifier = ">=0.14.2,<0.15" },
 ]
+provides-extras = ["plot"]
 
 [package.metadata.requires-dev]
 dev = [

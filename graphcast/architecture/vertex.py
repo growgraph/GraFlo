@@ -68,6 +68,8 @@ class Vertex(BaseDataclass):
         if self.dbname is None:
             self.dbname = self.name
         union_fields = set(self.fields)
+        if not self.indexes:
+            self.indexes = [Index(fields=self.fields)]
         for ei in self.indexes:
             union_fields |= set(ei.fields)
         self.fields = list(union_fields)

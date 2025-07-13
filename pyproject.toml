@@ -37,6 +37,9 @@ readme = "README.md"
 requires-python = "~=3.11"
 version = "0.14.2"
 
+[project.optional-dependencies]
+plot = ["pygraphviz>=1.14"]
+
 [project.scripts]
 ingest = "graphcast.cli.ingest:ingest"
 manage_dbs = "graphcast.cli.manage_dbs:manage_dbs"

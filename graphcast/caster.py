@@ -24,7 +24,7 @@ from functools import partial
 from pathlib import Path
 
 import pandas as pd
-from suthing import DBConnectionConfig, Timer
+from suthing import ConnectionKind, DBConnectionConfig, Timer
 
 from graphcast.architecture.onto import SOURCE_AUX, TARGET_AUX, GraphContainer
 from graphcast.architecture.schema import Schema
@@ -340,7 +340,10 @@ class Caster:
         limit_files = kwargs.pop("limit_files", None)
         patterns = kwargs.pop("patterns", Patterns())
 
-        if conn_conf.database == "_system":
+        if (
+            conn_conf.connection_type == ConnectionKind.ARANGO
+            and conn_conf.database == "_system"
+        ):
             db_name = self.schema.general.name
             try:
                 with ConnectionManager(connection_config=conn_conf) as db_client:

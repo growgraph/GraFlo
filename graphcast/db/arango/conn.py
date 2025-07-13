@@ -71,8 +71,8 @@ class ArangoConnection(Connection):
 
         self.conn = client.db(
             config.database,
-            username=config.cred_name,
-            password=config.cred_pass,
+            username=config.username,
+            password=config.password,
         )
 
     def create_database(self, name: str):
