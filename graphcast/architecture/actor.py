@@ -246,12 +246,13 @@ class VertexActor(Actor):
                 _doc[vkey] = v
 
             for vkey in set(vertex_keys) - set(_doc):
-                v = item.get(vkey, None)
+                v = item.pop(vkey, None)
                 if v is not None:
                     _doc[vkey] = v
 
             if all(cfilter(doc) for cfilter in self.vertex_config.filters(self.name)):
                 agg += [_doc]
+        ctx.buffer_transforms = [x for x in ctx.buffer_transforms if x]
 
         for item in buffer_vertex:
             _doc = {k: item[k] for k in vertex_keys if k in item}
@@ -653,17 +654,12 @@ class DescendActor(Actor):
             else:
                 nargs = (sub_doc,)
 
-            ctx.buffer_transforms = []
-
             for j, anw in enumerate(self.descendants):
                 logger.debug(
                     f"{type(anw.actor).__name__}: {j + 1}/{len(self.descendants)}"
                 )
                 ctx = anw(ctx, *nargs, **kwargs)
 
-        # clean up after descent
-        ctx.buffer_transforms = []
-        # ctx.buffer_vertex = defaultdict(list)
         return ctx
 
     def fetch_actors(self, level, edges):
@@ -880,7 +876,7 @@ class ActorWrapper:
                 extra_edges = render_weights(
                     edge,
                     self.vertex_config,
-                    ctx.acc_vertex_local,
+                    ctx.acc_vertex,
                     ctx.buffer_transforms,
                     extra_edges,
                 )
@@ -890,12 +886,12 @@ class ActorWrapper:
 
         for vertex, dd in ctx.acc_vertex.items():
             for discriminant, vertex_list in dd.items():
-                vertex_list = pick_unique_dict(vertex_list)
                 vvv = merge_doc_basis(
                     vertex_list,
                     tuple(self.vertex_config.index(vertex).fields),
                     discriminant_key=None,
                 )
+                vvv = pick_unique_dict(vvv)
 
                 ctx.acc_global[vertex] += vvv
 

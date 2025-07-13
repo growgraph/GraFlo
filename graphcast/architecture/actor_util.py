@@ -54,21 +54,21 @@ def add_blank_collections(
 ) -> ActionContext:
     """Add blank collections for vertices that require them.
 
-    This function creates blank collections for vertices marked as blank in the
-    vertex configuration. It copies relevant fields from the current document
-    to create the blank vertex documents.
+        This function creates blank collections for vertices marked as blank in the
+        vertex configuration. It copies relevant fields from the current document
+        to create the blank vertex documents.
+    edg
+        Args:
+            ctx: Current action context containing document and accumulator
+            vertex_conf: Vertex configuration containing blank vertex definitions
 
-    Args:
-        ctx: Current action context containing document and accumulator
-        vertex_conf: Vertex configuration containing blank vertex definitions
+        Returns:
+            ActionContext: Updated context with new blank collections
 
-    Returns:
-        ActionContext: Updated context with new blank collections
-
-    Example:
-        >>> ctx = add_blank_collections(ctx, vertex_config)
-        >>> print(ctx.acc_global['blank_vertex'])
-        [{'field1': 'value1', 'field2': 'value2'}]
+        Example:
+            >>> ctx = add_blank_collections(ctx, vertex_config)
+            >>> print(ctx.acc_global['blank_vertex'])
+            [{'field1': 'value1', 'field2': 'value2'}]
     """
     # add blank collections
     for vname in vertex_conf.blank_vertices:
@@ -200,58 +200,52 @@ def render_weights(
         3. Field transformations (map)
         4. Default index fields
     """
-    vertex_classes = [] if edge.weights is None else edge.weights.vertices
+    vertex_weights = [] if edge.weights is None else edge.weights.vertices
     weight: dict = {}
 
-    for vertex_weight_conf in vertex_classes:
-        if vertex_weight_conf.name is None:
+    for w in vertex_weights:
+        vertex = w.name
+        if vertex is None or vertex not in vertex_config.vertex_set:
             continue
-        vertex_sample = [
-            doc
-            for doc in acc_vertex[vertex_weight_conf.name][
-                vertex_weight_conf.discriminant
-            ]
-        ]
+        vertex_sample = [doc for doc in acc_vertex[vertex][w.discriminant]]
 
         # find all vertices satisfying condition
-        if vertex_weight_conf.filter:
+        if w.filter:
             vertex_sample = [
                 doc
                 for doc in vertex_sample
-                if all(
-                    [doc[q] == v in doc for q, v in vertex_weight_conf.filter.items()]
-                )
+                if all([doc[q] == v in doc for q, v in w.filter.items()])
             ]
         if vertex_sample:
-            doc = vertex_sample[0]
-            if vertex_weight_conf.fields:
-                weight = {
-                    **weight,
-                    **{
-                        vertex_weight_conf.cfield(field): doc[field]
-                        for field in vertex_weight_conf.fields
-                        if field in doc
-                    },
-                }
-            if vertex_weight_conf.map:
-                weight = {
-                    **weight,
-                    **{q: doc[k] for k, q in vertex_weight_conf.map.items()},
-                }
-            if not vertex_weight_conf.fields and not vertex_weight_conf.map:
-                try:
+            for doc in vertex_sample:
+                if w.fields:
                     weight = {
-                        f"{vertex_weight_conf.name}.{k}": doc[k]
-                        for k in vertex_config.index(vertex_weight_conf.name)
-                        if k in doc
+                        **weight,
+                        **{
+                            w.cfield(field): doc[field]
+                            for field in w.fields
+                            if field in doc
+                        },
                     }
-                except ValueError:
-                    weight = {}
-                    logger.error(
-                        " weights mapper error : weight definition on"
-                        f" {edge.source} {edge.target} refers to"
-                        f" a non existent vcollection {vertex_weight_conf.name}"
-                    )
+                if w.map:
+                    weight = {
+                        **weight,
+                        **{q: doc[k] for k, q in w.map.items()},
+                    }
+                if not w.fields and not w.map:
+                    try:
+                        weight = {
+                            f"{vertex}.{k}": doc[k]
+                            for k in vertex_config.index(vertex)
+                            if k in doc
+                        }
+                    except ValueError:
+                        weight = {}
+                        logger.error(
+                            " weights mapper error : weight definition on"
+                            f" {edge.source} {edge.target} refers to"
+                            f" a non existent vcollection {vertex}"
+                        )
     if edge.weights is not None:
         acc = {
             k: item[k]

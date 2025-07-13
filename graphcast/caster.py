@@ -230,25 +230,28 @@ class Caster:
                 if edge.weights is None:
                     continue
                 for weight in edge.weights.vertices:
-                    assert weight.name is not None
-                    index_fields = vc.index(weight.name)
+                    if weight.name in vc.vertex_set:
+                        index_fields = vc.index(weight.name)
 
-                    if not self.dry and weight.name in gc.vertices:
-                        weights_per_item = db_client.fetch_present_documents(
-                            class_name=vc.vertex_dbname(weight.name),
-                            batch=gc.vertices[weight.name],
-                            match_keys=index_fields.fields,
-                            keep_keys=weight.fields,
-                        )
+                        if not self.dry and weight.name in gc.vertices:
+                            weights_per_item = db_client.fetch_present_documents(
+                                class_name=vc.vertex_dbname(weight.name),
+                                batch=gc.vertices[weight.name],
+                                match_keys=index_fields.fields,
+                                keep_keys=weight.fields,
+                            )
 
-                        for j, item in enumerate(gc.linear):
-                            weights = weights_per_item[j]
+                            for j, item in enumerate(gc.linear):
+                                weights = weights_per_item[j]
 
-                            for ee in item[edge.edge_id]:
-                                weight_collection_attached = {
-                                    weight.cfield(k): v for k, v in weights[0].items()
-                                }
-                                ee.update(weight_collection_attached)
+                                for ee in item[edge.edge_id]:
+                                    weight_collection_attached = {
+                                        weight.cfield(k): v
+                                        for k, v in weights[0].items()
+                                    }
+                                    ee.update(weight_collection_attached)
+                    else:
+                        logger.error(f"{weight.name} not a valid vertex")
 
         with ConnectionManager(connection_config=conn_conf) as db_client:
             for edge_id, edge in self.schema.edge_config.edges_items():

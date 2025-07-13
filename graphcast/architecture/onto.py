@@ -103,6 +103,7 @@ class ABCFields(BaseDataclass, metaclass=ABCMeta):
 
     name: Optional[str] = None
     fields: list[str] = dataclasses.field(default_factory=list)
+    keep_vertex_name: bool = True
 
     def cfield(self, x: str) -> str:
         """Creates a composite field name by combining the entity name with a field name.
@@ -113,7 +114,7 @@ class ABCFields(BaseDataclass, metaclass=ABCMeta):
         Returns:
             Composite field name in format "entity@field"
         """
-        return f"{self.name}@{x}"
+        return f"{self.name}@{x}" if self.keep_vertex_name else x
 
 
 @dataclasses.dataclass
