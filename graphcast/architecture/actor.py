@@ -43,7 +43,10 @@ from graphcast.architecture.transform import ProtoTransform, Transform
 from graphcast.architecture.vertex import (
     VertexConfig,
 )
-from graphcast.util.merge import merge_doc_basis
+from graphcast.util.merge import (
+    merge_doc_basis,
+    merge_doc_basis_closest_preceding,
+)
 from graphcast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
@@ -325,6 +328,8 @@ class EdgeActor(Actor):
         Returns:
             Updated action context
         """
+
+        ctx = self.merge_vertices(ctx)
         edges = render_edge(self.edge, self.vertex_config, ctx.acc_vertex_local)
 
         edges = render_weights(
@@ -349,6 +354,17 @@ class EdgeActor(Actor):
             )
         )
 
+        return ctx
+
+    def merge_vertices(self, ctx):
+        for vertex, dd in ctx.acc_vertex_local.items():
+            for discriminant, vertex_list in dd.items():
+                vvv = merge_doc_basis_closest_preceding(
+                    vertex_list,
+                    tuple(self.vertex_config.index(vertex).fields),
+                )
+                vvv = pick_unique_dict(vvv)
+                ctx.acc_vertex_local[vertex][discriminant] = vvv
         return ctx
 
 

@@ -66,8 +66,7 @@ def test_transform_shortcut(resource_openalex_works, schema_vc_openalex):
     ctx = anw(ctx, doc=doc)
     # we are checking acc_vertex because EdgeActor moved it from acc_vertex_local
     assert ctx.acc_vertex["work"]["_top_level"] == [
-        {"_key": "A123"},
-        {"doi": "10.1007/978-3-123"},
+        {"_key": "A123", "doi": "10.1007/978-3-123"},
     ]
 
 
@@ -81,5 +80,5 @@ def test_discriminant_edge(
     assemble_tree(anw, Path("test/figs/discriminate_edge.pdf"))
     ctx = anw(ctx, doc=sample_openalex)
     assert len(ctx.acc_vertex["work"][None]) == 5
-    assert len(ctx.acc_vertex["work"]["_top_level"]) == 3
+    assert len(ctx.acc_vertex["work"]["_top_level"]) == 1
     assert len(ctx.acc_global[("work", "work", None)]) == 5

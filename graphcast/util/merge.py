@@ -45,7 +45,6 @@ def merge_doc_basis(
     docs: list[dict],
     index_keys: tuple[str, ...],
     discriminant_key=None,
-    # discriminant_value=None,
 ) -> list[dict]:
     """Merge documents based on common index keys.
 
@@ -90,3 +89,53 @@ def merge_doc_basis(
             bearing_docs[tuple_ix].update(bearing_docs.pop(()))
 
     return list(bearing_docs.values())
+
+
+def merge_doc_basis_closest_preceding(
+    docs: list[dict],
+    index_keys: tuple[str, ...],
+) -> list[dict]:
+    """Merge documents based on index_keys.
+
+    Leading non-ID docs are merged into the first ID doc.
+    Remaining non-ID docs are merged into the closest preceding ID doc.
+
+    Args:
+        docs: List of documents to merge
+        index_keys: Tuple of key names to use for merging
+
+    Returns:
+        list[dict]: Merged documents
+    """
+    merged_docs: list[dict] = []
+    pending_non_ids: list[dict] = []
+
+    for doc in docs:
+        if any(k in doc for k in index_keys):
+            # This is an ID document
+            # First, handle any accumulated non-ID docs
+            if pending_non_ids:
+                if not merged_docs:
+                    # No previous ID doc, create new one with accumulated non-IDs
+                    merged_doc = {}
+                    for non_id in pending_non_ids:
+                        merged_doc.update(non_id)
+                    merged_docs.append(merged_doc)
+                else:
+                    # Merge accumulated non-IDs into the last ID doc
+                    for non_id in pending_non_ids:
+                        merged_docs[-1].update(non_id)
+                pending_non_ids.clear()
+
+            # Add the current ID document
+            merged_docs.append(doc.copy())
+        else:
+            # This is a non-ID document, accumulate it
+            pending_non_ids.append(doc)
+
+    # Handle any remaining non-ID docs at the end
+    if pending_non_ids and merged_docs:
+        for non_id in pending_non_ids:
+            merged_docs[-1].update(non_id)
+
+    return merged_docs
