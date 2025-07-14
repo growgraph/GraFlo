@@ -3,12 +3,14 @@ general:
 resources:
 -   resource_name: authors
     apply:
-    -   target_vertex: author
-        map:
+    -   vertex: author
+    -   vertex: researchField
+    -   map:
             author_id: id
             FullName: full_name
             HIndex: hindex
-    -   map:
+    -   target_vertex: researchField
+        map:
             research_sector: id
 vertex_config:
     db_flavor: neo4j

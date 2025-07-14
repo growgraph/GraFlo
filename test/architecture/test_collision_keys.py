@@ -6,9 +6,9 @@ from graphcast.architecture.onto import ActionContext
 logger = logging.getLogger(__name__)
 
 
-def test_wrapper_openalex(resource_cross, vertex_config_cross, sample_cross):
+def test_wrapper_openalex(resource_collision, vertex_config_cross, sample_cross):
     ctx = ActionContext()
-    anw = ActorWrapper(*resource_cross)
+    anw = ActorWrapper(*resource_collision)
     anw.finish_init(transforms={}, vertex_config=vertex_config_cross)
     ctx = anw(ctx, doc=sample_cross)
     assert ctx.acc_vertex_local["person"][None] == [{"id": "John"}, {"id": "Mary"}]

@@ -425,7 +425,7 @@ def sample_cross():
 
 
 @pytest.fixture()
-def resource_cross():
+def resource_collision():
     an = yaml.safe_load("""
     -   vertex: person
     -   vertex: company 

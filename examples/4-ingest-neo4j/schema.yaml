@@ -1,0 +1,50 @@
+general:
+    name: debian-eco
+    version: 0.0.1
+resources:
+-   resource_name: package
+    apply:
+    -   vertex: package
+        discriminant: _top_level
+    -   key: dependencies
+        apply:
+        -   key: depends
+            apply:
+            -   vertex: package
+    -   source: package
+        target: package
+        source_discriminant: _top_level
+    -   vertex: maintainer
+vertex_config:
+    vertices:
+    -   name: package
+        fields:
+        -   name
+        -   version
+        indexes:
+        -   fields:
+            -   name
+            -   version
+    -   name: maintainer
+        fields:
+        -   name
+        -   email
+#    -   name: uploader
+#        fields:
+#        -   name
+#        -   email
+#        indexes:
+#        -   fields:
+#            -   name
+#            -   email
+    -   name: bug
+        fields:
+        -   text
+edge_config:
+    edges:
+    -   source: package
+        target: package
+    -   source: maintainer
+        target: package
+    -   source: package
+        target: bug
