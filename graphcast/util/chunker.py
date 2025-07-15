@@ -417,9 +417,9 @@ class ChunkerFactory:
         """
         # Get all suffixes and remove compression extensions
         suffixes = filename.suffixes
-        base_suffix = next(
-            (s for s in suffixes if s.lower() not in (".gz", ".zip")), suffixes[0]
-        ).lower()
+        base_suffix = [y for y in suffixes if y.lower() not in (".gz", ".zip")][
+            -1
+        ].lower()
 
         if base_suffix == ".json":
             return ChunkerType.JSON

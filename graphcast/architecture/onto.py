@@ -281,6 +281,7 @@ class EdgeCastingType(BaseEnum):
 
     PAIR_LIKE = "pair"
     PRODUCT_LIKE = "product"
+    COMBINATIONS_LIKE = "combinations"
 
 
 def inner_factory_vertex() -> defaultdict[Optional[str], list]:

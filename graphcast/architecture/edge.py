@@ -145,8 +145,11 @@ class Edge(BaseDataclass):
         if self.type == EdgeType.INDIRECT and self.by is not None:
             self.by = vertex_config.vertex_dbname(self.by)
 
-        if self.source_discriminant is None and self.target_discriminant is None:
-            self.casting_type = EdgeCastingType.PAIR_LIKE
+        if self.source_discriminant == self.target_discriminant:
+            if self.source == self.target:
+                self.casting_type = EdgeCastingType.COMBINATIONS_LIKE
+            else:
+                self.casting_type = EdgeCastingType.PRODUCT_LIKE
         else:
             self.casting_type = EdgeCastingType.PRODUCT_LIKE
 

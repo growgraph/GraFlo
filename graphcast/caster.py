@@ -333,6 +333,8 @@ class Caster:
                 - limit_files: Optional limit on number of files to process
                 - patterns: Optional file patterns to match
         """
+
+        path = Path(path).expanduser()
         conn_conf: DBConnectionConfig = kwargs.get("conn_conf")
         self.clean_start = kwargs.pop("clean_start", self.clean_start)
         self.n_cores = kwargs.pop("n_cores", self.n_cores)

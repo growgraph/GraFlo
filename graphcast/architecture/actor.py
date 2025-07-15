@@ -252,6 +252,7 @@ class VertexActor(Actor):
 
             if all(cfilter(doc) for cfilter in self.vertex_config.filters(self.name)):
                 agg += [_doc]
+
         ctx.buffer_transforms = [x for x in ctx.buffer_transforms if x]
 
         for item in buffer_vertex:
@@ -263,7 +264,10 @@ class VertexActor(Actor):
         remaining_keys = set(vertex_keys) - reduce(
             lambda acc, d: acc | d.keys(), agg, set()
         )
-        passthrough_doc = {k: doc[k] for k in remaining_keys if k in doc}
+        passthrough_doc = {}
+        for k in remaining_keys:
+            if k in doc:
+                passthrough_doc[k] = doc.pop(k)
         if passthrough_doc:
             agg += [passthrough_doc]
 
@@ -660,6 +664,7 @@ class DescendActor(Actor):
                 )
                 ctx = anw(ctx, *nargs, **kwargs)
 
+        ctx.buffer_transforms += [doc]
         return ctx
 
     def fetch_actors(self, level, edges):

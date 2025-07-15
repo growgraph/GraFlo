@@ -33,7 +33,8 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from itertools import product
+from functools import partial
+from itertools import combinations, product
 from typing import Any, Callable, Iterable, Optional
 
 from graphcast.architecture.edge import Edge
@@ -131,8 +132,12 @@ def render_edge(
 
     if edge.casting_type == EdgeCastingType.PAIR_LIKE:
         iterator: Callable[..., Iterable[Any]] = zip
-    else:
+    elif edge.casting_type == EdgeCastingType.PRODUCT_LIKE:
         iterator = product
+    elif edge.casting_type == EdgeCastingType.COMBINATIONS_LIKE:
+
+        def iterator(*x):
+            return partial(combinations, r=2)(x[0])
 
     # edges for a selected pair (source, target) but potentially different relation flavors
     edges: defaultdict[Optional[str], list] = defaultdict(list)
