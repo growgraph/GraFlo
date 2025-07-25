@@ -86,6 +86,7 @@ def render_edge(
     edge: Edge,
     vertex_config: VertexConfig,
     acc_vertex: defaultdict[str, defaultdict[Optional[str], list]],
+    buffer_transforms=None,
 ) -> defaultdict[Optional[str], list]:
     """Create edges between source and target vertices.
 
@@ -98,6 +99,8 @@ def render_edge(
         edge: Edge configuration defining the relationship
         vertex_config: Vertex configuration for source and target
         acc_vertex: Accumulated vertex documents organized by vertex name and discriminant
+        buffer_transforms: Current document being processed
+
 
     Returns:
         defaultdict[Optional[str], list]: Created edges organized by relation type
@@ -109,6 +112,8 @@ def render_edge(
         - Relation fields can be specified in either source or target
     """
     # get source and target names
+    if buffer_transforms is None:
+        buffer_transforms = list()
     source, target = edge.source, edge.target
     relation = None
 
@@ -156,10 +161,10 @@ def render_edge(
                     weight[field] = v[field]
                     if field not in edge.non_exclusive:
                         del v[field]
-        if edge.source_relation_field is not None:
-            relation = u.pop(edge.source_relation_field, None)
-        if edge.target_relation_field is not None:
-            relation = v.pop(edge.target_relation_field, None)
+
+        if edge.relation_field is not None and buffer_transforms is not None:
+            for item in buffer_transforms:
+                relation = item.pop(edge.relation_field, None)
 
         edges[relation] += [
             {

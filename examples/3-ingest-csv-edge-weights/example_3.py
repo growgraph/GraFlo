@@ -6,12 +6,11 @@ schema = Schema.from_dict(FileHandle.load("schema.yaml"))
 
 conn_conf = ConfigFactory.create_config(
     {
-        "protocol": "http",
+        "protocol": "bolt",
         "hostname": "localhost",
-        "port": 8535,
-        "username": "root",
-        "password": "123",
-        "database": "_system",
+        "port": 7688,
+        "username": "neo4j",
+        "password": "test!passfortesting",
     }
 )
 
@@ -25,8 +24,4 @@ patterns = Patterns.from_dict(
 
 caster = Caster(schema)
 
-caster.ingest_files(
-    path=".",
-    conn_conf=conn_conf,
-    patterns=patterns,
-)
+caster.ingest_files(path=".", conn_conf=conn_conf, patterns=patterns, clean_start=True)

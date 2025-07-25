@@ -335,7 +335,12 @@ class EdgeActor(Actor):
         """
 
         ctx = self.merge_vertices(ctx)
-        edges = render_edge(self.edge, self.vertex_config, ctx.acc_vertex_local)
+        edges = render_edge(
+            self.edge,
+            self.vertex_config,
+            ctx.acc_vertex_local,
+            buffer_transforms=ctx.buffer_transforms,
+        )
 
         edges = render_weights(
             self.edge,
@@ -664,7 +669,7 @@ class DescendActor(Actor):
                 )
                 ctx = anw(ctx, *nargs, **kwargs)
 
-        ctx.buffer_transforms += [doc]
+        # ctx.buffer_transforms += [doc]
         return ctx
 
     def fetch_actors(self, level, edges):
@@ -877,6 +882,7 @@ class ActorWrapper:
                     edge=edge,
                     vertex_config=self.vertex_config,
                     acc_vertex=ctx.acc_vertex,
+                    buffer_transforms=ctx.buffer_transforms,
                 )
                 extra_edges = render_weights(
                     edge,
@@ -891,14 +897,14 @@ class ActorWrapper:
 
         for vertex, dd in ctx.acc_vertex.items():
             for discriminant, vertex_list in dd.items():
-                vvv = merge_doc_basis(
+                vertex_list_updated = merge_doc_basis(
                     vertex_list,
                     tuple(self.vertex_config.index(vertex).fields),
                     discriminant_key=None,
                 )
-                vvv = pick_unique_dict(vvv)
+                vertex_list_updated = pick_unique_dict(vertex_list_updated)
 
-                ctx.acc_global[vertex] += vvv
+                ctx.acc_global[vertex] += vertex_list_updated
 
         ctx = add_blank_collections(ctx, self.vertex_config)
 

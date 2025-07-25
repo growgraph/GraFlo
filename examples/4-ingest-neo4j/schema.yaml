@@ -11,10 +11,22 @@ resources:
         -   key: depends
             apply:
             -   vertex: package
+    -   source: maintainer
+        target: package
+        target_discriminant: _top_level
     -   source: package
         target: package
         source_discriminant: _top_level
-    -   vertex: maintainer
+    -   key: maintainer
+        apply:
+        -   vertex: maintainer
+-   resource_name: bug
+    apply:
+    -   map:
+            package: name
+            bug_num: id
+    -   vertex: package
+    -   vertex: bug
 vertex_config:
     vertices:
     -   name: package
@@ -24,22 +36,22 @@ vertex_config:
         indexes:
         -   fields:
             -   name
-            -   version
     -   name: maintainer
         fields:
         -   name
         -   email
-#    -   name: uploader
-#        fields:
-#        -   name
-#        -   email
-#        indexes:
-#        -   fields:
-#            -   name
-#            -   email
+        indexes:
+        -   fields:
+            -   email
     -   name: bug
         fields:
-        -   text
+        -   id
+        -   subject
+        -   severity
+        -   date
+        indexes:
+        -   fields:
+            -   id
 edge_config:
     edges:
     -   source: package

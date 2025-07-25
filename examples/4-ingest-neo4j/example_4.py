@@ -17,8 +17,8 @@ conn_conf = ConfigFactory.create_config(
 patterns = Patterns.from_dict(
     {
         "patterns": {
-            "package": {"regex": r"^package.meta.*\.json$"},
-            # "bugs": {"regex": r"^bugs.head.*\.json$"},
+            "package": {"regex": r"^package\.meta.*\.json(?:\.gz)?$"},
+            "bugs": {"regex": r"^bugs.head.*\.json(?:\.gz)?$"},
         }
     }
 )
@@ -26,5 +26,9 @@ patterns = Patterns.from_dict(
 caster = Caster(schema)
 
 caster.ingest_files(
-    path="~/data/deb-kg/tmp", conn_conf=conn_conf, patterns=patterns, max_items=5
+    path="~/data/deb-kg/tmp",
+    conn_conf=conn_conf,
+    patterns=patterns,
+    # max_items=50,
+    clean_start=True,
 )

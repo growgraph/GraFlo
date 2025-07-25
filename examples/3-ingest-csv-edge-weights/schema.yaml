@@ -18,7 +18,7 @@ edge_config:
     edges:
     -   source: company
         target: company
+        relation_field: relation
         weights:
             direct:
-            -   relation
             -   date

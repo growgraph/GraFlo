@@ -67,8 +67,6 @@ class Edge(BaseDataclass):
         purpose: Optional purpose for utility collections
         source_discriminant: Optional source discriminant field
         target_discriminant: Optional target discriminant field
-        source_relation_field: Optional source relation field
-        target_relation_field: Optional target relation field
         type: Edge type (DIRECT or INDIRECT)
         aux: Whether this is an auxiliary edge
         casting_type: Type of edge casting
@@ -87,17 +85,16 @@ class Edge(BaseDataclass):
 
     non_exclusive: list[str] = dataclasses.field(default_factory=list)
 
-    # used for specifies an index (neo4j)
+    # relation represents Class in neo4j, for arango it becomes a weight
     relation: Optional[str] = None
+    # field that contains Class or relation
+    relation_field: Optional[str] = None
 
     # used to create extra utility collections between the same type of vertices (A, B)
     purpose: Optional[str] = None
 
     source_discriminant: Optional[str] = None
     target_discriminant: Optional[str] = None
-
-    source_relation_field: Optional[str] = None
-    target_relation_field: Optional[str] = None
 
     type: EdgeType = EdgeType.DIRECT
 
@@ -114,20 +111,8 @@ class Edge(BaseDataclass):
     db_flavor: DBFlavor = DBFlavor.ARANGO
 
     def __post_init__(self):
-        """Initialize the edge after dataclass initialization.
-
-        Validates that source and target relation fields are not both set.
-
-        Raises:
-            ValueError: If both source and target relation fields are set
-        """
-        if (
-            self.source_relation_field is not None
-            and self.target_relation_field is not None
-        ):
-            raise ValueError(
-                f"Both source_relation_field and target_relation_field are set for edge ({self.source}, {self.target})"
-            )
+        """Initialize the edge after dataclass initialization."""
+        pass
 
     def finish_init(self, vertex_config: VertexConfig):
         """Complete edge initialization with vertex configuration.
@@ -265,12 +250,8 @@ class EdgeConfig(BaseDataclass):
         Args:
             vc: Vertex configuration
         """
-        for k, e in self._edges_map.items():
+        for _, e in self._edges_map.items():
             e.finish_init(vc)
-
-    def _reset_edges(self):
-        """Reset edges list from internal mapping."""
-        self.edges = list(self._edges_map.values())
 
     def edges_list(self, include_aux=False):
         """Get list of edges.
