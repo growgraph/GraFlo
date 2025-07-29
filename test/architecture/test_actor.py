@@ -8,7 +8,7 @@ from graphcast.architecture.actor import (
     TransformActor,
 )
 from graphcast.architecture.edge import EdgeConfig
-from graphcast.architecture.onto import ActionContext
+from graphcast.architecture.onto import ActionContext, VertexRep
 from graphcast.plot.plotter import assemble_tree
 
 logger = logging.getLogger(__name__)
@@ -48,8 +48,10 @@ def test_mapper_value(resource_concept, schema_vc_openalex):
     ctx = ActionContext()
     ctx = anw(ctx, doc=test_doc)
     assert ctx.acc_vertex_local["concept"][None] == [
-        {"wikidata": "Q123"},
-        {"mag": 105794591},
+        VertexRep(
+            vertex={"wikidata": "Q123", "mag": 105794591},
+            ctx={"wikidata": "https://www.wikidata.org/wiki/Q123"},
+        )
     ]
     assert len(ctx.acc_vertex_local) == 1
 
@@ -64,9 +66,14 @@ def test_transform_shortcut(resource_openalex_works, schema_vc_openalex):
     anw.finish_init(vertex_config=schema_vc_openalex, transforms=transforms)
     ctx = ActionContext()
     ctx = anw(ctx, doc=doc)
-    # we are checking acc_vertex because EdgeActor moved it from acc_vertex_local
     assert ctx.acc_vertex["work"]["_top_level"] == [
-        {"_key": "A123", "doi": "10.1007/978-3-123"},
+        VertexRep(
+            vertex={"_key": "A123", "doi": "10.1007/978-3-123"},
+            ctx={
+                "doi": "https://doi.org/10.1007/978-3-123",
+                "id": "https://openalex.org/A123",
+            },
+        )
     ]
 
 

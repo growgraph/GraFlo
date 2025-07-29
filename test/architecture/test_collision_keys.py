@@ -1,15 +1,21 @@
 import logging
 
 from graphcast.architecture.actor import ActorWrapper
-from graphcast.architecture.onto import ActionContext
+from graphcast.architecture.onto import ActionContext, VertexRep
 
 logger = logging.getLogger(__name__)
 
 
-def test_wrapper_openalex(resource_collision, vertex_config_cross, sample_cross):
+def test_collision(resource_collision, vertex_config_collision, sample_cross):
     ctx = ActionContext()
     anw = ActorWrapper(*resource_collision)
-    anw.finish_init(transforms={}, vertex_config=vertex_config_cross)
+    anw.finish_init(transforms={}, vertex_config=vertex_config_collision)
     ctx = anw(ctx, doc=sample_cross)
-    assert ctx.acc_vertex_local["person"][None] == [{"id": "John"}, {"id": "Mary"}]
-    assert ctx.acc_vertex_local["company"][None] == [{"id": "Apple"}, {"id": "Oracle"}]
+    assert ctx.acc_vertex_local["person"][None] == [
+        VertexRep(vertex={"id": "John"}, ctx={"name": "John", "id": "Apple"}),
+        VertexRep(vertex={"id": "Mary"}, ctx={"name": "Mary", "id": "Oracle"}),
+    ]
+    assert ctx.acc_vertex_local["company"][None] == [
+        VertexRep(vertex={"id": "Apple"}, ctx={"name": "John"}),
+        VertexRep(vertex={"id": "Oracle"}, ctx={"name": "Mary"}),
+    ]

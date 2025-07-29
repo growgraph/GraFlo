@@ -393,7 +393,7 @@ def sample_openalex():
 
 
 @pytest.fixture()
-def vertex_config_cross():
+def vertex_config_collision():
     tc = yaml.safe_load("""
     vertex_config:
     vertices:
@@ -425,6 +425,18 @@ def sample_cross():
 
 
 @pytest.fixture()
+def resource_cross():
+    an = yaml.safe_load("""
+    -   vertex: person
+    -   vertex: company 
+    -   map:
+            name: id
+            id: name
+    """)
+    return an
+
+
+@pytest.fixture()
 def resource_collision():
     an = yaml.safe_load("""
     -   vertex: person
@@ -432,5 +444,36 @@ def resource_collision():
     -   target_vertex: person
         map:
             name: id
+    """)
+    return an
+
+
+@pytest.fixture()
+def vertex_config_cross():
+    tc = yaml.safe_load("""
+    vertex_config:
+    vertices:
+    -   name: person
+        fields:
+        -   id
+        indexes:
+        -   fields:
+            -   id
+    -   name: company
+        fields:
+        -   name
+        indexes:
+        -   fields:
+            -   name
+    """)
+    return VertexConfig.from_dict(tc)
+
+
+@pytest.fixture()
+def resource_cross_implicit():
+    an = yaml.safe_load("""
+    -   map:
+            name: id
+            id: name
     """)
     return an

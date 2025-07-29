@@ -128,11 +128,12 @@ def render_edge(
         acc_vertex[source].get(edge.source_discriminant, []),
         acc_vertex[target].get(edge.target_discriminant, []),
     )
+
     source_items = [
-        item for item in source_items if any(k in item for k in source_index)
+        item for item in source_items if any(k in item.vertex for k in source_index)
     ]
     target_items = [
-        item for item in target_items if any(k in item for k in target_index)
+        item for item in target_items if any(k in item.vertex for k in target_index)
     ]
 
     if edge.casting_type == EdgeCastingType.PAIR_LIKE:
@@ -147,7 +148,9 @@ def render_edge(
     # edges for a selected pair (source, target) but potentially different relation flavors
     edges: defaultdict[Optional[str], list] = defaultdict(list)
 
-    for u, v in iterator(source_items, target_items):
+    for u_, v_ in iterator(source_items, target_items):
+        u = u_.vertex
+        v = v_.vertex
         # adding weight from source or target
         weight = dict()
         if edge.weights is not None:
@@ -162,15 +165,23 @@ def render_edge(
                     if field not in edge.non_exclusive:
                         del v[field]
 
-        if edge.relation_field is not None and buffer_transforms is not None:
-            for item in buffer_transforms:
-                relation = item.pop(edge.relation_field, None)
+        a = project_dict(u, source_index)
+        b = project_dict(v, target_index)
+
+        if edge.relation_field is not None:
+            u_relation = u_.ctx.pop(edge.relation_field, None)
+            v_relation = v_.ctx.pop(edge.relation_field, None)
+            if v_relation is not None:
+                a, b = b, a
+                relation = v_relation
+            else:
+                relation = u_relation
 
         edges[relation] += [
             {
                 **{
-                    SOURCE_AUX: project_dict(u, source_index),
-                    TARGET_AUX: project_dict(v, target_index),
+                    SOURCE_AUX: a,
+                    TARGET_AUX: b,
                 },
                 **weight,
             }
@@ -217,7 +228,7 @@ def render_weights(
         vertex = w.name
         if vertex is None or vertex not in vertex_config.vertex_set:
             continue
-        vertex_sample = [doc for doc in acc_vertex[vertex][w.discriminant]]
+        vertex_sample = [item.vertex for item in acc_vertex[vertex][w.discriminant]]
 
         # find all vertices satisfying condition
         if w.filter:

@@ -35,10 +35,7 @@ from graphcast.architecture.actor_util import (
     render_weights,
 )
 from graphcast.architecture.edge import Edge, EdgeConfig
-from graphcast.architecture.onto import (
-    ActionContext,
-    GraphEntity,
-)
+from graphcast.architecture.onto import ActionContext, GraphEntity, VertexRep
 from graphcast.architecture.transform import ProtoTransform, Transform
 from graphcast.architecture.vertex import (
     VertexConfig,
@@ -271,7 +268,14 @@ class VertexActor(Actor):
         if passthrough_doc:
             agg += [passthrough_doc]
 
-        ctx.acc_vertex_local[self.name][self.discriminant] += agg
+        merged = {k: v for d in agg for k, v in d.items()}
+
+        ctx.acc_vertex_local[self.name][self.discriminant] += [
+            VertexRep(
+                vertex=merged,
+                ctx={q: w for q, w in doc.items() if not isinstance(w, (dict, list))},
+            )
+        ]
         return ctx
 
 
@@ -353,16 +357,19 @@ class EdgeActor(Actor):
         for relation, v in edges.items():
             ctx.acc_global[self.edge.source, self.edge.target, relation] += v
 
-        ctx.acc_vertex[self.edge.source][self.edge.source_discriminant] += (
-            ctx.acc_vertex_local[self.edge.source].pop(
-                self.edge.source_discriminant, []
-            )
+        sources = ctx.acc_vertex_local[self.edge.source].pop(
+            self.edge.source_discriminant, []
         )
-        ctx.acc_vertex[self.edge.target][self.edge.target_discriminant] += (
-            ctx.acc_vertex_local[self.edge.target].pop(
-                self.edge.target_discriminant, []
-            )
+
+        targets = ctx.acc_vertex_local[self.edge.target].pop(
+            self.edge.target_discriminant, []
         )
+        ctx.acc_vertex[self.edge.source][self.edge.source_discriminant] += [
+            vr for vr in sources
+        ]
+        ctx.acc_vertex[self.edge.target][self.edge.target_discriminant] += [
+            vr for vr in targets
+        ]
 
         return ctx
 
@@ -373,7 +380,7 @@ class EdgeActor(Actor):
                     vertex_list,
                     tuple(self.vertex_config.index(vertex).fields),
                 )
-                vvv = pick_unique_dict(vvv)
+                # vvv = pick_unique_dict(vvv)
                 ctx.acc_vertex_local[vertex][discriminant] = vvv
         return ctx
 
@@ -897,6 +904,7 @@ class ActorWrapper:
 
         for vertex, dd in ctx.acc_vertex.items():
             for discriminant, vertex_list in dd.items():
+                vertex_list = [x.vertex for x in vertex_list]
                 vertex_list_updated = merge_doc_basis(
                     vertex_list,
                     tuple(self.vertex_config.index(vertex).fields),

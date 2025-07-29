@@ -300,6 +300,19 @@ def dd_factory() -> defaultdict[GraphEntity, list]:
 
 
 @dataclasses.dataclass(kw_only=True)
+class VertexRep(BaseDataclass):
+    """Context for graph transformation actions.
+
+    Attributes:
+        vertex: doc representing a vertex
+        ctx: context (for edge definition upstream
+    """
+
+    vertex: dict
+    ctx: dict
+
+
+@dataclasses.dataclass(kw_only=True)
 class ActionContext(BaseDataclass):
     """Context for graph transformation actions.
 
@@ -311,7 +324,7 @@ class ActionContext(BaseDataclass):
         buffer_transforms: Buffer for transforms data
     """
 
-    acc_vertex_local: defaultdict[str, defaultdict[Optional[str], list]] = (
+    acc_vertex_local: defaultdict[str, defaultdict[Optional[str], list[VertexRep]]] = (
         dataclasses.field(default_factory=outer_factory)
     )
     acc_vertex: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(

@@ -10,6 +10,8 @@ Key Functions:
 
 """
 
+from graphcast.architecture.onto import VertexRep
+
 
 def discriminate_by_key(items, indexes, discriminant_key, fast=False):
     """Filter documents based on index fields and key presence.
@@ -92,50 +94,55 @@ def merge_doc_basis(
 
 
 def merge_doc_basis_closest_preceding(
-    docs: list[dict],
+    docs: list[VertexRep],
     index_keys: tuple[str, ...],
-) -> list[dict]:
-    """Merge documents based on index_keys.
+) -> list[VertexRep]:
+    """Merge VertexRep documents based on index_keys.
 
-    Leading non-ID docs are merged into the first ID doc.
-    Remaining non-ID docs are merged into the closest preceding ID doc.
+    Leading non-ID VertexReps are merged into the first ID VertexRep.
+    Remaining non-ID VertexReps are merged into the closest preceding ID VertexRep.
+    The merge is performed on the `vertex` attribute, and `ctx` dicts are merged among merged VertexReps.
 
     Args:
-        docs: List of documents to merge
+        docs: List of VertexRep to merge
         index_keys: Tuple of key names to use for merging
 
     Returns:
-        list[dict]: Merged documents
+        list[VertexRep]: Merged VertexReps
     """
-    merged_docs: list[dict] = []
-    pending_non_ids: list[dict] = []
+    merged_docs: list[VertexRep] = []
+    pending_non_ids: list[VertexRep] = []
+
+    def merge_vertex_ctx(target: VertexRep, sources: list[VertexRep]):
+        # Merge vertex dicts
+        for src in sources:
+            target.vertex.update(src.vertex)
+            target.ctx.update(src.ctx)
+        return target
 
     for doc in docs:
-        if any(k in doc for k in index_keys):
-            # This is an ID document
-            # First, handle any accumulated non-ID docs
+        if any(k in doc.vertex for k in index_keys):
+            # This is an ID VertexRep
+            # First, handle any accumulated non-ID VertexReps
             if pending_non_ids:
                 if not merged_docs:
                     # No previous ID doc, create new one with accumulated non-IDs
-                    merged_doc = {}
-                    for non_id in pending_non_ids:
-                        merged_doc.update(non_id)
+                    merged_doc = VertexRep(vertex={}, ctx={})
+                    merged_doc = merge_vertex_ctx(merged_doc, pending_non_ids)
                     merged_docs.append(merged_doc)
                 else:
                     # Merge accumulated non-IDs into the last ID doc
-                    for non_id in pending_non_ids:
-                        merged_docs[-1].update(non_id)
+                    merged_docs[-1] = merge_vertex_ctx(merged_docs[-1], pending_non_ids)
                 pending_non_ids.clear()
 
-            # Add the current ID document
-            merged_docs.append(doc.copy())
+            # Add the current ID VertexRep (make a copy to avoid mutating input)
+            merged_docs.append(VertexRep(vertex=doc.vertex.copy(), ctx=doc.ctx.copy()))
         else:
-            # This is a non-ID document, accumulate it
+            # This is a non-ID VertexRep, accumulate it
             pending_non_ids.append(doc)
 
-    # Handle any remaining non-ID docs at the end
+    # Handle any remaining non-ID VertexReps at the end
     if pending_non_ids and merged_docs:
-        for non_id in pending_non_ids:
-            merged_docs[-1].update(non_id)
+        merged_docs[-1] = merge_vertex_ctx(merged_docs[-1], pending_non_ids)
 
     return merged_docs
