@@ -268,13 +268,13 @@ class VertexActor(Actor):
         if passthrough_doc:
             agg += [passthrough_doc]
 
-        merged = {k: v for d in agg for k, v in d.items()}
+        merged = merge_doc_basis(agg, index_keys=tuple(self.vertex_config.index(self.name).fields))
 
         ctx.acc_vertex_local[self.name][self.discriminant] += [
             VertexRep(
-                vertex=merged,
+                vertex=m,
                 ctx={q: w for q, w in doc.items() if not isinstance(w, (dict, list))},
-            )
+            ) for m in merged
         ]
         return ctx
 
