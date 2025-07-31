@@ -268,13 +268,16 @@ class VertexActor(Actor):
         if passthrough_doc:
             agg += [passthrough_doc]
 
-        merged = merge_doc_basis(agg, index_keys=tuple(self.vertex_config.index(self.name).fields))
+        merged = merge_doc_basis(
+            agg, index_keys=tuple(self.vertex_config.index(self.name).fields)
+        )
 
         ctx.acc_vertex_local[self.name][self.discriminant] += [
             VertexRep(
                 vertex=m,
                 ctx={q: w for q, w in doc.items() if not isinstance(w, (dict, list))},
-            ) for m in merged
+            )
+            for m in merged
         ]
         return ctx
 
@@ -900,7 +903,7 @@ class ActorWrapper:
                 )
 
                 for relation, v in extra_edges.items():
-                    ctx.acc_global[edge_id] += v
+                    ctx.acc_global[s, t, relation] += v
 
         for vertex, dd in ctx.acc_vertex.items():
             for discriminant, vertex_list in dd.items():
