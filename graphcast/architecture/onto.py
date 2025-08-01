@@ -37,8 +37,6 @@ from typing import Any, Optional, Union
 from graphcast.onto import BaseDataclass, BaseEnum, DBFlavor
 from graphcast.util.transform import pick_unique_dict
 
-SOURCE_AUX = "__source"
-TARGET_AUX = "__target"
 DISCRIMINANT_KEY = "__discriminant_key"
 
 # type for vertex or edge name (index)

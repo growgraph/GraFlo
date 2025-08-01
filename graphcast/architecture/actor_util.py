@@ -39,8 +39,6 @@ from typing import Any, Callable, Iterable, Optional
 
 from graphcast.architecture.edge import Edge
 from graphcast.architecture.onto import (
-    SOURCE_AUX,
-    TARGET_AUX,
     ActionContext,
     EdgeCastingType,
 )
@@ -172,15 +170,7 @@ def render_edge(
             else:
                 relation = u_relation
 
-        edges[relation] += [
-            {
-                **{
-                    SOURCE_AUX: a,
-                    TARGET_AUX: b,
-                },
-                **weight,
-            }
-        ]
+        edges[relation] += [(a, b, weight)]
     return edges
 
 
@@ -273,5 +263,5 @@ def render_weights(
 
     if weight:
         for r, edocs in edges.items():
-            edges[r] = [{**edoc, **weight} for edoc in edocs]
+            edges[r] = [(u, v, {**w, **weight}) for u, v, w in edocs]
     return edges

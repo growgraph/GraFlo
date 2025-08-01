@@ -26,7 +26,7 @@ from pathlib import Path
 import pandas as pd
 from suthing import ConnectionKind, DBConnectionConfig, Timer
 
-from graphcast.architecture.onto import SOURCE_AUX, TARGET_AUX, GraphContainer
+from graphcast.architecture.onto import GraphContainer
 from graphcast.architecture.schema import Schema
 from graphcast.db import ConnectionManager
 from graphcast.util.chunker import ChunkerFactory
@@ -219,7 +219,7 @@ class Caster:
                             gc.edges[edge_id] = []
                         gc.edges[edge_id].extend(
                             [
-                                {SOURCE_AUX: x, TARGET_AUX: y}
+                                (x, y, {})
                                 for x, y in zip(gc.vertices[vfrom], gc.vertices[vto])
                             ]
                         )

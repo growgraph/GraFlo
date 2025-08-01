@@ -273,13 +273,6 @@ class Neo4jConnection(Connection):
                 - dry: If True, don't execute the query
         """
         dry = kwargs.pop("dry", False)
-        agg = []
-        for d in docs_edges:
-            s = d.pop("__source")
-            t = d.pop("__target")
-            agg += [(s, t, d)]
-
-        docs_edges = agg
 
         source_match_str = [f"source.{key} = row[0].{key}" for key in match_keys_source]
         target_match_str = [f"target.{key} = row[1].{key}" for key in match_keys_target]

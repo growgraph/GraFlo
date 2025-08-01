@@ -80,9 +80,7 @@ def test_act_openalex(resource_with_weights, vc_openalex, sample_openalex):
     ctx = anw(ctx, doc=sample_openalex)
     assemble_tree(anw, Path("test/figs/openalex_authors.pdf"))
     edge = ctx.acc_global[("author", "institution", None)][0]
-    del edge["__source"]
-    del edge["__target"]
-    assert ctx.acc_global[("author", "institution", None)][0] == {
+    assert edge[-1] == {
         "updated_date": "2023-06-08",
         "created_date": "2023-06-08",
     }
