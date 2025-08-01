@@ -51,7 +51,7 @@ resources:
             target: mention
             target_discriminant: core
             weights:
-                target_fields:
+                direct:
                 -   _role
             indexes:
             -   fields:

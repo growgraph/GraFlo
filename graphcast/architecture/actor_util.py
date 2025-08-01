@@ -154,16 +154,11 @@ def render_edge(
         # adding weight from source or target
         weight = dict()
         if edge.weights is not None:
-            for field in edge.weights.source_fields:
-                if field in u:
-                    weight[field] = u[field]
-                    if field not in edge.non_exclusive:
-                        del u[field]
-            for field in edge.weights.target_fields:
-                if field in v:
-                    weight[field] = v[field]
-                    if field not in edge.non_exclusive:
-                        del v[field]
+            for field in edge.weights.direct:
+                if field in u_.ctx:
+                    weight[field] = u_.ctx[field]
+                if field in v_.ctx:
+                    weight[field] = v_.ctx[field]
 
         a = project_dict(u, source_index)
         b = project_dict(v, target_index)

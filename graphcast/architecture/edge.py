@@ -38,14 +38,10 @@ class WeightConfig(BaseDataclass):
     including source and target field mappings.
 
     Attributes:
-        source_fields: List of source vertex fields
-        target_fields: List of target vertex fields
         vertices: List of weight configurations
         direct: List of direct field mappings
     """
 
-    source_fields: list[str] = dataclasses.field(default_factory=list)
-    target_fields: list[str] = dataclasses.field(default_factory=list)
     vertices: list[Weight] = dataclasses.field(default_factory=list)
     direct: list[str] = dataclasses.field(default_factory=list)
 
@@ -104,15 +100,15 @@ class Edge(BaseDataclass):
 
     casting_type: EdgeCastingType = EdgeCastingType.PAIR_LIKE
     by: Optional[str] = None
-    source_collection: Optional[str] = None
-    target_collection: Optional[str] = None
     graph_name: Optional[str] = None
     collection_name: Optional[str] = None
     db_flavor: DBFlavor = DBFlavor.ARANGO
 
     def __post_init__(self):
         """Initialize the edge after dataclass initialization."""
-        pass
+
+        self._source_collection: Optional[str] = None
+        self._target_collection: Optional[str] = None
 
     def finish_init(self, vertex_config: VertexConfig):
         """Complete edge initialization with vertex configuration.
@@ -138,18 +134,8 @@ class Edge(BaseDataclass):
         else:
             self.casting_type = EdgeCastingType.PRODUCT_LIKE
 
-        if self.weights is not None:
-            if self.weights.source_fields:
-                vertex_config[self.source] = vertex_config[
-                    self.source
-                ].update_aux_fields(self.weights.source_fields)
-            if self.weights.target_fields:
-                vertex_config[self.target] = vertex_config[
-                    self.target
-                ].update_aux_fields(self.weights.target_fields)
-
-        self.source_collection = vertex_config.vertex_dbname(self.source)
-        self.target_collection = vertex_config.vertex_dbname(self.target)
+        self._source_collection = vertex_config.vertex_dbname(self.source)
+        self._target_collection = vertex_config.vertex_dbname(self.target)
         graph_name = [
             vertex_config.vertex_dbname(self.source),
             vertex_config.vertex_dbname(self.target),

@@ -23,7 +23,7 @@ resources:
                         target: institution
 #                      target_discriminant: _top_level
                     weights:
-                        source_fields:
+                        direct:
                         -   updated_date
                         -   created_date
     -   name: works

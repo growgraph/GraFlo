@@ -22,8 +22,6 @@ def vc_openalex():
         fields:
         -   _key
         -   display_name
-        -   updated_date
-        -   created_date
         indexes:
         -   fields:
             -   _key
@@ -34,8 +32,6 @@ def vc_openalex():
         -   display_name
         -   country
         -   type
-        -   created_date
-        -   updated_date
         indexes:
         -   fields:
             -   _key
@@ -70,7 +66,7 @@ def resource_with_weights():
     -   source: author
         target: institution
         weights:
-            source_fields:
+            direct:
             -   updated_date
             -   created_date
     """)

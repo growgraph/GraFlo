@@ -273,13 +273,16 @@ class Neo4jConnection(Connection):
                 - dry: If True, don't execute the query
         """
         dry = kwargs.pop("dry", False)
+        agg = []
+        for d in docs_edges:
+            s = d.pop("__source")
+            t = d.pop("__target")
+            agg += [(s, t, d)]
 
-        source_match_str = [
-            f"source.{key} = row['__source'].{key}" for key in match_keys_source
-        ]
-        target_match_str = [
-            f"target.{key} = row['__target'].{key}" for key in match_keys_target
-        ]
+        docs_edges = agg
+
+        source_match_str = [f"source.{key} = row[0].{key}" for key in match_keys_source]
+        target_match_str = [f"target.{key} = row[1].{key}" for key in match_keys_target]
 
         match_clause = "WHERE " + " AND ".join(source_match_str + target_match_str)
 
@@ -289,6 +292,8 @@ class Neo4jConnection(Connection):
             MATCH (source:{source_class}), 
                   (target:{target_class}) {match_clause} 
                         MERGE (source)-[r:{relation_name}]->(target)
+                SET r += row[2]
+        
         """
         if not dry:
             self.execute(q, batch=docs_edges)

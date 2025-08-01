@@ -183,8 +183,8 @@ class ArangoConnection(Connection):
             if not g.has_edge_definition(item.collection_name):
                 _ = g.create_edge_definition(
                     edge_collection=item.collection_name,
-                    from_vertex_collections=[item.source_collection],
-                    to_vertex_collections=[item.target_collection],
+                    from_vertex_collections=[item._source_collection],
+                    to_vertex_collections=[item._target_collection],
                 )
 
     def _add_index(self, general_collection, index: Index):
