@@ -477,3 +477,137 @@ def resource_cross_implicit():
             id: name
     """)
     return an
+
+
+@pytest.fixture()
+def vc_openalex():
+    tc = yaml.safe_load("""
+    vertices:
+    -   name: author
+        dbname: authors
+        fields:
+        -   _key
+        -   display_name
+        indexes:
+        -   fields:
+            -   _key
+    -   name: institution
+        dbname: institutions
+        fields:
+        -   _key
+        -   display_name
+        -   country
+        -   type
+        indexes:
+        -   fields:
+            -   _key
+    """)
+    return VertexConfig.from_dict(tc)
+
+
+@pytest.fixture()
+def sample_openalex_authors():
+    sample = FileHandle.load("test/data/json/openalex.authors.json")
+    return sample
+
+
+@pytest.fixture()
+def resource_openalex_authors():
+    an = yaml.safe_load("""
+    -   vertex: author
+    -   name: keep_suffix_id
+        foo: split_keep_part
+        module: graphcast.util.transform
+        params:
+            sep: "/"
+            keep: -1
+        input:
+        -   id
+        output:
+        -   _key
+    -   key: last_known_institution
+        apply:
+        -   vertex: institution   
+        -   name: keep_suffix_id
+    -   source: author
+        target: institution
+        weights:
+            direct:
+            -   updated_date
+            -   created_date
+    """)
+    return an
+
+
+@pytest.fixture()
+def mention_data():
+    return {
+        "triple_index": {"hash": "7a440c01a1205de3dbf33fc244489016b7072d12"},
+        "triple": [
+            {
+                "hash": "5e18cc3aa82dae330049e923aaba1978277e4758",
+                "text": "habitat shifts",
+                "role": "source",
+            },
+            {
+                "hash": "0f0f2562463a606ad107b0faac431f71f4c7c253",
+                "text": "occurs in",
+                "role": "relation",
+            },
+            {
+                "hash": "c7f68d9f1d0ad2d51a0aea2bb95b195fc7f62b78",
+                "text": "paleogene",
+                "role": "target",
+            },
+        ],
+    }
+
+
+@pytest.fixture()
+def resource_kg_menton_triple():
+    an = yaml.safe_load("""
+    -   key: triple_index
+        apply:
+        -   vertex: mention
+            discriminant: triple_index
+        -   map:
+                hash: _key
+    -   key: triple
+        apply:
+        -   apply:
+            -   vertex: mention
+                discriminant: core
+            -   map:
+                    hash: _key
+                    role: _role
+    -   source: mention
+        source_discriminant: triple_index
+        target: mention
+        target_discriminant: core
+        weights:
+            direct:
+            -   _role
+        indexes:
+        -   fields:
+            -   _role
+    """)
+    return an
+
+
+@pytest.fixture()
+def vertex_config_kg_mention():
+    tc = yaml.safe_load("""
+    vertex_config:
+    vertices:
+    -   name: mention
+        dbname: mentions
+        fields:
+        -   text
+        indexes:
+        -   fields:
+            -   _key
+        -   unique: false
+            fields:
+            -   text
+    """)
+    return VertexConfig.from_dict(tc)

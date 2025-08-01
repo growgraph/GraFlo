@@ -1,86 +1,32 @@
 import logging
 from pathlib import Path
 
-import pytest
-import yaml
-from suthing import FileHandle
-
 from graphcast.architecture.actor import ActorWrapper
 from graphcast.architecture.onto import ActionContext
-from graphcast.architecture.vertex import VertexConfig
 from graphcast.plot.plotter import assemble_tree
 
 logger = logging.getLogger(__name__)
 
 
-@pytest.fixture()
-def vc_openalex():
-    tc = yaml.safe_load("""
-    vertices:
-    -   name: author
-        dbname: authors
-        fields:
-        -   _key
-        -   display_name
-        indexes:
-        -   fields:
-            -   _key
-    -   name: institution
-        dbname: institutions
-        fields:
-        -   _key
-        -   display_name
-        -   country
-        -   type
-        indexes:
-        -   fields:
-            -   _key
-    """)
-    return VertexConfig.from_dict(tc)
-
-
-@pytest.fixture()
-def sample_openalex():
-    sample = FileHandle.load("test/data/json/openalex.authors.json")
-    return sample
-
-
-@pytest.fixture()
-def resource_with_weights():
-    an = yaml.safe_load("""
-    -   vertex: author
-    -   name: keep_suffix_id
-        foo: split_keep_part
-        module: graphcast.util.transform
-        params:
-            sep: "/"
-            keep: -1
-        input:
-        -   id
-        output:
-        -   _key
-    -   key: last_known_institution
-        apply:
-        -   vertex: institution   
-        -   name: keep_suffix_id
-    -   source: author
-        target: institution
-        weights:
-            direct:
-            -   updated_date
-            -   created_date
-    """)
-    return an
-
-
-def test_act_openalex(resource_with_weights, vc_openalex, sample_openalex):
+def test_act_openalex(resource_openalex_authors, vc_openalex, sample_openalex_authors):
     ctx = ActionContext()
-    anw = ActorWrapper(*resource_with_weights)
+    anw = ActorWrapper(*resource_openalex_authors)
     anw.finish_init(vertex_config=vc_openalex, transforms={})
-    ctx = anw(ctx, doc=sample_openalex)
+    ctx = anw(ctx, doc=sample_openalex_authors)
     assemble_tree(anw, Path("test/figs/openalex_authors.pdf"))
     edge = ctx.acc_global[("author", "institution", None)][0]
     assert edge[-1] == {
         "updated_date": "2023-06-08",
         "created_date": "2023-06-08",
     }
+
+
+def test_kg_mention(resource_kg_menton_triple, vertex_config_kg_mention, mention_data):
+    ctx = ActionContext()
+    anw = ActorWrapper(*resource_kg_menton_triple)
+    anw.finish_init(vertex_config=vertex_config_kg_mention, transforms={})
+    ctx = anw(ctx, doc=[mention_data])
+    roles = set(
+        item[-1]["_role"] for item in ctx.acc_global[("mention", "mention", None)]
+    )
+    assert roles == {"relation", "target", "source"}

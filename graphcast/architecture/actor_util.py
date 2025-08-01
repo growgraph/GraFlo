@@ -81,10 +81,7 @@ def add_blank_collections(
 
 
 def render_edge(
-    edge: Edge,
-    vertex_config: VertexConfig,
-    acc_vertex: defaultdict[str, defaultdict[Optional[str], list]],
-    buffer_transforms=None,
+    edge: Edge, vertex_config: VertexConfig, ctx: ActionContext, local: bool = False
 ) -> defaultdict[Optional[str], list]:
     """Create edges between source and target vertices.
 
@@ -96,9 +93,8 @@ def render_edge(
     Args:
         edge: Edge configuration defining the relationship
         vertex_config: Vertex configuration for source and target
-        acc_vertex: Accumulated vertex documents organized by vertex name and discriminant
-        buffer_transforms: Current document being processed
-
+        ctx:
+        local:
 
     Returns:
         defaultdict[Optional[str], list]: Created edges organized by relation type
@@ -109,9 +105,10 @@ def render_edge(
         - Edge weights are extracted from source and target vertices
         - Relation fields can be specified in either source or target
     """
-    # get source and target names
-    if buffer_transforms is None:
-        buffer_transforms = list()
+
+    acc_vertex = ctx.acc_vertex_local if local else ctx.acc_vertex
+    buffer_transforms = ctx.buffer_transforms
+
     source, target = edge.source, edge.target
     relation = None
 
@@ -127,11 +124,21 @@ def render_edge(
         acc_vertex[target].get(edge.target_discriminant, []),
     )
 
+    if len(source_items) == len(buffer_transforms):
+        source_items = list(zip(source_items, buffer_transforms))
+    else:
+        source_items = list(zip(source_items, [{}] * len(source_items)))
+
+    if len(target_items) == len(buffer_transforms):
+        target_items = list(zip(target_items, buffer_transforms))
+    else:
+        target_items = list(zip(target_items, [{}] * len(target_items)))
+
     source_items = [
-        item for item in source_items if any(k in item.vertex for k in source_index)
+        item for item in source_items if any(k in item[0].vertex for k in source_index)
     ]
     target_items = [
-        item for item in target_items if any(k in item.vertex for k in target_index)
+        item for item in target_items if any(k in item[0].vertex for k in target_index)
     ]
 
     if edge.casting_type == EdgeCastingType.PAIR_LIKE:
@@ -146,7 +153,7 @@ def render_edge(
     # edges for a selected pair (source, target) but potentially different relation flavors
     edges: defaultdict[Optional[str], list] = defaultdict(list)
 
-    for u_, v_ in iterator(source_items, target_items):
+    for (u_, u_tr), (v_, v_tr) in iterator(source_items, target_items):
         u = u_.vertex
         v = v_.vertex
         # adding weight from source or target
@@ -155,8 +162,14 @@ def render_edge(
             for field in edge.weights.direct:
                 if field in u_.ctx:
                     weight[field] = u_.ctx[field]
+
                 if field in v_.ctx:
                     weight[field] = v_.ctx[field]
+
+                if field in u_tr:
+                    weight[field] = u_tr[field]
+                if field in v_tr:
+                    weight[field] = v_tr[field]
 
         a = project_dict(u, source_index)
         b = project_dict(v, target_index)
@@ -171,6 +184,8 @@ def render_edge(
                 relation = u_relation
 
         edges[relation] += [(a, b, weight)]
+    if ctx.buffer_transforms:
+        ctx.buffer_transforms = []
     return edges
 
 
@@ -178,7 +193,6 @@ def render_weights(
     edge: Edge,
     vertex_config: VertexConfig,
     acc_vertex: defaultdict[str, defaultdict[Optional[str], list]],
-    buffer_transforms: list[dict],
     edges: defaultdict[Optional[str], list],
 ):
     """Process and apply weights to edge documents.
@@ -252,14 +266,6 @@ def render_weights(
                             f" {edge.source} {edge.target} refers to"
                             f" a non existent vcollection {vertex}"
                         )
-    if edge.weights is not None:
-        acc = {
-            k: item[k]
-            for k in edge.weights.direct
-            for item in buffer_transforms
-            if k in item
-        }
-        weight.update(acc)
 
     if weight:
         for r, edocs in edges.items():

@@ -342,18 +342,12 @@ class EdgeActor(Actor):
         """
 
         ctx = self.merge_vertices(ctx)
-        edges = render_edge(
-            self.edge,
-            self.vertex_config,
-            ctx.acc_vertex_local,
-            buffer_transforms=ctx.buffer_transforms,
-        )
+        edges = render_edge(self.edge, self.vertex_config, ctx, local=True)
 
         edges = render_weights(
             self.edge,
             self.vertex_config,
             ctx.acc_vertex_local,
-            ctx.buffer_transforms,
             edges,
         )
 
@@ -376,7 +370,7 @@ class EdgeActor(Actor):
 
         return ctx
 
-    def merge_vertices(self, ctx):
+    def merge_vertices(self, ctx) -> ActionContext:
         for vertex, dd in ctx.acc_vertex_local.items():
             for discriminant, vertex_list in dd.items():
                 vvv = merge_doc_basis_closest_preceding(
@@ -678,8 +672,6 @@ class DescendActor(Actor):
                     f"{type(anw.actor).__name__}: {j + 1}/{len(self.descendants)}"
                 )
                 ctx = anw(ctx, *nargs, **kwargs)
-
-        # ctx.buffer_transforms += [doc]
         return ctx
 
     def fetch_actors(self, level, edges):
@@ -889,16 +881,12 @@ class ActorWrapper:
             edges_ids = [k for k in ctx.acc_global if not isinstance(k, str)]
             if not any(s == sp and t == tp for sp, tp, _ in edges_ids):
                 extra_edges = render_edge(
-                    edge=edge,
-                    vertex_config=self.vertex_config,
-                    acc_vertex=ctx.acc_vertex,
-                    buffer_transforms=ctx.buffer_transforms,
+                    edge=edge, vertex_config=self.vertex_config, ctx=ctx
                 )
                 extra_edges = render_weights(
                     edge,
                     self.vertex_config,
                     ctx.acc_vertex,
-                    ctx.buffer_transforms,
                     extra_edges,
                 )
 
