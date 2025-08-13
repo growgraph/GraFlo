@@ -35,7 +35,12 @@ from graphcast.architecture.actor_util import (
     render_weights,
 )
 from graphcast.architecture.edge import Edge, EdgeConfig
-from graphcast.architecture.onto import ActionContext, GraphEntity, VertexRep
+from graphcast.architecture.onto import (
+    ActionContext,
+    GraphEntity,
+    LocationIndex,
+    VertexRep,
+)
 from graphcast.architecture.transform import ProtoTransform, Transform
 from graphcast.architecture.vertex import (
     VertexConfig,
@@ -64,7 +69,7 @@ class Actor(ABC):
     """
 
     @abstractmethod
-    def __call__(self, ctx: ActionContext, *nargs, **kwargs):
+    def __call__(self, ctx: ActionContext, lindex: LocationIndex, *nargs, **kwargs):
         """Execute the actor's main processing logic.
 
         Args:
@@ -214,7 +219,7 @@ class VertexActor(Actor):
         self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
         self.vertex_config.discriminant_chart[self.name] = True
 
-    def __call__(self, ctx: ActionContext, *nargs, **kwargs):
+    def __call__(self, ctx: ActionContext, lindex: LocationIndex, *nargs, **kwargs):
         """Process vertex data.
 
         Args:
@@ -232,7 +237,7 @@ class VertexActor(Actor):
 
         agg = []
 
-        for item in ctx.buffer_transforms:
+        for item in ctx.buffer_transforms[lindex]:
             _doc: dict = dict()
             n_value_keys = len(
                 [k for k in item if k.startswith(DRESSING_TRANSFORMED_VALUE_KEY)]
@@ -250,7 +255,7 @@ class VertexActor(Actor):
             if all(cfilter(doc) for cfilter in self.vertex_config.filters(self.name)):
                 agg += [_doc]
 
-        ctx.buffer_transforms = [x for x in ctx.buffer_transforms if x]
+        ctx.buffer_transforms[lindex] = [x for x in ctx.buffer_transforms[lindex] if x]
 
         for item in buffer_vertex:
             _doc = {k: item[k] for k in vertex_keys if k in item}
@@ -272,7 +277,7 @@ class VertexActor(Actor):
             agg, index_keys=tuple(self.vertex_config.index(self.name).fields)
         )
 
-        ctx.acc_vertex_local[self.name][self.discriminant] += [
+        ctx.acc_vertex_local[self.name][lindex] += [
             VertexRep(
                 vertex=m,
                 ctx={q: w for q, w in doc.items() if not isinstance(w, (dict, list))},
@@ -329,7 +334,7 @@ class EdgeActor(Actor):
             self.edge.finish_init(vertex_config=self.vertex_config)
             edge_config.update_edges(self.edge, vertex_config=self.vertex_config)
 
-    def __call__(self, ctx: ActionContext, *nargs, **kwargs):
+    def __call__(self, ctx: ActionContext, lindex: LocationIndex, *nargs, **kwargs):
         """Process edge data.
 
         Args:
@@ -354,31 +359,23 @@ class EdgeActor(Actor):
         for relation, v in edges.items():
             ctx.acc_global[self.edge.source, self.edge.target, relation] += v
 
-        sources = ctx.acc_vertex_local[self.edge.source].pop(
-            self.edge.source_discriminant, []
-        )
+        for lindex, sources in ctx.acc_vertex_local[self.edge.source].items():
+            ctx.acc_vertex[self.edge.source][lindex] = sources
 
-        targets = ctx.acc_vertex_local[self.edge.target].pop(
-            self.edge.target_discriminant, []
-        )
-        ctx.acc_vertex[self.edge.source][self.edge.source_discriminant] += [
-            vr for vr in sources
-        ]
-        ctx.acc_vertex[self.edge.target][self.edge.target_discriminant] += [
-            vr for vr in targets
-        ]
+        for lindex, targets in ctx.acc_vertex_local[self.edge.target].items():
+            ctx.acc_vertex[self.edge.target][lindex] = targets
 
         return ctx
 
     def merge_vertices(self, ctx) -> ActionContext:
         for vertex, dd in ctx.acc_vertex_local.items():
-            for discriminant, vertex_list in dd.items():
+            for lindex, vertex_list in dd.items():
                 vvv = merge_doc_basis_closest_preceding(
                     vertex_list,
                     tuple(self.vertex_config.index(vertex).fields),
                 )
                 # vvv = pick_unique_dict(vvv)
-                ctx.acc_vertex_local[vertex][discriminant] = vvv
+                ctx.acc_vertex_local[vertex][lindex] = vvv
         return ctx
 
 
@@ -470,7 +467,7 @@ class TransformActor(Actor):
                         self.t.output = pt.output
                         self.t.__post_init__()
 
-    def __call__(self, ctx: ActionContext, *nargs, **kwargs):
+    def __call__(self, ctx: ActionContext, lindex: LocationIndex, *nargs, **kwargs):
         """Apply transformation to input data.
 
         Args:
@@ -509,7 +506,7 @@ class TransformActor(Actor):
                 _update_doc = {f"{DRESSING_TRANSFORMED_VALUE_KEY}#0": value}
 
         if self.vertex is None:
-            ctx.buffer_transforms += [_update_doc]
+            ctx.buffer_transforms[lindex] += [_update_doc]
         else:
             ctx.buffer_vertex[self.vertex] += [_update_doc]
         return ctx
@@ -627,7 +624,7 @@ class DescendActor(Actor):
             }"""
         )
 
-    def __call__(self, ctx: ActionContext, **kwargs):
+    def __call__(self, ctx: ActionContext, lindex: LocationIndex, **kwargs):
         """Process hierarchical data structure.
 
         Args:
@@ -671,7 +668,12 @@ class DescendActor(Actor):
                 logger.debug(
                     f"{type(anw.actor).__name__}: {j + 1}/{len(self.descendants)}"
                 )
-                ctx = anw(ctx, *nargs, **kwargs)
+                ctx = anw(
+                    ctx,
+                    LocationIndex(key=self.key, level=lindex.level + 1),
+                    *nargs,
+                    **kwargs,
+                )
         return ctx
 
     def fetch_actors(self, level, edges):
@@ -845,7 +847,13 @@ class ActorWrapper:
         except Exception:
             return False
 
-    def __call__(self, ctx: ActionContext, *nargs, **kwargs) -> ActionContext:
+    def __call__(
+        self,
+        ctx: ActionContext,
+        lindex: LocationIndex = LocationIndex(),
+        *nargs,
+        **kwargs,
+    ) -> ActionContext:
         """Execute the wrapped actor.
 
         Args:
@@ -856,7 +864,7 @@ class ActorWrapper:
         Returns:
             Updated action context
         """
-        ctx = self.actor(ctx, *nargs, **kwargs)
+        ctx = self.actor(ctx, lindex, *nargs, **kwargs)
         return ctx
 
     def normalize_ctx(self, ctx: ActionContext) -> defaultdict[GraphEntity, list]:
@@ -868,13 +876,9 @@ class ActorWrapper:
         Returns:
             defaultdict[GraphEntity, list]: Normalized context
         """
-        for vertex in list(ctx.acc_vertex_local):
-            discriminant_dd: defaultdict[Optional[str], list] = (
-                ctx.acc_vertex_local.pop(vertex, defaultdict(list))
-            )
-            for discriminant in list(discriminant_dd):
-                vertices = discriminant_dd.pop(discriminant, [])
-                ctx.acc_vertex[vertex][discriminant] += vertices
+        for vertex, discriminant_dd in ctx.acc_vertex_local.items():
+            for lindex, vertices in discriminant_dd.items():
+                ctx.acc_vertex[vertex][lindex] += vertices
 
         for edge_id, edge in self.edge_config.edges_items():
             s, t, _ = edge_id

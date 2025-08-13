@@ -32,7 +32,9 @@ import dataclasses
 import logging
 from abc import ABCMeta
 from collections import defaultdict
-from typing import Any, Optional, Union
+from typing import Any, Optional, TypeAlias, Union
+
+from dataclass_wizard import JSONWizard, YAMLWizard
 
 from graphcast.onto import BaseDataclass, BaseEnum, DBFlavor
 from graphcast.util.transform import pick_unique_dict
@@ -40,8 +42,8 @@ from graphcast.util.transform import pick_unique_dict
 DISCRIMINANT_KEY = "__discriminant_key"
 
 # type for vertex or edge name (index)
-EdgeId = tuple[str, str, Optional[str]]
-GraphEntity = Union[str, EdgeId]
+EdgeId: TypeAlias = tuple[str, str, Optional[str]]
+GraphEntity: TypeAlias = Union[str, EdgeId]
 
 logger = logging.getLogger(__name__)
 
@@ -282,12 +284,12 @@ class EdgeCastingType(BaseEnum):
     COMBINATIONS_LIKE = "combinations"
 
 
-def inner_factory_vertex() -> defaultdict[Optional[str], list]:
+def inner_factory_vertex() -> defaultdict[LocationIndex, list]:
     """Create a default dictionary for vertex data."""
     return defaultdict(list)
 
 
-def outer_factory() -> defaultdict[str, defaultdict[Optional[str], list]]:
+def outer_factory() -> defaultdict[str, defaultdict[LocationIndex, list]]:
     """Create a nested default dictionary for vertex data."""
     return defaultdict(inner_factory_vertex)
 
@@ -310,6 +312,12 @@ class VertexRep(BaseDataclass):
     ctx: dict
 
 
+@dataclasses.dataclass(frozen=True, eq=True)
+class LocationIndex(JSONWizard, YAMLWizard):
+    level: int = 0
+    key: Optional[str] = None
+
+
 @dataclasses.dataclass(kw_only=True)
 class ActionContext(BaseDataclass):
     """Context for graph transformation actions.
@@ -322,10 +330,10 @@ class ActionContext(BaseDataclass):
         buffer_transforms: Buffer for transforms data
     """
 
-    acc_vertex_local: defaultdict[str, defaultdict[Optional[str], list[VertexRep]]] = (
+    acc_vertex_local: defaultdict[str, defaultdict[LocationIndex, list]] = (
         dataclasses.field(default_factory=outer_factory)
     )
-    acc_vertex: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(
+    acc_vertex: defaultdict[str, defaultdict[LocationIndex, list]] = dataclasses.field(
         default_factory=outer_factory
     )
     acc_global: defaultdict[GraphEntity, list] = dataclasses.field(
@@ -334,4 +342,6 @@ class ActionContext(BaseDataclass):
     buffer_vertex: defaultdict[GraphEntity, list] = dataclasses.field(
         default_factory=lambda: defaultdict(list)
     )
-    buffer_transforms: list[dict] = dataclasses.field(default_factory=list)
+    buffer_transforms: defaultdict[LocationIndex, list[dict]] = dataclasses.field(
+        default_factory=lambda: defaultdict(list)
+    )

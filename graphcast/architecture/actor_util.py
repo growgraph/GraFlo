@@ -41,6 +41,8 @@ from graphcast.architecture.edge import Edge
 from graphcast.architecture.onto import (
     ActionContext,
     EdgeCastingType,
+    LocationIndex,
+    VertexRep,
 )
 from graphcast.architecture.util import project_dict
 from graphcast.architecture.vertex import VertexConfig
@@ -69,15 +71,56 @@ def add_blank_collections(
             >>> print(ctx.acc_global['blank_vertex'])
             [{'field1': 'value1', 'field2': 'value2'}]
     """
+
     # add blank collections
+    buffer_transforms = [
+        item for sublist in ctx.buffer_transforms.values() for item in sublist
+    ]
+
     for vname in vertex_conf.blank_vertices:
         v = vertex_conf[vname]
-        prep_doc = {
-            f: ctx.buffer_transforms[f] for f in v.fields if f in ctx.buffer_transforms
-        }
-        if vname not in ctx.acc_global:
-            ctx.acc_global[vname] = [prep_doc]
+        for item in buffer_transforms:
+            prep_doc = {f: item[f] for f in v.fields if f in item}
+            if vname not in ctx.acc_global:
+                ctx.acc_global[vname] = [prep_doc]
     return ctx
+
+
+def dress_vertices(
+    items_dd: defaultdict[LocationIndex, list[VertexRep]],
+    buffer_transforms: defaultdict[LocationIndex, list[dict]],
+) -> defaultdict[LocationIndex, list[tuple[VertexRep, dict]]]:
+    new_items_dd: defaultdict[LocationIndex, list[tuple[VertexRep, dict]]] = (
+        defaultdict(list)
+    )
+    for va, vlist in items_dd.items():
+        if va in buffer_transforms and len(buffer_transforms[va]) == len(vlist):
+            new_items_dd[va] = list(zip(vlist, buffer_transforms[va]))
+        else:
+            new_items_dd[va] = list(zip(vlist, [{}] * len(vlist)))
+
+    return new_items_dd
+
+
+def select_iterator(casting_type: EdgeCastingType):
+    if casting_type == EdgeCastingType.PAIR_LIKE:
+        iterator: Callable[..., Iterable[Any]] = zip
+    elif casting_type == EdgeCastingType.PRODUCT_LIKE:
+        iterator = product
+    elif casting_type == EdgeCastingType.COMBINATIONS_LIKE:
+
+        def iterator(*x):
+            return partial(combinations, r=2)(x[0])
+
+    return iterator
+
+
+def filter_nonindexed(items_tdressed, index):
+    for va, vlist in items_tdressed.items():
+        items_tdressed[va] = [
+            item for item in vlist if any(k in item[0].vertex for k in index)
+        ]
+    return items_tdressed
 
 
 def render_edge(
@@ -119,80 +162,86 @@ def render_edge(
     )
 
     # get source and target items
-    source_items, target_items = (
-        acc_vertex[source].get(edge.source_discriminant, []),
-        acc_vertex[target].get(edge.target_discriminant, []),
-    )
+    source_items_, target_items_ = (acc_vertex[source], acc_vertex[target])
+    if not source_items_ or not target_items_:
+        return defaultdict(None, [])
 
-    if len(source_items) == len(buffer_transforms):
-        source_items = list(zip(source_items, buffer_transforms))
-    else:
-        source_items = list(zip(source_items, [{}] * len(source_items)))
+    source_min_level = min([k.level for k in source_items_.keys()])
+    target_min_level = min([k.level for k in target_items_.keys()])
 
-    if len(target_items) == len(buffer_transforms):
-        target_items = list(zip(target_items, buffer_transforms))
-    else:
-        target_items = list(zip(target_items, [{}] * len(target_items)))
+    if source == target and len(source_items_) > 1:
+        source_items_ = defaultdict(
+            list,
+            {k: v for k, v in source_items_.items() if k.level == source_min_level},
+        )
+        target_items_ = defaultdict(
+            list, {k: v for k, v in target_items_.items() if k.level > source_min_level}
+        )
 
-    source_items = [
-        item for item in source_items if any(k in item[0].vertex for k in source_index)
-    ]
-    target_items = [
-        item for item in target_items if any(k in item[0].vertex for k in target_index)
-    ]
+    # source/target items from many levels
 
-    if edge.casting_type == EdgeCastingType.PAIR_LIKE:
-        iterator: Callable[..., Iterable[Any]] = zip
-    elif edge.casting_type == EdgeCastingType.PRODUCT_LIKE:
-        iterator = product
-    elif edge.casting_type == EdgeCastingType.COMBINATIONS_LIKE:
+    source_items_tdressed = dress_vertices(source_items_, buffer_transforms)
+    target_items_tdressed = dress_vertices(target_items_, buffer_transforms)
 
-        def iterator(*x):
-            return partial(combinations, r=2)(x[0])
+    source_items_tdressed = filter_nonindexed(source_items_tdressed, source_index)
+    target_items_tdressed = filter_nonindexed(target_items_tdressed, source_index)
 
-    # edges for a selected pair (source, target) but potentially different relation flavors
     edges: defaultdict[Optional[str], list] = defaultdict(list)
 
-    for (u_, u_tr), (v_, v_tr) in iterator(source_items, target_items):
-        u = u_.vertex
-        v = v_.vertex
-        # adding weight from source or target
-        weight = dict()
-        if edge.weights is not None:
-            for field in edge.weights.direct:
-                if field in u_.ctx:
-                    weight[field] = u_.ctx[field]
+    for source_lindex, source_items in source_items_tdressed.items():
+        for target_lindex, target_items in target_items_tdressed.items():
+            casting_type = EdgeCastingType.PRODUCT_LIKE
+            if source_lindex.level == target_lindex.level:
+                if source == target:
+                    casting_type = EdgeCastingType.COMBINATIONS_LIKE
 
-                if field in v_.ctx:
-                    weight[field] = v_.ctx[field]
+            iterator = select_iterator(casting_type)
+            # edges for a selected pair (source, target) but potentially different relation flavors
 
-                if field in u_tr:
-                    weight[field] = u_tr[field]
-                if field in v_tr:
-                    weight[field] = v_tr[field]
+            for (u_, u_tr), (v_, v_tr) in iterator(source_items, target_items):
+                u = u_.vertex
+                v = v_.vertex
+                # adding weight from source or target
+                weight = dict()
+                if edge.weights is not None:
+                    for field in edge.weights.direct:
+                        if field in u_.ctx:
+                            weight[field] = u_.ctx[field]
 
-        a = project_dict(u, source_index)
-        b = project_dict(v, target_index)
+                        if field in v_.ctx:
+                            weight[field] = v_.ctx[field]
 
-        if edge.relation_field is not None:
-            u_relation = u_.ctx.pop(edge.relation_field, None)
-            v_relation = v_.ctx.pop(edge.relation_field, None)
-            if v_relation is not None:
-                a, b = b, a
-                relation = v_relation
-            else:
-                relation = u_relation
+                        if field in u_tr:
+                            weight[field] = u_tr[field]
+                        if field in v_tr:
+                            weight[field] = v_tr[field]
 
-        edges[relation] += [(a, b, weight)]
-    if ctx.buffer_transforms:
-        ctx.buffer_transforms = []
+                a = project_dict(u, source_index)
+                b = project_dict(v, target_index)
+
+                if edge.relation_field is not None:
+                    u_relation = u_.ctx.pop(edge.relation_field, None)
+                    v_relation = v_.ctx.pop(edge.relation_field, None)
+                    if v_relation is not None:
+                        a, b = b, a
+                        relation = v_relation
+                    else:
+                        relation = u_relation
+                elif edge.relation_from_key:
+                    relation = (
+                        target_lindex.key
+                        if source_min_level <= target_min_level
+                        else source_lindex.key
+                    )
+
+                edges[relation] += [(a, b, weight)]
     return edges
 
 
 def render_weights(
     edge: Edge,
     vertex_config: VertexConfig,
-    acc_vertex: defaultdict[str, defaultdict[Optional[str], list]],
+    acc_vertex: defaultdict[str, defaultdict[LocationIndex, list]],
     edges: defaultdict[Optional[str], list],
 ):
     """Process and apply weights to edge documents.
@@ -207,7 +256,6 @@ def render_weights(
         edge: Edge configuration containing weight definitions
         vertex_config: Vertex configuration for weight processing
         acc_vertex: Accumulated vertex documents
-        buffer_transforms: Current document being processed
         edges: Edge documents to apply weights to
 
     Returns:
@@ -227,7 +275,13 @@ def render_weights(
         vertex = w.name
         if vertex is None or vertex not in vertex_config.vertex_set:
             continue
-        vertex_sample = [item.vertex for item in acc_vertex[vertex][w.discriminant]]
+        vertex_lists = acc_vertex[vertex]
+
+        # TODO logic here may be potentially improved
+        keys = sorted(vertex_lists)
+        if not keys:
+            continue
+        vertex_sample = [item.vertex for item in vertex_lists[keys[0]]]
 
         # find all vertices satisfying condition
         if w.filter:

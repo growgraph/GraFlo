@@ -67,8 +67,6 @@ class Edge(BaseDataclass):
         aux: Whether this is an auxiliary edge
         casting_type: Type of edge casting
         by: Optional vertex name for indirect edges
-        source_collection: Optional source collection name
-        target_collection: Optional target collection name
         graph_name: Optional graph name
         collection_name: Optional collection name
         db_flavor: Database flavor (ARANGO or NEO4J)
@@ -85,6 +83,7 @@ class Edge(BaseDataclass):
     relation: Optional[str] = None
     # field that contains Class or relation
     relation_field: Optional[str] = None
+    relation_from_key: bool = False
 
     # used to create extra utility collections between the same type of vertices (A, B)
     purpose: Optional[str] = None

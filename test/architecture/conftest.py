@@ -611,3 +611,66 @@ def vertex_config_kg_mention():
             -   text
     """)
     return VertexConfig.from_dict(tc)
+
+
+@pytest.fixture()
+def data_key_property():
+    return [
+        {
+            "name": "0ad-data-common",
+            "version": "0.0.26-1",
+            "dependencies": {
+                "depends": [
+                    {"name": "fonts-dejavu-core"},
+                    {"name": "fonts-freefont-ttf"},
+                    {"name": "fonts-texgyre"},
+                ],
+                "depends_aliases": [
+                    {"source": "fonts-dejavu-core", "target": "ttf-dejavu-core"},
+                    {"source": "fonts-freefont-ttf", "target": "ttf-freefont"},
+                    {"source": "fonts-texgyre", "target": "tex-gyre"},
+                ],
+                "pre-depends": [{"name": "dpkg", "version": ">= 1.15.6~"}],
+                "suggests": [{"name": "0ad"}],
+                "breaks": [{"name": "0ad-data", "version": "<< 0.0.12-1~"}],
+            },
+        }
+    ]
+
+
+@pytest.fixture()
+def vertex_key_property():
+    tc = yaml.safe_load(
+        """
+    vertex_config:
+    vertices:
+        -   name: package
+            fields:
+            -   name
+            -   version
+            indexes:
+            -   fields:
+                -   name
+    """
+    )
+    return VertexConfig.from_dict(tc)
+
+
+@pytest.fixture()
+def resource_key_property():
+    mn = yaml.safe_load(
+        """
+    -   vertex: package
+        discriminant: _top_level
+    -   key: dependencies
+        apply:
+        -   key: depends
+            apply:
+            -   vertex: package
+    -   source: package
+        target: package
+        source_discriminant: _top_level
+
+    """
+    )
+    return mn

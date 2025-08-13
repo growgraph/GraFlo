@@ -273,7 +273,6 @@ def resource_with_dynamic_relations():
 def resource_openalex_works():
     an = yaml.safe_load("""
     -   vertex: work
-        discriminant: _top_level
     -   name: keep_suffix_id
         foo: split_keep_part
         module: graphcast.util.transform
@@ -298,6 +297,5 @@ def resource_openalex_works():
         -   name: keep_suffix_id
     -   source: work
         target: work
-        source_discriminant: _top_level
     """)
     return an

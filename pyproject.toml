@@ -26,6 +26,7 @@ dependencies = [
   "ijson>=3.2.3,<4",
   "neo4j>=5.22.0,<6",
   "networkx~=3.3",
+  "pandas-stubs==2.3.0.250703",
   "pandas>=2.0.3,<3",
   "python-arango>=8.1.2,<9",
   "suthing>=0.4.1,<0.5",
@@ -34,7 +35,7 @@ dependencies = [
 description = "A framework for transforming tabular (CSV, SQL) and hierarchical data (JSON, XML) into property graphs and ingesting them into graph databases (ArangoDB, Neo4j)"
 name = "graphcast"
 readme = "README.md"
-requires-python = "~=3.11"
+requires-python = "~=3.11.0"
 version = "0.14.2"
 
 [project.optional-dependencies]
