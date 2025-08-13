@@ -314,8 +314,13 @@ class VertexRep(BaseDataclass):
 
 @dataclasses.dataclass(frozen=True, eq=True)
 class LocationIndex(JSONWizard, YAMLWizard):
-    level: int = 0
-    key: Optional[str] = None
+    path: tuple[str | None, ...] = dataclasses.field(default_factory=tuple)
+
+    def construct(self, key: str | None) -> LocationIndex:
+        return LocationIndex((*self.path, key))
+
+    def depth(self):
+        return len(self.path)
 
 
 @dataclasses.dataclass(kw_only=True)

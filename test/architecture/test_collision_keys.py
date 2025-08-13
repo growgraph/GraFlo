@@ -11,11 +11,11 @@ def test_collision(resource_collision, vertex_config_collision, sample_cross):
     anw = ActorWrapper(*resource_collision)
     anw.finish_init(transforms={}, vertex_config=vertex_config_collision)
     ctx = anw(ctx, doc=sample_cross)
-    assert ctx.acc_vertex_local["person"][LocationIndex(level=1, key=None)] == [
+    assert ctx.acc_vertex_local["person"][LocationIndex(path=(None,))] == [
         VertexRep(vertex={"id": "John"}, ctx={"name": "John", "id": "Apple"}),
         VertexRep(vertex={"id": "Mary"}, ctx={"name": "Mary", "id": "Oracle"}),
     ]
-    assert ctx.acc_vertex_local["company"][LocationIndex(level=1, key=None)] == [
+    assert ctx.acc_vertex_local["company"][LocationIndex(path=(None,))] == [
         VertexRep(vertex={"id": "Apple"}, ctx={"name": "John"}),
         VertexRep(vertex={"id": "Oracle"}, ctx={"name": "Mary"}),
     ]

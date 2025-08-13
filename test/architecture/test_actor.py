@@ -48,7 +48,7 @@ def test_mapper_value(resource_concept, schema_vc_openalex):
     ctx = ActionContext()
     ctx = anw(ctx, doc=test_doc)
     assert len(ctx.acc_vertex_local) == 1
-    assert ctx.acc_vertex_local["concept"][LocationIndex(level=1, key=None)] == [
+    assert ctx.acc_vertex_local["concept"][LocationIndex(path=(None,))] == [
         VertexRep(
             vertex={"wikidata": "Q123", "mag": 105794591},
             ctx={"wikidata": "https://www.wikidata.org/wiki/Q123"},
@@ -66,7 +66,7 @@ def test_transform_shortcut(resource_openalex_works, schema_vc_openalex):
     anw.finish_init(vertex_config=schema_vc_openalex, transforms=transforms)
     ctx = ActionContext()
     ctx = anw(ctx, doc=doc)
-    assert ctx.acc_vertex["work"][LocationIndex(level=1, key=None)] == [
+    assert ctx.acc_vertex["work"][LocationIndex(path=(None,))] == [
         VertexRep(
             vertex={"_key": "A123", "doi": "10.1007/978-3-123"},
             ctx={
@@ -87,7 +87,7 @@ def test_discriminant_edge(
     assemble_tree(anw, Path("test/figs/discriminate_edge.pdf"))
     ctx = anw(ctx, doc=sample_openalex)
     assert (
-        len(ctx.acc_vertex["work"][LocationIndex(level=2, key="referenced_works")]) == 5
+        len(ctx.acc_vertex["work"][LocationIndex(path=(None, "referenced_works"))]) == 5
     )
-    assert len(ctx.acc_vertex["work"][LocationIndex(level=1, key=None)]) == 1
+    assert len(ctx.acc_vertex["work"][LocationIndex(path=(None,))]) == 1
     assert len(ctx.acc_global[("work", "work", None)]) == 5

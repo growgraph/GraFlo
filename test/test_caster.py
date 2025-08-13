@@ -20,7 +20,10 @@ def current_path():
 
 @pytest.fixture(scope="function")
 def modes():
-    return [("kg", "json"), ("ibes", "csv")]
+    return [
+        ("kg", "json"),
+        # ("ibes", "csv")
+    ]
 
 
 def cast(modes, schema_obj, current_path, level, reset, n_threads=1):

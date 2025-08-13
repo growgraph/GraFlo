@@ -166,16 +166,17 @@ def render_edge(
     if not source_items_ or not target_items_:
         return defaultdict(None, [])
 
-    source_min_level = min([k.level for k in source_items_.keys()])
-    target_min_level = min([k.level for k in target_items_.keys()])
+    source_min_level = min([k.depth() for k in source_items_.keys()])
+    target_min_level = min([k.depth() for k in target_items_.keys()])
 
     if source == target and len(source_items_) > 1:
         source_items_ = defaultdict(
             list,
-            {k: v for k, v in source_items_.items() if k.level == source_min_level},
+            {k: v for k, v in source_items_.items() if k.depth() == source_min_level},
         )
         target_items_ = defaultdict(
-            list, {k: v for k, v in target_items_.items() if k.level > source_min_level}
+            list,
+            {k: v for k, v in target_items_.items() if k.depth() > source_min_level},
         )
 
     # source/target items from many levels
@@ -191,7 +192,7 @@ def render_edge(
     for source_lindex, source_items in source_items_tdressed.items():
         for target_lindex, target_items in target_items_tdressed.items():
             casting_type = EdgeCastingType.PRODUCT_LIKE
-            if source_lindex.level == target_lindex.level:
+            if source_lindex.depth() == target_lindex.depth():
                 if source == target:
                     casting_type = EdgeCastingType.COMBINATIONS_LIKE
 
@@ -229,9 +230,9 @@ def render_edge(
                         relation = u_relation
                 elif edge.relation_from_key:
                     relation = (
-                        target_lindex.key
+                        target_lindex.path
                         if source_min_level <= target_min_level
-                        else source_lindex.key
+                        else source_lindex.path
                     )
 
                 edges[relation] += [(a, b, weight)]

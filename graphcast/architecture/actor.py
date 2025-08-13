@@ -523,7 +523,7 @@ class DescendActor(Actor):
         _descendants: List of child actor wrappers
     """
 
-    def __init__(self, key: Optional[str], descendants_kwargs: list, **kwargs):
+    def __init__(self, key: str | None, descendants_kwargs: list, **kwargs):
         """Initialize the descend actor.
 
         Args:
@@ -670,7 +670,7 @@ class DescendActor(Actor):
                 )
                 ctx = anw(
                     ctx,
-                    LocationIndex(key=self.key, level=lindex.level + 1),
+                    lindex.construct(self.key),
                     *nargs,
                     **kwargs,
                 )
