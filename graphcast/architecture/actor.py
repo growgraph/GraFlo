@@ -347,7 +347,9 @@ class EdgeActor(Actor):
         """
 
         ctx = self.merge_vertices(ctx)
-        edges = render_edge(self.edge, self.vertex_config, ctx, local=True)
+        edges = render_edge(
+            self.edge, self.vertex_config, ctx, lindex=lindex, local=True
+        )
 
         edges = render_weights(
             self.edge,

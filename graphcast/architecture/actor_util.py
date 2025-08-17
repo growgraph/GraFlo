@@ -124,7 +124,11 @@ def filter_nonindexed(items_tdressed, index):
 
 
 def render_edge(
-    edge: Edge, vertex_config: VertexConfig, ctx: ActionContext, local: bool = False
+    edge: Edge,
+    vertex_config: VertexConfig,
+    ctx: ActionContext,
+    lindex: LocationIndex | None = None,
+    local: bool = False,
 ) -> defaultdict[Optional[str], list]:
     """Create edges between source and target vertices.
 
@@ -137,6 +141,7 @@ def render_edge(
         edge: Edge configuration defining the relationship
         vertex_config: Vertex configuration for source and target
         ctx:
+        lindex: Location index of the source vertex
         local:
 
     Returns:
@@ -165,6 +170,9 @@ def render_edge(
     source_items_, target_items_ = (acc_vertex[source], acc_vertex[target])
     if not source_items_ or not target_items_:
         return defaultdict(None, [])
+    # if lindex is not None:
+    #     source_lindexes = lindex.filter_lindex(list(source_items_))
+    #     target_lindexes = lindex.filter_lindex(list(target_items_))
 
     source_min_level = min([k.depth() for k in source_items_.keys()])
     target_min_level = min([k.depth() for k in target_items_.keys()])
