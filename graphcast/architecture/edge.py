@@ -80,16 +80,17 @@ class Edge(BaseDataclass):
     non_exclusive: list[str] = dataclasses.field(default_factory=list)
 
     # relation represents Class in neo4j, for arango it becomes a weight
-    relation: Optional[str] = None
+    relation: str | None = None
     # field that contains Class or relation
-    relation_field: Optional[str] = None
+    relation_field: str | None = None
     relation_from_key: bool = False
 
     # used to create extra utility collections between the same type of vertices (A, B)
-    purpose: Optional[str] = None
+    purpose: str | None = None
 
-    source_discriminant: Optional[str] = None
-    target_discriminant: Optional[str] = None
+    source_discriminant: str | None = None
+    target_discriminant: str | None = None
+    match: str | None = None
 
     type: EdgeType = EdgeType.DIRECT
 
@@ -98,16 +99,16 @@ class Edge(BaseDataclass):
     )
 
     casting_type: EdgeCastingType = EdgeCastingType.PAIR_LIKE
-    by: Optional[str] = None
-    graph_name: Optional[str] = None
-    collection_name: Optional[str] = None
+    by: str | None = None
+    graph_name: str | None = None
+    collection_name: str | None = None
     db_flavor: DBFlavor = DBFlavor.ARANGO
 
     def __post_init__(self):
         """Initialize the edge after dataclass initialization."""
 
-        self._source_collection: Optional[str] = None
-        self._target_collection: Optional[str] = None
+        self._source_collection: str | None = None
+        self._target_collection: str | None = None
 
     def finish_init(self, vertex_config: VertexConfig):
         """Complete edge initialization with vertex configuration.

@@ -10,16 +10,16 @@ resources:
     -   key: top_level_mention
         apply:
         -   vertex: mention
-            discriminant: _top_level
         -   map:
                 hash: _key
     -   source: publication
         target: mention
-        target_discriminant: _top_level
+        target_discriminant: top_level_mention
+    -   source: mention
+        target: entity
+        match: map_mention_entity
     -   key: map_mention_entity
         apply:
-        -   source: mention
-            target: entity
         -   key: entity
             apply:
             -   vertex: entity
@@ -35,21 +35,19 @@ resources:
         -   key: triple_index
             apply:
             -   vertex: mention
-                discriminant: triple_index
             -   map:
                     hash: _key
         -   key: triple
             apply:
             -   apply:
                 -   vertex: mention
-                    discriminant: core
                 -   map:
                         hash: _key
                         role: _role
         -   source: mention
             source_discriminant: triple_index
             target: mention
-            target_discriminant: core
+            target_discriminant: triple
             weights:
                 direct:
                 -   _role

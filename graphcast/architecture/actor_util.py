@@ -35,7 +35,7 @@ import logging
 from collections import defaultdict
 from functools import partial
 from itertools import combinations, product
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Callable, Iterable
 
 from graphcast.architecture.edge import Edge
 from graphcast.architecture.onto import (
@@ -129,7 +129,7 @@ def render_edge(
     ctx: ActionContext,
     lindex: LocationIndex | None = None,
     local: bool = False,
-) -> defaultdict[Optional[str], list]:
+) -> defaultdict[str | None, list]:
     """Create edges between source and target vertices.
 
     This is the core edge creation function that handles different edge types
@@ -145,7 +145,7 @@ def render_edge(
         local:
 
     Returns:
-        defaultdict[Optional[str], list]: Created edges organized by relation type
+        defaultdict[str | None, list]: Created edges organized by relation type
 
     Note:
         - PAIR_LIKE edges create one-to-one relationships
@@ -170,22 +170,42 @@ def render_edge(
     source_items_, target_items_ = (acc_vertex[source], acc_vertex[target])
     if not source_items_ or not target_items_:
         return defaultdict(None, [])
-    # if lindex is not None:
-    #     source_lindexes = lindex.filter_lindex(list(source_items_))
-    #     target_lindexes = lindex.filter_lindex(list(target_items_))
+
+    source_lindexes = list(source_items_)
+    target_lindexes = list(target_items_)
+
+    if lindex is not None:
+        source_lindexes = sorted(lindex.filter_lindex(source_lindexes))
+        target_lindexes = sorted(lindex.filter_lindex(target_lindexes))
+
+        if source == target and len(source_lindexes) > 1:
+            source_lindexes = source_lindexes[:1]
+            target_lindexes = target_lindexes[1:]
+
+    if edge.source_discriminant is not None:
+        source_lindexes = [
+            li for li in source_lindexes if edge.source_discriminant in li
+        ]
+
+    if edge.target_discriminant is not None:
+        target_lindexes = [
+            li for li in target_lindexes if edge.target_discriminant in li
+        ]
+
+    if edge.match is not None:
+        source_lindexes = [li for li in source_lindexes if edge.match in li]
+        target_lindexes = [li for li in target_lindexes if edge.match in li]
+
+    if not (source_lindexes and target_lindexes):
+        return defaultdict(list)
+
+    source_items_ = defaultdict(list, {k: source_items_[k] for k in source_lindexes})
+
+    target_items_ = defaultdict(list, {k: target_items_[k] for k in target_lindexes})
 
     source_min_level = min([k.depth() for k in source_items_.keys()])
-    target_min_level = min([k.depth() for k in target_items_.keys()])
 
-    if source == target and len(source_items_) > 1:
-        source_items_ = defaultdict(
-            list,
-            {k: v for k, v in source_items_.items() if k.depth() == source_min_level},
-        )
-        target_items_ = defaultdict(
-            list,
-            {k: v for k, v in target_items_.items() if k.depth() > source_min_level},
-        )
+    target_min_level = min([k.depth() for k in target_items_.keys()])
 
     # source/target items from many levels
 
@@ -193,9 +213,9 @@ def render_edge(
     target_items_tdressed = dress_vertices(target_items_, buffer_transforms)
 
     source_items_tdressed = filter_nonindexed(source_items_tdressed, source_index)
-    target_items_tdressed = filter_nonindexed(target_items_tdressed, source_index)
+    target_items_tdressed = filter_nonindexed(target_items_tdressed, target_index)
 
-    edges: defaultdict[Optional[str], list] = defaultdict(list)
+    edges: defaultdict[str | None, list] = defaultdict(list)
 
     for source_lindex, source_items in source_items_tdressed.items():
         for target_lindex, target_items in target_items_tdressed.items():
@@ -203,6 +223,12 @@ def render_edge(
             if source_lindex.depth() == target_lindex.depth():
                 if source == target:
                     casting_type = EdgeCastingType.COMBINATIONS_LIKE
+                elif source_lindex.equality_index(
+                    target_lindex
+                ) == source_lindex.depth() - 1 and len(source_items) == len(
+                    target_items
+                ):
+                    casting_type = EdgeCastingType.PAIR_LIKE
 
             iterator = select_iterator(casting_type)
             # edges for a selected pair (source, target) but potentially different relation flavors
@@ -251,7 +277,7 @@ def render_weights(
     edge: Edge,
     vertex_config: VertexConfig,
     acc_vertex: defaultdict[str, defaultdict[LocationIndex, list]],
-    edges: defaultdict[Optional[str], list],
+    edges: defaultdict[str | None, list],
 ):
     """Process and apply weights to edge documents.
 
@@ -268,7 +294,7 @@ def render_weights(
         edges: Edge documents to apply weights to
 
     Returns:
-        defaultdict[Optional[str], list]: Updated edge documents with applied weights
+        defaultdict[str | None, list]: Updated edge documents with applied weights
 
     Note:
         Weights can come from:

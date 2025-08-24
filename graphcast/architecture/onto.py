@@ -322,12 +322,29 @@ class LocationIndex(JSONWizard, YAMLWizard):
     def depth(self):
         return len(self.path)
 
+    def equality_index(self, other: LocationIndex):
+        neq_position = 0
+        for step_a, step_b in zip(self.path, other.path):
+            if step_a != step_b:
+                break
+            neq_position += 1
+        return neq_position
+
     def filter_lindex(self, lindex_list: list[LocationIndex]) -> list[LocationIndex]:
         return [
             t
             for t in lindex_list
             if t.depth() >= self.depth() and t.path[: self.depth()] == self.path
         ]
+
+    def __lt__(self, other: LocationIndex):
+        return len(self.path) < len(other.path)
+
+    def __contains__(self, item):
+        return item in self.path
+
+    def __len__(self):
+        return len(self.path)
 
 
 @dataclasses.dataclass(kw_only=True)

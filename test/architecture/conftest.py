@@ -569,21 +569,19 @@ def resource_kg_menton_triple():
     -   key: triple_index
         apply:
         -   vertex: mention
-            discriminant: triple_index
         -   map:
                 hash: _key
     -   key: triple
         apply:
         -   apply:
             -   vertex: mention
-                discriminant: core
             -   map:
                     hash: _key
                     role: _role
     -   source: mention
-        source_discriminant: triple_index
         target: mention
-        target_discriminant: core
+        source_discriminant: triple_index
+        target_discriminant: triple
         weights:
             direct:
             -   _role

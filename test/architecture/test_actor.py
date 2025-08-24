@@ -77,7 +77,7 @@ def test_transform_shortcut(resource_openalex_works, schema_vc_openalex):
     ]
 
 
-def test_discriminant_edge(
+def test_edge_between_levels(
     resource_openalex_works, schema_vc_openalex, sample_openalex
 ):
     ctx = ActionContext()
