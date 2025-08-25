@@ -4,6 +4,8 @@ from graphcast import Caster, Patterns, Schema
 
 schema = Schema.from_dict(FileHandle.load("schema.yaml"))
 
+caster = Caster(schema)
+
 conn_conf = ConfigFactory.create_config(
     {
         "protocol": "http",
@@ -18,16 +20,9 @@ conn_conf = ConfigFactory.create_config(
 patterns = Patterns.from_dict(
     {
         "patterns": {
-            "people": {"regex": "^people.*\.csv$"},
-            "departments": {"regex": "^dep.*\.csv$"},
+            "work": {"regex": "\Sjson$"},
         }
     }
 )
 
-caster = Caster(schema)
-
-caster.ingest_files(
-    path=".",
-    conn_conf=conn_conf,
-    patterns=patterns,
-)
+caster.ingest_files(path=".", conn_conf=conn_conf, patterns=patterns, clean_start=True)

@@ -20,7 +20,6 @@ from typing import Optional
 
 from graphcast.architecture.onto import (
     BaseDataclass,
-    EdgeCastingType,
     EdgeId,
     EdgeType,
     Index,
@@ -65,7 +64,6 @@ class Edge(BaseDataclass):
         match_target: Optional target discriminant field
         type: Edge type (DIRECT or INDIRECT)
         aux: Whether this is an auxiliary edge
-        casting_type: Type of edge casting
         by: Optional vertex name for indirect edges
         graph_name: Optional graph name
         collection_name: Optional collection name
@@ -98,7 +96,6 @@ class Edge(BaseDataclass):
         False  # aux=True edges are init in the db but not considered by graphcast
     )
 
-    casting_type: EdgeCastingType = EdgeCastingType.PAIR_LIKE
     by: str | None = None
     graph_name: str | None = None
     collection_name: str | None = None
@@ -125,14 +122,6 @@ class Edge(BaseDataclass):
         """
         if self.type == EdgeType.INDIRECT and self.by is not None:
             self.by = vertex_config.vertex_dbname(self.by)
-
-        if self.match_source == self.match_target:
-            if self.source == self.target:
-                self.casting_type = EdgeCastingType.COMBINATIONS_LIKE
-            else:
-                self.casting_type = EdgeCastingType.PRODUCT_LIKE
-        else:
-            self.casting_type = EdgeCastingType.PRODUCT_LIKE
 
         self._source_collection = vertex_config.vertex_dbname(self.source)
         self._target_collection = vertex_config.vertex_dbname(self.target)

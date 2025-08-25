@@ -271,13 +271,13 @@ class GraphContainer(BaseDataclass):
 class EdgeCastingType(BaseEnum):
     """Types of edge casting supported.
 
-    PAIR_LIKE: Edges are cast as pairs of vertices
-    PRODUCT_LIKE: Edges are cast as products of vertex sets
+    PAIR: Edges are cast as pairs of vertices
+    PRODUCT: Edges are cast as combinations of vertex sets
     """
 
-    PAIR_LIKE = "pair"
-    PRODUCT_LIKE = "product"
-    COMBINATIONS_LIKE = "combinations"
+    PAIR = "pair"
+    PRODUCT = "product"
+    COMBINATIONS = "combinations"
 
 
 def inner_factory_vertex() -> defaultdict[LocationIndex, list]:

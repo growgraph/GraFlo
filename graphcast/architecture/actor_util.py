@@ -103,11 +103,11 @@ def dress_vertices(
 
 
 def select_iterator(casting_type: EdgeCastingType):
-    if casting_type == EdgeCastingType.PAIR_LIKE:
+    if casting_type == EdgeCastingType.PAIR:
         iterator: Callable[..., Iterable[Any]] = zip
-    elif casting_type == EdgeCastingType.PRODUCT_LIKE:
+    elif casting_type == EdgeCastingType.PRODUCT:
         iterator = product
-    elif casting_type == EdgeCastingType.COMBINATIONS_LIKE:
+    elif casting_type == EdgeCastingType.COMBINATIONS:
 
         def iterator(*x):
             return partial(combinations, r=2)(x[0])
@@ -246,14 +246,20 @@ def render_edge(
         (i for i, x in enumerate(target_spec) if x != 1), len(target_spec)
     )
 
-    # if (source == target and len(source_spec) == len(target_spec)
-    #         and source_uni == len(source_spec) - 1 and target_uni == len(target_spec) - 1)\
-    #         and source_lindexes[0].congruence_measure(target_lindexes[0]) == len(target_spec) - 1:
+    flag_same_vertex_same_leaf = False
+
     if source == target and set(source_lindexes) == set(target_lindexes):
         # prepare combinations: we confirmed the set
 
         combos = list(combinations(source_lindexes, 2))
         source_groups, target_groups = zip(*combos) if combos else ([], [])
+
+        # and edge case when samples of the same vertex are encoded in the same leaf (like a table row)
+        # see example/3-ingest-csv-edge-weights
+
+        if not combos and len(source_items_tdressed[source_lindexes[0]]) > 1:
+            source_groups, target_groups = [source_lindexes], [target_lindexes]
+            flag_same_vertex_same_leaf = True
     elif (
         source_uni < len(source_spec) - 1
         and target_uni < len(target_spec) - 1
@@ -281,8 +287,15 @@ def render_edge(
             for target_lindex in target_lis:
                 target_items = target_items_tdressed[target_lindex]
 
-                # actually by construction source_items and target_items have only one element
-                for (u_, u_tr), (v_, v_tr) in zip(source_items, target_items):
+                if flag_same_vertex_same_leaf:
+                    # edge case when samples of the same vertex are encoded in the same leaf
+                    iterator = select_iterator(EdgeCastingType.COMBINATIONS)
+                else:
+                    # in this case by construction source_items and target_items have only one element
+
+                    iterator = select_iterator(EdgeCastingType.PAIR)
+
+                for (u_, u_tr), (v_, v_tr) in iterator(source_items, target_items):
                     u = u_.vertex
                     v = v_.vertex
                     # adding weight from source or target
