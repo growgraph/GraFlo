@@ -26,9 +26,9 @@ patterns = Patterns.from_dict(
 caster = Caster(schema)
 
 caster.ingest_files(
-    path="~/data/deb-kg/tmp",
+    path="./data",
     conn_conf=conn_conf,
     patterns=patterns,
-    # max_items=50,
     clean_start=True,
+    # max_items=5,
 )

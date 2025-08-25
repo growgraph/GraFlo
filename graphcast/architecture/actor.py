@@ -635,7 +635,6 @@ class DescendActor(Actor):
             if isinstance(doc, dict) and self.key in doc:
                 doc = doc[self.key]
             else:
-                logging.warning(f"doc {doc} was expected to have level {self.key}")
                 return ctx
 
         doc_level = doc if isinstance(doc, list) else [doc]

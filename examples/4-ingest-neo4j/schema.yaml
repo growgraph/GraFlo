@@ -7,15 +7,29 @@ resources:
     -   vertex: package
     -   key: dependencies
         apply:
+        -   key: breaks
+            apply:
+            -   vertex: package
+        -   key: conflicts
+            apply:
+            -   vertex: package
         -   key: depends
+            apply:
+            -   vertex: package
+        -   key: pre-depends
+            apply:
+            -   vertex: package
+        -   key: suggests
+            apply:
+            -   vertex: package
+        -   key: recommends
             apply:
             -   vertex: package
     -   source: maintainer
         target: package
-        match_target: _top_level
     -   source: package
         target: package
-        match_source: _top_level
+        relation_from_key: true
     -   key: maintainer
         apply:
         -   vertex: maintainer

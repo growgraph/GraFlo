@@ -330,7 +330,8 @@ def render_edge(
                                 relation = target_lindex[-2]
                         elif len(source_lindex) > 1:
                             relation = source_lindex[-2]
-
+                        if relation is not None:
+                            relation = relation.replace("-", "_")
                     edges[relation] += [(a, b, weight)]
     return edges
 

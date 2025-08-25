@@ -7,12 +7,7 @@ from graphcast.db import ConnectionManager
 
 @pytest.fixture(scope="function")
 def modes():
-    return [
-        "review"
-        # "wos_csv",
-        # "lake_odds",
-        # "kg",
-    ]
+    return ["review"]
 
 
 def test_ingest(
