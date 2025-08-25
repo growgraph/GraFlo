@@ -1,4 +1,4 @@
-# Example 4: Neo4j Ingest with Dynamic Relations from Keys
+# Example 4: Dynamic Relations from Keys (Neo4j)
 
 This example demonstrates how to ingest complex nested JSON data into Neo4j, using the `relation_from_key` attribute to dynamically create relationships based on the structure of the data.
 
@@ -65,7 +65,7 @@ vertex_config:
 ```
 
 ### Edges
-The key feature is using `relation_from_key: true` for package-to-package relationships:
+Edges are defined in a simple way:
 
 ```yaml
 edge_config:
@@ -77,15 +77,14 @@ edge_config:
     -   source: package
         target: bug
 ```
+### Graph Structure
 
-## Key Concepts
+The resulting graph shows the following package dependency relationships:
 
-### `relation_from_key: true`
-This attribute tells GraphCast to:
+![Package Dependencies](../assets/4-ingest-neo4j/figs/debian-eco_vc2vc.png){ width="200" }
 
-- Use the JSON key names as relationship types
-- Create different edge types based on the nested structure
-- Instead of a single edge type, we get multiple edge types: `breaks`, `conflicts`, `depends`, `pre-depends`, `suggests`, `recommends`
+
+## Resource (Nested Structure)
 
 ### Nested Structure Handling
 The resource configuration handles deeply nested data:
@@ -125,18 +124,19 @@ resources:
         -   vertex: maintainer
 ```
 
+We use `relation_from_key: true` to:
+
+- Use the JSON keys as relationship types
+- Create different edge types based on the nested structure
+- Instead of a single edge type, we get multiple edge types: `breaks`, `conflicts`, `depends`, `pre-depends`, `suggests`, `recommends`
+
+
 ## How It Works
 
 1. **Package Creation**: Each package becomes a vertex
 2. **Dynamic Relations**: Each dependency type (`breaks`, `conflicts`, etc.) becomes a relationship type
 3. **Maintainer Links**: Maintainer information creates `maintainer` → `package` relationships
 4. **Bug Tracking**: Bug reports create `package` → `bug` relationships
-
-## Graph Structure
-
-The resulting graph shows complex package dependency relationships:
-
-![Package Dependencies](../assets/4-ingest-neo4j/figs/debian-eco_vc2vc.png){ width="200" }
 
 ## Resource Structure
 
@@ -182,7 +182,8 @@ caster.ingest_files(
 
 ## Use Cases
 
-This pattern is particularly useful for:
+This schema is useful for:
+
 - **Package Management**: Modeling software dependencies and conflicts
 - **Ecosystem Analysis**: Understanding complex dependency graphs
 - **Compliance Checking**: Identifying breaking changes and conflicts

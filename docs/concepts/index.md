@@ -55,8 +55,7 @@ Edges in GraphCast support a rich set of attributes that enable flexible relatio
 - **`weights.target_fields`**: Fields from target vertex to use as weights
 
 #### Edge Behavior Control
-- **`non_exclusive`**: List of fields that don't affect edge uniqueness
-- **`aux`**: Whether this is an auxiliary edge (not considered by GraphCast)
+- **`aux`**: Whether this is an auxiliary edge (collection created, but not considered by GraphCast)
 - **`purpose`**: Additional identifier for utility collections between same vertex types
 
 #### Matching and Filtering

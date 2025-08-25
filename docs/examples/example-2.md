@@ -1,4 +1,4 @@
-# Example 1: Multiple Tabular Sources
+# Example 2: JSON with Edges between the same Vertex Type
 
 Openalex is a comprehensive academic dataset. One of categories of their API entities is [Works](https://docs.openalex.org/api-entities/works). 
 Suppose we want to create a graph that contains a description of academic works and correctly map the references to works that either already exist in the database or will be populated later:

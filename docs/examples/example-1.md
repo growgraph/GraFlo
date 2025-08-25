@@ -3,23 +3,12 @@
 
 Suppose we have a table that represents people:
 
-```csv
-# people.csv
-id,name,age
-1,John Hancock,27
-2,Mary Arpe,33
-3,Sid Mei,45
-```
+
+{{ read_csv('data/people.csv') }}
 
 and a table that represents their roles in a company:
 
-```csv
-# departments
-person_id,person,department
-1,John Dow,Sales
-2,Mary Arpe,R&D
-3,Sid Mei,Customer Service
-```
+{{ read_csv('data/departments.csv') }}
 
 We want to define vertices `Person` and `Department` and set up the rules of how to map tables to vertex key-value pairs.
 

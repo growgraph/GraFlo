@@ -55,6 +55,6 @@ In `patterns` the keys `"people"` and `"departments"` correspond to source types
 
 ## Next Steps
 
-- Explore the [API Reference](reference/index.md) for detailed documentation
+- Explore the [API Reference](../reference/index.md) for detailed documentation
 - Check out more [Examples](../examples/index.md) for advanced use cases
 - Learn main [concepts](../concepts/index.md), such as `Schema` and its constituents 

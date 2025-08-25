@@ -57,7 +57,6 @@ class Edge(BaseDataclass):
         target: Target vertex name
         indexes: List of indexes for the edge
         weights: Optional weight configuration
-        non_exclusive: List of non-exclusive fields
         relation: Optional relation name (for Neo4j)
         purpose: Optional purpose for utility collections
         match_source: Optional source discriminant field
@@ -74,8 +73,6 @@ class Edge(BaseDataclass):
     target: str
     indexes: list[Index] = dataclasses.field(default_factory=list)
     weights: Optional[WeightConfig] = None
-
-    non_exclusive: list[str] = dataclasses.field(default_factory=list)
 
     # relation represents Class in neo4j, for arango it becomes a weight
     relation: str | None = None
@@ -116,9 +113,6 @@ class Edge(BaseDataclass):
         Args:
             vertex_config: Configuration for vertices
 
-        Note:
-            Discriminant is used to pin documents among a collection of documents
-            of the same vertex type.
         """
         if self.type == EdgeType.INDIRECT and self.by is not None:
             self.by = vertex_config.vertex_dbname(self.by)

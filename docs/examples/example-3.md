@@ -6,18 +6,8 @@ This example demonstrates how to handle complex relationships where multiple edg
 
 We have a CSV file representing business relationships between companies:
 
-```csv
-# relations.csv
-company_a,company_b,relation,date
-Microsoft,OpenAI,invests_in,2023-01-23
-Microsoft,OpenAI,partners_with,2023-03-15
-Amazon,Whole Foods,acquires,2017-08-28
-Amazon,Whole Foods,integrates_with,2018-02-14
-Tesla,Panasonic,partners_with,2014-07-31
-Tesla,Panasonic,supplies_to,2016-06-10
-Google,Apple,competes_with,2007-06-29
-Google,Apple,collaborates_with,2021-04-28
-```
+
+{{ read_csv('data/relations.csv') }}
 
 Notice that the same company pairs can have multiple different relationship types (e.g., Microsoft-OpenAI has both "invests_in" and "partners_with" relationships).
 
