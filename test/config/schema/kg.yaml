@@ -44,16 +44,16 @@ resources:
                 -   map:
                         hash: _key
                         role: _role
-        -   source: mention
-            source_discriminant: triple_index
-            target: mention
-            target_discriminant: triple
-            weights:
-                direct:
-                -   _role
-            indexes:
-            -   fields:
-                -   _role
+    -   source: mention
+        source_discriminant: triple_index
+        target: mention
+        target_discriminant: triple
+        weights:
+            direct:
+            -   _role
+        indexes:
+        -   fields:
+            -   _role
 -   resource_name: communities
     apply:
     -   source: entity

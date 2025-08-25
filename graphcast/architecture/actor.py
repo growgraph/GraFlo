@@ -54,7 +54,7 @@ from graphcast.util.transform import pick_unique_dict
 logger = logging.getLogger(__name__)
 
 
-DESCEND_KEY_VALUES = {"key"}
+DESCEND_KEY = "key"
 DRESSING_TRANSFORMED_VALUE_KEY = "__value__"
 
 
@@ -277,7 +277,7 @@ class VertexActor(Actor):
             agg, index_keys=tuple(self.vertex_config.index(self.name).fields)
         )
 
-        ctx.acc_vertex_local[self.name][lindex] += [
+        ctx.acc_vertex[self.name][lindex] += [
             VertexRep(
                 vertex=m,
                 ctx={q: w for q, w in doc.items() if not isinstance(w, (dict, list))},
@@ -347,37 +347,29 @@ class EdgeActor(Actor):
         """
 
         ctx = self.merge_vertices(ctx)
-        edges = render_edge(
-            self.edge, self.vertex_config, ctx, lindex=lindex, local=True
-        )
+        edges = render_edge(self.edge, self.vertex_config, ctx, lindex=lindex)
 
         edges = render_weights(
             self.edge,
             self.vertex_config,
-            ctx.acc_vertex_local,
+            ctx.acc_vertex,
             edges,
         )
 
         for relation, v in edges.items():
             ctx.acc_global[self.edge.source, self.edge.target, relation] += v
 
-        for lindex, sources in ctx.acc_vertex_local[self.edge.source].items():
-            ctx.acc_vertex[self.edge.source][lindex] = sources
-
-        for lindex, targets in ctx.acc_vertex_local[self.edge.target].items():
-            ctx.acc_vertex[self.edge.target][lindex] = targets
-
         return ctx
 
     def merge_vertices(self, ctx) -> ActionContext:
-        for vertex, dd in ctx.acc_vertex_local.items():
+        for vertex, dd in ctx.acc_vertex.items():
             for lindex, vertex_list in dd.items():
                 vvv = merge_doc_basis_closest_preceding(
                     vertex_list,
                     tuple(self.vertex_config.index(vertex).fields),
                 )
                 # vvv = pick_unique_dict(vvv)
-                ctx.acc_vertex_local[vertex][lindex] = vvv
+                ctx.acc_vertex[vertex][lindex] = vvv
         return ctx
 
 
@@ -658,21 +650,23 @@ class DescendActor(Actor):
 
         logger.debug(f"{len(doc_level)}")
 
-        for i, sub_doc in enumerate(doc_level):
-            logger.debug(f"docs: {i + 1}/{len(doc_level)}")
+        for idoc, sub_doc in enumerate(doc_level):
+            logger.debug(f"docs: {idoc + 1}/{len(doc_level)}")
             if isinstance(sub_doc, dict):
                 nargs: tuple = tuple()
                 kwargs["doc"] = sub_doc
             else:
                 nargs = (sub_doc,)
 
+            # down the tree
+            extra_step = (idoc,) if self.key is None else (self.key, idoc)
             for j, anw in enumerate(self.descendants):
                 logger.debug(
                     f"{type(anw.actor).__name__}: {j + 1}/{len(self.descendants)}"
                 )
                 ctx = anw(
                     ctx,
-                    lindex.construct(self.key),
+                    lindex.extend(extra_step),
                     *nargs,
                     **kwargs,
                 )
@@ -788,15 +782,15 @@ class ActorWrapper:
         Returns:
             bool: True if successful, False otherwise
         """
-        descend_key_candidates = [kwargs.pop(k, None) for k in DESCEND_KEY_VALUES]
-        descend_key_candidates = [x for x in descend_key_candidates if x is not None]
-        descend_key = descend_key_candidates[0] if descend_key_candidates else None
-        ds = kwargs.pop("apply", None)
-        if ds is not None:
-            if isinstance(ds, list):
-                descendants = ds
+
+        descend_key = kwargs.pop(DESCEND_KEY, None)
+
+        descendants = kwargs.pop("apply", None)
+        if descendants is not None:
+            if isinstance(descendants, list):
+                descendants = descendants
             else:
-                descendants = [ds]
+                descendants = [descendants]
         elif len(args) > 0:
             descendants = list(args)
         else:
@@ -878,9 +872,6 @@ class ActorWrapper:
         Returns:
             defaultdict[GraphEntity, list]: Normalized context
         """
-        for vertex, discriminant_dd in ctx.acc_vertex_local.items():
-            for lindex, vertices in discriminant_dd.items():
-                ctx.acc_vertex[vertex][lindex] += vertices
 
         for edge_id, edge in self.edge_config.edges_items():
             s, t, _ = edge_id
@@ -899,6 +890,7 @@ class ActorWrapper:
                 for relation, v in extra_edges.items():
                     ctx.acc_global[s, t, relation] += v
 
+        # TODO revise
         for vertex, dd in ctx.acc_vertex.items():
             for discriminant, vertex_list in dd.items():
                 vertex_list = [x.vertex for x in vertex_list]

@@ -34,7 +34,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from functools import partial
-from itertools import combinations, product
+from itertools import combinations, product, zip_longest
 from typing import Any, Callable, Iterable
 
 from graphcast.architecture.edge import Edge
@@ -123,12 +123,35 @@ def filter_nonindexed(items_tdressed, index):
     return items_tdressed
 
 
+def count_unique_by_position_variable(tuples_list, fillvalue=None):
+    """
+    For each position in the tuples, returns the number of different elements.
+    Handles tuples of different lengths using a fill value.
+
+    Args:
+        tuples_list: List of tuples (they can have different lengths)
+        fillvalue: Value to use for missing positions (default: None)
+
+    Returns:
+        List with counts of unique elements for each position
+    """
+    if not tuples_list:
+        return []
+
+    # Transpose the list of tuples, filling missing positions
+    transposed = zip_longest(*tuples_list, fillvalue=fillvalue)
+
+    # Count unique elements for each position
+    result = [len(set(position)) for position in transposed]
+
+    return result
+
+
 def render_edge(
     edge: Edge,
     vertex_config: VertexConfig,
     ctx: ActionContext,
     lindex: LocationIndex | None = None,
-    local: bool = False,
 ) -> defaultdict[str | None, list]:
     """Create edges between source and target vertices.
 
@@ -154,7 +177,7 @@ def render_edge(
         - Relation fields can be specified in either source or target
     """
 
-    acc_vertex = ctx.acc_vertex_local if local else ctx.acc_vertex
+    acc_vertex = ctx.acc_vertex
     buffer_transforms = ctx.buffer_transforms
 
     source, target = edge.source, edge.target
@@ -175,8 +198,8 @@ def render_edge(
     target_lindexes = list(target_items_)
 
     if lindex is not None:
-        source_lindexes = sorted(lindex.filter_lindex(source_lindexes))
-        target_lindexes = sorted(lindex.filter_lindex(target_lindexes))
+        source_lindexes = sorted(lindex.filter(source_lindexes))
+        target_lindexes = sorted(lindex.filter(target_lindexes))
 
         if source == target and len(source_lindexes) > 1:
             source_lindexes = source_lindexes[:1]
@@ -217,59 +240,89 @@ def render_edge(
 
     edges: defaultdict[str | None, list] = defaultdict(list)
 
-    for source_lindex, source_items in source_items_tdressed.items():
-        for target_lindex, target_items in target_items_tdressed.items():
-            casting_type = EdgeCastingType.PRODUCT_LIKE
-            if source_lindex.depth() == target_lindex.depth():
-                if source == target:
-                    casting_type = EdgeCastingType.COMBINATIONS_LIKE
-                elif source_lindex.equality_index(
-                    target_lindex
-                ) == source_lindex.depth() - 1 and len(source_items) == len(
-                    target_items
-                ):
-                    casting_type = EdgeCastingType.PAIR_LIKE
+    source_spec = count_unique_by_position_variable([x.path for x in source_lindexes])
+    target_spec = count_unique_by_position_variable([x.path for x in target_lindexes])
 
-            iterator = select_iterator(casting_type)
-            # edges for a selected pair (source, target) but potentially different relation flavors
+    source_uni = next(
+        (i for i, x in enumerate(source_spec) if x != 1), len(source_spec)
+    )
+    target_uni = next(
+        (i for i, x in enumerate(target_spec) if x != 1), len(target_spec)
+    )
 
-            for (u_, u_tr), (v_, v_tr) in iterator(source_items, target_items):
-                u = u_.vertex
-                v = v_.vertex
-                # adding weight from source or target
-                weight = dict()
-                if edge.weights is not None:
-                    for field in edge.weights.direct:
-                        if field in u_.ctx:
-                            weight[field] = u_.ctx[field]
+    # if (source == target and len(source_spec) == len(target_spec)
+    #         and source_uni == len(source_spec) - 1 and target_uni == len(target_spec) - 1)\
+    #         and source_lindexes[0].congruence_measure(target_lindexes[0]) == len(target_spec) - 1:
+    if source == target and set(source_lindexes) == set(target_lindexes):
+        # prepare combinations: we confirmed the set
 
-                        if field in v_.ctx:
-                            weight[field] = v_.ctx[field]
+        combos = list(combinations(source_lindexes, 2))
+        source_groups, target_groups = zip(*combos) if combos else ([], [])
+    elif (
+        source_uni < len(source_spec) - 1
+        and target_uni < len(target_spec) - 1
+        and source_spec[source_uni] == target_spec[target_uni]
+    ):
+        # zip sources and targets in case there is a non-trivial brunching at a non-ultimate level
+        common_branching = source_uni
+        items_size = source_spec[source_uni]
 
-                        if field in u_tr:
-                            weight[field] = u_tr[field]
-                        if field in v_tr:
-                            weight[field] = v_tr[field]
+        source_groups_map: dict[int, list] = {ix: [] for ix in range(items_size)}
+        target_groups_map: dict[int, list] = {ix: [] for ix in range(items_size)}
+        for li in source_lindexes:
+            source_groups_map[li[common_branching]] += [li]
+        for li in target_lindexes:
+            target_groups_map[li[common_branching]] += [li]
+        source_groups = [source_groups_map[ix] for ix in range(items_size)]
+        target_groups = [target_groups_map[ix] for ix in range(items_size)]
+    else:
+        source_groups = [source_lindexes]
+        target_groups = [target_lindexes]
 
-                a = project_dict(u, source_index)
-                b = project_dict(v, target_index)
+    for source_lis, target_lis in zip(source_groups, target_groups):
+        for source_lindex in source_lis:
+            source_items = source_items_tdressed[source_lindex]
+            for target_lindex in target_lis:
+                target_items = target_items_tdressed[target_lindex]
 
-                if edge.relation_field is not None:
-                    u_relation = u_.ctx.pop(edge.relation_field, None)
-                    v_relation = v_.ctx.pop(edge.relation_field, None)
-                    if v_relation is not None:
-                        a, b = b, a
-                        relation = v_relation
-                    else:
-                        relation = u_relation
-                elif edge.relation_from_key:
-                    relation = (
-                        target_lindex.path
-                        if source_min_level <= target_min_level
-                        else source_lindex.path
-                    )
+                # actually by construction source_items and target_items have only one element
+                for (u_, u_tr), (v_, v_tr) in zip(source_items, target_items):
+                    u = u_.vertex
+                    v = v_.vertex
+                    # adding weight from source or target
+                    weight = dict()
+                    if edge.weights is not None:
+                        for field in edge.weights.direct:
+                            if field in u_.ctx:
+                                weight[field] = u_.ctx[field]
 
-                edges[relation] += [(a, b, weight)]
+                            if field in v_.ctx:
+                                weight[field] = v_.ctx[field]
+
+                            if field in u_tr:
+                                weight[field] = u_tr[field]
+                            if field in v_tr:
+                                weight[field] = v_tr[field]
+
+                    a = project_dict(u, source_index)
+                    b = project_dict(v, target_index)
+
+                    if edge.relation_field is not None:
+                        u_relation = u_.ctx.pop(edge.relation_field, None)
+                        v_relation = v_.ctx.pop(edge.relation_field, None)
+                        if v_relation is not None:
+                            a, b = b, a
+                            relation = v_relation
+                        else:
+                            relation = u_relation
+                    elif edge.relation_from_key and len(target_lindex) > 1:
+                        if source_min_level <= target_min_level:
+                            if len(target_lindex) > 1:
+                                relation = target_lindex[-2]
+                        elif len(source_lindex) > 1:
+                            relation = source_lindex[-2]
+
+                    edges[relation] += [(a, b, weight)]
     return edges
 
 

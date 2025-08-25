@@ -314,15 +314,15 @@ class VertexRep(BaseDataclass):
 
 @dataclasses.dataclass(frozen=True, eq=True)
 class LocationIndex(JSONWizard, YAMLWizard):
-    path: tuple[str | None, ...] = dataclasses.field(default_factory=tuple)
+    path: tuple[str | int | None, ...] = dataclasses.field(default_factory=tuple)
 
-    def construct(self, key: str | None) -> LocationIndex:
-        return LocationIndex((*self.path, key))
+    def extend(self, extension: tuple[str | int | None, ...]) -> LocationIndex:
+        return LocationIndex((*self.path, *extension))
 
     def depth(self):
         return len(self.path)
 
-    def equality_index(self, other: LocationIndex):
+    def congruence_measure(self, other: LocationIndex):
         neq_position = 0
         for step_a, step_b in zip(self.path, other.path):
             if step_a != step_b:
@@ -330,7 +330,7 @@ class LocationIndex(JSONWizard, YAMLWizard):
             neq_position += 1
         return neq_position
 
-    def filter_lindex(self, lindex_list: list[LocationIndex]) -> list[LocationIndex]:
+    def filter(self, lindex_list: list[LocationIndex]) -> list[LocationIndex]:
         return [
             t
             for t in lindex_list
@@ -346,22 +346,24 @@ class LocationIndex(JSONWizard, YAMLWizard):
     def __len__(self):
         return len(self.path)
 
+    def __iter__(self):
+        return iter(self.path)
+
+    def __getitem__(self, item):
+        return self.path[item]
+
 
 @dataclasses.dataclass(kw_only=True)
 class ActionContext(BaseDataclass):
     """Context for graph transformation actions.
 
     Attributes:
-        acc_vertex_local: Local accumulation of vertices
-        acc_vertex: Global accumulation of vertices
+        acc_vertex: Local accumulation of vertices
         acc_global: Global accumulation of graph entities
         buffer_vertex: Buffer for vertex data
         buffer_transforms: Buffer for transforms data
     """
 
-    acc_vertex_local: defaultdict[str, defaultdict[LocationIndex, list]] = (
-        dataclasses.field(default_factory=outer_factory)
-    )
     acc_vertex: defaultdict[str, defaultdict[LocationIndex, list]] = dataclasses.field(
         default_factory=outer_factory
     )
