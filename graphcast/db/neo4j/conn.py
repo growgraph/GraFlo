@@ -58,10 +58,10 @@ class Neo4jConnection(Connection):
             config: Neo4j connection configuration containing URL and credentials
         """
         super().__init__()
-        driver = GraphDatabase.driver(
+        self._driver = GraphDatabase.driver(
             uri=config.url, auth=(config.username, config.password)
         )
-        self.conn = driver.session()
+        self.conn = self._driver.session()
 
     def execute(self, query, **kwargs):
         """Execute a Cypher query.
@@ -78,7 +78,12 @@ class Neo4jConnection(Connection):
 
     def close(self):
         """Close the Neo4j connection and session."""
-        self.conn.close()
+        # Close session first, then the underlying driver
+        try:
+            self.conn.close()
+        finally:
+            # Ensure the driver is also closed to release resources
+            self._driver.close()
 
     def create_database(self, name: str):
         """Create a new Neo4j database.
