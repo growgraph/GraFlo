@@ -157,7 +157,7 @@ def render_edge(
 
     This is the core edge creation function that handles different edge types
     (PAIR_LIKE and PRODUCT_LIKE) and manages edge weights. It processes source
-    and target vertices, their discriminants, and creates appropriate edge
+    and target vertices, and creates appropriate edge
     documents with proper source/target mappings.
 
     Args:
@@ -205,15 +205,11 @@ def render_edge(
             source_lindexes = source_lindexes[:1]
             target_lindexes = target_lindexes[1:]
 
-    if edge.source_discriminant is not None:
-        source_lindexes = [
-            li for li in source_lindexes if edge.source_discriminant in li
-        ]
+    if edge.match_source is not None:
+        source_lindexes = [li for li in source_lindexes if edge.match_source in li]
 
-    if edge.target_discriminant is not None:
-        target_lindexes = [
-            li for li in target_lindexes if edge.target_discriminant in li
-        ]
+    if edge.match_target is not None:
+        target_lindexes = [li for li in target_lindexes if edge.match_target in li]
 
     if edge.match is not None:
         source_lindexes = [li for li in source_lindexes if edge.match in li]

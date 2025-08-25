@@ -39,8 +39,6 @@ from dataclass_wizard import JSONWizard, YAMLWizard
 from graphcast.onto import BaseDataclass, BaseEnum, DBFlavor
 from graphcast.util.transform import pick_unique_dict
 
-DISCRIMINANT_KEY = "__discriminant_key"
-
 # type for vertex or edge name (index)
 EdgeId: TypeAlias = tuple[str, str, Optional[str]]
 GraphEntity: TypeAlias = Union[str, EdgeId]
@@ -122,12 +120,10 @@ class Weight(ABCFields):
     """Defines weight configuration for edges.
 
     Attributes:
-        discriminant: Optional field used to discriminate between weights
         map: Dictionary mapping field values to weights
         filter: Dictionary of filter conditions for weights
     """
 
-    discriminant: Optional[str] = None
     map: dict = dataclasses.field(default_factory=dict)
     filter: dict = dataclasses.field(default_factory=dict)
 

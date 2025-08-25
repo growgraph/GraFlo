@@ -14,7 +14,7 @@ resources:
                 hash: _key
     -   source: publication
         target: mention
-        target_discriminant: top_level_mention
+        match_target: top_level_mention
     -   source: mention
         target: entity
         match: map_mention_entity
@@ -45,9 +45,9 @@ resources:
                         hash: _key
                         role: _role
     -   source: mention
-        source_discriminant: triple_index
+        match_source: triple_index
         target: mention
-        target_discriminant: triple
+        match_target: triple
         weights:
             direct:
             -   _role

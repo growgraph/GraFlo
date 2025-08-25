@@ -21,7 +21,6 @@ resources:
                     edge:
                         source: author
                         target: institution
-#                      target_discriminant: _top_level
                     weights:
                         direct:
                         -   updated_date

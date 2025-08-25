@@ -366,7 +366,6 @@ def action_node_edge():
         source: source
         target: work
         relation: contains
-        target_discriminant: _top_level
         """
     )
     return tc
@@ -580,8 +579,8 @@ def resource_kg_menton_triple():
                     role: _role
     -   source: mention
         target: mention
-        source_discriminant: triple_index
-        target_discriminant: triple
+        match_source: triple_index
+        match_target: triple
         weights:
             direct:
             -   _role
@@ -652,23 +651,3 @@ def vertex_key_property():
     """
     )
     return VertexConfig.from_dict(tc)
-
-
-@pytest.fixture()
-def resource_key_property():
-    mn = yaml.safe_load(
-        """
-    -   vertex: package
-        discriminant: _top_level
-    -   key: dependencies
-        apply:
-        -   key: depends
-            apply:
-            -   vertex: package
-    -   source: package
-        target: package
-        source_discriminant: _top_level
-
-    """
-    )
-    return mn

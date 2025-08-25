@@ -61,8 +61,8 @@ class Edge(BaseDataclass):
         non_exclusive: List of non-exclusive fields
         relation: Optional relation name (for Neo4j)
         purpose: Optional purpose for utility collections
-        source_discriminant: Optional source discriminant field
-        target_discriminant: Optional target discriminant field
+        match_source: Optional source discriminant field
+        match_target: Optional target discriminant field
         type: Edge type (DIRECT or INDIRECT)
         aux: Whether this is an auxiliary edge
         casting_type: Type of edge casting
@@ -88,8 +88,8 @@ class Edge(BaseDataclass):
     # used to create extra utility collections between the same type of vertices (A, B)
     purpose: str | None = None
 
-    source_discriminant: str | None = None
-    target_discriminant: str | None = None
+    match_source: str | None = None
+    match_target: str | None = None
     match: str | None = None
 
     type: EdgeType = EdgeType.DIRECT
@@ -126,7 +126,7 @@ class Edge(BaseDataclass):
         if self.type == EdgeType.INDIRECT and self.by is not None:
             self.by = vertex_config.vertex_dbname(self.by)
 
-        if self.source_discriminant == self.target_discriminant:
+        if self.match_source == self.match_target:
             if self.source == self.target:
                 self.casting_type = EdgeCastingType.COMBINATIONS_LIKE
             else:

@@ -5,7 +5,6 @@ resources:
 -   resource_name: package
     apply:
     -   vertex: package
-        discriminant: _top_level
     -   key: dependencies
         apply:
         -   key: depends
@@ -13,10 +12,10 @@ resources:
             -   vertex: package
     -   source: maintainer
         target: package
-        target_discriminant: _top_level
+        match_target: _top_level
     -   source: package
         target: package
-        source_discriminant: _top_level
+        match_source: _top_level
     -   key: maintainer
         apply:
         -   vertex: maintainer

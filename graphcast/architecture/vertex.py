@@ -16,7 +16,6 @@ Example:
 
 import dataclasses
 import logging
-from collections import defaultdict
 from typing import Optional
 
 from graphcast.architecture.onto import Index
@@ -121,8 +120,6 @@ class VertexConfig(BaseDataclass):
         # TODO replace by types
         # vertex_collection_name -> [numeric fields]
         self._vcollection_numeric_fields_map = {}
-
-        self.discriminant_chart: defaultdict[str, bool] = defaultdict(lambda: False)
 
         if set(self.blank_vertices) - set(self.vertex_set):
             raise ValueError(

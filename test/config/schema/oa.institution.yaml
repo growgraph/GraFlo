@@ -11,7 +11,7 @@ resources:
         -   name: keep_suffix_id
     -   source: institution
         target: institution
-        target_discriminant: associated_institutions
+        match_target: associated_institutions
         relation_field: relationship
 vertex_config:
     vertices:

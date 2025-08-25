@@ -14,7 +14,7 @@ both synchronous and asynchronous operations. It integrates with the graph datab
 infrastructure to handle vertex and edge operations.
 
 Example:
-    >>> wrapper = ActorWrapper(vertex="user", discriminant="id")
+    >>> wrapper = ActorWrapper(vertex="user")
     >>> ctx = ActionContext()
     >>> result = wrapper(ctx, doc={"id": "123", "name": "John"})
 """
@@ -172,11 +172,10 @@ class VertexActor(Actor):
     """Actor for processing vertex data.
 
     This actor handles the processing and transformation of vertex data, including
-    field selection and discriminant handling.
+    field selection.
 
     Attributes:
         name: Name of the vertex
-        discriminant: Optional discriminant field
         keep_fields: Optional tuple of fields to keep
         vertex_config: Configuration for the vertex
     """
@@ -184,21 +183,18 @@ class VertexActor(Actor):
     def __init__(
         self,
         vertex: str,
-        discriminant: Optional[str] = None,
-        keep_fields: Optional[tuple[str]] = None,
+        keep_fields: tuple[str, ...] | None = None,
         **kwargs,
     ):
         """Initialize the vertex actor.
 
         Args:
             vertex: Name of the vertex
-            discriminant: Optional discriminant field
             keep_fields: Optional tuple of fields to keep
             **kwargs: Additional initialization parameters
         """
         self.name = vertex
-        self.discriminant: Optional[str] = discriminant
-        self.keep_fields: Optional[tuple[str]] = keep_fields
+        self.keep_fields: tuple[str, ...] | None = keep_fields
         self.vertex_config: VertexConfig
 
     def fetch_important_items(self):
@@ -208,7 +204,7 @@ class VertexActor(Actor):
             dict: Dictionary of important items
         """
         sd = self.__dict__
-        return {k: sd[k] for k in ["name", "discriminant", "keep_fields"]}
+        return {k: sd[k] for k in ["name", "keep_fields"]}
 
     def finish_init(self, **kwargs):
         """Complete initialization of the vertex actor.
@@ -217,7 +213,6 @@ class VertexActor(Actor):
             **kwargs: Additional initialization parameters
         """
         self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
-        self.vertex_config.discriminant_chart[self.name] = True
 
     def __call__(self, ctx: ActionContext, lindex: LocationIndex, *nargs, **kwargs):
         """Process vertex data.
@@ -317,10 +312,7 @@ class EdgeActor(Actor):
             dict: Dictionary of important items
         """
         sd = self.edge.__dict__
-        return {
-            k: sd[k]
-            for k in ["source", "target", "source_discriminant", "target_discriminant"]
-        }
+        return {k: sd[k] for k in ["source", "target", "match_source", "match_target"]}
 
     def finish_init(self, **kwargs):
         """Complete initialization of the edge actor.
@@ -890,18 +882,16 @@ class ActorWrapper:
                 for relation, v in extra_edges.items():
                     ctx.acc_global[s, t, relation] += v
 
-        # TODO revise
-        for vertex, dd in ctx.acc_vertex.items():
-            for discriminant, vertex_list in dd.items():
+        for vertex_name, dd in ctx.acc_vertex.items():
+            for lindex, vertex_list in dd.items():
                 vertex_list = [x.vertex for x in vertex_list]
                 vertex_list_updated = merge_doc_basis(
                     vertex_list,
-                    tuple(self.vertex_config.index(vertex).fields),
-                    discriminant_key=None,
+                    tuple(self.vertex_config.index(vertex_name).fields),
                 )
                 vertex_list_updated = pick_unique_dict(vertex_list_updated)
 
-                ctx.acc_global[vertex] += vertex_list_updated
+                ctx.acc_global[vertex_name] += vertex_list_updated
 
         ctx = add_blank_collections(ctx, self.vertex_config)
 

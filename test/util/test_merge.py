@@ -37,7 +37,6 @@ def test_merge_nodiscriminant(merge_input_no_disc, merge_output_no_disc):
     r = merge_doc_basis(
         merge_input_no_disc,
         index_keys=("_key",),
-        # discriminant_key="__discriminant_key",
     )
     r = sorted(r, key=lambda x: x["_key"])
     assert r == merge_output_no_disc
