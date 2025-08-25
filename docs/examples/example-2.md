@@ -1,4 +1,4 @@
-# Example 1: Multiple Tabular Sources
+# Example 2: JSON with Edges between the same Vertex Type
 
 Openalex is a comprehensive academic dataset. One of categories of their API entities is [Works](https://docs.openalex.org/api-entities/works). 
 Suppose we want to create a graph that contains a description of academic works and correctly map the references to works that either already exist in the database or will be populated later:
@@ -71,14 +71,13 @@ Let's define the mappings. We will apply `keep_suffix_id` to `id` and `doi` fiel
         output:
         -   doi
     -   vertex: work
-        discriminant: _top_level
     -   key: referenced_works
         apply:
         -   vertex: work
         -   name: keep_suffix_id
     -   source: work
         target: work
-        source_discriminant: _top_level
+        match_source: _top_level
 ```
 
 Works Resource
@@ -94,11 +93,11 @@ Since we are defining a `refers to` relation, we need some extra configuration:
     vertex: work
     discriminant: _top_level
     ```
-- the edge is then defined by picking `_top_level` vertices as specified by `source_discriminant` attribute:
+- the edge is then defined by picking `_top_level` vertices as specified by `match_source` attribute:
     ```yaml
     source: work
     target: work
-    source_discriminant: _top_level
+    match_source: _top_level
     ```
 Transforming the data and ingesting it into an ArangoDB takes a few lines of code:
 

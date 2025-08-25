@@ -30,8 +30,6 @@ from suthing import ArangoConnectionConfig
 
 from graphcast.architecture.edge import Edge
 from graphcast.architecture.onto import (
-    SOURCE_AUX,
-    TARGET_AUX,
     Index,
     IndexType,
 )
@@ -71,8 +69,8 @@ class ArangoConnection(Connection):
 
         self.conn = client.db(
             config.database,
-            username=config.cred_name,
-            password=config.cred_pass,
+            username=config.username,
+            password=config.password,
         )
 
     def create_database(self, name: str):
@@ -183,8 +181,8 @@ class ArangoConnection(Connection):
             if not g.has_edge_definition(item.collection_name):
                 _ = g.create_edge_definition(
                     edge_collection=item.collection_name,
-                    from_vertex_collections=[item.source_collection],
-                    to_vertex_collections=[item.target_collection],
+                    from_vertex_collections=[item._source_collection],
+                    to_vertex_collections=[item._target_collection],
                 )
 
     def _add_index(self, general_collection, index: Index):
@@ -437,12 +435,12 @@ class ArangoConnection(Connection):
             return ""
 
         if match_keys_source[0] == "_key":
-            result_from = f'CONCAT("{source_class}/", edge.{SOURCE_AUX}._key)'
+            result_from = f'CONCAT("{source_class}/", edge[0]._key)'
             source_filter = ""
         else:
             result_from = "sources[0]._id"
             filter_source = " && ".join(
-                [f"v.{k} == edge.{SOURCE_AUX}.{k}" for k in match_keys_source]
+                [f"v.{k} == edge[0].{k}" for k in match_keys_source]
             )
             source_filter = (
                 f"LET sources = (FOR v IN {source_class} FILTER"
@@ -450,22 +448,19 @@ class ArangoConnection(Connection):
             )
 
         if match_keys_target[0] == "_key":
-            result_to = f'CONCAT("{target_class}/", edge.{TARGET_AUX}._key)'
+            result_to = f'CONCAT("{target_class}/", edge[1]._key)'
             target_filter = ""
         else:
             result_to = "targets[0]._id"
             filter_target = " && ".join(
-                [f"v.{k} == edge.{TARGET_AUX}.{k}" for k in match_keys_target]
+                [f"v.{k} == edge[1].{k}" for k in match_keys_target]
             )
             target_filter = (
                 f"LET targets = (FOR v IN {target_class} FILTER"
                 f" {filter_target} LIMIT 1 RETURN v)"
             )
 
-        doc_definition = (
-            f"MERGE({{_from : {result_from}, _to : {result_to}}},"
-            f" UNSET(edge, '{SOURCE_AUX}', '{TARGET_AUX}'))"
-        )
+        doc_definition = f"MERGE({{_from : {result_from}, _to : {result_to}}}, edge[2])"
 
         logger.debug(f" source_filter = {source_filter}")
         logger.debug(f" target_filter = {target_filter}")

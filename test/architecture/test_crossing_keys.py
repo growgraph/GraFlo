@@ -1,67 +1,9 @@
 import logging
 
-import pytest
-import yaml
-
 from graphcast.architecture.actor import ActorWrapper
-from graphcast.architecture.onto import ActionContext
-from graphcast.architecture.vertex import VertexConfig
+from graphcast.architecture.onto import ActionContext, LocationIndex, VertexRep
 
 logger = logging.getLogger(__name__)
-
-
-@pytest.fixture()
-def vertex_config_cross():
-    tc = yaml.safe_load("""
-    vertex_config:
-    vertices:
-    -   name: person
-        fields:
-        -   id
-        indexes:
-        -   fields:
-            -   id
-    -   name: company
-        fields:
-        -   name
-        indexes:
-        -   fields:
-            -   name
-    """)
-    return VertexConfig.from_dict(tc)
-
-
-@pytest.fixture()
-def sample_cross():
-    an = yaml.safe_load("""
-    -   name: John
-        id: Apple
-    -   name: Mary
-        id: Oracle
-    """)
-    return an
-
-
-@pytest.fixture()
-def resource_cross():
-    an = yaml.safe_load("""
-    -   vertex: person
-    -   vertex: company 
-    -   map:
-            name: id
-            id: name
-    """)
-    return an
-
-
-@pytest.fixture()
-def resource_cross_implicit():
-    an = yaml.safe_load("""
-    -   map:
-            name: id
-            id: name
-    """)
-    return an
 
 
 def test_actor_wrapper_openalex(resource_cross, vertex_config_cross, sample_cross):
@@ -69,8 +11,21 @@ def test_actor_wrapper_openalex(resource_cross, vertex_config_cross, sample_cros
     anw = ActorWrapper(*resource_cross)
     anw.finish_init(transforms={}, vertex_config=vertex_config_cross)
     ctx = anw(ctx, doc=sample_cross)
-    assert ctx.acc_v_local["person"][None] == [{"id": "John"}, {"id": "Mary"}]
-    assert ctx.acc_v_local["company"][None] == [{"name": "Apple"}, {"name": "Oracle"}]
+    assert ctx.acc_vertex["person"][LocationIndex(path=(0,))] == [
+        VertexRep(vertex={"id": "John"}, ctx={"name": "John", "id": "Apple"}),
+    ]
+
+    assert ctx.acc_vertex["person"][LocationIndex(path=(1,))] == [
+        VertexRep(vertex={"id": "Mary"}, ctx={"name": "Mary", "id": "Oracle"}),
+    ]
+
+    assert ctx.acc_vertex["company"][LocationIndex(path=(0,))] == [
+        VertexRep(vertex={"name": "Apple"}, ctx={"name": "John", "id": "Apple"}),
+    ]
+
+    assert ctx.acc_vertex["company"][LocationIndex(path=(1,))] == [
+        VertexRep(vertex={"name": "Oracle"}, ctx={"name": "Mary", "id": "Oracle"}),
+    ]
 
 
 def test_actor_wrapper_openalex_implicit(
@@ -80,5 +35,18 @@ def test_actor_wrapper_openalex_implicit(
     anw = ActorWrapper(*resource_cross_implicit)
     anw.finish_init(transforms={}, vertex_config=vertex_config_cross)
     ctx = anw(ctx, doc=sample_cross)
-    assert ctx.acc_v_local["person"][None] == [{"id": "John"}, {"id": "Mary"}]
-    assert ctx.acc_v_local["company"][None] == [{"name": "Apple"}, {"name": "Oracle"}]
+
+    assert ctx.acc_vertex["person"][LocationIndex(path=(0,))] == [
+        VertexRep(vertex={"id": "John"}, ctx={"name": "John", "id": "Apple"}),
+    ]
+    assert ctx.acc_vertex["person"][LocationIndex(path=(1,))] == [
+        VertexRep(vertex={"id": "Mary"}, ctx={"name": "Mary", "id": "Oracle"}),
+    ]
+
+    assert ctx.acc_vertex["company"][LocationIndex(path=(0,))] == [
+        VertexRep(vertex={"name": "Apple"}, ctx={"name": "John", "id": "Apple"}),
+    ]
+
+    assert ctx.acc_vertex["company"][LocationIndex(path=(1,))] == [
+        VertexRep(vertex={"name": "Oracle"}, ctx={"name": "Mary", "id": "Oracle"}),
+    ]

@@ -17,10 +17,8 @@ resources:
         -   vertex: work
         -   name: keep_suffix_id
     -   vertex: work
-        discriminant: _top_level
     -   source: work
         target: work
-        source_discriminant: _top_level
 vertex_config:
     vertices:
     -   name: work

@@ -59,4 +59,4 @@ Instructions on how spin up `ArangoDB` and `neo4j` as docker images using `docke
 
 After installation, you may need to configure your graph database connection. See the [Quick Start Guide](quickstart.md) for details on setting up your environment.
 
-For more detailed troubleshooting, refer to the [API Reference](reference/index.md) or open an issue on GitHub. 
+For more detailed troubleshooting, refer to the [API Reference](../reference/index.md) or open an issue on GitHub. 

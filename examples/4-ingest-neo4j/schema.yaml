@@ -1,0 +1,75 @@
+general:
+    name: debian-eco
+    version: 0.0.1
+resources:
+-   resource_name: package
+    apply:
+    -   vertex: package
+    -   key: dependencies
+        apply:
+        -   key: breaks
+            apply:
+            -   vertex: package
+        -   key: conflicts
+            apply:
+            -   vertex: package
+        -   key: depends
+            apply:
+            -   vertex: package
+        -   key: pre-depends
+            apply:
+            -   vertex: package
+        -   key: suggests
+            apply:
+            -   vertex: package
+        -   key: recommends
+            apply:
+            -   vertex: package
+    -   source: maintainer
+        target: package
+    -   source: package
+        target: package
+        relation_from_key: true
+    -   key: maintainer
+        apply:
+        -   vertex: maintainer
+-   resource_name: bug
+    apply:
+    -   map:
+            package: name
+            bug_num: id
+    -   vertex: package
+    -   vertex: bug
+vertex_config:
+    vertices:
+    -   name: package
+        fields:
+        -   name
+        -   version
+        indexes:
+        -   fields:
+            -   name
+    -   name: maintainer
+        fields:
+        -   name
+        -   email
+        indexes:
+        -   fields:
+            -   email
+    -   name: bug
+        fields:
+        -   id
+        -   subject
+        -   severity
+        -   date
+        indexes:
+        -   fields:
+            -   id
+edge_config:
+    edges:
+    -   source: package
+        target: package
+    -   source: maintainer
+        target: package
+    -   source: package
+        target: bug

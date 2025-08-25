@@ -4,18 +4,15 @@ resources:
 -   resource_name: institutions
     apply:
     -   vertex: institution
-        discriminant: _top_level
     -   name: keep_suffix_id
     -   key: associated_institutions
         apply:
         -   vertex: institution
-            keep_fields:
-            -   relationship
         -   name: keep_suffix_id
     -   source: institution
         target: institution
-        source_discriminant: _top_level
-        target_relation_field: relationship
+        match_target: associated_institutions
+        relation_field: relationship
 vertex_config:
     vertices:
     -   name: institution
@@ -30,8 +27,6 @@ vertex_config:
         -   mag
         -   created_date
         -   updated_date
-        fields_aux:
-        -   relationship
         indexes:
         -   fields:
             -   _key

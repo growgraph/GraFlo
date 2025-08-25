@@ -24,9 +24,9 @@ from functools import partial
 from pathlib import Path
 
 import pandas as pd
-from suthing import DBConnectionConfig, Timer
+from suthing import ConnectionKind, DBConnectionConfig, Timer
 
-from graphcast.architecture.onto import SOURCE_AUX, TARGET_AUX, GraphContainer
+from graphcast.architecture.onto import GraphContainer
 from graphcast.architecture.schema import Schema
 from graphcast.db import ConnectionManager
 from graphcast.util.chunker import ChunkerFactory
@@ -219,7 +219,7 @@ class Caster:
                             gc.edges[edge_id] = []
                         gc.edges[edge_id].extend(
                             [
-                                {SOURCE_AUX: x, TARGET_AUX: y}
+                                (x, y, {})
                                 for x, y in zip(gc.vertices[vfrom], gc.vertices[vto])
                             ]
                         )
@@ -230,25 +230,28 @@ class Caster:
                 if edge.weights is None:
                     continue
                 for weight in edge.weights.vertices:
-                    assert weight.name is not None
-                    index_fields = vc.index(weight.name)
+                    if weight.name in vc.vertex_set:
+                        index_fields = vc.index(weight.name)
 
-                    if not self.dry and weight.name in gc.vertices:
-                        weights_per_item = db_client.fetch_present_documents(
-                            class_name=vc.vertex_dbname(weight.name),
-                            batch=gc.vertices[weight.name],
-                            match_keys=index_fields.fields,
-                            keep_keys=weight.fields,
-                        )
+                        if not self.dry and weight.name in gc.vertices:
+                            weights_per_item = db_client.fetch_present_documents(
+                                class_name=vc.vertex_dbname(weight.name),
+                                batch=gc.vertices[weight.name],
+                                match_keys=index_fields.fields,
+                                keep_keys=weight.fields,
+                            )
 
-                        for j, item in enumerate(gc.linear):
-                            weights = weights_per_item[j]
+                            for j, item in enumerate(gc.linear):
+                                weights = weights_per_item[j]
 
-                            for ee in item[edge.edge_id]:
-                                weight_collection_attached = {
-                                    weight.cfield(k): v for k, v in weights[0].items()
-                                }
-                                ee.update(weight_collection_attached)
+                                for ee in item[edge.edge_id]:
+                                    weight_collection_attached = {
+                                        weight.cfield(k): v
+                                        for k, v in weights[0].items()
+                                    }
+                                    ee.update(weight_collection_attached)
+                    else:
+                        logger.error(f"{weight.name} not a valid vertex")
 
         with ConnectionManager(connection_config=conn_conf) as db_client:
             for edge_id, edge in self.schema.edge_config.edges_items():
@@ -330,6 +333,8 @@ class Caster:
                 - limit_files: Optional limit on number of files to process
                 - patterns: Optional file patterns to match
         """
+
+        path = Path(path).expanduser()
         conn_conf: DBConnectionConfig = kwargs.get("conn_conf")
         self.clean_start = kwargs.pop("clean_start", self.clean_start)
         self.n_cores = kwargs.pop("n_cores", self.n_cores)
@@ -340,7 +345,10 @@ class Caster:
         limit_files = kwargs.pop("limit_files", None)
         patterns = kwargs.pop("patterns", Patterns())
 
-        if conn_conf.database == "_system":
+        if (
+            conn_conf.connection_type == ConnectionKind.ARANGO
+            and conn_conf.database == "_system"
+        ):
             db_name = self.schema.general.name
             try:
                 with ConnectionManager(connection_config=conn_conf) as db_client:

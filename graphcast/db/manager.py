@@ -88,9 +88,8 @@ class ConnectionManager:
 
         Closes the active connection and performs any necessary cleanup.
         """
-        self.conn.close()
-        if self.config.connection_type == ConnectionKind.NEO4J:
-            self.conn.conn.close()
+        if self.conn is not None:
+            self.conn.close()
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
         """Exit the context manager.

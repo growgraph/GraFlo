@@ -14,7 +14,7 @@ both synchronous and asynchronous operations. It integrates with the graph datab
 infrastructure to handle vertex and edge operations.
 
 Example:
-    >>> wrapper = ActorWrapper(vertex="user", discriminant="id")
+    >>> wrapper = ActorWrapper(vertex="user")
     >>> ctx = ActionContext()
     >>> result = wrapper(ctx, doc={"id": "123", "name": "John"})
 """
@@ -24,6 +24,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from functools import reduce
 from pathlib import Path
 from types import MappingProxyType
 from typing import Optional, Type
@@ -37,18 +38,23 @@ from graphcast.architecture.edge import Edge, EdgeConfig
 from graphcast.architecture.onto import (
     ActionContext,
     GraphEntity,
+    LocationIndex,
+    VertexRep,
 )
 from graphcast.architecture.transform import ProtoTransform, Transform
 from graphcast.architecture.vertex import (
     VertexConfig,
 )
-from graphcast.util.merge import merge_doc_basis
+from graphcast.util.merge import (
+    merge_doc_basis,
+    merge_doc_basis_closest_preceding,
+)
 from graphcast.util.transform import pick_unique_dict
 
 logger = logging.getLogger(__name__)
 
 
-DESCEND_KEY_VALUES = {"key"}
+DESCEND_KEY = "key"
 DRESSING_TRANSFORMED_VALUE_KEY = "__value__"
 
 
@@ -63,7 +69,7 @@ class Actor(ABC):
     """
 
     @abstractmethod
-    def __call__(self, ctx: ActionContext, *nargs, **kwargs):
+    def __call__(self, ctx: ActionContext, lindex: LocationIndex, *nargs, **kwargs):
         """Execute the actor's main processing logic.
 
         Args:
@@ -166,11 +172,10 @@ class VertexActor(Actor):
     """Actor for processing vertex data.
 
     This actor handles the processing and transformation of vertex data, including
-    field selection and discriminant handling.
+    field selection.
 
     Attributes:
         name: Name of the vertex
-        discriminant: Optional discriminant field
         keep_fields: Optional tuple of fields to keep
         vertex_config: Configuration for the vertex
     """
@@ -178,21 +183,18 @@ class VertexActor(Actor):
     def __init__(
         self,
         vertex: str,
-        discriminant: Optional[str] = None,
-        keep_fields: Optional[tuple[str]] = None,
+        keep_fields: tuple[str, ...] | None = None,
         **kwargs,
     ):
         """Initialize the vertex actor.
 
         Args:
             vertex: Name of the vertex
-            discriminant: Optional discriminant field
             keep_fields: Optional tuple of fields to keep
             **kwargs: Additional initialization parameters
         """
         self.name = vertex
-        self.discriminant: Optional[str] = discriminant
-        self.keep_fields: Optional[tuple[str]] = keep_fields
+        self.keep_fields: tuple[str, ...] | None = keep_fields
         self.vertex_config: VertexConfig
 
     def fetch_important_items(self):
@@ -202,7 +204,7 @@ class VertexActor(Actor):
             dict: Dictionary of important items
         """
         sd = self.__dict__
-        return {k: sd[k] for k in ["name", "discriminant", "keep_fields"]}
+        return {k: sd[k] for k in ["name", "keep_fields"]}
 
     def finish_init(self, **kwargs):
         """Complete initialization of the vertex actor.
@@ -211,9 +213,8 @@ class VertexActor(Actor):
             **kwargs: Additional initialization parameters
         """
         self.vertex_config: VertexConfig = kwargs.pop("vertex_config")
-        self.vertex_config.discriminant_chart[self.name] = True
 
-    def __call__(self, ctx: ActionContext, *nargs, **kwargs):
+    def __call__(self, ctx: ActionContext, lindex: LocationIndex, *nargs, **kwargs):
         """Process vertex data.
 
         Args:
@@ -227,33 +228,57 @@ class VertexActor(Actor):
         doc: dict = kwargs.pop("doc", {})
 
         vertex_keys = self.vertex_config.fields(self.name, with_aux=True)
-        custom_transform = ctx.buffer_vertex.pop(self.name, {})
+        buffer_vertex = ctx.buffer_vertex.pop(self.name, [])
 
-        _doc: dict = {
-            k: custom_transform[k] for k in vertex_keys if k in custom_transform
-        }
+        agg = []
 
-        n_value_keys = len(
-            [k for k in ctx.cdoc if k.startswith(DRESSING_TRANSFORMED_VALUE_KEY)]
+        for item in ctx.buffer_transforms[lindex]:
+            _doc: dict = dict()
+            n_value_keys = len(
+                [k for k in item if k.startswith(DRESSING_TRANSFORMED_VALUE_KEY)]
+            )
+            for j in range(n_value_keys):
+                vkey = self.vertex_config.index(self.name).fields[j]
+                v = item.pop(f"{DRESSING_TRANSFORMED_VALUE_KEY}#{j}")
+                _doc[vkey] = v
+
+            for vkey in set(vertex_keys) - set(_doc):
+                v = item.pop(vkey, None)
+                if v is not None:
+                    _doc[vkey] = v
+
+            if all(cfilter(doc) for cfilter in self.vertex_config.filters(self.name)):
+                agg += [_doc]
+
+        ctx.buffer_transforms[lindex] = [x for x in ctx.buffer_transforms[lindex] if x]
+
+        for item in buffer_vertex:
+            _doc = {k: item[k] for k in vertex_keys if k in item}
+
+            if all(cfilter(doc) for cfilter in self.vertex_config.filters(self.name)):
+                agg += [_doc]
+
+        remaining_keys = set(vertex_keys) - reduce(
+            lambda acc, d: acc | d.keys(), agg, set()
         )
-        for j in range(n_value_keys):
-            vkey = self.vertex_config.index(self.name).fields[j]
-            v = ctx.cdoc.pop(f"{DRESSING_TRANSFORMED_VALUE_KEY}#{j}")
-            _doc[vkey] = v
+        passthrough_doc = {}
+        for k in remaining_keys:
+            if k in doc:
+                passthrough_doc[k] = doc.pop(k)
+        if passthrough_doc:
+            agg += [passthrough_doc]
 
-        for vkey in set(vertex_keys) - set(_doc):
-            v = ctx.cdoc.get(vkey, None)
-            if v is not None:
-                _doc[vkey] = v
+        merged = merge_doc_basis(
+            agg, index_keys=tuple(self.vertex_config.index(self.name).fields)
+        )
 
-        for vkey in set(vertex_keys) - set(_doc):
-            v = doc.get(vkey, None)
-            if v is not None:
-                _doc[vkey] = v
-
-        if all(cfilter(doc) for cfilter in self.vertex_config.filters(self.name)):
-            ctx.acc_v_local[self.name][self.discriminant] += [_doc]
-
+        ctx.acc_vertex[self.name][lindex] += [
+            VertexRep(
+                vertex=m,
+                ctx={q: w for q, w in doc.items() if not isinstance(w, (dict, list))},
+            )
+            for m in merged
+        ]
         return ctx
 
 
@@ -287,10 +312,7 @@ class EdgeActor(Actor):
             dict: Dictionary of important items
         """
         sd = self.edge.__dict__
-        return {
-            k: sd[k]
-            for k in ["source", "target", "source_discriminant", "target_discriminant"]
-        }
+        return {k: sd[k] for k in ["source", "target", "match_source", "match_target"]}
 
     def finish_init(self, **kwargs):
         """Complete initialization of the edge actor.
@@ -304,7 +326,7 @@ class EdgeActor(Actor):
             self.edge.finish_init(vertex_config=self.vertex_config)
             edge_config.update_edges(self.edge, vertex_config=self.vertex_config)
 
-    def __call__(self, ctx: ActionContext, *nargs, **kwargs):
+    def __call__(self, ctx: ActionContext, lindex: LocationIndex, *nargs, **kwargs):
         """Process edge data.
 
         Args:
@@ -315,22 +337,31 @@ class EdgeActor(Actor):
         Returns:
             Updated action context
         """
-        edges = render_edge(self.edge, self.vertex_config, ctx.acc_v_local)
+
+        ctx = self.merge_vertices(ctx)
+        edges = render_edge(self.edge, self.vertex_config, ctx, lindex=lindex)
 
         edges = render_weights(
-            self.edge, self.vertex_config, ctx.acc_v_local, ctx.cdoc, edges
+            self.edge,
+            self.vertex_config,
+            ctx.acc_vertex,
+            edges,
         )
 
         for relation, v in edges.items():
             ctx.acc_global[self.edge.source, self.edge.target, relation] += v
 
-        ctx.acc_vertex[self.edge.source][self.edge.source_discriminant] += (
-            ctx.acc_v_local[self.edge.source].pop(self.edge.source_discriminant, [])
-        )
-        ctx.acc_vertex[self.edge.target][self.edge.target_discriminant] += (
-            ctx.acc_v_local[self.edge.target].pop(self.edge.target_discriminant, [])
-        )
+        return ctx
 
+    def merge_vertices(self, ctx) -> ActionContext:
+        for vertex, dd in ctx.acc_vertex.items():
+            for lindex, vertex_list in dd.items():
+                vvv = merge_doc_basis_closest_preceding(
+                    vertex_list,
+                    tuple(self.vertex_config.index(vertex).fields),
+                )
+                # vvv = pick_unique_dict(vvv)
+                ctx.acc_vertex[vertex][lindex] = vvv
         return ctx
 
 
@@ -422,7 +453,7 @@ class TransformActor(Actor):
                         self.t.output = pt.output
                         self.t.__post_init__()
 
-    def __call__(self, ctx: ActionContext, *nargs, **kwargs):
+    def __call__(self, ctx: ActionContext, lindex: LocationIndex, *nargs, **kwargs):
         """Apply transformation to input data.
 
         Args:
@@ -461,9 +492,9 @@ class TransformActor(Actor):
                 _update_doc = {f"{DRESSING_TRANSFORMED_VALUE_KEY}#0": value}
 
         if self.vertex is None:
-            ctx.cdoc.update(_update_doc)
+            ctx.buffer_transforms[lindex] += [_update_doc]
         else:
-            ctx.buffer_vertex[self.vertex] = _update_doc
+            ctx.buffer_vertex[self.vertex] += [_update_doc]
         return ctx
 
 
@@ -478,7 +509,7 @@ class DescendActor(Actor):
         _descendants: List of child actor wrappers
     """
 
-    def __init__(self, key: Optional[str], descendants_kwargs: list, **kwargs):
+    def __init__(self, key: str | None, descendants_kwargs: list, **kwargs):
         """Initialize the descend actor.
 
         Args:
@@ -579,7 +610,7 @@ class DescendActor(Actor):
             }"""
         )
 
-    def __call__(self, ctx: ActionContext, **kwargs):
+    def __call__(self, ctx: ActionContext, lindex: LocationIndex, **kwargs):
         """Process hierarchical data structure.
 
         Args:
@@ -604,27 +635,32 @@ class DescendActor(Actor):
             if isinstance(doc, dict) and self.key in doc:
                 doc = doc[self.key]
             else:
-                logging.error(f"doc {doc} was expected to have level {self.key}")
                 return ctx
 
         doc_level = doc if isinstance(doc, list) else [doc]
 
         logger.debug(f"{len(doc_level)}")
 
-        for i, sub_doc in enumerate(doc_level):
-            logger.debug(f"docs: {i + 1}/{len(doc_level)}")
+        for idoc, sub_doc in enumerate(doc_level):
+            logger.debug(f"docs: {idoc + 1}/{len(doc_level)}")
             if isinstance(sub_doc, dict):
                 nargs: tuple = tuple()
                 kwargs["doc"] = sub_doc
             else:
                 nargs = (sub_doc,)
-            ctx.cdoc = {}
 
+            # down the tree
+            extra_step = (idoc,) if self.key is None else (self.key, idoc)
             for j, anw in enumerate(self.descendants):
                 logger.debug(
                     f"{type(anw.actor).__name__}: {j + 1}/{len(self.descendants)}"
                 )
-                ctx = anw(ctx, *nargs, **kwargs)
+                ctx = anw(
+                    ctx,
+                    lindex.extend(extra_step),
+                    *nargs,
+                    **kwargs,
+                )
         return ctx
 
     def fetch_actors(self, level, edges):
@@ -737,15 +773,15 @@ class ActorWrapper:
         Returns:
             bool: True if successful, False otherwise
         """
-        descend_key_candidates = [kwargs.pop(k, None) for k in DESCEND_KEY_VALUES]
-        descend_key_candidates = [x for x in descend_key_candidates if x is not None]
-        descend_key = descend_key_candidates[0] if descend_key_candidates else None
-        ds = kwargs.pop("apply", None)
-        if ds is not None:
-            if isinstance(ds, list):
-                descendants = ds
+
+        descend_key = kwargs.pop(DESCEND_KEY, None)
+
+        descendants = kwargs.pop("apply", None)
+        if descendants is not None:
+            if isinstance(descendants, list):
+                descendants = descendants
             else:
-                descendants = [ds]
+                descendants = [descendants]
         elif len(args) > 0:
             descendants = list(args)
         else:
@@ -798,7 +834,13 @@ class ActorWrapper:
         except Exception:
             return False
 
-    def __call__(self, ctx: ActionContext, *nargs, **kwargs) -> ActionContext:
+    def __call__(
+        self,
+        ctx: ActionContext,
+        lindex: LocationIndex = LocationIndex(),
+        *nargs,
+        **kwargs,
+    ) -> ActionContext:
         """Execute the wrapped actor.
 
         Args:
@@ -809,7 +851,7 @@ class ActorWrapper:
         Returns:
             Updated action context
         """
-        ctx = self.actor(ctx, *nargs, **kwargs)
+        ctx = self.actor(ctx, lindex, *nargs, **kwargs)
         return ctx
 
     def normalize_ctx(self, ctx: ActionContext) -> defaultdict[GraphEntity, list]:
@@ -821,44 +863,34 @@ class ActorWrapper:
         Returns:
             defaultdict[GraphEntity, list]: Normalized context
         """
-        for vertex in list(ctx.acc_v_local):
-            discriminant_dd: defaultdict[Optional[str], list] = ctx.acc_v_local.pop(
-                vertex, defaultdict(list)
-            )
-            for discriminant in list(discriminant_dd):
-                vertices = discriminant_dd.pop(discriminant, [])
-                ctx.acc_vertex[vertex][discriminant] += vertices
 
         for edge_id, edge in self.edge_config.edges_items():
             s, t, _ = edge_id
             edges_ids = [k for k in ctx.acc_global if not isinstance(k, str)]
             if not any(s == sp and t == tp for sp, tp, _ in edges_ids):
                 extra_edges = render_edge(
-                    edge=edge,
-                    vertex_config=self.vertex_config,
-                    acc_vertex=ctx.acc_vertex,
+                    edge=edge, vertex_config=self.vertex_config, ctx=ctx
                 )
                 extra_edges = render_weights(
                     edge,
                     self.vertex_config,
-                    ctx.acc_v_local,
-                    ctx.cdoc,
+                    ctx.acc_vertex,
                     extra_edges,
                 )
 
                 for relation, v in extra_edges.items():
-                    ctx.acc_global[edge_id] += v
+                    ctx.acc_global[s, t, relation] += v
 
-        for vertex, dd in ctx.acc_vertex.items():
-            for discriminant, vertex_list in dd.items():
-                vertex_list = pick_unique_dict(vertex_list)
-                vvv = merge_doc_basis(
+        for vertex_name, dd in ctx.acc_vertex.items():
+            for lindex, vertex_list in dd.items():
+                vertex_list = [x.vertex for x in vertex_list]
+                vertex_list_updated = merge_doc_basis(
                     vertex_list,
-                    tuple(self.vertex_config.index(vertex).fields),
-                    discriminant_key=None,
+                    tuple(self.vertex_config.index(vertex_name).fields),
                 )
+                vertex_list_updated = pick_unique_dict(vertex_list_updated)
 
-                ctx.acc_global[vertex] += vvv
+                ctx.acc_global[vertex_name] += vertex_list_updated
 
         ctx = add_blank_collections(ctx, self.vertex_config)
 

@@ -32,18 +32,16 @@ import dataclasses
 import logging
 from abc import ABCMeta
 from collections import defaultdict
-from typing import Any, Optional, Union
+from typing import Any, Optional, TypeAlias, Union
+
+from dataclass_wizard import JSONWizard, YAMLWizard
 
 from graphcast.onto import BaseDataclass, BaseEnum, DBFlavor
 from graphcast.util.transform import pick_unique_dict
 
-SOURCE_AUX = "__source"
-TARGET_AUX = "__target"
-DISCRIMINANT_KEY = "__discriminant_key"
-
 # type for vertex or edge name (index)
-EdgeId = tuple[str, str, Optional[str]]
-GraphEntity = Union[str, EdgeId]
+EdgeId: TypeAlias = tuple[str, str, Optional[str]]
+GraphEntity: TypeAlias = Union[str, EdgeId]
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +101,7 @@ class ABCFields(BaseDataclass, metaclass=ABCMeta):
 
     name: Optional[str] = None
     fields: list[str] = dataclasses.field(default_factory=list)
+    keep_vertex_name: bool = True
 
     def cfield(self, x: str) -> str:
         """Creates a composite field name by combining the entity name with a field name.
@@ -113,7 +112,7 @@ class ABCFields(BaseDataclass, metaclass=ABCMeta):
         Returns:
             Composite field name in format "entity@field"
         """
-        return f"{self.name}@{x}"
+        return f"{self.name}@{x}" if self.keep_vertex_name else x
 
 
 @dataclasses.dataclass
@@ -121,12 +120,10 @@ class Weight(ABCFields):
     """Defines weight configuration for edges.
 
     Attributes:
-        discriminant: Optional field used to discriminate between weights
         map: Dictionary mapping field values to weights
         filter: Dictionary of filter conditions for weights
     """
 
-    discriminant: Optional[str] = None
     map: dict = dataclasses.field(default_factory=dict)
     filter: dict = dataclasses.field(default_factory=dict)
 
@@ -274,20 +271,21 @@ class GraphContainer(BaseDataclass):
 class EdgeCastingType(BaseEnum):
     """Types of edge casting supported.
 
-    PAIR_LIKE: Edges are cast as pairs of vertices
-    PRODUCT_LIKE: Edges are cast as products of vertex sets
+    PAIR: Edges are cast as pairs of vertices
+    PRODUCT: Edges are cast as combinations of vertex sets
     """
 
-    PAIR_LIKE = "pair"
-    PRODUCT_LIKE = "product"
+    PAIR = "pair"
+    PRODUCT = "product"
+    COMBINATIONS = "combinations"
 
 
-def inner_factory_vertex() -> defaultdict[Optional[str], list]:
+def inner_factory_vertex() -> defaultdict[LocationIndex, list]:
     """Create a default dictionary for vertex data."""
     return defaultdict(list)
 
 
-def outer_factory() -> defaultdict[str, defaultdict[Optional[str], list]]:
+def outer_factory() -> defaultdict[str, defaultdict[LocationIndex, list]]:
     """Create a nested default dictionary for vertex data."""
     return defaultdict(inner_factory_vertex)
 
@@ -298,27 +296,79 @@ def dd_factory() -> defaultdict[GraphEntity, list]:
 
 
 @dataclasses.dataclass(kw_only=True)
+class VertexRep(BaseDataclass):
+    """Context for graph transformation actions.
+
+    Attributes:
+        vertex: doc representing a vertex
+        ctx: context (for edge definition upstream
+    """
+
+    vertex: dict
+    ctx: dict
+
+
+@dataclasses.dataclass(frozen=True, eq=True)
+class LocationIndex(JSONWizard, YAMLWizard):
+    path: tuple[str | int | None, ...] = dataclasses.field(default_factory=tuple)
+
+    def extend(self, extension: tuple[str | int | None, ...]) -> LocationIndex:
+        return LocationIndex((*self.path, *extension))
+
+    def depth(self):
+        return len(self.path)
+
+    def congruence_measure(self, other: LocationIndex):
+        neq_position = 0
+        for step_a, step_b in zip(self.path, other.path):
+            if step_a != step_b:
+                break
+            neq_position += 1
+        return neq_position
+
+    def filter(self, lindex_list: list[LocationIndex]) -> list[LocationIndex]:
+        return [
+            t
+            for t in lindex_list
+            if t.depth() >= self.depth() and t.path[: self.depth()] == self.path
+        ]
+
+    def __lt__(self, other: LocationIndex):
+        return len(self.path) < len(other.path)
+
+    def __contains__(self, item):
+        return item in self.path
+
+    def __len__(self):
+        return len(self.path)
+
+    def __iter__(self):
+        return iter(self.path)
+
+    def __getitem__(self, item):
+        return self.path[item]
+
+
+@dataclasses.dataclass(kw_only=True)
 class ActionContext(BaseDataclass):
     """Context for graph transformation actions.
 
     Attributes:
-        acc_v_local: Local accumulation of vertices
-        acc_vertex: Global accumulation of vertices
+        acc_vertex: Local accumulation of vertices
         acc_global: Global accumulation of graph entities
         buffer_vertex: Buffer for vertex data
-        cdoc: Current document being processed
+        buffer_transforms: Buffer for transforms data
     """
 
-    acc_v_local: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(
-        default_factory=outer_factory
-    )
-    acc_vertex: defaultdict[str, defaultdict[Optional[str], list]] = dataclasses.field(
+    acc_vertex: defaultdict[str, defaultdict[LocationIndex, list]] = dataclasses.field(
         default_factory=outer_factory
     )
     acc_global: defaultdict[GraphEntity, list] = dataclasses.field(
         default_factory=dd_factory
     )
-    buffer_vertex: defaultdict[GraphEntity, dict] = dataclasses.field(
-        default_factory=lambda: defaultdict(dict)
+    buffer_vertex: defaultdict[GraphEntity, list] = dataclasses.field(
+        default_factory=lambda: defaultdict(list)
     )
-    cdoc: dict = dataclasses.field(default_factory=dict)
+    buffer_transforms: defaultdict[LocationIndex, list[dict]] = dataclasses.field(
+        default_factory=lambda: defaultdict(list)
+    )

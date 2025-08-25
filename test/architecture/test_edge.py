@@ -54,3 +54,10 @@ def test_edge_config(vertex_config_kg, edge_config_kg):
     e = EdgeConfig.from_dict(edge_config_kg)
     e.finish_init(vertex_config)
     assert True
+
+
+def test_edge_key(vertex_config_kg, edge_config_kg):
+    vertex_config = VertexConfig.from_dict(vertex_config_kg)
+    e = EdgeConfig.from_dict(edge_config_kg)
+    e.finish_init(vertex_config)
+    assert True

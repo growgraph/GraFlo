@@ -33,6 +33,64 @@ An `Edge` describes edges and their database indexes. It allows:
 - Weight configuration using `source_fields`, `target_fields`, and `direct` parameters
 - Uniqueness constraints with respect to `source`, `target`, and `weight` fields
 
+### Edge Attributes and Configuration
+
+Edges in GraphCast support a rich set of attributes that enable flexible relationship modeling:
+
+#### Basic Attributes
+- **`source`**: Source vertex name (required)
+- **`target`**: Target vertex name (required)
+- **`indexes`**: List of database indexes for the edge
+- **`weights`**: Optional weight configuration for edge properties
+
+#### Relationship Type Configuration
+- **`relation`**: Explicit relationship name (primarily for Neo4j)
+- **`relation_field`**: Field name containing relationship type values (for CSV/tabular data)
+- **`relation_from_key`**: Use JSON key names as relationship types (for nested JSON data)
+
+#### Weight Configuration
+- **`weights.vertices`**: List of weight configurations from vertex properties
+- **`weights.direct`**: List of direct field mappings as edge properties
+- **`weights.source_fields`**: Fields from source vertex to use as weights
+- **`weights.target_fields`**: Fields from target vertex to use as weights
+
+#### Edge Behavior Control
+- **`aux`**: Whether this is an auxiliary edge (collection created, but not considered by GraphCast)
+- **`purpose`**: Additional identifier for utility collections between same vertex types
+
+#### Matching and Filtering
+- **`match_source`**: Select source items from a specific branch of json
+- **`match_target`**: Select target items from a specific branch of json
+- **`match`**: General matching field for edge creation
+
+#### Advanced Configuration
+- **`type`**: Edge type (DIRECT or INDIRECT)
+- **`by`**: Vertex name for indirect edges
+- **`graph_name`**: Custom graph name (auto-generated if not specified)
+- **`collection_name`**: Custom collection name (auto-generated if not specified)
+- **`db_flavor`**: Database flavor (ARANGO or NEO4J)
+
+#### When to Use Different Attributes
+
+**`relation_field`** (Example 3):
+- Use with CSV/tabular data
+- When relationship types are stored in a dedicated column
+- For data like: `company_a, company_b, relation, date`
+
+**`relation_from_key`** (Example 4):
+- Use with nested JSON data
+- When relationship types are implicit in the data structure
+- For data like: `{"dependencies": {"depends": [...], "conflicts": [...]}}`
+
+**`weights.direct`**:
+- Use when you want to add properties directly to edges
+- For temporal data (dates), quantitative values, or metadata
+- Example: `weights: {direct: ["date", "confidence_score"]}`
+
+**`match_source`/`match_target`**:
+- For scenarios where we have multiple leaves of json containing the same vertex class
+- Example: Creating edges between specific subsets of vertices
+
 ### Resource
 A `Resource` is a set of mappings and transformations of a data source to vertices and edges, defined as a hierarchical structure of `Actors`. It supports:
 - Table-like data (CSV, SQL)
@@ -77,4 +135,10 @@ A `Transform` defines data transforms, from renaming and type-casting to arbitra
 3. Define transforms at the schema level for reusability
 4. Configure appropriate batch sizes based on your data volume
 5. Enable parallel processing for large datasets
+6. Choose the right relationship attribute based on your data format:
+   - `relation_field` - extract relation from document field
+   - `relation_from_key` - extract relation from the key above
+   - `relation` for explicit relationship names
+7. Use edge weights to capture temporal or quantitative relationship properties
+8. Leverage key matching (`match_source`, `match_target`) for complex matching scenarios
 

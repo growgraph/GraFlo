@@ -58,10 +58,10 @@ class Neo4jConnection(Connection):
             config: Neo4j connection configuration containing URL and credentials
         """
         super().__init__()
-        driver = GraphDatabase.driver(
-            uri=config.url, auth=(config.cred_name, config.cred_pass)
+        self._driver = GraphDatabase.driver(
+            uri=config.url, auth=(config.username, config.password)
         )
-        self.conn = driver.session()
+        self.conn = self._driver.session()
 
     def execute(self, query, **kwargs):
         """Execute a Cypher query.
@@ -78,7 +78,12 @@ class Neo4jConnection(Connection):
 
     def close(self):
         """Close the Neo4j connection and session."""
-        self.conn.close()
+        # Close session first, then the underlying driver
+        try:
+            self.conn.close()
+        finally:
+            # Ensure the driver is also closed to release resources
+            self._driver.close()
 
     def create_database(self, name: str):
         """Create a new Neo4j database.
@@ -274,12 +279,8 @@ class Neo4jConnection(Connection):
         """
         dry = kwargs.pop("dry", False)
 
-        source_match_str = [
-            f"source.{key} = row['__source'].{key}" for key in match_keys_source
-        ]
-        target_match_str = [
-            f"target.{key} = row['__target'].{key}" for key in match_keys_target
-        ]
+        source_match_str = [f"source.{key} = row[0].{key}" for key in match_keys_source]
+        target_match_str = [f"target.{key} = row[1].{key}" for key in match_keys_target]
 
         match_clause = "WHERE " + " AND ".join(source_match_str + target_match_str)
 
@@ -289,6 +290,8 @@ class Neo4jConnection(Connection):
             MATCH (source:{source_class}), 
                   (target:{target_class}) {match_clause} 
                         MERGE (source)-[r:{relation_name}]->(target)
+                SET r += row[2]
+        
         """
         if not dry:
             self.execute(q, batch=docs_edges)

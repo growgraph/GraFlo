@@ -107,9 +107,12 @@ edge_config:
     -   source: analyst
         target: agency
         weights:
-            direct:
-            -   datetime_review
-            -   datetime_announce
+            vertices:
+            -   name: publication
+                keep_vertex_name: false
+                fields:
+                -   datetime_review
+                -   datetime_announce
     -   source: analyst
         target: publication
     -   source: publication

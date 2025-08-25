@@ -20,7 +20,6 @@ from typing import Optional
 
 from graphcast.architecture.onto import (
     BaseDataclass,
-    EdgeCastingType,
     EdgeId,
     EdgeType,
     Index,
@@ -38,14 +37,10 @@ class WeightConfig(BaseDataclass):
     including source and target field mappings.
 
     Attributes:
-        source_fields: List of source vertex fields
-        target_fields: List of target vertex fields
         vertices: List of weight configurations
         direct: List of direct field mappings
     """
 
-    source_fields: list[str] = dataclasses.field(default_factory=list)
-    target_fields: list[str] = dataclasses.field(default_factory=list)
     vertices: list[Weight] = dataclasses.field(default_factory=list)
     direct: list[str] = dataclasses.field(default_factory=list)
 
@@ -62,19 +57,13 @@ class Edge(BaseDataclass):
         target: Target vertex name
         indexes: List of indexes for the edge
         weights: Optional weight configuration
-        non_exclusive: List of non-exclusive fields
         relation: Optional relation name (for Neo4j)
         purpose: Optional purpose for utility collections
-        source_discriminant: Optional source discriminant field
-        target_discriminant: Optional target discriminant field
-        source_relation_field: Optional source relation field
-        target_relation_field: Optional target relation field
+        match_source: Optional source discriminant field
+        match_target: Optional target discriminant field
         type: Edge type (DIRECT or INDIRECT)
         aux: Whether this is an auxiliary edge
-        casting_type: Type of edge casting
         by: Optional vertex name for indirect edges
-        source_collection: Optional source collection name
-        target_collection: Optional target collection name
         graph_name: Optional graph name
         collection_name: Optional collection name
         db_flavor: Database flavor (ARANGO or NEO4J)
@@ -85,19 +74,18 @@ class Edge(BaseDataclass):
     indexes: list[Index] = dataclasses.field(default_factory=list)
     weights: Optional[WeightConfig] = None
 
-    non_exclusive: list[str] = dataclasses.field(default_factory=list)
-
-    # used for specifies an index (neo4j)
-    relation: Optional[str] = None
+    # relation represents Class in neo4j, for arango it becomes a weight
+    relation: str | None = None
+    # field that contains Class or relation
+    relation_field: str | None = None
+    relation_from_key: bool = False
 
     # used to create extra utility collections between the same type of vertices (A, B)
-    purpose: Optional[str] = None
+    purpose: str | None = None
 
-    source_discriminant: Optional[str] = None
-    target_discriminant: Optional[str] = None
-
-    source_relation_field: Optional[str] = None
-    target_relation_field: Optional[str] = None
+    match_source: str | None = None
+    match_target: str | None = None
+    match: str | None = None
 
     type: EdgeType = EdgeType.DIRECT
 
@@ -105,29 +93,16 @@ class Edge(BaseDataclass):
         False  # aux=True edges are init in the db but not considered by graphcast
     )
 
-    casting_type: EdgeCastingType = EdgeCastingType.PAIR_LIKE
-    by: Optional[str] = None
-    source_collection: Optional[str] = None
-    target_collection: Optional[str] = None
-    graph_name: Optional[str] = None
-    collection_name: Optional[str] = None
+    by: str | None = None
+    graph_name: str | None = None
+    collection_name: str | None = None
     db_flavor: DBFlavor = DBFlavor.ARANGO
 
     def __post_init__(self):
-        """Initialize the edge after dataclass initialization.
+        """Initialize the edge after dataclass initialization."""
 
-        Validates that source and target relation fields are not both set.
-
-        Raises:
-            ValueError: If both source and target relation fields are set
-        """
-        if (
-            self.source_relation_field is not None
-            and self.target_relation_field is not None
-        ):
-            raise ValueError(
-                f"Both source_relation_field and target_relation_field are set for edge ({self.source}, {self.target})"
-            )
+        self._source_collection: str | None = None
+        self._target_collection: str | None = None
 
     def finish_init(self, vertex_config: VertexConfig):
         """Complete edge initialization with vertex configuration.
@@ -138,30 +113,12 @@ class Edge(BaseDataclass):
         Args:
             vertex_config: Configuration for vertices
 
-        Note:
-            Discriminant is used to pin documents among a collection of documents
-            of the same vertex type.
         """
         if self.type == EdgeType.INDIRECT and self.by is not None:
             self.by = vertex_config.vertex_dbname(self.by)
 
-        if self.source_discriminant is None and self.target_discriminant is None:
-            self.casting_type = EdgeCastingType.PAIR_LIKE
-        else:
-            self.casting_type = EdgeCastingType.PRODUCT_LIKE
-
-        if self.weights is not None:
-            if self.weights.source_fields:
-                vertex_config[self.source] = vertex_config[
-                    self.source
-                ].update_aux_fields(self.weights.source_fields)
-            if self.weights.target_fields:
-                vertex_config[self.target] = vertex_config[
-                    self.target
-                ].update_aux_fields(self.weights.target_fields)
-
-        self.source_collection = vertex_config.vertex_dbname(self.source)
-        self.target_collection = vertex_config.vertex_dbname(self.target)
+        self._source_collection = vertex_config.vertex_dbname(self.source)
+        self._target_collection = vertex_config.vertex_dbname(self.target)
         graph_name = [
             vertex_config.vertex_dbname(self.source),
             vertex_config.vertex_dbname(self.target),
@@ -262,12 +219,8 @@ class EdgeConfig(BaseDataclass):
         Args:
             vc: Vertex configuration
         """
-        for k, e in self._edges_map.items():
+        for _, e in self._edges_map.items():
             e.finish_init(vc)
-
-    def _reset_edges(self):
-        """Reset edges list from internal mapping."""
-        self.edges = list(self._edges_map.values())
 
     def edges_list(self, include_aux=False):
         """Get list of edges.

@@ -32,6 +32,11 @@ plugins:
         scripts:
         -   docs/gen_pages.py
 -   literate-nav
+-   table-reader:
+        align: center    # Global alignment: left, center, right
+        classes: striped # CSS classes: striped, hover, condensed, etc.
+        show_index: false # Show row index
+        na_rep: ''       # Representation for NaN/empty values
 -   mkdocstrings:
         default_handler: python
         handlers:
@@ -57,8 +62,10 @@ nav:
     -   Quick Start: getting_started/quickstart.md
 -   Concepts: concepts/index.md
 -   Examples:
-    -   1 - Ingest csv files: examples/example-1.md
-    -   2 - Ingest jsons with self-references: examples/example-2.md
+    -   1 - Ingest Multiple Tabular Sources (CSV, ArangoDB): examples/example-1.md
+    -   2 - JSON with Edges between the same Vertex Type (ArangoDB): examples/example-2.md
+    -   3 - CSV with Edge Weights and Multiple Relations (Neo4j): examples/example-3.md
+    -   4 - Dynamic Relations from Keys (Neo4j): examples/example-4.md
 -   API Reference: reference/
 -   Contributing: contributing.md
 
