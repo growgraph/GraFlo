@@ -5,6 +5,57 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2025-01
+### Changed
+- **Major refactoring of Edge class architecture:**
+  - Removed `EdgeCastingType` dependency and related casting logic
+  - Simplified Edge class by removing complex discriminant handling
+  - Renamed fields for clarity:
+    - `source_discriminant` → `match_source`
+    - `target_discriminant` → `match_target`
+    - `source_relation_field` → `relation_field`
+    - `target_relation_field` → removed (unified into single `relation_field`)
+  - Removed `non_exclusive` field and related logic
+  - Simplified weight configuration by removing `source_fields` and `target_fields`
+  - Edge casting type is now determined automatically based on match fields
+
+- **Actor system improvements:**
+  - Added `LocationIndex` parameter to all actor `__call__` methods
+  - Removed `discriminant` parameter from `VertexActor` constructor
+  - Enhanced actor initialization with better type hints and validation
+  - Improved vertex merging with `merge_doc_basis_closest_preceding`
+
+- **Core architecture changes:**
+  - Replaced `EdgeCastingType.PAIR_LIKE`/`PRODUCT_LIKE` with simplified logic
+  - Added `VertexRep` class for better vertex representation
+  - Enhanced `ABCFields` with `keep_vertex_name` option
+  - Improved type annotations using `TypeAlias`
+
+- **Dependency updates:**
+  - Updated numpy from 2.2.5 to 2.3.2
+  - Updated pandas from 2.2.3 to 2.3.2
+  - Updated networkx from 3.4.2 to 3.5
+  - Updated pytest from 8.3.5 to 8.4.1
+  - Updated python-arango from 8.1.6 to 8.2.2
+  - Added pandas-stubs 2.3.0.250703 for better type support
+  - Added tabulate 0.9.0 for table formatting
+  - Added types-pytz 2025.2.0.20250809 for type annotations
+
+### Removed
+- `EdgeCastingType` enum and related casting logic
+- Complex discriminant handling in Edge class
+- `source_collection` and `target_collection` fields (now private)
+- `non_exclusive` field from Edge class
+- `source_fields` and `target_fields` from WeightConfig
+- `_reset_edges()` method from EdgeConfig
+
+### Added
+- `LocationIndex` type for better location handling
+- `VertexRep` class for vertex representation
+- `keep_vertex_name` option in ABCFields
+- Enhanced type annotations throughout the codebase
+- Better error handling and validation
+
 ## [0.14.0] - 2025-05
 ### Changes
 - Refactored Tree-like and table-like resources to `Resource`, using actors. All schema configs must be adopted.
