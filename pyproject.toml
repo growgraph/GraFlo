@@ -36,7 +36,7 @@ description = "A framework for transforming tabular (CSV, SQL) and hierarchical 
 name = "graphcast"
 readme = "README.md"
 requires-python = "~=3.11.0"
-version = "0.14.2"
+version = "1.0.0"
 
 [project.optional-dependencies]
 plot = ["pygraphviz>=1.14"]

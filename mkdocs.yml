@@ -59,6 +59,8 @@ nav:
 -   Examples:
     -   1 - Ingest csv files: examples/example-1.md
     -   2 - Ingest jsons with self-references: examples/example-2.md
+    -   3 - Ingest csv files: examples/example-3.md
+    -   4 - Ingest jsons with self-references: examples/example-4.md
 -   API Reference: reference/
 -   Contributing: contributing.md
 

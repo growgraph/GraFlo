@@ -17,6 +17,10 @@ for subdir in "$BASE_DIR"*/; do
     schema_file="${subdir}schema.yaml"
     output_dir="${subdir}figs/"
 
+    # Create assets dir path: strip BASE_DIR prefix and add docs/assets
+    subdir_name=$(basename "$subdir")
+    assets_dir="../docs/assets/${subdir_name}/figs/"
+
     # Check if schema.yaml exists
     if [[ -f "$schema_file" ]]; then
         echo "Processing: $(basename "$subdir")"
@@ -32,6 +36,11 @@ for subdir in "$BASE_DIR"*/; do
             if [[ -x "./conv.sh" ]]; then
                 echo "  Converting PDFs to PNGs..."
                 ./conv.sh "$output_dir" "$output_dir"
+
+                # Create assets directory and copy files
+                mkdir -p "$assets_dir"
+                cp -r "$output_dir"*.png "$assets_dir"
+                echo "  ✓ Copied to $assets_dir"
             else
                 echo "  Warning: conv.sh not found or not executable"
             fi
