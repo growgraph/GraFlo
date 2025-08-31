@@ -1,10 +1,10 @@
 # API Reference
 
-This section provides detailed API documentation for all GraphCast components and modules.
+This section provides detailed API documentation for all graflo components and modules.
 
 ## Architecture
 
-Core architectural components that define the GraphCast framework:
+Core architectural components that define the graflo framework:
 
 - **[Schema](architecture/schema.md)**: Graph schema definition and management
 - **[Vertex](architecture/vertex.md)**: Vertex configuration and properties
@@ -29,7 +29,7 @@ Database connection and management components:
 
 ## Core Components
 
-Main GraphCast functionality:
+Main graflo functionality:
 
 - **[Caster](caster.md)**: Main data ingestion and transformation engine
 - **[Ontology](onto.md)**: Core data types and enums
@@ -57,7 +57,7 @@ Graph visualization and plotting:
 
 ## Command Line Interface
 
-CLI tools for GraphCast operations:
+CLI tools for graflo operations:
 
 - **[Ingest](cli/ingest.md)**: Data ingestion commands
 - **[Database Management](cli/manage_dbs.md)**: Database administration commands
@@ -73,4 +73,4 @@ CLI tools for GraphCast operations:
 
 ## Contributing
 
-For information on contributing to GraphCast, see the [Contributing Guide](../contributing.md).
+For information on contributing to graflo, see the [Contributing Guide](../contributing.md).

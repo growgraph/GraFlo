@@ -10,21 +10,21 @@ def table_config_ibes():
         encoding: ISO-8859-1
         transforms:
         -   foo: parse_date_ibes
-            module: graphcast.util.transform
+            module: graflo.util.transform
             input:
             -   ANNDATS
             -   ANNTIMS
             output:
             -   datetime_announce
         -   foo: parse_date_ibes
-            module: graphcast.util.transform
+            module: graflo.util.transform
             input:
             -   REVDATS
             -   REVTIMS
             output:
             -   datetime_review
         -   foo: cast_ibes_analyst
-            module: graphcast.util.transform
+            module: graflo.util.transform
             input:
             -   ANALYST
             output:
@@ -213,7 +213,7 @@ def table_config_ticker():
         tabletype: _all
         transforms:
         -   foo: round_str
-            module: graphcast.util.transform
+            module: graflo.util.transform
             params:
                 ndigits: 3
             switch:
@@ -221,7 +221,7 @@ def table_config_ticker():
                 -   name
                 -   value
         -   foo: round_str
-            module: graphcast.util.transform
+            module: graflo.util.transform
             params:
                 ndigits: 3
             switch:
@@ -235,7 +235,7 @@ def table_config_ticker():
                 -   name
                 -   value
         -   foo: parse_date_yahoo
-            module: graphcast.util.transform
+            module: graflo.util.transform
             map:
                 Date: t_obs
         -   map:

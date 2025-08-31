@@ -152,7 +152,7 @@ The ingestion process handles the complex nested structure:
 
 ```python
 from suthing import ConfigFactory, FileHandle
-from graphcast import Caster, Patterns, Schema
+from graflo import Caster, Patterns, Schema
 
 schema = Schema.from_dict(FileHandle.load("schema.yaml"))
 
@@ -203,6 +203,6 @@ This schema is useful for:
 - **Both**: Enable multiple relationship types between the same entity pairs
 - **Difference**: Data source format and relationship specification method
 
-Please refer to [examples](https://github.com/growgraph/graphcast/tree/main/examples/4-ingest-neo4j)
+Please refer to [examples](https://github.com/growgraph/graflo/tree/main/examples/4-ingest-neo4j)
 
 For more examples and detailed explanations, refer to the [API Reference](../reference/index.md).

@@ -1,3 +1,3 @@
-# `graphcast.db.manager`
+# `graflo.db.manager`
 
-::: graphcast.db.manager
+::: graflo.db.manager

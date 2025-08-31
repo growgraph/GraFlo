@@ -1,3 +1,3 @@
-# `graphcast.util.chunker`
+# `graflo.util.chunker`
 
-::: graphcast.util.chunker
+::: graflo.util.chunker

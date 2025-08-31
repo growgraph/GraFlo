@@ -1,6 +1,6 @@
 import logging
 
-from graphcast.architecture.resource import Resource
+from graflo.architecture.resource import Resource
 
 logger = logging.getLogger(__name__)
 

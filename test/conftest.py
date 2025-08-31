@@ -8,10 +8,10 @@ import pytest
 import yaml
 from suthing import FileHandle, equals
 
-from graphcast.architecture.schema import Schema
-from graphcast.architecture.util import cast_graph_name_to_triple
-from graphcast.caster import Caster
-from graphcast.util.misc import sorted_dicts
+from graflo.architecture.schema import Schema
+from graflo.architecture.util import cast_graph_name_to_triple
+from graflo.caster import Caster
+from graflo.util.misc import sorted_dicts
 
 logger = logging.getLogger(__name__)
 
@@ -255,7 +255,7 @@ def resource_with_dynamic_relations():
     transforms:
         keep_suffix_id:
             foo: split_keep_part
-            module: graphcast.util.transform
+            module: graflo.util.transform
             params:
                 sep: "/"
                 keep: -1
@@ -275,7 +275,7 @@ def resource_openalex_works():
     -   vertex: work
     -   name: keep_suffix_id
         foo: split_keep_part
-        module: graphcast.util.transform
+        module: graflo.util.transform
         params:
             sep: "/"
             keep: -1

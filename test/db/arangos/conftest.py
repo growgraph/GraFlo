@@ -4,9 +4,9 @@ from test.conftest import ingest_atomic, verify
 import pytest
 from suthing import ConfigFactory, FileHandle
 
-from graphcast.db import ConnectionManager
-from graphcast.filter.onto import ComparisonOperator
-from graphcast.onto import AggregationType
+from graflo.db import ConnectionManager
+from graflo.filter.onto import ComparisonOperator
+from graflo.onto import AggregationType
 
 
 @pytest.fixture(scope="function")

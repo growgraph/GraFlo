@@ -1,3 +1,3 @@
-# `graphcast.cli.ingest`
+# `graflo.cli.ingest`
 
-::: graphcast.cli.ingest
+::: graflo.cli.ingest

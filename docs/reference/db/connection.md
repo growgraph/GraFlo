@@ -1,3 +1,3 @@
-# `graphcast.db.connection`
+# `graflo.db.connection`
 
-::: graphcast.db.connection
+::: graflo.db.connection

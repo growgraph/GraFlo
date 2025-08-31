@@ -1,3 +1,3 @@
-# `graphcast.architecture.resource`
+# `graflo.architecture.resource`
 
-::: graphcast.architecture.resource
+::: graflo.architecture.resource

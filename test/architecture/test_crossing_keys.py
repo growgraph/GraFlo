@@ -1,7 +1,7 @@
 import logging
 
-from graphcast.architecture.actor import ActorWrapper
-from graphcast.architecture.onto import ActionContext, LocationIndex, VertexRep
+from graflo.architecture.actor import ActorWrapper
+from graflo.architecture.onto import ActionContext, LocationIndex, VertexRep
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 import logging
 
-from graphcast.architecture.resource import Resource
-from graphcast.architecture.schema import Schema
+from graflo.architecture.resource import Resource
+from graflo.architecture.schema import Schema
 
 logger = logging.getLogger(__name__)
 

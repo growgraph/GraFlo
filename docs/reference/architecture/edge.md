@@ -1,3 +1,3 @@
-# `graphcast.architecture.edge`
+# `graflo.architecture.edge`
 
-::: graphcast.architecture.edge
+::: graflo.architecture.edge

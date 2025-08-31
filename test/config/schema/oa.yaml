@@ -67,7 +67,7 @@ vertex_config:
 transforms:
     keep_suffix_id:
         foo: split_keep_part
-        module: graphcast.util.transform
+        module: graflo.util.transform
         params:
             sep: "/"
             keep: -1

@@ -1,3 +1,3 @@
-# `graphcast.caster`
+# `graflo.caster`
 
-::: graphcast.caster
+::: graflo.caster

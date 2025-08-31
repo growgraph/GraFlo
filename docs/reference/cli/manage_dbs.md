@@ -1,3 +1,3 @@
-# `graphcast.cli.manage_dbs`
+# `graflo.cli.manage_dbs`
 
-::: graphcast.cli.manage_dbs
+::: graflo.cli.manage_dbs

@@ -1,8 +1,22 @@
+import pathlib
+
 import pytest
 import yaml
 from suthing import FileHandle
 
-from graphcast.architecture import VertexConfig
+from graflo.architecture import VertexConfig
+
+
+@pytest.fixture(scope="session", autouse=True)
+def create_test_dirs():
+    test_dirs = [
+        "test/figs",
+    ]
+
+    for dir_path in test_dirs:
+        pathlib.Path(dir_path).mkdir(parents=True, exist_ok=True)
+
+    yield
 
 
 @pytest.fixture()
@@ -44,7 +58,7 @@ def vertex_pub():
                     value: 0
         transforms:
         -   foo: cast_ibes_analyst
-            module: graphcast.util.transform
+            module: graflo.util.transform
             input:
             -   ANALYST
             output:
@@ -237,7 +251,7 @@ def resource_concept():
         """
         -   vertex: concept
         -   foo: split_keep_part
-            module: graphcast.util.transform
+            module: graflo.util.transform
             params:
                 sep: "/"
                 keep: -1
@@ -375,7 +389,7 @@ def action_node_edge():
 def action_node_transform():
     an = yaml.safe_load("""
         foo: parse_date_ibes
-        module: graphcast.util.transform
+        module: graflo.util.transform
         input:
         -   ANNDATS
         -   ANNTIMS
@@ -516,7 +530,7 @@ def resource_openalex_authors():
     -   vertex: author
     -   name: keep_suffix_id
         foo: split_keep_part
-        module: graphcast.util.transform
+        module: graflo.util.transform
         params:
             sep: "/"
             keep: -1

@@ -1,7 +1,7 @@
 import logging
 
-from graphcast.architecture.onto import VertexRep
-from graphcast.util.merge import merge_doc_basis_closest_preceding
+from graflo.architecture.onto import VertexRep
+from graflo.util.merge import merge_doc_basis_closest_preceding
 
 logger = logging.getLogger(__name__)
 

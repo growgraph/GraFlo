@@ -1,3 +1,3 @@
-# `graphcast.architecture.schema`
+# `graflo.architecture.schema`
 
-::: graphcast.architecture.schema
+::: graflo.architecture.schema

@@ -1,3 +1,3 @@
-# `graphcast.db`
+# `graflo.db`
 
-::: graphcast.db
+::: graflo.db

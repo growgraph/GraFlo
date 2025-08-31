@@ -1,3 +1,3 @@
-# `graphcast.architecture.util`
+# `graflo.architecture.util`
 
-::: graphcast.architecture.util
+::: graflo.architecture.util

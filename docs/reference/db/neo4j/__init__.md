@@ -1,3 +1,3 @@
-# `graphcast.db.neo4j`
+# `graflo.db.neo4j`
 
-::: graphcast.db.neo4j
+::: graflo.db.neo4j

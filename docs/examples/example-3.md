@@ -41,7 +41,7 @@ edge_config:
 ## Key Concepts
 
 ### `relation_field` Attribute
-The `relation_field: relation` tells GraphCast to:
+The `relation_field: relation` tells graflo to:
 
 - Read the `relation` column from the CSV
 - Create different edge types based on the values in that column
@@ -90,7 +90,7 @@ The ingestion process is straightforward:
 
 ```python
 from suthing import ConfigFactory, FileHandle
-from graphcast import Caster, Patterns, Schema
+from graflo import Caster, Patterns, Schema
 
 schema = Schema.from_dict(FileHandle.load("schema.yaml"))
 
@@ -133,6 +133,6 @@ This pattern is particularly useful for:
 3. **Edge weights** add temporal or quantitative properties to relationships
 4. **Flexible modeling** supports complex real-world business scenarios
 
-Please refer to [examples](https://github.com/growgraph/graphcast/tree/main/examples/3-ingest-csv-edge-weights)
+Please refer to [examples](https://github.com/growgraph/graflo/tree/main/examples/3-ingest-csv-edge-weights)
 
 For more examples and detailed explanations, refer to the [API Reference](../reference/index.md).

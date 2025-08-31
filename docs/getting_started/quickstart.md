@@ -1,10 +1,10 @@
 # Quick Start Guide
 
-This guide will help you get started with GraphCast by showing you how to transform data into a graph structure.
+This guide will help you get started with graflo by showing you how to transform data into a graph structure.
 
 ## Basic Concepts
 
-- GraphCast uses `Caster` class to cast data into a property graph representation and eventually graph database. 
+- graflo uses `Caster` class to cast data into a property graph representation and eventually graph database. 
 - Class `Schema` encodes the representation of vertices, and edges (relations), the transformations the original data undergoes to become a graph and how data sources are mapped onto graph definition.
 - `Resource` class managed.
 - In case the data is provided as files, class `Patterns` manages the mapping of the resources to files. 
@@ -16,7 +16,7 @@ Here's a simple example of transforming CSV files of two types, `people` and `de
 
 ```python
 from suthing import ConfigFactory, FileHandle
-from graphcast import Caster, Patterns, Schema
+from graflo import Caster, Patterns, Schema
 
 schema = Schema.from_dict(FileHandle.load("schema.yaml"))
 

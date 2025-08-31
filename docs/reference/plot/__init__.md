@@ -1,3 +1,3 @@
-# `graphcast.plot`
+# `graflo.plot`
 
-::: graphcast.plot
+::: graflo.plot

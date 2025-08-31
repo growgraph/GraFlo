@@ -1,9 +1,9 @@
 import logging
 from pathlib import Path
 
-from graphcast.architecture.actor import ActorWrapper
-from graphcast.architecture.onto import ActionContext
-from graphcast.plot.plotter import assemble_tree
+from graflo.architecture.actor import ActorWrapper
+from graflo.architecture.onto import ActionContext
+from graflo.plot.plotter import assemble_tree
 
 logger = logging.getLogger(__name__)
 

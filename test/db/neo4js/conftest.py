@@ -3,7 +3,7 @@ import os
 import pytest
 from suthing import ConfigFactory, FileHandle
 
-from graphcast.db import ConnectionManager
+from graflo.db import ConnectionManager
 
 
 @pytest.fixture(scope="function")

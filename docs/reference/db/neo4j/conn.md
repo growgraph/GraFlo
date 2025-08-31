@@ -1,3 +1,3 @@
-# `graphcast.db.neo4j.conn`
+# `graflo.db.neo4j.conn`
 
-::: graphcast.db.neo4j.conn
+::: graflo.db.neo4j.conn
