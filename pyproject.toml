@@ -33,11 +33,11 @@ dependencies = [
   "suthing>=0.4.1,<0.5",
   "xmltodict>=0.14.2,<0.15"
 ]
-description = "A framework for transforming tabular (CSV, SQL) and hierarchical data (JSON, XML) into property graphs and ingesting them into graph databases (ArangoDB, Neo4j)"
+description = "(!) Deprecated: this package has been renamed to GraFlo. A framework for transforming tabular (CSV, SQL) and hierarchical data (JSON, XML) into property graphs and ingesting them into graph databases (ArangoDB, Neo4j)"
 name = "graphcast"
 readme = "README.md"
 requires-python = "~=3.11.0"
-version = "1.0.0"
+version = "1.0.1"
 
 [project.optional-dependencies]
 plot = ["pygraphviz>=1.14"]

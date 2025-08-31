@@ -22,6 +22,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from pathlib import Path
+from typing import cast
 
 import pandas as pd
 from suthing import ConnectionKind, DBConnectionConfig, Timer
@@ -291,7 +292,7 @@ class Caster:
 
     @staticmethod
     def normalize_resource(
-        data: pd.DataFrame | list[list] | list[dict], columns=None
+        data: pd.DataFrame | list[list] | list[dict], columns: list[str] | None = None
     ) -> list[dict]:
         """Normalize resource data into a list of dictionaries.
 
@@ -308,12 +309,12 @@ class Caster:
         if isinstance(data, pd.DataFrame):
             columns = data.columns.tolist()
             _data = data.values.tolist()
-        elif isinstance(data[0], list):
-            _data = data
+        elif data and isinstance(data[0], list):
+            _data = cast(list[list], data)  # Tell mypy this is list[list]
             if columns is None:
                 raise ValueError("columns should be set")
         else:
-            return data  # type: ignore
+            return cast(list[dict], data)  # Tell mypy this is list[dict]
         rows_dressed = [{k: v for k, v in zip(columns, item)} for item in _data]
         return rows_dressed
 
