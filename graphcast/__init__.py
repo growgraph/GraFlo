@@ -37,3 +37,14 @@ __all__ = [
     "Patterns",
     "AggregationType",
 ]
+
+
+import warnings
+
+warnings.warn(
+    "The 'graphcast' package has been renamed to 'graflo'. "
+    "Please install and import 'graflo' instead. "
+    "Example: pip install graflo",
+    DeprecationWarning,
+    stacklevel=2,
+)
