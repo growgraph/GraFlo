@@ -1,6 +1,6 @@
 import pathlib
 
-from graphcast.util.onto import Patterns
+from graflo.util.onto import Patterns
 
 
 def test_patterns():

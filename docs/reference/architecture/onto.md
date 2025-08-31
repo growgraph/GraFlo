@@ -1,3 +1,3 @@
-# `graphcast.architecture.onto`
+# `graflo.architecture.onto`
 
-::: graphcast.architecture.onto
+::: graflo.architecture.onto

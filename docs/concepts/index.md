@@ -1,10 +1,10 @@
 # Concepts
 
-Here we introduce the main concepts of GraphCast, a framework for transforming data into property graphs.
+Here we introduce the main concepts of graflo, a framework for transforming data into property graphs.
 
 ## System Overview
 
-GraphCast transforms data sources into property graphs through a pipeline of components:
+graflo transforms data sources into property graphs through a pipeline of components:
 
 1. **Data Sources** → **Resources** → **Actors** → **Vertices/Edges** → **Graph Database**
 
@@ -35,7 +35,7 @@ An `Edge` describes edges and their database indexes. It allows:
 
 ### Edge Attributes and Configuration
 
-Edges in GraphCast support a rich set of attributes that enable flexible relationship modeling:
+Edges in graflo support a rich set of attributes that enable flexible relationship modeling:
 
 #### Basic Attributes
 - **`source`**: Source vertex name (required)
@@ -55,7 +55,7 @@ Edges in GraphCast support a rich set of attributes that enable flexible relatio
 - **`weights.target_fields`**: Fields from target vertex to use as weights
 
 #### Edge Behavior Control
-- **`aux`**: Whether this is an auxiliary edge (collection created, but not considered by GraphCast)
+- **`aux`**: Whether this is an auxiliary edge (collection created, but not considered by graflo)
 - **`purpose`**: Additional identifier for utility collections between same vertex types
 
 #### Matching and Filtering

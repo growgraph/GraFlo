@@ -1,3 +1,3 @@
-# `graphcast.db.arango`
+# `graflo.db.arango`
 
-::: graphcast.db.arango
+::: graflo.db.arango

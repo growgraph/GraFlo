@@ -74,7 +74,7 @@ Transforming the data and ingesting it into an ArangoDB takes a few lines of cod
 
 ```python
 from suthing import ConfigFactory, FileHandle
-from graphcast import Caster, Patterns, Schema
+from graflo import Caster, Patterns, Schema
 
 schema = Schema.from_dict(FileHandle.load("schema.yaml"))
 
@@ -107,6 +107,6 @@ caster.ingest_files(
 
 ```
 
-Please refer to [examples](https://github.com/growgraph/graphcast/tree/main/examples/1-ingest-csv)
+Please refer to [examples](https://github.com/growgraph/graflo/tree/main/examples/1-ingest-csv)
 
 For more examples and detailed explanations, refer to the [API Reference](../reference/index.md). 

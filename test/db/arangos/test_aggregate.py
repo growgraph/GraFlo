@@ -1,5 +1,5 @@
-from graphcast.db import ConnectionManager
-from graphcast.onto import AggregationType
+from graflo.db import ConnectionManager
+from graflo.onto import AggregationType
 
 
 def test_average(create_db, conn_conf, test_db_name):

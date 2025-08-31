@@ -1,4 +1,4 @@
-from graphcast.util.merge import (
+from graflo.util.merge import (
     merge_doc_basis,
 )
 

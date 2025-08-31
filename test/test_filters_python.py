@@ -1,8 +1,8 @@
 import pytest
 import yaml
 
-from graphcast.filter.onto import Expression, LeafClause, LogicalOperator
-from graphcast.onto import ExpressionFlavor
+from graflo.filter.onto import Expression, LeafClause, LogicalOperator
+from graflo.onto import ExpressionFlavor
 
 
 @pytest.fixture()

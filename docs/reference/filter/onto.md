@@ -1,3 +1,3 @@
-# `graphcast.filter.onto`
+# `graflo.filter.onto`
 
-::: graphcast.filter.onto
+::: graflo.filter.onto

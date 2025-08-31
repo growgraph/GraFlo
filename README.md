@@ -1,18 +1,22 @@
-# GraphCast <img src="https://raw.githubusercontent.com/growgraph/graphcast/main/docs/assets/favicon.ico" alt="graphcast logo" style="height: 32px; width:32px;"/>
+# GraFlo <img src="https://raw.githubusercontent.com/growgraph/graflo/main/docs/assets/favicon.ico" alt="graflo logo" style="height: 32px; width:32px;"/>
 
 A framework for transforming **tabular** (CSV, SQL) and **hierarchical** data (JSON, XML) into property graphs and ingesting them into graph databases (ArangoDB, Neo4j).
 
+> **⚠️ Package Renamed**: This package was formerly known as `graphcast`.
+
+[Rest of your existing README content...]
+
 ![Python](https://img.shields.io/badge/python-3.11-blue.svg) 
-[![PyPI version](https://badge.fury.io/py/graphcast.svg)](https://badge.fury.io/py/graphcast)
-[![PyPI Downloads](https://static.pepy.tech/badge/graphcast)](https://pepy.tech/projects/graphcast)
-[![License: BSL](https://img.shields.io/badge/license-BSL--1.1-green)](https://github.com/growgraph/graphcast/blob/main/LICENSE)
-[![pre-commit](https://github.com/growgraph/graphcast/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/growgraph/graphcast/actions/workflows/pre-commit.yml)
+[![PyPI version](https://badge.fury.io/py/graflo.svg)](https://badge.fury.io/py/graflo)
+[![PyPI Downloads](https://static.pepy.tech/badge/graflo)](https://pepy.tech/projects/graflo)
+[![License: BSL](https://img.shields.io/badge/license-BSL--1.1-green)](https://github.com/growgraph/graflo/blob/main/LICENSE)
+[![pre-commit](https://github.com/growgraph/graflo/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/growgraph/graflo/actions/workflows/pre-commit.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15446131.svg)]( https://doi.org/10.5281/zenodo.15446131)
 
 ## Core Concepts
 
 ### Property Graphs
-GraphCast works with property graphs, which consist of:
+graflo works with property graphs, which consist of:
 
 - **Vertices**: Nodes with properties and optional unique identifiers
 - **Edges**: Relationships between vertices with their own properties
@@ -44,12 +48,12 @@ Resources are your data sources that can be:
 - **Database support**: Ingest into ArangoDB and Neo4j using the same API (database agnostic)
 
 ## Documentation
-Full documentation is available at: [growgraph.github.io/graphcast](https://growgraph.github.io/graphcast)
+Full documentation is available at: [growgraph.github.io/graflo](https://growgraph.github.io/graflo)
 
 ## Installation
 
 ```bash
-pip install graphcast
+pip install graflo
 ```
 
 ## Usage Examples
@@ -59,7 +63,7 @@ pip install graphcast
 ```python
 from suthing import ConfigFactory, FileHandle
 
-from graphcast import Schema, Caster, Patterns
+from graflo import Schema, Caster, Patterns
 
 
 schema = Schema.from_dict(FileHandle.load("schema.yaml"))
@@ -100,7 +104,7 @@ caster.ingest_files(
 To install requirements
 
 ```shell
-git clone git@github.com:growgraph/graphcast.git && cd graphcast
+git clone git@github.com:growgraph/graflo.git && cd graflo
 uv sync --dev
 ```
 

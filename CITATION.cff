@@ -9,7 +9,7 @@ cff-version: 1.2.0
 date-released: '2025-05-16'
 doi: 10.5281/zenodo.15446131
 license: []
-license-url: https://github.com/growgraph/graphcast/blob/main/LICENSE
+license-url: https://github.com/growgraph/graflo/blob/main/LICENSE
 message: If you use this software, please cite it using the metadata from this file.
-title: GraphCast
+title: graflo
 type: software

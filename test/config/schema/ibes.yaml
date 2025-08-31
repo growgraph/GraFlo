@@ -9,21 +9,21 @@ resources:
     -   vertex: recommendation
     -   vertex: agency
     -   foo: parse_date_ibes
-        module: graphcast.util.transform
+        module: graflo.util.transform
         input:
         -   ANNDATS
         -   ANNTIMS
         output:
         -   datetime_announce
     -   foo: parse_date_ibes
-        module: graphcast.util.transform
+        module: graflo.util.transform
         input:
         -   REVDATS
         -   REVTIMS
         output:
         -   datetime_review
     -   foo: cast_ibes_analyst
-        module: graphcast.util.transform
+        module: graflo.util.transform
         input:
         -   ANALYST
         output:

@@ -7,8 +7,8 @@ from test.conftest import verify
 import pytest
 from suthing import FileHandle
 
-from graphcast.caster import Caster
-from graphcast.plot.plotter import assemble_tree
+from graflo.caster import Caster
+from graflo.plot.plotter import assemble_tree
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +29,12 @@ def cast(modes, schema_obj, current_path, level, reset, n_threads=1):
         resource_name = mode.split("_")[0]
         schema = schema_obj(mode)
 
+        # Create the directory if it doesn't exist
+        output_dir = "test/figs"
+        pathlib.Path(output_dir).mkdir(parents=True, exist_ok=True)
+
         for r in schema.resources:
-            assemble_tree(r.root, f"test/figs/{mode}.resource-{r.resource_name}.pdf")
+            assemble_tree(r.root, f"{output_dir}/{mode}.resource-{r.resource_name}.pdf")
         caster = Caster(schema, n_threads=n_threads)
 
         if level == 0:

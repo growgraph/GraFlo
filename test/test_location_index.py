@@ -1,4 +1,4 @@
-from graphcast.architecture.onto import (
+from graflo.architecture.onto import (
     LocationIndex,
 )
 

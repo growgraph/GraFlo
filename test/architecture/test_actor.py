@@ -1,15 +1,15 @@
 import logging
 from pathlib import Path
 
-from graphcast.architecture.actor import (
+from graflo.architecture.actor import (
     ActorWrapper,
     DescendActor,
     EdgeActor,
     TransformActor,
 )
-from graphcast.architecture.edge import EdgeConfig
-from graphcast.architecture.onto import ActionContext, LocationIndex, VertexRep
-from graphcast.plot.plotter import assemble_tree
+from graflo.architecture.edge import EdgeConfig
+from graflo.architecture.onto import ActionContext, LocationIndex, VertexRep
+from graflo.plot.plotter import assemble_tree
 
 logger = logging.getLogger(__name__)
 

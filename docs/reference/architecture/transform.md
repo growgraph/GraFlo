@@ -1,3 +1,3 @@
-# `graphcast.architecture.transform`
+# `graflo.architecture.transform`
 
-::: graphcast.architecture.transform
+::: graflo.architecture.transform

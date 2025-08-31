@@ -1,3 +1,3 @@
-# `graphcast.architecture.actor`
+# `graflo.architecture.actor`
 
-::: graphcast.architecture.actor
+::: graflo.architecture.actor

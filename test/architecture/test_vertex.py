@@ -1,6 +1,6 @@
 import logging
 
-from graphcast.architecture.vertex import Vertex
+from graflo.architecture.vertex import Vertex
 
 logger = logging.getLogger(__name__)
 

@@ -1,3 +1,3 @@
-# `graphcast.filter`
+# `graflo.filter`
 
-::: graphcast.filter
+::: graflo.filter

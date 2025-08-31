@@ -5,9 +5,9 @@ import pandas as pd
 import pytest
 import yaml
 
-from graphcast.architecture import EdgeConfig, VertexConfig
-from graphcast.architecture.actor import ActorWrapper
-from graphcast.architecture.onto import ActionContext
+from graflo.architecture import EdgeConfig, VertexConfig
+from graflo.architecture.actor import ActorWrapper
+from graflo.architecture.onto import ActionContext
 
 logger = logging.getLogger(__name__)
 
@@ -94,21 +94,21 @@ def resource_ibes():
         -   vertex: recommendation
         -   vertex: agency
         -   foo: parse_date_ibes
-            module: graphcast.util.transform
+            module: graflo.util.transform
             input:
             -   ANNDATS
             -   ANNTIMS
             output:
             -   datetime_announce
         -   foo: parse_date_ibes
-            module: graphcast.util.transform
+            module: graflo.util.transform
             input:
             -   REVDATS
             -   REVTIMS
             output:
             -   datetime_review
         -   foo: cast_ibes_analyst
-            module: graphcast.util.transform
+            module: graflo.util.transform
             input:
             -   ANALYST
             output:

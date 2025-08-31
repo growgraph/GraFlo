@@ -10,21 +10,21 @@
 ### Using pip
 
 ```bash
-pip install graphcast
+pip install graflo
 ```
 
 ### Using uv (recommended)
 
 ```bash
-uv add graphcast
+uv add graflo
 ```
 
 ### From Source
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/growgraph/graphcast.git
-cd graphcast
+git clone https://github.com/growgraph/graflo.git
+cd graflo
 ```
 
 2. Install with development dependencies:
@@ -34,11 +34,11 @@ uv sync --group dev
 
 ## Optional Dependencies
 
-GraphCast has some optional dependencies that can be installed based on your needs.
+graflo has some optional dependencies that can be installed based on your needs.
 In order to be able to generate schema visualizations, add graphviz deps (you will need `graphviz` package installed on your computer, e.g. `apt install graphviz-dev`)
 
 ```bash
-pip install graphcast[graphviz]
+pip install graflo[graphviz]
 ```
 
 ## Verifying Installation
@@ -46,14 +46,14 @@ pip install graphcast[graphviz]
 To verify your installation, you can run:
 
 ```python
-import graphcast
-print(graphcast.__version__)
+import graflo
+print(graflo.__version__)
 ```
 
 
 ## Spinning up databases
 
-Instructions on how spin up `ArangoDB` and `neo4j` as docker images using `docker compose` are provided here [github.com/growgraph/graphcast/docker](https://github.com/growgraph/graphcast/tree/main/docker) 
+Instructions on how spin up `ArangoDB` and `neo4j` as docker images using `docker compose` are provided here [github.com/growgraph/graflo/docker](https://github.com/growgraph/graflo/tree/main/docker) 
 
 ## Configuration
 

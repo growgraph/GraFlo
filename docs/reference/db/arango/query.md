@@ -1,3 +1,3 @@
-# `graphcast.db.arango.query`
+# `graflo.db.arango.query`
 
-::: graphcast.db.arango.query
+::: graflo.db.arango.query

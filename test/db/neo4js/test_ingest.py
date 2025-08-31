@@ -2,7 +2,7 @@ from test.conftest import ingest_atomic
 
 import pytest
 
-from graphcast.db import ConnectionManager
+from graflo.db import ConnectionManager
 
 
 @pytest.fixture(scope="function")

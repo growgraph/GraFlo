@@ -1,3 +1,3 @@
-# `graphcast.cli.xml2json`
+# `graflo.cli.xml2json`
 
-::: graphcast.cli.xml2json
+::: graflo.cli.xml2json

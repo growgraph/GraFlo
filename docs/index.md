@@ -1,23 +1,23 @@
-# GraphCast <img src="https://raw.githubusercontent.com/growgraph/graphcast/main/docs/assets/favicon.ico" alt="graphcast logo" style="height: 32px; width:32px;"/>
+# graflo <img src="https://raw.githubusercontent.com/growgraph/graflo/main/docs/assets/favicon.ico" alt="graflo logo" style="height: 32px; width:32px;"/>
 
-GraphCast is a framework for transforming **tabular** data (CSV) and **hierarchical** data (JSON, XML) into property graphs and ingesting them into graph databases (ArangoDB, Neo4j).
+graflo is a framework for transforming **tabular** data (CSV) and **hierarchical** data (JSON, XML) into property graphs and ingesting them into graph databases (ArangoDB, Neo4j).
 
 ![Python](https://img.shields.io/badge/python-3.11-blue.svg) 
-[![PyPI version](https://badge.fury.io/py/graphcast.svg)](https://badge.fury.io/py/graphcast)
-[![PyPI Downloads](https://static.pepy.tech/badge/graphcast)](https://pepy.tech/projects/graphcast)
-[![License: BSL](https://img.shields.io/badge/license-BSL--1.1-green)](https://github.com/growgraph/graphcast/blob/main/LICENSE)
-[![pre-commit](https://github.com/growgraph/graphcast/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/growgraph/graphcast/actions/workflows/pre-commit.yml)
+[![PyPI version](https://badge.fury.io/py/graflo.svg)](https://badge.fury.io/py/graflo)
+[![PyPI Downloads](https://static.pepy.tech/badge/graflo)](https://pepy.tech/projects/graflo)
+[![License: BSL](https://img.shields.io/badge/license-BSL--1.1-green)](https://github.com/growgraph/graflo/blob/main/LICENSE)
+[![pre-commit](https://github.com/growgraph/graflo/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/growgraph/graflo/actions/workflows/pre-commit.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15446131.svg)]( https://doi.org/10.5281/zenodo.15446131)
 
 
 
-<!-- [![pytest](https://github.com/growgraph/graphcast/actions/workflows/pytest.yml/badge.svg)](https://github.com/growgraph/graphcast/actions/workflows/pytest.yml) -->
+<!-- [![pytest](https://github.com/growgraph/graflo/actions/workflows/pytest.yml/badge.svg)](https://github.com/growgraph/graflo/actions/workflows/pytest.yml) -->
 
 
 ## Core Concepts
 
 ### Property Graphs
-GraphCast works with property graphs, which consist of:
+graflo works with property graphs, which consist of:
 
 - **Vertices**: Nodes with properties and optional unique identifiers
 - **Edges**: Relationships between vertices with their own properties

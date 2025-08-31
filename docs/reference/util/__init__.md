@@ -1,3 +1,3 @@
-# `graphcast.util`
+# `graflo.util`
 
-::: graphcast.util
+::: graflo.util

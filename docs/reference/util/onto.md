@@ -1,3 +1,3 @@
-# `graphcast.util.onto`
+# `graflo.util.onto`
 
-::: graphcast.util.onto
+::: graflo.util.onto

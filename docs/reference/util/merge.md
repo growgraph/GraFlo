@@ -1,3 +1,3 @@
-# `graphcast.util.merge`
+# `graflo.util.merge`
 
-::: graphcast.util.merge
+::: graflo.util.merge

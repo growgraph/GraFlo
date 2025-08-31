@@ -1,8 +1,8 @@
 import logging
 
-from graphcast.architecture.edge import Edge, EdgeConfig
-from graphcast.architecture.onto import Index, Weight
-from graphcast.architecture.vertex import VertexConfig
+from graflo.architecture.edge import Edge, EdgeConfig
+from graflo.architecture.onto import Index, Weight
+from graflo.architecture.vertex import VertexConfig
 
 logger = logging.getLogger(__name__)
 

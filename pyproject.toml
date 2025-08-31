@@ -34,22 +34,19 @@ dependencies = [
   "xmltodict>=0.14.2,<0.15"
 ]
 description = "(!) Deprecated: this package has been renamed to GraFlo. A framework for transforming tabular (CSV, SQL) and hierarchical data (JSON, XML) into property graphs and ingesting them into graph databases (ArangoDB, Neo4j)"
-name = "graphcast"
+name = "graflo"
 readme = "README.md"
 requires-python = "~=3.11.0"
-version = "1.0.1"
-
-[project.optional-dependencies]
-plot = ["pygraphviz>=1.14"]
+version = "1.1.0"
 
 [project.scripts]
-ingest = "graphcast.cli.ingest:ingest"
-manage_dbs = "graphcast.cli.manage_dbs:manage_dbs"
-plot_schema = "graphcast.cli.plot_schema:plot_schema"
-xml2json = "graphcast.cli.plot_schema:xml2json"
+ingest = "graflo.cli.ingest:ingest"
+manage_dbs = "graflo.cli.manage_dbs:manage_dbs"
+plot_schema = "graflo.cli.plot_schema:plot_schema"
+xml2json = "graflo.cli.plot_schema:xml2json"
 
 [tool.hatch.build.targets.sdist]
-include = ["graphcast"]
+include = ["graflo"]
 
 [tool.hatch.build.targets.wheel]
-include = ["graphcast"]
+include = ["graflo"]

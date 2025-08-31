@@ -1,7 +1,7 @@
-site_name: GraphCast
-site_url: https://growgraph.github.io/graphcast
-repo_url: https://github.com/growgraph/graphcast
-repo_name: growgraph/graphcast
+site_name: graflo
+site_url: https://growgraph.github.io/graflo
+repo_url: https://github.com/growgraph/graflo
+repo_name: growgraph/graflo
 copyright: Copyright &copy; 2025 GrowGraph
 
 theme:

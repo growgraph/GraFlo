@@ -1,3 +1,3 @@
-# `graphcast.db.util`
+# `graflo.db.util`
 
-::: graphcast.db.util
+::: graflo.db.util

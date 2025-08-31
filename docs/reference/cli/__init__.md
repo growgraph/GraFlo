@@ -1,3 +1,3 @@
-# `graphcast.cli`
+# `graflo.cli`
 
-::: graphcast.cli
+::: graflo.cli

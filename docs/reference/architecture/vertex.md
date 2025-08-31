@@ -1,3 +1,3 @@
-# `graphcast.architecture.vertex`
+# `graflo.architecture.vertex`
 
-::: graphcast.architecture.vertex
+::: graflo.architecture.vertex
