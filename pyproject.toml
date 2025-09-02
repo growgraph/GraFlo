@@ -30,6 +30,7 @@ dependencies = [
   "pandas-stubs==2.3.0.250703",
   "pandas>=2.0.3,<3",
   "python-arango>=8.1.2,<9",
+  "pytigergraph>=1.9.0",
   "suthing>=0.4.1,<0.5",
   "xmltodict>=0.14.2,<0.15"
 ]

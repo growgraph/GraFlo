@@ -1,7 +1,7 @@
 """Database connection and management components.
 
 This package provides database connection implementations and management utilities
-for different graph databases (ArangoDB, Neo4j). It includes connection interfaces,
+for different graph databases (ArangoDB, Neo4j, TigerGraph). It includes connection interfaces,
 query execution, and database operations.
 
 Key Components:
@@ -9,6 +9,7 @@ Key Components:
     - ConnectionManager: Database connection management
     - ArangoDB: ArangoDB-specific implementation
     - Neo4j: Neo4j-specific implementation
+    - TigerGraph: TigerGraph-specific implementation
     - Query: Query generation and execution utilities
 
 Example:
