@@ -24,6 +24,19 @@ from graflo.onto import BaseDataclass, DBFlavor
 
 logger = logging.getLogger(__name__)
 
+# TG types
+# INT, UINT, FLOAT, DOUBLE, STRING, BOOL, DATETIME, VERTEX, EDGE
+# neo4j
+# INTEGER, FLOAT, LOCAL_DATETIME, ZONED_DATETIME etc
+# arango
+# INTERGET, FLOAT, LOCAL_DATETIME, ZONED_DATETIME etc
+
+
+@dataclasses.dataclass
+class Field(BaseDataclass):
+    name: str
+    type: str = "string"
+
 
 @dataclasses.dataclass
 class Vertex(BaseDataclass):
@@ -42,7 +55,7 @@ class Vertex(BaseDataclass):
     """
 
     name: str
-    fields: list[str]
+    fields: list[str] | list[Field]
     fields_aux: list[str] = dataclasses.field(
         default_factory=list
     )  # temporary field necessary to pass weights to edges
