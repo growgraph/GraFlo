@@ -180,6 +180,17 @@ caster.ingest_files(
 )
 ```
 
+After the ingestion Neo4j graph viewer should show a graph similar to the graph below, following a query:
+
+```cypher
+MATCH (m:maintainer)-[r1]-(p:package)
+MATCH (p)-[r2]-(b:bug)
+OPTIONAL MATCH (p)-[r3]-(p2:package)
+RETURN * limit 2000
+```
+
+![Neo4j Graph View](../assets/4-ingest-neo4j/figs/deb-kg.png){ width="700" }
+
 ## Use Cases
 
 This schema is useful for:
