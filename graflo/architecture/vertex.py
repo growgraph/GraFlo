@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 # neo4j
 # INTEGER, FLOAT, LOCAL_DATETIME, ZONED_DATETIME etc
 # arango
-# INTERGET, FLOAT, LOCAL_DATETIME, ZONED_DATETIME etc
+# INT, FLOAT, DATETIME
 
 
 @dataclasses.dataclass
