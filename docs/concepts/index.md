@@ -14,6 +14,7 @@ Each component plays a specific role in this transformation process.
 
 ### Schema
 The `Schema` is the central configuration that defines how data sources are transformed into a property graph. It encapsulates:
+ 
 - Vertex and edge definitions
 - Resource mappings
 - Data transformations
@@ -21,6 +22,7 @@ The `Schema` is the central configuration that defines how data sources are tran
 
 ### Vertex
 A `Vertex` describes vertices and their database indexes. It supports:
+ 
 - Single or compound indexes (e.g., `["first_name", "last_name"]` instead of `"full_name"`)
 - Property definitions
 - Filtering conditions
@@ -28,6 +30,7 @@ A `Vertex` describes vertices and their database indexes. It supports:
 
 ### Edge
 An `Edge` describes edges and their database indexes. It allows:
+ 
 - Definition at any level of a hierarchical document
 - Reliance on vertex principal index
 - Weight configuration using `source_fields`, `target_fields`, and `direct` parameters
@@ -43,7 +46,7 @@ Edges in graflo support a rich set of attributes that enable flexible relationsh
 - **`indexes`**: List of database indexes for the edge
 - **`weights`**: Optional weight configuration for edge properties
 
-#### Relationship Type Configuration
+#### Relationship Type Configuration 
 - **`relation`**: Explicit relationship name (primarily for Neo4j)
 - **`relation_field`**: Field name containing relationship type values (for CSV/tabular data)
 - **`relation_from_key`**: Use JSON key names as relationship types (for nested JSON data)
@@ -73,32 +76,38 @@ Edges in graflo support a rich set of attributes that enable flexible relationsh
 #### When to Use Different Attributes
 
 **`relation_field`** (Example 3):
+ 
 - Use with CSV/tabular data
 - When relationship types are stored in a dedicated column
 - For data like: `company_a, company_b, relation, date`
 
 **`relation_from_key`** (Example 4):
+ 
 - Use with nested JSON data
 - When relationship types are implicit in the data structure
 - For data like: `{"dependencies": {"depends": [...], "conflicts": [...]}}`
 
 **`weights.direct`**:
+ 
 - Use when you want to add properties directly to edges
 - For temporal data (dates), quantitative values, or metadata
 - Example: `weights: {direct: ["date", "confidence_score"]}`
 
 **`match_source`/`match_target`**:
+ 
 - For scenarios where we have multiple leaves of json containing the same vertex class
 - Example: Creating edges between specific subsets of vertices
 
 ### Resource
 A `Resource` is a set of mappings and transformations of a data source to vertices and edges, defined as a hierarchical structure of `Actors`. It supports:
+ 
 - Table-like data (CSV, SQL)
 - Tree-like data (JSON, XML)
 - Complex nested structures
 
 ### Actor
 An `Actor` describes how the current level of the document should be mapped/transformed to the property graph vertices and edges. There are four types that act on the provided document in this order:
+ 
 - `DescendActor`: Navigates to the next level in the hierarchy
 - `TransformActor`: Applies data transformations
 - `VertexActor`: Creates vertices from the current level
@@ -106,6 +115,7 @@ An `Actor` describes how the current level of the document should be mapped/tran
 
 ### Transform
 A `Transform` defines data transforms, from renaming and type-casting to arbitrary transforms defined as Python functions. Transforms can be:
+ 
 - Provided in the `transforms` section of `Schema`
 - Referenced by their `name`
 - Applied to both vertices and edges

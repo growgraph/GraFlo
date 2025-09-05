@@ -157,7 +157,7 @@ class Neo4jConnection(Connection):
 
         self.execute(q)
 
-    def define_collections(self, schema: Schema):
+    def define_schema(self, schema: Schema):
         """Define collections based on schema.
 
         Note: This is a no-op in Neo4j as collections are implicit.

@@ -1,0 +1,23 @@
+services:
+    tigergraph:
+        image: ${IMAGE_VERSION}
+        restart: "no"
+        profiles: ["test.tigergraph"]
+        ports:
+        -   "${TG_SSH}:22"
+        -   "${TG_REST}:9000"
+        -   "${TG_WEB}:14240"
+        container_name: ${CONTAINER_NAME}
+        volumes:
+        -   ${STORE_FOLDER}/data:/home/tigergraph/data
+        -   ${STORE_FOLDER}/config:/home/tigergraph/config
+        -   ${STORE_FOLDER}/logs:/home/tigergraph/log
+        environment:
+        -   ACCEPT_LICENSE=true
+        command: >-
+            bash -c "
+            /entrypoint.sh &
+            sleep 40 &&
+            su - tigergraph -c \"gsql -g \"system\" \"ALTER PASSWORD FOR tigergraph = '${TG_WEB}'\"\" &&
+            wait
+            "

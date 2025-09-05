@@ -76,10 +76,12 @@ class DBFlavor(BaseEnum):
     Attributes:
         ARANGO: ArangoDB database
         NEO4J: Neo4j database
+        TIGERGRAPH: TigerGraph database
     """
 
     ARANGO = "arango"
     NEO4J = "neo4j"
+    TIGERGRAPH = "tigergraph"
 
 
 class ExpressionFlavor(BaseEnum):
@@ -91,11 +93,13 @@ class ExpressionFlavor(BaseEnum):
     Attributes:
         ARANGO: ArangoDB AQL expressions
         NEO4J: Neo4j Cypher expressions
+        TIGERGRAPH: TigerGraph GSQL expressions
         PYTHON: Python expressions
     """
 
     ARANGO = "arango"
     NEO4J = "neo4j"
+    TIGERGRAPH = "tigergraph"
     PYTHON = "python"
 
 

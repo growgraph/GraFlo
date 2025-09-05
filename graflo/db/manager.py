@@ -25,6 +25,7 @@ from suthing import ConfigFactory, ConnectionKind, ProtoConnectionConfig
 
 from graflo.db.arango.conn import ArangoConnection
 from graflo.db.neo4j.conn import Neo4jConnection
+from graflo.db.tigergraph.conn import TigerGraphConnection
 
 
 class ConnectionManager:
@@ -44,6 +45,7 @@ class ConnectionManager:
     conn_class_mapping = {
         ConnectionKind.ARANGO: ArangoConnection,
         ConnectionKind.NEO4J: Neo4jConnection,
+        ConnectionKind.TIGERGRAPH: TigerGraphConnection,
     }
 
     def __init__(

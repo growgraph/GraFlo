@@ -118,10 +118,10 @@ class ArangoConnection(Connection):
         """
         if clean_start:
             self.delete_collections([], [], delete_all=True)
-        self.define_collections(schema)
+        self.define_schema(schema)
         self.define_indexes(schema)
 
-    def define_collections(self, schema: Schema):
+    def define_schema(self, schema: Schema):
         """Define ArangoDB collections based on schema.
 
         Args:
