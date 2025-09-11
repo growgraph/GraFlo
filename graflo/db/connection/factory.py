@@ -56,6 +56,8 @@ class ConfigFactory:
             return ConnectionKind.ARANGO
         elif 7400 <= port <= 7699:
             return ConnectionKind.NEO4J
+        elif 9000 <= port <= 9100:
+            return ConnectionKind.TIGERGRAPH
         return None
 
     @staticmethod

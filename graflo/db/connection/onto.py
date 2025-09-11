@@ -88,6 +88,10 @@ class ProtoConnectionConfig(ConnectionConfig):
         if self.port is not None:
             self.url = f"{self.url}:{self.port}"
 
+    @property
+    def url_without_port(self):
+        return f"{self.protocol}://{self.hostname}"
+
     def _parse_url(self):
         """Parse the URL into components."""
         if not self.url:
@@ -172,4 +176,17 @@ class Neo4jConnectionConfig(DBConnectionConfig):
     def __post_init__(self):
         """Set connection type and process parent class initialization."""
         self.connection_type = ConnectionKind.NEO4J
+        super().__post_init__()
+
+
+@dataclasses.dataclass
+class TigergraphConnectionConfig(DBConnectionConfig):
+    """Configuration for Neo4j connections."""
+
+    gs_port: int | None = None
+    graphname: str = "test"
+
+    def __post_init__(self):
+        """Set connection type and process parent class initialization."""
+        self.connection_type = ConnectionKind.TIGERGRAPH
         super().__post_init__()

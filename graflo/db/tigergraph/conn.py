@@ -30,6 +30,7 @@ from graflo.architecture.onto import Index
 from graflo.architecture.schema import Schema
 from graflo.architecture.vertex import VertexConfig
 from graflo.db.conn import Connection
+from graflo.db.connection.onto import TigergraphConnectionConfig
 from graflo.onto import AggregationType, DBFlavor
 from graflo.util.transform import pick_unique_dict
 
@@ -50,10 +51,11 @@ class TigerGraphConnection(Connection):
 
     flavor = DBFlavor.TIGERGRAPH
 
-    def __init__(self, config):
+    def __init__(self, config: TigergraphConnectionConfig):
         super().__init__()
         self.conn = PyTigerGraphConnection(
-            host=config.host,
+            host=config.url_without_port,
+            restppPort=config.port,
             graphname=config.graphname,
             username=config.username,
             password=config.password,
@@ -120,7 +122,6 @@ class TigerGraphConnection(Connection):
             raise
 
     def close(self):
-        # CONCEPTUAL DIFFERENCE: TigerGraph connections don't need explicit closing
         pass
 
     def init_db(self, schema: Schema, clean_start):

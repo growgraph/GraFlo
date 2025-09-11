@@ -1,15 +1,22 @@
 import os
 
 import pytest
-from suthing import ConfigFactory, FileHandle
+from suthing import FileHandle
 
-from graflo.db import ConnectionManager
+from graflo.db import ConfigFactory, ConnectionManager
 
 
 @pytest.fixture(scope="function")
 def test_db_port():
     FileHandle.load("docker.tigergraph", ".env")
     port = os.environ["TG_REST"]
+    return port
+
+
+@pytest.fixture(scope="function")
+def test_gs_port():
+    FileHandle.load("docker.tigergraph", ".env")
+    port = os.environ["TG_WEB"]
     return port
 
 
@@ -22,7 +29,7 @@ def creds():
 
 
 @pytest.fixture(scope="function")
-def conn_conf(test_db_port, creds):
+def conn_conf(test_db_port, test_gs_port, creds):
     cred_name, cred_pass = creds
 
     db_args = {
@@ -31,6 +38,7 @@ def conn_conf(test_db_port, creds):
         "cred_name": cred_name,
         "cred_pass": cred_pass,
         "port": test_db_port,
+        "gs_port": test_gs_port,
         # "database": "_system",
         "db_type": "tigergraph",
     }
