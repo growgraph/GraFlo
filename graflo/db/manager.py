@@ -19,11 +19,8 @@ Example:
     ...     conn.execute("FOR doc IN collection RETURN doc")
 """
 
-from typing import Optional
-
-from suthing import ConfigFactory, ConnectionKind, ProtoConnectionConfig
-
 from graflo.db.arango.conn import ArangoConnection
+from graflo.db.connection.onto import ConnectionKind, ProtoConnectionConfig
 from graflo.db.neo4j.conn import Neo4jConnection
 from graflo.db.tigergraph.conn import TigerGraphConnection
 
@@ -50,9 +47,7 @@ class ConnectionManager:
 
     def __init__(
         self,
-        secret_path=None,
-        args=None,
-        connection_config: Optional[ProtoConnectionConfig] = None,
+        connection_config: ProtoConnectionConfig,
         **kwargs,
     ):
         """Initialize the connection manager.
@@ -63,11 +58,7 @@ class ConnectionManager:
             connection_config: Optional connection configuration
             **kwargs: Additional configuration parameters
         """
-        self.config: ProtoConnectionConfig = (
-            ConfigFactory.create_config(secret_path, args)
-            if connection_config is None
-            else connection_config
-        )
+        self.config: ProtoConnectionConfig = connection_config
         self.working_db = kwargs.pop("working_db", None)
         self.conn = None
 

@@ -23,11 +23,21 @@ Example:
     ...     conn.init_db(schema)
 """
 
-from .connection import Connection, ConnectionType
+from .arango.conn import ArangoConnection
+from .conn import Connection, ConnectionType
+from .connection import ConfigFactory, ConnectionKind, DBConnectionConfig
 from .manager import ConnectionManager
+from .neo4j.conn import Neo4jConnection
+from .tigergraph.conn import TigerGraphConnection
 
 __all__ = [
     "Connection",
-    "ConnectionManager",
     "ConnectionType",
+    "ConfigFactory",
+    "ConnectionKind",
+    "DBConnectionConfig",
+    "ConnectionManager",
+    "ArangoConnection",
+    "Neo4jConnection",
+    "TigerGraphConnection",
 ]
