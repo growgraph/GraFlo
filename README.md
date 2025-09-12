@@ -4,8 +4,6 @@ A framework for transforming **tabular** (CSV, SQL) and **hierarchical** data (J
 
 > **⚠️ Package Renamed**: This package was formerly known as `graphcast`.
 
-[Rest of your existing README content...]
-
 ![Python](https://img.shields.io/badge/python-3.11-blue.svg) 
 [![PyPI version](https://badge.fury.io/py/graflo.svg)](https://badge.fury.io/py/graflo)
 [![PyPI Downloads](https://static.pepy.tech/badge/graflo)](https://pepy.tech/projects/graflo)

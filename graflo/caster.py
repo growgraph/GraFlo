@@ -25,11 +25,11 @@ from pathlib import Path
 from typing import cast
 
 import pandas as pd
-from suthing import ConnectionKind, DBConnectionConfig, Timer
+from suthing import Timer
 
 from graflo.architecture.onto import GraphContainer
 from graflo.architecture.schema import Schema
-from graflo.db import ConnectionManager
+from graflo.db import ConnectionKind, ConnectionManager, DBConnectionConfig
 from graflo.util.chunker import ChunkerFactory
 from graflo.util.onto import FilePattern, Patterns
 
@@ -154,7 +154,7 @@ class Caster:
         gc = self.cast_normal_resource(batch, resource_name=resource_name)
 
         if conn_conf is not None:
-            self.push_db(gc, conn_conf, resource_name=resource_name)
+            self.push_db(gc=gc, conn_conf=conn_conf, resource_name=resource_name)
 
     def process_resource(
         self,
@@ -336,7 +336,7 @@ class Caster:
         """
 
         path = Path(path).expanduser()
-        conn_conf: DBConnectionConfig = kwargs.get("conn_conf")
+        conn_conf = cast(DBConnectionConfig, kwargs.get("conn_conf"))
         self.clean_start = kwargs.pop("clean_start", self.clean_start)
         self.n_cores = kwargs.pop("n_cores", self.n_cores)
         self.max_items = kwargs.pop("max_items", self.max_items)

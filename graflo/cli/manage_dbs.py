@@ -24,7 +24,10 @@ import sys
 from datetime import date
 
 import click
-from suthing import ArangoConnectionConfig, ConfigFactory, FileHandle, Timer
+from suthing import FileHandle, Timer
+
+from graflo.db import ConfigFactory
+from graflo.db.connection.onto import ArangoConnectionConfig
 
 logger = logging.getLogger(__name__)
 

@@ -26,7 +26,6 @@ import logging
 from typing import Optional
 
 from arango import ArangoClient
-from suthing import ArangoConnectionConfig
 
 from graflo.architecture.edge import Edge
 from graflo.architecture.onto import (
@@ -37,11 +36,13 @@ from graflo.architecture.schema import Schema
 from graflo.architecture.vertex import VertexConfig
 from graflo.db.arango.query import fetch_fields_query
 from graflo.db.arango.util import render_filters
-from graflo.db.connection import Connection
+from graflo.db.conn import Connection
 from graflo.db.util import get_data_from_cursor
 from graflo.filter.onto import Clause
 from graflo.onto import AggregationType, DBFlavor
 from graflo.util.transform import pick_unique_dict
+
+from ..connection.onto import ArangoConnectionConfig
 
 logger = logging.getLogger(__name__)
 
@@ -118,10 +119,10 @@ class ArangoConnection(Connection):
         """
         if clean_start:
             self.delete_collections([], [], delete_all=True)
-        self.define_collections(schema)
+        self.define_schema(schema)
         self.define_indexes(schema)
 
-    def define_collections(self, schema: Schema):
+    def define_schema(self, schema: Schema):
         """Define ArangoDB collections based on schema.
 
         Args:

@@ -14,3 +14,9 @@ Example:
     >>> cursor = conn.execute("FOR doc IN users RETURN doc")
     >>> results = cursor.batch()
 """
+
+from .conn import ArangoConnection
+
+__all__ = [
+    "ArangoConnection",
+]

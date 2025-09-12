@@ -25,9 +25,10 @@ import pathlib
 from os.path import dirname, join, realpath
 
 import click
-from suthing import ConfigFactory, FileHandle
+from suthing import FileHandle
 
 from graflo import Caster, Patterns, Schema
+from graflo.db import ConfigFactory
 
 logger = logging.getLogger(__name__)
 

@@ -96,7 +96,7 @@ class Connection(abc.ABC):
         self.define_edge_indices(schema.edge_config.edges_list(include_aux=True))
 
     @abc.abstractmethod
-    def define_collections(self, schema: Schema):
+    def define_schema(self, schema: Schema):
         """Define collections based on the schema.
 
         Args:

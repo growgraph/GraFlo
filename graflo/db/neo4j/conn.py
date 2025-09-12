@@ -24,15 +24,16 @@ Example:
 import logging
 
 from neo4j import GraphDatabase
-from suthing import Neo4jConnectionConfig
 
 from graflo.architecture.edge import Edge
 from graflo.architecture.onto import Index
 from graflo.architecture.schema import Schema
 from graflo.architecture.vertex import VertexConfig
-from graflo.db.connection import Connection
+from graflo.db.conn import Connection
 from graflo.filter.onto import Expression
 from graflo.onto import AggregationType, DBFlavor
+
+from ..connection.onto import Neo4jConnectionConfig
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +158,7 @@ class Neo4jConnection(Connection):
 
         self.execute(q)
 
-    def define_collections(self, schema: Schema):
+    def define_schema(self, schema: Schema):
         """Define collections based on schema.
 
         Note: This is a no-op in Neo4j as collections are implicit.
