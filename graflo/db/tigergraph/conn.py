@@ -56,6 +56,7 @@ class TigerGraphConnection(Connection):
         self.conn = PyTigerGraphConnection(
             host=config.url_without_port,
             restppPort=config.port,
+            gsPort=config.gs_port,
             graphname=config.graphname,
             username=config.username,
             password=config.password,
@@ -63,15 +64,16 @@ class TigerGraphConnection(Connection):
         )
 
         # Get authentication token if secret is provided
-        # CONCEPTUAL DIFFERENCE: TigerGraph requires tokens for many operations
         if hasattr(config, "secret") and config.secret:
-            self.conn.getToken(config.secret)
+            try:
+                self.conn.getToken(config.secret)
+            except Exception as e:
+                logger.warning(f"Failed to get authentication token: {e}")
 
     def create_database(self, name: str):
         """
-        CONCEPTUAL DIFFERENCE: TigerGraph doesn't support creating graphs via API
-        like ArangoDB creates databases. Graphs must be created manually or via
-        GraphStudio/Admin Portal.
+        TigerGraph doesn't support creating graphs via API like ArangoDB.
+        Graphs must be created manually or via GraphStudio/Admin Portal.
         """
         logger.info(
             f"TigerGraph doesn't support creating graphs via API. Graph '{name}' should be created manually."
@@ -79,236 +81,301 @@ class TigerGraphConnection(Connection):
 
     def delete_database(self, name: str):
         """
-        CONCEPTUAL DIFFERENCE: Instead of deleting the entire graph,
-        we clear all data. TigerGraph graphs persist structurally.
+        Clear all data from TigerGraph - graphs persist structurally.
         """
         try:
-            # Get all vertex types and clear them
+            # Clear all vertices (edges will be deleted automatically)
             vertex_types = self.conn.getVertexTypes()
             for v_type in vertex_types:
-                self.conn.delVertices(v_type)
-
-            # Clear all edges
-            edge_types = self.conn.getEdgeTypes()
-            for e_type in edge_types:
-                # TigerGraph doesn't have a direct "delete all edges of type"
-                # so we'd need to implement this differently
-                pass
+                result = self.conn.delVertices(v_type)
+                logger.debug(f"Cleared vertices of type {v_type}: {result}")
 
         except Exception as e:
             logger.error(f"Could not clear database: {e}")
 
     def execute(self, query, **kwargs):
         """
-        CONCEPTUAL DIFFERENCE: TigerGraph has different query execution methods
-        - runInstalledQuery() for pre-installed queries
-        - gsql() for direct GSQL execution
-        - Various specific methods for common operations
+        Execute GSQL query or installed query based on content.
         """
         try:
-            # Check if this is an installed query or raw GSQL
-            if query.startswith("RUN ") or not any(
-                keyword in query.upper()
-                for keyword in ["CREATE", "DROP", "ALTER", "INSTALL"]
-            ):
-                # Assume it's an installed query name
-                result = self.conn.runInstalledQuery(query, **kwargs)
+            # Check if this is an installed query call
+            if query.strip().upper().startswith("RUN "):
+                # Extract query name and parameters
+                query_name = query.strip()[4:].split("(")[0].strip()
+                result = self.conn.runInstalledQuery(query_name, **kwargs)
             else:
                 # Execute as raw GSQL
                 result = self.conn.gsql(query)
             return result
         except Exception as e:
-            logger.error(f"Error executing query: {e}")
+            logger.error(f"Error executing query '{query}': {e}")
             raise
 
     def close(self):
+        """Close connection - pyTigerGraph handles cleanup automatically."""
         pass
 
-    def init_db(self, schema: Schema, clean_start):
+    def init_db(self, schema: Schema, clean_start=False):
         """
-        CONCEPTUAL DIFFERENCE: TigerGraph requires explicit schema definition
-        before any data operations, unlike ArangoDB's dynamic collections.
+        Initialize database with schema definition.
         """
         if clean_start:
             self.delete_database("")
 
-        # TigerGraph requires schema to be defined first
-        self.define_schema(schema)
-        self.define_indexes(schema)
+        try:
+            # Define schema first, then create graph
+            self.define_schema(schema)
+            logger.info("Schema definition completed")
+        except Exception as e:
+            logger.error(f"Error initializing database: {e}")
+            raise
 
     def define_schema(self, schema: Schema):
         """
-        CONCEPTUAL DIFFERENCE: TigerGraph requires explicit vertex and edge type
-        definitions before data can be inserted. This is a major difference from
-        ArangoDB which creates collections dynamically.
+        Define TigerGraph schema with proper GSQL syntax.
         """
         try:
+            gsql_commands = []
+
             # Define vertex types
-            for v in schema.vertex_config.vertices:
-                #  PRIMARY_ID title STRING, tagline STRING, released DATETIME
-                # INT, UINT, FLOAT, DOUBLE, STRING, BOOL, DATETIME, VERTEX, EDGE
+            for vertex in schema.vertex_config.vertices:
+                # Map fields to proper TigerGraph types
+                field_definitions = self._format_vertex_fields(vertex)
+
                 gsql_command = f"""
-                CREATE VERTEX {v.name} (
+                CREATE VERTEX {vertex.name} (
                     PRIMARY_ID id STRING,
-                    {v.fields}
+                    {field_definitions}
                 ) WITH STATS="OUTDEGREE_BY_EDGETYPE"
                 """
-                self.conn.gsql(gsql_command)
+                gsql_commands.append(gsql_command.strip())
 
             # Define edge types
             for edge in schema.edge_config.edges_list(include_aux=True):
-                edge_attrs = self._get_edge_attributes(edge)
-                # CREATE UNDIRECTED EDGE ACTED_IN (FROM person, TO movie)
+                edge_attrs = self._format_edge_attributes(edge)
+
                 gsql_command = f"""
                 CREATE DIRECTED EDGE {edge.relation} (
                     FROM {edge.source},
                     TO {edge.target}
                     {edge_attrs}
-                ) WITH REVERSE_EDGE="{edge.relation}_reverse"
+                )
                 """
-                self.conn.gsql(gsql_command)
+                gsql_commands.append(gsql_command.strip())
 
-            # Create the graph
-            graph_name = (
-                schema.edge_config.edges_list()[0].graph_name
-                if schema.edge_config.edges_list()
-                else "DefaultGraph"
-            )
-            vertex_list = ", ".join(schema.vertex_config.vertex_set)
-            edge_list = ", ".join(
-                [
-                    e.relation or e.collection_name
-                    for e in schema.edge_config.edges_list()
-                ]
-            )
+            # Execute all schema commands
+            for cmd in gsql_commands:
+                logger.debug(f"Executing GSQL: {cmd}")
+                result = self.conn.gsql(cmd)
+                logger.debug(f"Result: {result}")
 
-            gsql_command = f"""
-            CREATE GRAPH {graph_name} (
-                {vertex_list},
-                {edge_list}
-            )
-            """
-            self.conn.gsql(gsql_command)
+            # Create the graph after schema is defined
+            self._create_graph_definition(schema)
 
         except Exception as e:
             logger.error(f"Error defining schema: {e}")
+            raise
 
-    def _get_vertex_attributes(
-        self, vertex_config: VertexConfig, vertex_class: str
-    ) -> str:
+    def _format_vertex_fields(self, vertex_config) -> str:
         """
-        Helper to extract vertex attributes from schema.
-        CONCEPTUAL DIFFERENCE: TigerGraph needs explicit type definitions.
+        Format vertex fields for GSQL CREATE VERTEX statement.
         """
-        # This would need to be implemented based on your schema structure
-        # For now, return common attributes
-        return """
-            name STRING DEFAULT "",
-            properties MAP<STRING, STRING> DEFAULT (map())
-        """
+        if hasattr(vertex_config, "fields") and vertex_config.fields:
+            # If fields is already a string, return it
+            if isinstance(vertex_config.fields, str):
+                return vertex_config.fields
+            # If fields is a dict, format it
+            elif isinstance(vertex_config.fields, dict):
+                field_list = []
+                for field_name, field_type in vertex_config.fields.items():
+                    tg_type = self._map_type_to_tigergraph(field_type)
+                    field_list.append(f"{field_name} {tg_type}")
+                return ",\n    ".join(field_list)
 
-    def _get_edge_attributes(self, edge: Edge) -> str:
+        # Default fields
+        return """name STRING DEFAULT "",
+    properties MAP<STRING, STRING> DEFAULT (map())"""
+
+    def _format_edge_attributes(self, edge: Edge) -> str:
         """
-        Helper to extract edge attributes from schema.
+        Format edge attributes for GSQL CREATE EDGE statement.
         """
         if hasattr(edge, "attributes") and edge.attributes:
             attrs = []
             for attr_name, attr_type in edge.attributes.items():
-                attrs.append(f'{attr_name} {attr_type} DEFAULT ""')
+                tg_type = self._map_type_to_tigergraph(attr_type)
+                attrs.append(f"{attr_name} {tg_type}")
             return ",\n    " + ",\n    ".join(attrs) if attrs else ""
         else:
             return ",\n    weight FLOAT DEFAULT 1.0"
 
+    def _map_type_to_tigergraph(self, field_type: str) -> str:
+        """
+        Map common field types to TigerGraph types.
+        """
+        type_mapping = {
+            "str": "STRING",
+            "string": "STRING",
+            "int": "INT",
+            "integer": "INT",
+            "float": "FLOAT",
+            "double": "DOUBLE",
+            "bool": "BOOL",
+            "boolean": "BOOL",
+            "datetime": "DATETIME",
+            "date": "DATETIME",
+        }
+        return type_mapping.get(field_type.lower(), "STRING")
+
+    def _create_graph_definition(self, schema: Schema):
+        """
+        Create the graph definition after vertices and edges are defined.
+        """
+        try:
+            # Get graph name from schema or use default
+            graph_name = getattr(schema, "graph_name", None)
+            if not graph_name and schema.edge_config.edges_list():
+                graph_name = getattr(
+                    schema.edge_config.edges_list()[0], "graph_name", "DefaultGraph"
+                )
+            else:
+                graph_name = "DefaultGraph"
+
+            # Collect vertex and edge names
+            vertex_list = [v.name for v in schema.vertex_config.vertices]
+            edge_list = []
+            for edge in schema.edge_config.edges_list(include_aux=True):
+                edge_name = edge.relation or edge.collection_name
+                if edge_name:
+                    edge_list.append(edge_name)
+
+            if vertex_list:
+                vertex_str = ", ".join(vertex_list)
+                edge_str = ", ".join(edge_list) if edge_list else ""
+
+                if edge_str:
+                    gsql_command = f"""
+                    CREATE GRAPH {graph_name} (
+                        {vertex_str},
+                        {edge_str}
+                    )
+                    """
+                else:
+                    gsql_command = f"""
+                    CREATE GRAPH {graph_name} ({vertex_str})
+                    """
+
+                logger.debug(f"Creating graph: {gsql_command}")
+                result = self.conn.gsql(gsql_command.strip())
+                logger.debug(f"Graph creation result: {result}")
+
+        except Exception as e:
+            logger.error(f"Error creating graph definition: {e}")
+            # This might fail if graph already exists, which is often OK
+
     def define_vertex_collections(self, schema: Schema):
-        """
-        CONCEPTUAL DIFFERENCE: Vertex types are defined in schema, not as collections.
-        """
+        """Vertex types are defined in schema, not as collections."""
         pass
 
     def define_edge_collections(self, edges: list[Edge]):
-        """
-        CONCEPTUAL DIFFERENCE: Edge types are defined in schema, not as collections.
-        """
+        """Edge types are defined in schema, not as collections."""
         pass
 
     def define_vertex_indices(self, vertex_config: VertexConfig):
         """
-        CONCEPTUAL DIFFERENCE: TigerGraph automatically indexes primary keys.
-        Additional indices require different GSQL syntax.
+        TigerGraph automatically indexes primary keys.
+        Secondary indices are less common but can be created.
         """
-        for c in vertex_config.vertex_set:
-            for index_obj in vertex_config.indexes(c):
-                self._add_index(c, index_obj)
+        for vertex_class in vertex_config.vertex_set:
+            for index_obj in vertex_config.indexes(vertex_class):
+                self._add_index(vertex_class, index_obj)
 
     def define_edge_indices(self, edges: list[Edge]):
+        """Define indices for edges if specified."""
         for edge in edges:
-            for index_obj in edge.indexes:
-                if edge.relation is not None:
-                    self._add_index(edge.relation, index_obj, is_vertex_index=False)
+            if hasattr(edge, "indexes"):
+                for index_obj in edge.indexes:
+                    if edge.relation:
+                        self._add_index(edge.relation, index_obj, is_vertex_index=False)
 
     def _add_index(self, obj_name, index: Index, is_vertex_index=True):
         """
-        CONCEPTUAL DIFFERENCE: TigerGraph index creation syntax differs from ArangoDB.
-        Secondary indices are less commonly used in TigerGraph.
+        Add index - TigerGraph has limited secondary index support.
         """
         try:
-            # TigerGraph doesn't support arbitrary secondary indices like ArangoDB
-            # Most queries are optimized through primary key access
+            # TigerGraph primarily uses primary key indexing
+            # Secondary indices require special GSQL queries
             logger.info(
-                f"Secondary indices not commonly used in TigerGraph for {obj_name}"
+                f"Note: TigerGraph uses primary key indexing for {obj_name}. Secondary indices may require custom implementation."
             )
         except Exception as e:
             logger.warning(f"Could not create index for {obj_name}: {e}")
 
     def delete_collections(self, cnames=(), gnames=(), delete_all=False):
-        """
-        CONCEPTUAL DIFFERENCE: TigerGraph deletes data, not schema structures.
-        """
+        """Delete vertex data (collections in TigerGraph terms)."""
         try:
             if cnames:
-                for c in cnames:
-                    self.conn.delVertices(c)
+                for class_name in cnames:
+                    result = self.conn.delVertices(class_name)
+                    logger.debug(f"Deleted vertices from {class_name}: {result}")
             elif delete_all:
                 vertex_types = self.conn.getVertexTypes()
                 for v_type in vertex_types:
-                    self.conn.delVertices(v_type)
+                    result = self.conn.delVertices(v_type)
+                    logger.debug(f"Deleted all vertices from {v_type}: {result}")
         except Exception as e:
             logger.error(f"Error deleting collections: {e}")
 
     def upsert_docs_batch(self, docs, class_name, match_keys, **kwargs):
         """
-        CONCEPTUAL DIFFERENCE: TigerGraph uses different upsert syntax and
-        the pyTigerGraph library provides higher-level methods.
+        Batch upsert documents as vertices.
         """
         dry = kwargs.pop("dry", False)
-
         if dry:
+            logger.debug(f"Dry run: would upsert {len(docs)} documents to {class_name}")
             return
 
         try:
-            # Use pyTigerGraph's upsertVertices method which is more efficient
-            # than individual GSQL queries
+            # Prepare vertices data for pyTigerGraph format
             vertices_data = []
             for doc in docs:
-                # TigerGraph requires explicit primary ID
-                vertex_id = doc.get("_key") or doc.get("id") or str(hash(str(doc)))
-                vertex_data = {vertex_id: doc}
-                vertices_data.append(vertex_data)
+                vertex_id = self._extract_id(doc, match_keys)
+                if vertex_id:
+                    # Remove internal keys that shouldn't be stored
+                    clean_doc = {
+                        k: v
+                        for k, v in doc.items()
+                        if not k.startswith("_") or k == "_key"
+                    }
+                    vertices_data.append({vertex_id: clean_doc})
 
             # Batch upsert vertices
             if vertices_data:
                 result = self.conn.upsertVertices(class_name, vertices_data)
-                logger.debug(f"Upserted {len(vertices_data)} vertices: {result}")
+                logger.debug(
+                    f"Upserted {len(vertices_data)} vertices to {class_name}: {result}"
+                )
+                return result
 
         except Exception as e:
-            logger.error(f"Error upserting vertices: {e}")
+            logger.error(f"Error upserting vertices to {class_name}: {e}")
             # Fallback to individual operations
-            for doc in docs:
-                try:
-                    vertex_id = doc.get("_key") or doc.get("id") or str(hash(str(doc)))
-                    self.conn.upsertVertex(class_name, vertex_id, doc)
-                except Exception as inner_e:
-                    logger.error(f"Error upserting individual vertex: {inner_e}")
+            self._fallback_individual_upsert(docs, class_name, match_keys)
+
+    def _fallback_individual_upsert(self, docs, class_name, match_keys):
+        """Fallback method for individual vertex upserts."""
+        for doc in docs:
+            try:
+                vertex_id = self._extract_id(doc, match_keys)
+                if vertex_id:
+                    clean_doc = {
+                        k: v
+                        for k, v in doc.items()
+                        if not k.startswith("_") or k == "_key"
+                    }
+                    self.conn.upsertVertex(class_name, vertex_id, clean_doc)
+            except Exception as e:
+                logger.error(f"Error upserting individual vertex {vertex_id}: {e}")
 
     def insert_edges_batch(
         self,
@@ -327,14 +394,14 @@ class TigerGraphConnection(Connection):
         **kwargs,
     ):
         """
-        CONCEPTUAL DIFFERENCE: TigerGraph edge insertion uses different methods
-        and doesn't have the same flexible matching as ArangoDB's AQL.
+        Batch insert edges with proper error handling.
         """
         dry = kwargs.pop("dry", False)
-
         if dry:
+            logger.debug(f"Dry run: would insert {len(docs_edges)} edges")
             return
 
+        # Process edges list
         if isinstance(docs_edges, list):
             if head is not None:
                 docs_edges = docs_edges[:head]
@@ -348,13 +415,15 @@ class TigerGraphConnection(Connection):
                 target_doc = edge_doc.get("_target_aux", {})
                 edge_props = edge_doc.get("_edge_props", {})
 
-                # Extract source and target IDs based on match keys
                 source_id = self._extract_id(source_doc, match_keys_source)
                 target_id = self._extract_id(target_doc, match_keys_target)
 
                 if source_id and target_id:
-                    edge_data = (source_id, target_id, edge_props)
-                    edges_data.append(edge_data)
+                    edges_data.append((source_id, target_id, edge_props))
+                else:
+                    logger.warning(
+                        f"Missing source_id ({source_id}) or target_id ({target_id}) for edge"
+                    )
 
             except Exception as e:
                 logger.error(f"Error processing edge document: {e}")
@@ -362,39 +431,50 @@ class TigerGraphConnection(Connection):
         # Batch insert edges
         if edges_data:
             try:
+                edge_type = relation_name or collection_name
                 result = self.conn.upsertEdges(
                     source_class,
-                    relation_name or collection_name,
+                    edge_type,
                     target_class,
                     edges_data,
                 )
-                logger.debug(f"Inserted {len(edges_data)} edges: {result}")
+                logger.debug(
+                    f"Inserted {len(edges_data)} edges of type {edge_type}: {result}"
+                )
+                return result
             except Exception as e:
                 logger.error(f"Error batch inserting edges: {e}")
 
     def _extract_id(self, doc, match_keys):
         """
-        Helper to extract ID from document based on match keys.
-        CONCEPTUAL DIFFERENCE: TigerGraph requires explicit vertex IDs.
+        Extract vertex ID from document based on match keys.
         """
-        if "_key" in match_keys and "_key" in doc:
-            return doc["_key"]
-        elif "id" in match_keys and "id" in doc:
-            return doc["id"]
-        elif len(match_keys) == 1 and match_keys[0] in doc:
-            return str(doc[match_keys[0]])
-        else:
-            # Fallback: create ID from all match key values
-            id_parts = [str(doc.get(key, "")) for key in match_keys if key in doc]
-            return "_".join(id_parts) if id_parts else None
+        if not doc:
+            return None
+
+        # Try _key first (common in ArangoDB style docs)
+        if "_key" in doc and doc["_key"]:
+            return str(doc["_key"])
+
+        # Try other match keys
+        for key in match_keys:
+            if key in doc and doc[key] is not None:
+                return str(doc[key])
+
+        # Fallback: create composite ID
+        id_parts = []
+        for key in match_keys:
+            if key in doc and doc[key] is not None:
+                id_parts.append(str(doc[key]))
+
+        return "_".join(id_parts) if id_parts else None
 
     def insert_return_batch(self, docs, class_name):
         """
-        CONCEPTUAL DIFFERENCE: TigerGraph doesn't have the same return semantics
-        as ArangoDB's INSERT...RETURN. We'd need to track inserted IDs manually.
+        TigerGraph doesn't have INSERT...RETURN semantics like ArangoDB.
         """
         raise NotImplementedError(
-            "insert_return_batch not implemented for TigerGraph - use upsert_docs_batch instead"
+            "insert_return_batch not supported in TigerGraph - use upsert_docs_batch instead"
         )
 
     def fetch_docs(
@@ -406,39 +486,23 @@ class TigerGraphConnection(Connection):
         unset_keys: list | None = None,
     ):
         """
-        CONCEPTUAL DIFFERENCE: TigerGraph uses installed queries or GSQL SELECT
-        statements instead of AQL-style queries. This requires a different approach.
+        Fetch documents (vertices) with filtering and projection.
         """
         try:
-            # Use pyTigerGraph's getVertices method which is more efficient
-            if filters is None:
-                # Get all vertices of this type
-                vertices = self.conn.getVertices(class_name, limit=limit)
-            else:
-                # For filtered queries, we'd need to use GSQL or installed queries
-                # This is a simplified implementation
-                vertices = self.conn.getVertices(class_name, limit=limit)
-                # Apply filtering client-side (not optimal, but works for simple cases)
-                if isinstance(filters, dict):
-                    filtered_vertices = []
-                    for v_id, v_data in vertices.items():
-                        match = True
-                        for key, value in filters.items():
-                            if v_data.get("attributes", {}).get(key) != value:
-                                match = False
-                                break
-                        if match:
-                            filtered_vertices.append(
-                                {**v_data["attributes"], "_key": v_id}
-                            )
-                    return filtered_vertices[:limit] if limit else filtered_vertices
+            # Get vertices using pyTigerGraph
+            vertices = self.conn.getVertices(class_name, limit=limit)
 
-            # Convert to list format similar to ArangoDB
             result = []
-            for v_id, v_data in vertices.items():
-                doc = {**v_data.get("attributes", {}), "_key": v_id}
+            for vertex_id, vertex_data in vertices.items():
+                # Extract attributes
+                attributes = vertex_data.get("attributes", {})
+                doc = {**attributes, "_key": vertex_id}
 
-                # Apply return_keys filtering
+                # Apply filters (client-side for now)
+                if filters and not self._matches_filters(doc, filters):
+                    continue
+
+                # Apply projection
                 if return_keys is not None:
                     doc = {k: doc.get(k) for k in return_keys if k in doc}
                 elif unset_keys is not None:
@@ -446,11 +510,24 @@ class TigerGraphConnection(Connection):
 
                 result.append(doc)
 
-            return result[:limit] if limit else result
+                # Apply limit after filtering
+                if limit and len(result) >= limit:
+                    break
+
+            return result
 
         except Exception as e:
-            logger.error(f"Error fetching vertices: {e}")
+            logger.error(f"Error fetching documents from {class_name}: {e}")
             return []
+
+    def _matches_filters(self, doc, filters):
+        """Simple client-side filtering."""
+        if isinstance(filters, dict):
+            for key, value in filters.items():
+                if doc.get(key) != value:
+                    return False
+        # For list filters, would need more complex logic
+        return True
 
     def fetch_present_documents(
         self,
@@ -462,40 +539,40 @@ class TigerGraphConnection(Connection):
         filters: list | dict | None = None,
     ):
         """
-        CONCEPTUAL DIFFERENCE: TigerGraph requires different approach for checking
-        document presence. We need to query by specific vertex IDs.
+        Check which documents from batch are present in the database.
         """
         try:
             present_docs = {}
 
             for i, doc in enumerate(batch):
                 vertex_id = self._extract_id(doc, match_keys)
-                if vertex_id:
-                    try:
-                        vertex_data = self.conn.getVerticesById(class_name, vertex_id)
-                        if vertex_data:
-                            # Extract only the keys we want to keep
-                            filtered_doc = {}
-                            vertex_attrs = vertex_data[vertex_id]["attributes"]
-                            for key in keep_keys:
-                                if key in vertex_attrs:
-                                    filtered_doc[key] = vertex_attrs[key]
-                                elif key == "_key":
-                                    filtered_doc[key] = vertex_id
+                if not vertex_id:
+                    continue
 
-                            if flatten:
-                                present_docs[i] = [filtered_doc]
-                            else:
-                                present_docs[i] = [filtered_doc]
-                    except:
-                        # Vertex doesn't exist
-                        continue
+                try:
+                    vertex_data = self.conn.getVerticesById(class_name, vertex_id)
+                    if vertex_data and vertex_id in vertex_data:
+                        # Extract requested keys
+                        vertex_attrs = vertex_data[vertex_id].get("attributes", {})
+                        filtered_doc = {}
+
+                        for key in keep_keys:
+                            if key == "_key":
+                                filtered_doc[key] = vertex_id
+                            elif key in vertex_attrs:
+                                filtered_doc[key] = vertex_attrs[key]
+
+                        present_docs[i] = [filtered_doc]
+
+                except Exception:
+                    # Vertex doesn't exist or error occurred
+                    continue
 
             return present_docs
 
         except Exception as e:
             logger.error(f"Error fetching present documents: {e}")
-            return {} if not flatten else []
+            return {}
 
     def aggregate(
         self,
@@ -506,20 +583,19 @@ class TigerGraphConnection(Connection):
         filters: list | dict | None = None,
     ):
         """
-        CONCEPTUAL DIFFERENCE: TigerGraph aggregations typically require
-        installed queries for complex operations. Simple counts can be done
-        with built-in methods.
+        Perform aggregation operations.
         """
         try:
             if aggregation_function == AggregationType.COUNT and discriminant is None:
-                # Simple count
+                # Simple vertex count
                 count = self.conn.getVertexCount(class_name)
                 return [{"_value": count}]
             else:
-                # Complex aggregations require installed queries in TigerGraph
-                raise NotImplementedError(
-                    f"Complex aggregation {aggregation_function} not implemented - requires custom GSQL query"
+                # Complex aggregations require custom GSQL queries
+                logger.warning(
+                    f"Complex aggregation {aggregation_function} requires custom GSQL implementation"
                 )
+                return []
         except Exception as e:
             logger.error(f"Error in aggregation: {e}")
             return []
@@ -533,9 +609,9 @@ class TigerGraphConnection(Connection):
         filters: list | dict | None = None,
     ):
         """
-        Similar logic to ArangoDB but using TigerGraph's vertex checking methods.
+        Return documents from batch that are NOT present in database.
         """
-        present_docs_keys = self.fetch_present_documents(
+        present_docs_indices = self.fetch_present_documents(
             batch=batch,
             class_name=class_name,
             match_keys=match_keys,
@@ -544,8 +620,15 @@ class TigerGraphConnection(Connection):
             filters=filters,
         )
 
-        assert isinstance(present_docs_keys, dict)
+        absent_indices = sorted(
+            set(range(len(batch))) - set(present_docs_indices.keys())
+        )
+        return [batch[i] for i in absent_indices]
 
-        absent_indices = sorted(set(range(len(batch))) - set(present_docs_keys.keys()))
-        batch_absent = [batch[j] for j in absent_indices]
-        return batch_absent
+    def define_indexes(self, schema: Schema):
+        """Define all indexes from schema."""
+        try:
+            self.define_vertex_indices(schema.vertex_config)
+            self.define_edge_indices(schema.edge_config.edges_list(include_aux=True))
+        except Exception as e:
+            logger.error(f"Error defining indexes: {e}")

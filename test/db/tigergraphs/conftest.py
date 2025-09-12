@@ -25,18 +25,19 @@ def creds():
     FileHandle.load("docker.tigergraph", ".env")
     cred_pass = os.environ["GSQL_PASSWORD"]
     cred_name = "tigergraph"
+    cred_pass = "tigergraph"
     return cred_name, cred_pass
 
 
 @pytest.fixture(scope="function")
 def conn_conf(test_db_port, test_gs_port, creds):
-    cred_name, cred_pass = creds
+    username, password = creds
 
     db_args = {
         "protocol": "http",
         "hostname": "localhost",
-        "cred_name": cred_name,
-        "cred_pass": cred_pass,
+        "username": username,
+        "password": password,
         "port": test_db_port,
         "gs_port": test_gs_port,
         # "database": "_system",
